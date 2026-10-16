@@ -40,6 +40,11 @@ UI_FLOW = GODOT / "tests/UiFlowTests.gd"
 ATMOSPHERE = REPO / "src/LakskongenSim/Environment/AtmosphereModel.cs"
 SKY_BRIDGE = GODOT / "scripts/autoload/GameBridge.Sky.cs"
 EVIDENCE = REPO / "docs/run/evidence/g3_05/moods.json"
+MIST = GODOT / "scripts/environment/MistBanks.gd"
+MIST_SHADER = GODOT / "shaders/mist_bank.gdshader"
+CHIP = GODOT / "scripts/visual/VesselChip.gd"
+CHIP_SHADER = GODOT / "shaders/world_chip.gdshader"
+QUALITY = GODOT / "scripts/environment/RenderQuality.gd"
 
 NAMES = ["sommerdag", "midnattssol", "graavaer", "storm", "blaatime", "nordlys", "frostroyk", "hoest"]
 
@@ -265,5 +270,69 @@ def test_the_mood_goldens_are_recorded():
     assert goldens["nordlys"]["lamp_fraction"] >= 0.003
     assert goldens["storm"]["exposed_hs"] >= 2.0 and goldens["storm"]["exposed_hs_weakest_storm"] >= 2.0
     assert goldens["storm"]["skyline_dl"] >= 15.0
+    # The grey day's low cloud banks were drawn in its golden.
+    assert goldens["graavaer"]["mist"] >= 0.9 and goldens["graavaer"]["mist_banks"] > 20
     motion = [float(v) for v in re.findall(r"[\d.]+", str(goldens["sommerdag"]["shadow_motion"]))]
     assert motion[0] >= 0.5 and motion[0] >= 3.0 * motion[1]
+
+
+def test_the_engine_gets_the_directors_light_scene_linear():
+    """Environment fog/ambient colours and source_color uniforms are sRGB to the engine."""
+    director = _code(DIRECTOR)
+    assert re.search(r"static func encoded\(linear: Color\) -> Color:\n\treturn .*\.linear_to_srgb\(\)", director)
+    assert 'env.fog_light_color = encoded(c.get("fog_light_color", c["horizon_color"]))' in director
+    assert 'env.ambient_light_color = encoded(c["horizon_color"])' in director
+    assert 'set_shader_parameter("haze_color", encoded(' in director
+    assert 'set_shader_parameter("sky_haze_color", encoded(' in director
+    sky = _code(SKY)
+    assert re.search(r"uniform vec3 haze_color : source_color", sky) and re.search(r"uniform vec3 sky_haze_color : source_color", sky)
+
+
+def test_a_storm_stays_readable_and_koschmieder_holds_above_the_floor():
+    text = DIRECTOR.read_text(encoding="utf-8")
+    assert _const(text, "READABLE_VIS_M") <= 3000.0 and _const(text, "READABLE_SOFT_M") > 0.0
+    director = _code(DIRECTOR)
+    assert "var distance_vis := drawn_visibility(lerpf(visibility, ABOVE_SEA_FOG_VISIBILITY_M, sea_fog))" in director
+    # Exact above floor + soft (a clear or grey day is untouched), the G1-04 storm veil still checked.
+    assert "lerpf(READABLE_VIS_M, visibility_m, h) + READABLE_SOFT_M * h * (1.0 - h)" in director
+    assert "t_storm <= 0.35" in UI_FLOW.read_text(encoding="utf-8")
+
+
+def test_a_closed_deck_shows_no_clear_sky_and_clouds_have_no_slices():
+    sky = _code(SKY)
+    assert "sky_rgb = mix(sky_rgb, sky_haze_color * lift, smoothstep(0.8, 0.97, cloud_coverage));" in sky
+    assert "uniform float grade_horizon_lift" in sky and '"grade_horizon_lift"' in _code(DIRECTOR)
+    # The first cloud on a ray: a fine search, a bisected edge, fixed steps into it.
+    for const in ("EDGE_SEARCH", "INNER_STEPS", "INNER_STEP_KM", "COARSE_STEP_KM", "COARSE_MARGIN", "HORIZON_FADE"):
+        assert re.search(rf"const \w+ {const} = ", sky), const
+    assert "steps * cloud_search" in sky and '"cloud_search"' in _code(DIRECTOR)
+    quality = QUALITY.read_text(encoding="utf-8")
+    assert '"cloud_search": 1, "cloud_shadows": false' in quality, "Low pays for neither"
+
+
+def test_low_cloud_banks_hang_on_the_walls_under_a_deck():
+    mist = _code(MIST)
+    assert "extends MultiMeshInstance3D" in mist and "layers = PlanarReflection.NO_MIRROR_LAYER" in mist
+    assert "static func contour_anchors(terrain: FjordTerrain)" in mist and "get_height_at(" in mist
+    shader = _code(MIST_SHADER)
+    assert "hint_depth_texture" in shader and "soft_m" in shader, "soft against the slope"
+    assert "smoothstep(cloud_base - 0.15 * base_soft, cloud_base + base_soft, v_world.y)" in shader, "cut at the cloud base"
+    assert "fog_disabled" in shader and "unshaded" in shader
+    director = _code(DIRECTOR)
+    assert "MistBanks.ensure(get_parent())" in director
+    assert 'float(mood.get("mist", 0.0)) * float(c.get("mist_view", 1.0))' in director
+    assert '* mist_clear_for(base)' in director, "the height fog clears over the deck too"
+
+
+def test_world_chips_keep_their_day_brightness_at_night():
+    chip = _code(CHIP)
+    assert "func set_exposure(exposure: float)" in chip and 'set_shader_parameter("exposure_comp", comp)' in chip
+    assert "RenderQuality.DIRECTOR_GROUP" in chip
+    assert "* exposure_comp;" in _code(CHIP_SHADER)
+
+
+def test_qa_shots_take_the_settled_mood():
+    harness = _code(HARNESS)
+    i = harness.index("func _configure_env(")
+    body = harness[i:harness.index("\nfunc ", i + 10)]
+    assert 'director.call("compose", 0.0, true)' in body

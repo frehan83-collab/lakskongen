@@ -132,7 +132,7 @@ axes: north +X, up +Y, east +Z; the fjord opens west (−Z).
 
 | Composed | Rule |
 |---|---|
-| Fog | `fog_density = 3.912 / visibility` (Koschmieder); aerial perspective 0.6, sky affect 0.15, sun scatter 0.25; height fog only for a sea-fog layer; underwater 30 m visibility |
+| Fog | `fog_density = 3.912 / visibility` (Koschmieder), drawn at no less than a smooth 2.5 km (G3-05, below); aerial perspective 0.6, sky affect 0.15, sun scatter 0.25; height fog for a sea-fog layer, or mist above a mood's low cloud base; underwater 30 m visibility; the colour (the mood-graded sky) written sRGB-encoded |
 | Sun | direction from `SolarGeometry`; colour and energy from the same Chapman-function transmittance the sky draws, white-balanced at 60°; clouds dim it (× lerp(1, 0.15, c)), soften its shadow and take its specular glint off the water |
 | Moon | #C7D7E8, energy 0.04 × phase × elevation × (1 − 0.85 c), shadows only when the sun's are off |
 | Exposure | 1 with the sun above 12°; below that the eye adapts as (key_ref / key)^0.72 up to 16×, where the key is the zenith and horizon luminance of the same sky model plus the direct light; under a deck it adapts only part of the way, so storms stay dark |
@@ -144,7 +144,7 @@ axes: north +X, up +Y, east +Z; the fjord opens west (−Z).
 header): single scattering through a spherical atmosphere (Rayleigh, Mie,
 ozone) with Schüler's Chapman approximation for the sun ray, a twilight
 term and a night floor; the sun disc is `LIGHT0` (`LIGHT0_DIRECTION`,
-`_COLOR`, `_ENERGY`); a cumulus slab (1.2-2.4 km, 6 marched steps) and
+`_COLOR`, `_ENERGY`); a cumulus slab (1.2-2.4 km: a search, a bisected edge and 4 steps in, G3-05) and
 cirrus at 8 km lit by the sun at cloud height (pink clouds after sunset),
 scud under storms; stars; a phased moon disc; aurora curtains as vertical
 sheets 100-300 km up crossed analytically per ray (557.7 nm green, a 630 nm
@@ -172,6 +172,113 @@ real gameplay state: `lofoten_eventyr` (Nordland, 1 January), the first
 calm, clear night with the oval to the north, hour pinned at 22:00; it fails
 unless the aurora holds ≥ 3 % of the frame, and 0 % on the same night under
 overcast.
+
+## Moods and weather drama (G3-05)
+
+The physical model above decides how much light there is; a **mood** is the
+art direction on top of it (`EnvironmentMood.gd`): the hue of the clear sky,
+the cloud deck, the fog and the sunlight, the water's body colour, a small
+exposure bias, a low cloud base with mist on the mountains, the deck's
+brightness and a lift of the last degrees over the horizon. Grading keeps
+the model's luminance and takes the chroma from the mood, so a mood never
+fights the light it is given. Eight profiles:
+
+| Mood | When (weighed every frame from the sim's weather and calendar) | Look |
+|---|---|---|
+| Sommerdag | clear day | blue sky paling to the horizon, deep blue water (owner #0B3F7A-#12407A), cloud shadows on the land |
+| Midnattssol | clear, early summer, the sun low (< 12°) in the northern half | gold horizon (#F3D4A4) and sunlight (#FFC27A), slate water |
+| Gråvær | overcast (cloud 0.62-0.88) | closed grey deck (#A7B3BA), grey water (owner #5E666C), cloud base 200 m: low cloud banks and mist on the walls |
+| Storm | wind 11-14.5 m/s under cloud, or heavy rain under a deck | dark slate deck (#4C5861, ×0.42) over a lighter far horizon (+1.4), rain veil a shade under it, slanting rain, scud on the walls, camera sway |
+| Blåtime | the sun between -7° and +3° (mørketid noons in the north) | deep blue sky (#3C5A8A-#7F96BC), pink south (#D99AA8), slate mirror |
+| Nordlys | night (sun under -7° to -11°), clear | night sky (#08121F) for the aurora, water mirroring it, pen lamps |
+| Frostrøyk | clear, still (< 3-6 m/s) winter day | cool cyan-grey sky (ref 2), slate mirror, sea smoke from the sim |
+| Høst | clear, late August to mid November | low golden sun (#FFD9A0) on the birches, clear dark sea |
+
+`weights()` turns the inputs (sun elevation and bearing, day of year,
+cloud, rain and snow, wind) into eight weights summing to one; the
+director moves its weights toward them at `MOOD_RATE` (0.8/s), so a front
+or a sunset turns the mood over seconds, and blends the profiles in linear
+light. The screenshot harness snaps them once a QA shot's weather has
+settled. Sources: the art audit's palette and the owner's three water
+moods (`SPECS`); the mood goldens are measured against them (below).
+
+**The engine's colour inputs are sRGB.** `Environment.fog_light_color`,
+`ambient_light_color` and every `source_color` shader uniform are
+linearised by the renderer (probe: a fog colour of 0.5 renders 0.498 in
+sRGB, i.e. 0.214 linear). The director computes scene-linear radiance, so
+it writes them through `encoded()` (`linear_to_srgb`). Before G3-05 they
+went in raw: a linear 0.18 arrived as 0.027, and every overcast, storm,
+dusk and night fog came out 4-10× too dark, the far land and sea sinking
+into it (the art review's "mountains vanish entirely" in storms).
+
+**Fog in a storm.** Fog stays Koschmieder's (3.912 / visibility) above
+`READABLE_VIS_M` + `READABLE_SOFT_M` (4.5 km); under it the drawn
+visibility is a smooth maximum with 2.5 km (`drawn_visibility()`), because
+the sim's storm (1.5-2 km) would bury the player's own farm at the default
+zoom. A storm still veils the FJORD focus to 25-35 % (G1-04: ≤ 35 %).
+
+**Under a closed deck** the sky shows no clear sky behind the thinning far
+deck (the bright atmosphere leaked through as a white band under storms):
+the horizon is the deck's own diffused light (the haze colour), lifted in
+the last degrees by `horizon_lift`. Far broken cloud fades out over the
+last ~3° (`HORIZON_FADE`).
+
+**Low cloud on the mountains** (`MistBanks.gd`, `mist_bank.gdshader`):
+under a low deck (`cloud_base_m`, `mist`) soft banks of cloud stand on the
+walls' contour lines (170-540 m, every 260 m along both walls, 106 cards in
+one MultiMesh draw), upright and turned to face the camera about the
+vertical, ragged FBM wisps drifting with the wind, cut flat at the cloud
+base, faded against the slope (depth buffer) and near the camera, lit by
+the deck's light. The engine's height fog (negative density above the base)
+whitens the tops behind them. Both clear as the camera climbs past the
+deck (`mist_clear_for`: full under base + 150 m, gone at base + 550 m), so
+COAST keeps the farm in sight. Off the mirror (NO_MIRROR_LAYER).
+
+**Frost smoke** (sim: `AtmosphereModel.FrostSmoke`, Saunders 1964 steaming
+over a cold-air outbreak, clear and calm) is a layer 16 m deep drawn by the
+water shader (`water_mood.gdshaderinc`): its path through the layer thickens
+at a graze, so the far fjord is veiled and the water under the camera stays
+clear; soft three-octave puffs inside banks with clear water between, lit
+by the sun and the sky, lifting once the sun warms the air (6-18°).
+
+**Cloud shadows** (`CloudShadows.gd`): one Decal over the view, projected
+along the sunlight, a seamless noise thresholded at the cloud cover (cover
+0.28 shades 27 % of the ground), drifting with the sky's low clouds; the
+water reads the same map. Strongest under broken cloud with the sun over
+6-15°, none under a closed deck or at night; `cloud_shadows` knob (off on
+Low).
+
+**Pen lamps** (`PenLamps.gd`): one OmniLight 5 m down in each stocked pen
+(up to 24 nearest) after dusk in the lighting season (October-April); the
+water draws their glow through the surface at a fixed screen brightness
+(divided by the night's exposure). **Storm sway** (`StormSway.gd`): an
+additive h/v offset of the view from 11 m/s, at most 0.45 % of the view
+height; reduced motion holds it still. **Rain** slants with the wind
+(`rain_streak.gdshader`, streaks along each drop's velocity) and its
+emitter sits upwind.
+
+**World UI at night**: a vessel's status chip divides its text and pill
+by the exposure (`VesselChip.set_exposure`, `world_chip.gdshader`
+`exposure_comp`); site labels and signal rings do the same through
+`SiteLights` on the art-site track (`integration/wave2`).
+
+**The clouds' march** (`cloud_layer_low`): the low slab's noise is 2D, so
+samples at fixed distances along a ray stack each cloud into horizontal
+slices. The march searches a finer grid on screen (≤ 0.6 km, up to
+`cloud_search` × the tier's steps, two octaves fewer plus a margin), bisects
+to the first cloud's edge (5 steps) and integrates 4 steps into it (0.3 km,
+longer far off): edges and shading are continuous.
+
+**Mood goldens** (`MoodGoldens.gd`, `ScreenshotHarness -- --only=moods`,
+frames `20_mood_*.png`, report `20_moods.json`): eight FJORD frames from one
+camera, each a real sim atmosphere (`GameBridge.SkyContextFor`: regime,
+wind, sea temperature, day, latitude) at an hour; the run fails unless each
+reads as its own mood, the frames differ pairwise by pHash ≥ 9, the sky and
+the water within 2 km read within CIEDE2000 10 of `SPECS`, the lamps light
+≥ 0.3 % of the night frame (A/B with them off), the cloud shadows move the
+land (12 s, ≥ 0.5 dL* and 3× the frame without them), a storm raises Hs ≥ 2
+m on the exposed coast (also at the sim's weakest storm wind) and the
+storm's skyline stands ≥ 15 dL* off the sky.
 
 ## Water (G1-05)
 
@@ -401,5 +508,9 @@ runs, the cost breakdown and the frames.
 | `shaders/water/wake_shader.gdshader` | `VesselWakes` ribbons |
 | `shaders/include/mirror_pass.gdshaderinc` | the terrain (keeps the seabed out of the mirror) |
 | `shaders/sky_shader.gdshader` | `WorldEnvironment` sky |
+| `shaders/water/water_mood.gdshaderinc` | the water: frost smoke, cloud shadows, pen lamps (G3-05) |
+| `shaders/mist_bank.gdshader` | `MistBanks` (low cloud on the walls, G3-05) |
+| `shaders/rain_streak.gdshader` | the rain particles (streaks along the wind, G3-05) |
+| `shaders/world_chip.gdshader` | `VesselChip` status pills |
 | `shaders/underwater_post.gdshader` | `UnderwaterCanvas` |
 | `shaders/pen_*.gdshader`, `fish_shader.gdshader` | pen and fish assets |
