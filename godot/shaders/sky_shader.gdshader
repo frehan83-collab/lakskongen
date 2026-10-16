@@ -59,6 +59,8 @@ uniform vec3 sky_zenith = vec3(0.06, 0.12, 0.3);
 uniform int cloud_pass : hint_range(0, 2) = 0;
 uniform int cloud_steps : hint_range(2, 12) = 6;
 uniform int cloud_octaves : hint_range(3, 6) = 6;
+// The first-cloud search's step budget as a multiple of cloud_steps (G3-05).
+uniform int cloud_search : hint_range(1, 4) = 3;
 // The whole sky but its sharp detail (stars, moon and sun discs) marched in
 // the half (1) or quarter (2) resolution pass, the detail added per pixel
 // (0: per pixel, cloud_pass decides). The planar mirror's sky (G2-03): the
@@ -300,13 +302,12 @@ float high_density(vec2 p, int octaves) {
 const float H0 = 1.2;
 const float H1 = 2.4;
 // The search for the first cloud on a ray: on the screen a grid step of at
-// most COARSE_STEP_KM (up to COARSE_MAX times the tier's steps), testing
+// most COARSE_STEP_KM (up to cloud_search times the tier's steps), testing
 // two octaves fewer with the noise raised by COARSE_MARGIN (about what the
 // dropped octaves can add), so a thin cloud is rarely stepped over. Then
 // EDGE_SEARCH bisections place the cloud's edge and INNER_STEPS steps of at
 // most INNER_STEP_KM integrate into it.
 const float COARSE_STEP_KM = 0.6;
-const int COARSE_MAX = 3;
 const float COARSE_MARGIN = 0.06;
 const int EDGE_SEARCH = 5;
 const int INNER_STEPS = 4;
@@ -363,7 +364,7 @@ vec4 cloud_layer_low(vec3 dir, vec3 sun_dir, vec3 sky_top, vec3 moon_light, int 
 	// samples ride the cloud's surface, which moves smoothly from pixel to
 	// pixel, and every pixel takes the same number of them, so the edges and
 	// the shading stay continuous.
-	int coarse = fine ? clamp(int(ceil((t1 - t0) / COARSE_STEP_KM)), steps, steps * COARSE_MAX) : steps;
+	int coarse = fine ? clamp(int(ceil((t1 - t0) / COARSE_STEP_KM)), steps, steps * cloud_search) : steps;
 	float dc = (t1 - t0) / float(coarse);
 	int coarse_octaves = max(octaves - 2, 2);
 	float t = t0 + 0.5 * dc;

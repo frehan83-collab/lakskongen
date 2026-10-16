@@ -600,6 +600,7 @@ func _apply_sky(delta: float, sun_elev: float, cloud: float, density: float, vis
 		mat.set_shader_parameter("cloud_pass", 0 if underwater else int(quality.knobs["cloud_pass"]))
 		mat.set_shader_parameter("cloud_steps", int(quality.knobs["cloud_steps"]))
 		mat.set_shader_parameter("cloud_octaves", int(quality.knobs["cloud_octaves"]))
+		mat.set_shader_parameter("cloud_search", int(quality.knobs["cloud_search"]))
 		# The main sky draws per pixel (cloud_pass decides the clouds); the
 		# mirror's whole sky, aurora included, goes in its quarter pass.
 		var mirror_sky := i > 0
@@ -1189,7 +1190,7 @@ func _apply_frost_smoke(mat: ShaderMaterial, delta: float, sun_dir: Vector3, sun
 func _apply_cloud_shadows(mat: ShaderMaterial, sun_dir: Vector3, sun_elev: float, cloud: float, c: Dictionary) -> void:
 	var broken := smoothstep(CLOUD_SHADOW_FROM, CLOUD_SHADOW_PEAK, cloud) * (1.0 - smoothstep(CLOUD_SHADOW_CLOSE, CLOUD_SHADOW_TO, cloud))
 	var strength := broken * smoothstep(SHADOW_SUN_FROM, SHADOW_SUN_FULL, sun_elev)
-	if bool(c.get("underwater", false)):
+	if bool(c.get("underwater", false)) or not bool(quality.knobs["cloud_shadows"]):
 		strength = 0.0
 	var focus := camera.get_focus_point() if camera != null else Vector3.ZERO
 	var drift := -_cloud_offset * 1000.0
