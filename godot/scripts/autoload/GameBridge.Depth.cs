@@ -919,6 +919,26 @@ public partial class GameBridge : Node
         return result;
     }
 
+    /// <summary>Largest grant <see cref="QaGrantCash"/> books at once (NOK): a Havfarm-class build with room to spare.</summary>
+    private const double QaGrantCashMaxNok = 5_000_000_000.0;
+
+    /// <summary>
+    /// QA-only (F2-03): book <paramref name="nok"/> as other income so a seeded
+    /// scenario (a few million in the bank) can afford the facility build a UI
+    /// flow drives, e.g. an offshore unit next to the fjord's pens. Refuses a
+    /// non-finite, non-positive or larger-than-5-billion amount. Not reachable
+    /// from player UI (UiFlowTests calls it on the autoload).
+    /// </summary>
+    public bool QaGrantCash(double nok)
+    {
+        var engine = SimulationEngine;
+        if (engine?.State == null || engine.FinanceManager == null) return false;
+        if (!double.IsFinite(nok) || nok <= 0.0 || nok > QaGrantCashMaxNok) return false;
+        engine.ReceiveIncome((decimal)nok, "qa_grant");
+        EmitSignal(SignalName.GameStateUpdated);
+        return true;
+    }
+
     /// <summary>
     /// AI competitor companies for grey farm visuals (Phase 3).
     /// Keys: "id", "name", "market_share", "position_x", "position_z", "strategy".

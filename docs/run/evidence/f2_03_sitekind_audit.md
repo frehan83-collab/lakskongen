@@ -34,7 +34,7 @@ Every unit on a plot sits in its plot's own water area: its `ZoneId` is the plot
 
 **Completeness.** `TheAudit_ListsEveryConsumer_WithADecision` scans `src/LakskongenSim` and `godot/scripts/autoload` (C#) and every GDScript file under `godot/scripts` (comments stripped) for `SeaSites` and `GetSeaSiteDetails`, keyed by file and enclosing member with its number of uses, and fails when a consumer appears, disappears or changes its number of uses without this table following; `TheAudit_ListsEveryFjordViewConsumer` does the same for the fjord view (`FjordSites`), the consumers F2-03 moved off the list. `TheScan_FindsTheKnownConsumers` guards the scanner itself.
 
-**Totals.** 128 consumers (197 uses) of the list: 80 include, 36 exclude, 12 hook; 9 more read the fjord view. The spec's estimate was about 99 in the sim and 58 in the bridge counted by use; a member that reads the list several times is one row here with its number of uses.
+**Totals.** 129 consumers (197 uses) of the list: 80 include, 37 exclude, 12 hook; 12 readers of the fjord view (10 exclude, the 2 views themselves include). The spec's estimate was about 99 in the sim and 58 in the bridge counted by use; a member that reads the list several times is one row here with its number of uses.
 
 ## Consumers
 
@@ -63,7 +63,8 @@ Every unit on a plot sits in its plot's own water area: its `ZoneId` is the plot
 | `godot/scripts/autoload/GameBridge.Farm.cs` | `FjordGillAverage` | 1 | fjord-zone | exclude | By kind: the intervention ranking's gill input is the fjord sites' mean (blooms never reach a unit) |
 | `godot/scripts/autoload/GameBridge.Farm.cs` | `GetAttentionItems` | 2 | reports | include | Every sea site with critical gills gets an inbox item: a unit's gills only fall if a later item makes them |
 | `godot/scripts/autoload/GameBridge.Farm.cs` | `GetBloomMitigations` | 1 | fjord-hardware | exclude | By kind: only fjord sites are listed as installed (`s.Kind == Fjord &&`) |
-| `godot/scripts/autoload/GameBridge.Farm.cs` | `GetSeaSiteDetails` | 2 | units-and-lists | hook | `includeOffshore = false` by default: the fjord's index-keyed consumers (FishPenManager's pen slots, the feed barges, the fjord lists) never see a unit; every row carries `kind` and `plot_id`; units have `GetOffshoreUnits` (tests/test_bridge_contract.py) |
+| `godot/scripts/autoload/GameBridge.Farm.cs` | `GetSeaSiteDetails` | 1 | units-and-lists | exclude | The fjord sites only (`SeaSiteDetails(includeOffshore: false)`): the fjord's index-keyed consumers (FishPenManager's pen slots, the feed barges, the fjord lists) never see a unit; no argument, because Godot never fills a C# default (tests/test_bridge_contract.py) |
+| `godot/scripts/autoload/GameBridge.Farm.cs` | `SeaSiteDetails` | 1 | units-and-lists | hook | The builder of both lists: `includeOffshore` false for `GetSeaSiteDetails` (fjord), true for `GetAllSeaSiteDetails` (every sea site); every row carries `kind` and `plot_id`; units also have `GetOffshoreUnits` |
 | `godot/scripts/autoload/GameBridge.Farm.cs` | `GetSiteNames` | 1 | units-and-lists | include | Every sea site's id and label (label lookups for event text) |
 | `godot/scripts/autoload/GameBridge.Farm.cs` | `InstallBloomMitigation` | 1 | fjord-hardware | exclude | By kind: `Kind == Fjord` in the lookup |
 | `godot/scripts/autoload/GameBridge.Farm.cs` | `OrderDelousing` | 1 | harvest-wellboat | include | "all_sites" delouses every sea site through `DelouseSite`, the unit included |
@@ -75,7 +76,7 @@ Every unit on a plot sits in its plot's own water area: its `ZoneId` is the plot
 | `godot/scripts/autoload/GameBridge.Farm.cs` | `UpgradeContainment` | 1 | fjord-hardware | exclude | By kind: the containment ladder is a fjord locality's (F2-10 moves the verb into the engine) |
 | `godot/scripts/autoload/GameBridge.Farm.cs` | `VaccinateSite` | 1 | units-and-lists | include | By id: a unit's fish can be vaccinated like any sea site's |
 | `godot/scripts/autoload/SaveLoadManager.cs` | `ValidateAndFixGameState` | 6 | units-and-lists | include | Load defaults for every sea site (population site ids, carbon tracker, sludge, gills); a unit's structure (`Offshore ??= new`), its stored credit (1.0) and its watch mode (`onboard`) |
-| `godot/scripts/bridge/SimActions.gd` | `get_all_pens` | 1 | units-and-lists | exclude | Calls `GetSeaSiteDetails()` with the default: every GDScript consumer of `get_all_pens` (FjordVistaBridge -> FishPenManager, Dashboard, SiteOverlayLegend, OffshorePanel's containment and transfer lists, BriefingCard, Telemetry, WeatherDisease, DataExport, GameEventActions, ScreenshotHarness) sees the fjord sites only |
+| `godot/scripts/bridge/SimActions.gd` | `get_all_pens` | 1 | units-and-lists | exclude | Calls the fjord verb `GetSeaSiteDetails()`: every GDScript consumer of `get_all_pens` (FjordVistaBridge -> FishPenManager, Dashboard, SiteOverlayLegend, OffshorePanel's containment and transfer lists, BriefingCard, Telemetry, WeatherDisease, DataExport, GameEventActions, ScreenshotHarness) sees the fjord sites only |
 | `src/LakskongenSim/Advisor/AdvisorDemo.cs` | `CreateSampleGameState` | 1 | units-and-lists | include | Demo program's sample state (one fjord site); not engine code |
 | `src/LakskongenSim/Advisor/AdvisorDemo.cs` | `RunDemo` | 2 | units-and-lists | include | Demo program's printout of its sample sites; not engine code |
 | `src/LakskongenSim/Advisor/IntelligentAdvisor.cs` | `AnalyzeAndGenerateRecommendations` | 1 | harvest-wellboat | include | The advisors' risk view (spec §3.1 decision 4): every sea site's water, pens and management |
@@ -190,7 +191,7 @@ The consumers that read the list before F2-03 and now read the fjord view instea
 
 ## GDScript consumers
 
-No GDScript file reads the C# list. The one GDScript caller of `GetSeaSiteDetails` is `SimActions.get_all_pens` (row above), which takes the default `includeOffshore = false`; `tests/test_bridge_contract.py::test_sea_site_details_list_the_fjord_unless_asked` fails if any GDScript caller passes an argument. Its readers therefore see the fjord sites exactly as before F2-03, in the same order:
+No GDScript file reads the C# list. The one GDScript caller of `GetSeaSiteDetails` is `SimActions.get_all_pens` (row above), which calls the fjord verb `GetSeaSiteDetails()`; `tests/test_bridge_contract.py::test_sea_site_details_list_the_fjord_unless_asked` fails if a call passes an argument, if `get_all_pens` stops calling the fjord verb or if a fjord consumer (FishPenManager, FjordVistaBridge, FeedBargeVisualManager, SimActions) reads every sea site (`GetAllSeaSiteDetails`), and `test_bridge_consumers_call_real_methods_with_valid_arity` fails on any GDScript call that leaves a C# default unfilled (Godot never fills one). Its readers therefore see the fjord sites exactly as before F2-03, in the same order:
 
 | Reader of `get_all_pens` | Reads | Effect of an offshore unit |
 |---|---|---|

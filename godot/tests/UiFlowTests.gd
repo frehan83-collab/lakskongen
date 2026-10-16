@@ -142,6 +142,8 @@ func _run() -> void:
 	_test_farm_type_graybox()
 	_test_land_kit_imports()
 	_test_offshore_unit_and_fleet()
+	# F2-03: an offshore unit leaves the fjord's pen layout alone.
+	await _test_offshore_unit_leaves_fjord_pens_in_place()
 
 	_clear_test_saves()
 	_finish()
@@ -5739,3 +5741,105 @@ func _test_sky_latitude_follows_a_northern_scenario() -> void:
 	_check(absf(ts.latitude_deg - 63.43) < 0.01, "environment: the sky's latitude is the scenario region's (Trøndelag 63.43, got %.2f)" % ts.latitude_deg)
 	scene.queue_free()
 	await get_tree().process_frame
+
+## F2-03 (FARM_TYPES_SPEC §7.1 acceptance 6): an offshore unit is a sea site
+## in the engine, but the fjord's layout never sees it. FishPenManager lays
+## the fjord sites into channel slots by their index in GetSeaSiteDetails,
+## and the feed barges follow the same list; the bridge lists the fjord sites
+## unless asked. Building (and paying for) an OF1-class unit beside
+## po3_red_sone's two sites leaves every fjord site node, pen and barge where
+## it was, the unit stands in its own list on off_1 with its 3 zones, and the
+## 3D fjord draws no fjord site for it, today and a day later.
+func _test_offshore_unit_leaves_fjord_pens_in_place() -> void:
+	_check(_sim.start_qa_scenario("po3_red_sone", 91), "offshore unit: seeded scenario starts")
+	_sim.set_paused(true)
+	var scene: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+	add_child(scene)
+	for i in 5:
+		await get_tree().process_frame
+	_sim.set_paused(true)
+	var env: Node = scene.get_node("FjordEnvironment")
+	var pens: FishPenManager = env.get_node("FishPenManager")
+	var barges: FeedBargeVisualManager = env.get_node("FeedBargeVisualManager")
+	# The barges come with the first state sync (stocked at the start: on station).
+	_sim.state_updated.emit()
+	for i in 3:
+		await get_tree().process_frame
+	var fjord_ids: Array = _site_ids(_sim.get_all_pens())
+	var before := _fjord_layout(pens, barges)
+	_check(fjord_ids.size() == 2 and (before.get("sites", {}) as Dictionary).size() == 2
+		and (before.get("barges", []) as Array).size() == 2,
+		"offshore unit: the fjord draws po3_red_sone's two sites and their barges (%s)" % str(fjord_ids))
+
+	var bridge := get_node("/root/GameBridge")
+	var cash: float = float(_sim.balance)
+	_check(bool(bridge.QaGrantCash(1_000_000_000.0)) and float(_sim.balance) > cash + 999_000_000.0,
+		"offshore unit: a QA grant pays for the build")
+	_check(_sim.build_offshore_farm("Havmerd UI", "semi_submersible"), "offshore unit: an OF1-class unit is built")
+	_sim.state_updated.emit()
+	for i in 3:
+		await get_tree().process_frame
+	var units: Array = _sim.get_offshore_units()
+	var unit: Dictionary = units[0] if units.size() == 1 else {}
+	_check(str(unit.get("plot_id", "")) == "off_1" and int(unit.get("zones", 0)) == 3
+		and (unit.get("pens", []) as Array).size() == 3,
+		"offshore unit: it stands in its own list on off_1 with its 3 zones (%s)" % str(units.map(func(u: Dictionary) -> String: return "%s@%s" % [str(u.get("id", "")), str(u.get("plot_id", ""))])))
+	var unit_id := str(unit.get("id", ""))
+	var free_slots: Array = _sim.get_offshore_plots().filter(func(p: Dictionary) -> bool: return bool(p.get("free", false)))
+	_check(free_slots.size() == 2 and _site_ids(free_slots) == ["off_2", "hav_1"],
+		"offshore unit: two of the three offshore slots stay free (%s)" % str(_site_ids(free_slots)))
+	_check(_site_ids(_sim.get_all_pens()) == fjord_ids, "offshore unit: the fjord's site list is unchanged (%s)" % str(_site_ids(_sim.get_all_pens())))
+	_check(unit_id != "" and not (unit_id in pens.get_pen_ids()), "offshore unit: the 3D fjord draws no fjord site for it")
+	var after := _fjord_layout(pens, barges)
+	_check(after == before, "offshore unit: every fjord site, pen and feed barge stands where it stood (%s)" % _layout_change(before, after))
+
+	_sim.advance_days(1)
+	_sim.set_paused(true)
+	_sim.state_updated.emit()
+	for i in 3:
+		await get_tree().process_frame
+	var next_day := _fjord_layout(pens, barges)
+	_check(next_day == before, "offshore unit: a day later the fjord layout is still the same (%s)" % _layout_change(before, next_day))
+	scene.queue_free()
+	await get_tree().process_frame
+
+
+## The ids of a list of site or plot dictionaries, in order.
+func _site_ids(rows: Array) -> Array:
+	return rows.map(func(r: Dictionary) -> String: return str(r.get("id", "")))
+
+
+## Where the fjord's sites are drawn: per site its node, centre, pen count and
+## every pen's rest position (rounded to the millimetre); the feed barges'
+## sites and their states.
+func _fjord_layout(pens: FishPenManager, barges: FeedBargeVisualManager) -> Dictionary:
+	var sites := {}
+	for sid in pens.get_pen_ids():
+		var farm := pens.get_site(sid)
+		if farm == null:
+			continue
+		var rest := []
+		for k in farm.pen_count:
+			rest.append((farm.pen_rest_position(k) * 1000.0).round())
+		sites[sid] = [farm.get_instance_id(), (pens.get_pen_position(sid) * 1000.0).round(), farm.pen_count, rest]
+	var boats := []
+	var ids: Array = barges.active_site_ids()
+	ids.sort()
+	for sid in ids:
+		boats.append("%s:%s" % [str(sid), barges.barge_state(str(sid))])
+	return {"sites": sites, "barges": boats}
+
+
+## What moved between two layouts, for a failure message.
+func _layout_change(before: Dictionary, after: Dictionary) -> String:
+	if before == after:
+		return "nothing moved"
+	var changes := []
+	var a: Dictionary = before.get("sites", {})
+	var b: Dictionary = after.get("sites", {})
+	for sid in a.keys() + b.keys():
+		if a.get(sid) != b.get(sid) and not changes.has(str(sid)):
+			changes.append(str(sid))
+	if before.get("barges") != after.get("barges"):
+		changes.append("barges %s -> %s" % [str(before.get("barges")), str(after.get("barges"))])
+	return ", ".join(changes)

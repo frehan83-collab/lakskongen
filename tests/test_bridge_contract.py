@@ -348,7 +348,11 @@ def _signatures(target):
         for m in CS_SIGNATURE_RE.finditer(src):
             params = _split_top_level(m.group(2))
             unbounded = any(p.split()[0] == "params" for p in params if p.split())
-            required = sum("=" not in p and not p.split()[0] == "params" for p in params)
+            # Godot finds a C# method by name and argument count and never fills
+            # a C# default value (F2-03: GetSeaSiteDetails(bool x = false) called
+            # with no argument was "Nonexistent function"), so GDScript passes
+            # every parameter a default value stands for.
+            required = sum(not p.split()[0] == "params" for p in params)
             sigs.setdefault(m.group(1), []).append((required, 10**6 if unbounded else len(params)))
     return sigs
 
@@ -757,20 +761,33 @@ def _lane_block(src: str, lane: str) -> str:
 
 def test_sea_site_details_list_the_fjord_unless_asked():
     farm = (BRIDGE_DIR / "GameBridge.Farm.cs").read_text(encoding="utf-8")
-    assert re.search(r"public Godot\.Collections\.Array<Godot\.Collections\.Dictionary> GetSeaSiteDetails\("
-                     r"bool includeOffshore = false\)", farm), "GetSeaSiteDetails(bool includeOffshore = false) expected"
+    assert re.search(r"public Godot\.Collections\.Array<Godot\.Collections\.Dictionary> GetSeaSiteDetails\(\)\s*"
+                     r"=> SeaSiteDetails\(includeOffshore: false\);", farm), \
+        "GetSeaSiteDetails() must list the fjord sites (SeaSiteDetails(includeOffshore: false))"
+    assert re.search(r"public Godot\.Collections\.Array<Godot\.Collections\.Dictionary> GetAllSeaSiteDetails\(\)\s*"
+                     r"=> SeaSiteDetails\(includeOffshore: true\);", farm), \
+        "GetAllSeaSiteDetails() must list every sea site (SeaSiteDetails(includeOffshore: true))"
     assert "if (!includeOffshore && site.Kind != Farm.SiteKind.Fjord) continue;" in farm
     for key in ("kind", "plot_id"):
-        assert re.search(r'\["' + key + r'"\]\s*= site\.', farm), f"GetSeaSiteDetails lacks key {key}"
-    # Every GDScript consumer takes the default (the fjord): none asks for offshore units.
+        assert re.search(r'\["' + key + r'"\]\s*= site\.', farm), f"the sea-site details lack key {key}"
+    # GDScript calls the fjord verb with no argument (Godot never fills a C#
+    # default), and the fjord's index-keyed consumers never read every sea site.
     callers = []
     for path in (REPO / "godot").rglob("*.gd"):
         if "addons" in path.parts:
             continue
-        for call in re.findall(r"GetSeaSiteDetails\(([^)]*)\)", path.read_text(encoding="utf-8", errors="ignore")):
+        for call in re.findall(r"\bGetSeaSiteDetails\(([^)]*)\)", path.read_text(encoding="utf-8", errors="ignore")):
             callers.append((str(path.relative_to(REPO)), call.strip()))
     assert callers, "contract harness broken: no GetSeaSiteDetails caller found"
-    assert all(arg == "" for _, arg in callers), f"a fjord consumer asks for offshore units: {callers}"
+    assert all(arg == "" for _, arg in callers), f"a call passes an argument the C# verb does not take: {callers}"
+    fjord_consumers = ("environment/FishPenManager.gd", "environment/FjordVistaBridge.gd",
+                       "visual/FeedBargeVisualManager.gd", "bridge/SimActions.gd")
+    for rel in fjord_consumers:
+        src = (REPO / "godot" / "scripts" / rel).read_text(encoding="utf-8")
+        assert not re.search(r"GetAllSeaSiteDetails|get_all_sea_site_details", src), f"{rel} reads every sea site"
+    actions = (REPO / "godot" / "scripts" / "bridge" / "SimActions.gd").read_text(encoding="utf-8")
+    assert re.search(r"func get_all_pens\(\)(?:(?!\nfunc )[\s\S])*?game_bridge\.GetSeaSiteDetails\(\)", actions), \
+        "get_all_pens (the fjord's pen layout and barges read it) must call GetSeaSiteDetails()"
 
 
 def test_each_farm_type_lane_owns_one_partial_and_one_marked_block():

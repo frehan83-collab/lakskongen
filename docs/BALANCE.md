@@ -1541,6 +1541,84 @@ weight raised by one ulp on day 200 in po3_red_sone seed 7: named on day 200
 ledger 526, mort 527, pop 102, mtb 35, env 3) and the final cash moves by
 0.00000000016 NOK.
 
+## 1m. F2-03: site kinds, plots and the facility migration (2026-10-16, branch `wave3/sim-core-2`)
+
+No tuning. F2-03 gives the farm types their places and their unit kinds; the
+numbers below are the catalogue and the unit classes it ships with, sourced in
+`godot/data/site_plots.json` (`sources` per plot) and `Farm/Offshore/OffshoreUnit.cs`
+from docs/FARM_TYPES_SPEC.md (§2A, §3.2, §4: [O:Rn], [L:Rn] are its offshore
+and land references, [GB] a game-balance value).
+
+**The shipped scenarios are unchanged:** `tools/record_golden_traces.sh --base 235ccf2`
+gives 27 of 27 traces identical (every day line and every snapshot value);
+the only save drift is the additive fields (`SeaSite.Kind`, `PlotId`,
+`Offshore`, `AppliedContainmentCredit`, `GameState.SitePlots`),
+docs/run/evidence/f2_03_golden_diff.md.
+
+### Plots (`site_plots.json` v1)
+
+| plot | name | kind | centre (x, z) m | real distance | gameplay attributes |
+|---|---|---|---|---|---|
+| `pad_a` | Storholmen | land pad 640 x 420 m | (-450, -1720) (F2-18 read gate) | 1.8 km | 4 grow-out lots, 4 post-smolt modules, grid 40 MW (1 feed), sensitivity 0.2, not pre-zoned, blasting 120 M NOK [GB] |
+| `pad_b` | Skjærvika | land pad 480 x 360 m | (750, -1640) | 1.8 km | 2 lots, grid 25 MW, sensitivity 0.6 [GB, after Verholmen L:G4], blasting 77 M NOK |
+| `pad_delta` | Elveøyra | land pad 260 x 180 m | (0, 1450) | 1.5 km | 4 post-smolt modules, river intake (12-35 ppt), pre-zoned, grid 10 MW, blasting 40 M NOK |
+| `off_1` | Ytre kyst | offshore slot, OuterCoast | (-450, -2750) | 5 km | Hs100 5.0 m [O:R6], depth 150 m, external lice x 0.12 [GB: 0.01-0.06 adult females, 0 treatments in 2 OF1 cycles, O:R7, O:R8, O:R11] |
+| `off_2` | Havkanten | offshore slot, OuterCoastExposed | (850, -3400) | 12 km | Hs100 6.5 m [GB; AOF approved 6.7 m, O:R19], depth 220 m, lice x 0.10 |
+| `hav_1` | Havområde | offshore slot, OpenOcean (zone `hav`) | (0, -5200) | 83 km (45 nm, O:R58) | Hs100 13 m [GB, from the SFF design, O:R12, O:R29], depth 300 m, lice x 0.05-0.30 drawn per game |
+
+Static lift on every pad 13.0 m (pad +3.6 m [L:R13] + 8 m water + 1.5 m
+freeboard, derived); pumps 5 m³/s a lot [GB]; the deep-intake reach is
+computed from the heightfield (`ISitePlotGeometry.IntakeReachM`), never authored.
+Overflow plots for migrated saves: 4 reserved positions a kind (land pads
+on the mouth's shore, offshore slots in the open far field), neutral attributes
+(4 lots and 4 modules; off_1's sea), more generated past them.
+
+### Unit classes
+
+| class | zones | volume | MTB | design Hs | fits | crew | rota | capex (legacy verb) |
+|---|---|---|---|---|---|---|---|---|
+| OF1-class (SemiSubmersible) | 3 [O:R1, O:R6] | 250,000 m³ [O:R1, O:R6] | 6,240 t (8 x 780 t, O:R4) | 5.5 m [O:R6, O:R15] | off_1 (off_2 with +1.0 m) | 12 [O:R13] | 7 days (9-on/12-off in 3 shifts, O:R3) | 700 M NOK (pre-F2) |
+| Havfarm-class (ShipShaped) | 6 [O:R23, O:R25] | 6 x 69,000 m³ | 10,000 t [O:R22, O:R23] | 8.0 m | off_1, off_2 | 12 | 7 days | 900 M NOK (pre-F2) |
+| Submersible (legacy) | 3 | as OF1 [GB] | as OF1 [GB] | as OF1 [GB] | off_1 | 12 | 7 days | 1.2 bn NOK (pre-F2) |
+| post-smolt module (land) | 2 tanks of 1,600 m³ | 3,200 m³ | 480 t a year, 1.1 M fish at once [GB] | — | pads with post-smolt room, pad_delta first | — | — | pre-F2 facility |
+| grow-out lot (land) | — | — | 7,900 t a year [L:R8] | — | pads with lots | — | — | pre-F2 RAS facility |
+
+An offshore unit's water is its area's open sea (climatology, saturation
+oxygen) plus its current-fed 1.5 mg/L; its own lice model runs at its slot's
+external pressure (x 0.12 at off_1, held at the model's 0.2 floor after the
+seasonal factor); the fjord storm wear never reaches it.
+
+### The pre-F2 facilities save, migrated (`save_v8_facilities.json`)
+
+The RAS facility (Small, 5,000 t a year: 1 lot) takes pad_a, the semi-submersible offshore farm becomes
+`offshore_1` on off_1 (its 2 stocked pens in zones 1 and 2, its 8,000 t
+capacity kept as the unit's MTB, its 6 x 40,000 m³ of pens as 3 zones of
+80,000 m³, its 14-day rota 7 days), the post-smolt facility (10 M smolts a year)
+becomes `postsmolt_1` on pad_delta with 4 modules (8 tanks), its 2 batches
+populations. Fish and kg equal the save's to 1e-9; the 30-day continuation is
+bit-identical across processes. The 365-day continuations
+(`FarmTypeMoveTests`, osx-arm64):
+
+| variant | engine | cash day 365 (NOK) | fish | RAS kg | post-smolt kg | offshore kg |
+|---|---|---|---|---|---|---|
+| as-saved/events | pre-F2 (`235ccf2`) | 1,418,552,985 | 340,407 + 281,896 in batches | 267,921 | 9,514,553 (33.8 kg a fish) | 762,750 |
+| as-saved/events | F2-03 | 1,447,483,294 | 340,407 + 266,352 in tanks | 267,921 | 2,142,024 (8.0 kg a fish, 167 kg/m³) | 762,750 |
+| as-saved/no-events | pre-F2 (`235ccf2`) | 1,430,404,915 | 202,214 + 281,896 in batches | 158,051 | 9,514,553 (33.8 kg a fish) | 450,769 |
+| as-saved/no-events | F2-03 | 1,469,614,476 | 202,214 + 179,962 in tanks | 158,051 | 1,447,269 (8.0 kg a fish, 113 kg/m³) | 450,769 |
+
+The sea sites, the RAS tanks and the offshore unit hold the same fish and
+kilos to the kilo before and after: the fixture's offshore farm had no zone,
+so it already took its area's sea, and its fish now sit in zones of the same
+water. What moved is the post-smolt batches (nobody transfers them in this
+continuation): they now grow by the TGC law in their tanks' controlled 13 °C
+and die by the mortality hazards, where the pre-F2 facility compounded
+1.5 % of body weight a day x temperature / 12 with no end (33.8 kg a fish
+after a year) and lost 3 % over 180 days as anchor deaths, and paid feed for
+it. Cash is 28.9 M NOK (events) and 39.2 M NOK (no events) higher, net of the
+unit's 7-day rota (26 more crew changes at 150,000 NOK). A post-smolt left in
+its tanks still reaches 8 kg at 113-167 kg/m³: land tanks carry no density
+stress until F2-12 (RUN_LOG §8).
+
 ## 2. Key economic knobs
 
 | Knob | Current | Real reference | Source | Recommended playtest band |

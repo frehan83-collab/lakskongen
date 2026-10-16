@@ -856,14 +856,26 @@ public partial class GameBridge : Node
     ///       "density_kg_m3", "volume_m3", "circumference_m", "net_depth_m",
     ///       "ration", "fasting"), "kind" ("Fjord" or "Offshore", F2-03) and
     ///       "plot_id" ("" for a fjord site).
-    /// F2-03: the fjord sites only, in list order, unless
-    /// <paramref name="includeOffshore"/>: the fjord's consumers (the pen
-    /// layout of FishPenManager, the feed barges, the fjord lists) index the
-    /// sites and their pens by position, and an offshore unit (a sea site in
-    /// the open sea) must never shift them. Offshore units have their own list
-    /// (GetOffshoreUnits, GameBridge.Offshore.cs).
+    /// F2-03: the fjord sites only, in list order (includeOffshore = false):
+    /// the fjord's consumers (the pen layout of FishPenManager, the feed
+    /// barges, the fjord lists) index the sites and their pens by position,
+    /// and an offshore unit (a sea site in the open sea) must never shift them.
+    /// Offshore units have their own list (GetOffshoreUnits,
+    /// GameBridge.Offshore.cs); every sea site is GetAllSeaSiteDetails. (A
+    /// GDScript call never fills a C# default parameter, so the choice is two
+    /// verbs, not one optional argument.)
     /// </summary>
-    public Godot.Collections.Array<Godot.Collections.Dictionary> GetSeaSiteDetails(bool includeOffshore = false)
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetSeaSiteDetails() => SeaSiteDetails(includeOffshore: false);
+
+    /// <summary>
+    /// Every sea site, fjord sites and offshore units, in list order, keys as
+    /// <see cref="GetSeaSiteDetails"/> ("kind" tells them apart; an offshore
+    /// unit's "plot_id" is its slot). For views of the whole company; never for
+    /// the fjord's index-keyed pen layout.
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetAllSeaSiteDetails() => SeaSiteDetails(includeOffshore: true);
+
+    private Godot.Collections.Array<Godot.Collections.Dictionary> SeaSiteDetails(bool includeOffshore)
     {
         var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
         var sites = SimulationEngine?.State?.SeaSites;
