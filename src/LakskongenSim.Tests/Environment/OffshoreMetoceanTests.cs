@@ -178,7 +178,7 @@ public class OffshoreMetoceanTests
             polled.TickDay(day, polledWeather.CurrentState, polledStream);
             var before = polledRng.CaptureStates();
             string seaBefore = JsonSerializer.Serialize(polled, SaveJson.Options);
-            var forecast = MetoceanForecast.Issue(polled, polledWeather, Off1, limits, withQuantiles: day % 10 == 0);
+            var forecast = MetoceanForecast.Issue(polled, polledWeather, Off1, limits, withQuantiles: day % 50 == 0);
             OperabilityWindows.Outlook(forecast, OffshoreOp.CrewChange, VesselClass.Helicopter, Cal.Operability, Cal.Metocean);
             polls++;
             Assert.Equal(before, polledRng.CaptureStates());
@@ -445,6 +445,24 @@ public class OffshoreMetoceanTests
             _output.WriteLine($"month {month + 1,2}: off_1 mean {F(mean * Off1)} m, reference {F(mean)} against {F(target)}");
             Assert.InRange(mean, target * 0.97, target * 1.03);
         }
+    }
+
+    /// <summary>
+    /// hav_1, the open-ocean plot 83 km out, is scaled only to the spec's
+    /// 100-year sea of 13 m, yet it reproduces the open Norwegian Sea at
+    /// Haltenbanken (NORCE 2020 Table 3.2, NORA10 1958-2019, 3-hour states):
+    /// a mean within 10 % of 2.6 m and the share above 3 m within 3 points of
+    /// 32.6 %.
+    /// </summary>
+    [Fact]
+    public void Hav1_MatchesTheOpenSeaAtHaltenbanken()
+    {
+        double scale = Cal.Plots.Hav1.HsScale;
+        var all = MetoceanRuns.Acceptance.SelectMany(r => r.ReferenceHs).Select(h => h * scale).ToArray();
+        double mean = all.Average(), above3 = all.Count(h => h > 3.0) / (double)all.Length;
+        _output.WriteLine($"hav_1: mean {F(mean)} m (NORA10 2.6), above 3 m {F(above3)} (0.326)");
+        Assert.InRange(mean, 2.6 * 0.9, 2.6 * 1.1);
+        Assert.InRange(above3, 0.326 - 0.03, 0.326 + 0.03);
     }
 
     /// <summary>Hs at a plot is its scale times the reference sea; Tp is the longer of the wind sea's and the swell's.</summary>

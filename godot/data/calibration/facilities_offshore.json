@@ -1,0 +1,132 @@
+{
+  "metocean": {
+    "arPhi": 0.75,
+    "arSigma": 0.3,
+    "backgroundSwellHsM": 0.34,
+    "baseBoxCoxLambda": 0.4,
+    "baseMuMonth": {
+      "m01": -0.524,
+      "m02": -0.508,
+      "m03": -0.608,
+      "m04": -0.804,
+      "m05": -1.104,
+      "m06": -1.093,
+      "m07": -1.281,
+      "m08": -1.223,
+      "m09": -0.765,
+      "m10": -0.636,
+      "m11": -0.665,
+      "m12": -0.492
+    },
+    "clearVisibilityMaxKm": 50,
+    "fitMonthlyMeanHsM": {
+      "m01": 3.7,
+      "m02": 3.6,
+      "m03": 3.2,
+      "m04": 2.4,
+      "m05": 1.8,
+      "m06": 1.7,
+      "m07": 1.5,
+      "m08": 1.6,
+      "m09": 2.3,
+      "m10": 2.9,
+      "m11": 3.2,
+      "m12": 3.7
+    },
+    "forecastFullErrorLeadDays": 4,
+    "forecastHorizonDays": 10,
+    "lowVisibilityDayShare": {
+      "m01": 0.05,
+      "m02": 0.05,
+      "m03": 0.04,
+      "m04": 0.03,
+      "m05": 0.03,
+      "m06": 0.05,
+      "m07": 0.06,
+      "m08": 0.05,
+      "m09": 0.03,
+      "m10": 0.03,
+      "m11": 0.04,
+      "m12": 0.05
+    },
+    "lowVisibilityKm": 1.5,
+    "lowVisibilityMinKm": 0.2,
+    "referenceAnnualMeanHsM": 1,
+    "swellBoxCoxLambda": 0.8,
+    "swellDurationDaysMax": 4,
+    "swellDurationDaysMin": 1,
+    "swellLeadDaysMax": 7,
+    "swellLeadDaysMin": 4,
+    "swellMedianJanuaryM": 2.2,
+    "swellMedianShape1YearHsM": {
+      "m01": 10.3,
+      "m02": 9.8,
+      "m03": 8.7,
+      "m04": 7.2,
+      "m05": 6,
+      "m06": 5.7,
+      "m07": 4.5,
+      "m08": 5.4,
+      "m09": 7.5,
+      "m10": 8.4,
+      "m11": 9.9,
+      "m12": 10.2
+    },
+    "swellRampFraction": 0.5,
+    "swellRatePerDay": {
+      "m01": 0.1,
+      "m02": 0.09,
+      "m03": 0.08,
+      "m04": 0.05,
+      "m05": 0.03,
+      "m06": 0.02,
+      "m07": 0.02,
+      "m08": 0.03,
+      "m09": 0.05,
+      "m10": 0.07,
+      "m11": 0.09,
+      "m12": 0.1
+    },
+    "swellSigmaLn": 0.2,
+    "swellTpMaxS": 14,
+    "swellTpMinS": 9,
+    "weatherDelta": {
+      "calm": -0.3,
+      "moderate": 0,
+      "severe": 0.85,
+      "storm": 0.55
+    },
+    "windSeaTpPerSqrtHs": 4.5
+  },
+  "operability": {
+    "appetiteAtFloor": 0.7,
+    "appetiteFloorHsM": 6,
+    "appetiteFullHsM": 4,
+    "boardingDpHsM": 3,
+    "boardingHsM": 2,
+    "fishHandlingHsM": 2,
+    "fishHandlingOffshoreWellboatHsM": 2.5,
+    "helicopterMaxWindMs": 25,
+    "helicopterMinVisibilityKm": 1.5,
+    "netInspectionHsM": 3,
+    "resupplyDpHsM": 3,
+    "resupplyHsM": 2.5,
+    "towHoldDays": 3,
+    "towHsM": 2.5,
+    "wellboatAlongsideHsM": 5
+  },
+  "plots": {
+    "hav_1": {
+      "hs100M": 13,
+      "hsScale": 2.752
+    },
+    "off_1": {
+      "hs100M": 5,
+      "hsScale": 1.058
+    },
+    "off_2": {
+      "hs100M": 6.5,
+      "hsScale": 1.376
+    }
+  }
+}

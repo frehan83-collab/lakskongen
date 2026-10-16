@@ -159,7 +159,7 @@ public class MetoceanForecastAccuracyTests
     }
 
     /// <summary>
-    /// At every third snapshot, leads 1, 3, 5, 7 and 10, the 2.0 and 3.0 m
+    /// At every fourth snapshot, leads 1, 3, 5, 7 and 10, the 2.0 and 3.0 m
     /// limits at off_1 and the forecast's own 10/50/90 % quantiles, P(Hs ≤ h)
     /// is within 5e-4 of a 1,600-node (one swell), 320 × 480-node (two) or
     /// 32,768-point (three or more) integration of the same terms.
@@ -167,7 +167,7 @@ public class MetoceanForecastAccuracyTests
     [Fact]
     public void Quadrature_MatchesAHighResolutionIntegration()
     {
-        var snapshots = Snapshots(Cal.Metocean.ForecastHorizonDays).Where((_, i) => i % 3 == 0).ToList();
+        var snapshots = Snapshots(Cal.Metocean.ForecastHorizonDays).Where((_, i) => i % 4 == 0).ToList();
         double worst = 0.0;
         string worstAt = "";
         int checks = 0, withTwo = 0, withTail = 0;

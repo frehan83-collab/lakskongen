@@ -89,7 +89,7 @@ namespace LakskongenSim.Calibration
         /// Day-to-day persistence φ of the base sea's AR(1) residual (unit
         /// 1/day). 0.75. Range: 0.5-0.95. Game balance: spec §3.3; with the
         /// weather chain and the swell queue the reference sea's lag-1
-        /// autocorrelation of ln Hs is about 0.74 (docs/BALANCE.md §1n).
+        /// autocorrelation of ln Hs is 0.80 (docs/BALANCE.md §1n).
         /// </summary>
         public double ArPhi { get; init; } = 0.75;
 
@@ -125,7 +125,7 @@ namespace LakskongenSim.Calibration
         /// 3-parameter Weibull locations of Table 3.4 sit at 0.68-1.05 m, 0.26-
         /// 0.40 × the annual mean, in every month). A day's peak lies about 10 %
         /// above its 3-hour values, so the reference sea's days below 0.385 × the
-        /// mean land between 2 % and 7.2 % (5.6 %). Without it the lognormal base
+        /// mean land between 2 % and 7.2 % (4.9 %). Without it the lognormal base
         /// put 2.4 % of days below 0.19 × the mean and 19 % below 0.385 ×.
         /// </summary>
         public double BackgroundSwellHsM { get; init; } = 0.34;
