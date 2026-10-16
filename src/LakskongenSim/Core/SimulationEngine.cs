@@ -3380,6 +3380,7 @@ private class BalancingConfig
             var shockState = MarketSimulation!.ExportShockState();
             runtime.MktShockDays = shockState.ShockDays;
             runtime.MktSupplyOffset = shockState.SupplyOffset;
+            runtime.MktDailyPrices = MarketSimulation!.ExportDailyPrices(); // F2-05: the weekly mean continues after a load
             var intelState = MarketSimulation!.Intelligence.ExportState();
             runtime.IntelWeek = intelState.Week;
             runtime.IntelActive = intelState.Active;
@@ -3838,6 +3839,8 @@ private class BalancingConfig
                         runtime.MktSimDay, runtime.MktHistory));
                 MarketSimulation?.PlayerSupply.ImportPressure(runtime.MktPlayerPressure);
                 MarketSimulation?.ImportShockState((runtime.MktShockDays, runtime.MktSupplyOffset));
+                if (runtime.MktDailyPrices != null)
+                    MarketSimulation?.ImportDailyPrices(runtime.MktDailyPrices);
                 if (runtime.PlanktonBloomStates != null)
                     PlanktonBloom?.RestoreBloomStates(runtime.PlanktonBloomStates);
                 MarketSimulation?.Intelligence.ImportState((runtime.IntelWeek,

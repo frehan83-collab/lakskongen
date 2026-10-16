@@ -254,7 +254,7 @@ public partial class SimulationEngine
     {
         foreach (var key in after.Keys.OrderBy(k => k, StringComparer.Ordinal))
             if (!before.TryGetValue(key, out ulong old) || old != after[key])
-                return key.Replace('\u0001', '/');
+                return key.TrimEnd('\u0001').Replace('\u0001', '/'); // "weather", "delouse/site_a/0"
         return before.Count != after.Count ? "(a stream disappeared)" : null;
     }
 

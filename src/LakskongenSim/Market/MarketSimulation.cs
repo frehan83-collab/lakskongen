@@ -118,6 +118,22 @@ namespace LakskongenSim.Market
         private readonly Queue<decimal> _priceHistory = new();
         private const int MaxHistoryLength = 365;
 
+        /// <summary>
+        /// The daily realized prices the weekly mean and the price chart read
+        /// (at most a year), oldest first. Saved since F2-05: a loaded game
+        /// started the queue afresh, so its weekly mean was the mean of one or
+        /// two days for a week and the chart lost its history.
+        /// </summary>
+        internal List<decimal> ExportDailyPrices() => _priceHistory.ToList();
+
+        /// <summary>Restore the daily prices of a save (the newest <see cref="MaxHistoryLength"/>).</summary>
+        internal void ImportDailyPrices(IEnumerable<decimal> prices)
+        {
+            _priceHistory.Clear();
+            foreach (var price in prices.TakeLast(MaxHistoryLength))
+                _priceHistory.Enqueue(price);
+        }
+
         // ─── Calibration data ───
         private readonly List<HistoricalPrice> _historicalSeries = new();
 
