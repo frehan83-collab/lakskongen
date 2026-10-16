@@ -84,6 +84,7 @@ public partial class SimulationEngine
         FinanceManager.AddRevenue(amount);
         _bookedCash += amount;
         FinancialStatements?.RecordRevenue(amount, category);
+        RecordPnl(category, amount, income: true);
     }
 
     /// <summary>Receive borrowed money: cash in, liability up (never revenue).</summary>
@@ -102,6 +103,7 @@ public partial class SimulationEngine
         FinanceManager.AddRevenue(amount);
         _bookedCash += amount;
         FinancialStatements?.RecordTaxRefund(amount);
+        RecordPnl("tax", amount, income: false);
     }
 
     /// <summary>
@@ -114,7 +116,10 @@ public partial class SimulationEngine
         if (delta == 0m) return;
         _bookedCash += delta;
         if (delta > 0m)
+        {
             FinancialStatements?.RecordRevenue(delta, category);
+            RecordPnl(category, delta, income: true);
+        }
         else
             Book(-delta, costBooking, category);
     }
@@ -143,6 +148,7 @@ public partial class SimulationEngine
     {
         ResetLedgerBaseline();
         State.OpeningBalanceNok = FinanceManager?.Balance ?? 0m;
+        OpenStory();
     }
 
     /// <summary>
@@ -170,6 +176,21 @@ public partial class SimulationEngine
             case CostBooking.Tax: fs.RecordTax(amount); break;
             case CostBooking.Capex: fs.AddAsset(amount); break;
             case CostBooking.LoanPrincipal: fs.RepayLiability(amount); break;
+        }
+        // The P&L story (U2-03) sees every P&L line under the statements' own
+        // category: interest and tax carry theirs whatever the caller named.
+        switch (booking)
+        {
+            case CostBooking.Cogs:
+            case CostBooking.Opex:
+                RecordPnl(category, -amount, income: false);
+                break;
+            case CostBooking.Interest:
+                RecordPnl("interest", -amount, income: false);
+                break;
+            case CostBooking.Tax:
+                RecordPnl("tax", -amount, income: false);
+                break;
         }
     }
 }

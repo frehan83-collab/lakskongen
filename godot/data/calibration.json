@@ -1,5 +1,5 @@
 {
-  "version": "1.0.10",
+  "version": "1.0.11",
   "economy": {
     "startingCapitalNOK": 10000000,
     "smoltCostPerFishNOK": 12,
@@ -214,5 +214,23 @@
     "standardNetWallDepthM": 25.0,
     "standardConeDepthM": 15.0,
     "builtSitePenCount": 8
+  },
+  "liquidity": {
+    "overdraftInterestRate": 0.1225,
+    "burnWindowDays": 35,
+    "burnStepDays": 7,
+    "minBurnHistoryDays": 14,
+    "warningRunwayDays": 60,
+    "bankCallRunwayDays": 28,
+    "reArmRunwayDays": 120,
+    "rescueOfferValidDays": 14,
+    "rescueLoanCoverDays": 120,
+    "rescueLoanMinCoverDays": 30,
+    "rescueLoanInterestRate": 0.14,
+    "rescueLoanArrangementFee": 0.02,
+    "rescueLoanTermMonths": 36,
+    "rescueLoanAdvanceRate": 0.5,
+    "rescueLoanRoundingNok": 500000,
+    "maxRescueLoans": 1
   }
 }

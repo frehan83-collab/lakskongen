@@ -75,7 +75,12 @@ namespace LakskongenSim.Events
         // ── Growth-licence auctions (U2-01) ─────────────────────────────────
         LicenceOutbid,
         LicenceAuctionWon,
-        LicenceAuctionLost
+        LicenceAuctionLost,
+
+        // ── Liquidity ladder (U2-03) ─────────────────────────────────────────
+        LiquidityWarning,
+        BankCall,
+        RescueLoanTaken
     }
 
     /// <summary>
@@ -157,6 +162,10 @@ namespace LakskongenSim.Events
             Row(GameEventType.LicenceOutbid, "licence_outbid", "licence_auction", GameEventSeverity.Warning, VerbBidLicence, GameEventDeadlineRule.SetByPublisher),
             Row(GameEventType.LicenceAuctionWon, "licence_auction_won", "licence_auction", GameEventSeverity.Info, NoCounterVerb),
             Row(GameEventType.LicenceAuctionLost, "licence_auction_lost", "licence_auction", GameEventSeverity.Info, NoCounterVerb),
+
+            Row(GameEventType.LiquidityWarning, "liquidity_warning", "liquidity", GameEventSeverity.Warning, VerbRaiseCapital, GameEventDeadlineRule.SetByPublisher),
+            Row(GameEventType.BankCall, "bank_call", "liquidity", GameEventSeverity.Critical, VerbRaiseCapital, GameEventDeadlineRule.SetByPublisher),
+            Row(GameEventType.RescueLoanTaken, "rescue_loan_taken", "rescue_loan", GameEventSeverity.Info, NoCounterVerb),
         };
 
         private static readonly Dictionary<GameEventType, GameEventTypeInfo> ByType =

@@ -80,6 +80,11 @@ public partial class SimulationEngine
                 case "solvency_warning":
                     PublishSolvencyEvent(note);
                     break;
+                case "liquidity_warning":
+                case "bank_call":
+                case "rescue_loan":
+                    PublishLiquidityEvent(note);   // U2-03
+                    break;
             }
         }
         PublishStandingOrders();

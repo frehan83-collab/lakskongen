@@ -1552,8 +1552,10 @@ private class BalancingConfig
             new HarvestOrdersTickSystem(),
             new CapacityEnforcementTickSystem(),
             new LicenseAuctionTickSystem(),
+            new OverdraftInterestTickSystem(),
             new BalanceMirrorTickSystem(),
-            new SolvencyTickSystem()
+            new SolvencyTickSystem(),
+            new LiquidityTickSystem()
         };
 
         // ─── Per-advance note ledger ─────────────────────────────────────────

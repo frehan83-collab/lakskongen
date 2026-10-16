@@ -39,7 +39,7 @@ namespace LakskongenSim.Calibration
         public const string EmbeddedResourceName = "LakskongenSim.Calibration.calibration.json";
 
         /// <summary>Current schema/balancing version. Bump when reconciled values change.</summary>
-        public const string DefaultVersion = "1.0.10";
+        public const string DefaultVersion = "1.0.11";
 
         /// <summary>Calibration schema/balancing version.</summary>
         [JsonPropertyName("version")]
@@ -151,6 +151,13 @@ namespace LakskongenSim.Calibration
         /// </summary>
         [JsonPropertyName("pens")]
         public PenCalibration Pens { get; init; } = new();
+
+        /// <summary>
+        /// Liquidity ladder (U2-03): overdraft interest, the bank's liquidity
+        /// warning and call before the bankruptcy floor, and its rescue loan.
+        /// </summary>
+        [JsonPropertyName("liquidity")]
+        public LiquidityCalibration Liquidity { get; init; } = new();
 
         /// <summary>
         /// Derived feed cost per kg of fish produced = feed price × base FCR.
