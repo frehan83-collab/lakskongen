@@ -13,17 +13,17 @@ goldens alone: `godot-mono --path godot res://scenes/tools/ScreenshotHarness.tsc
 
 | # | Criterion | Result | How |
 |---|---|---|---|
-| 1a | Eight mood goldens pairwise distinct (pHash Δ ≥ 9) | min **12** (Blåtime/Høst, Sommerdag/Høst, Gråvær/Høst) | `MoodGoldens.gd`, pHash 64-bit DCT on 32x32 luma |
-| 1b | Sky and water mean within ΔE 10 of spec | every mood, worst sky 8.5 (Midnattssol), worst water 9.6 (Midnattssol); the owner's overcast grey water #5E666C at **1.6**, sunny deep blue 8.1, slate mirror 6.8 (Blåtime) | CIEDE2000 (checked against Sharma et al. 2005 test pairs) on the sky and on the water within 2 km, pens excluded, against `EnvironmentMood.SPECS` |
-| 2 | Night shot: emissive pen lights ≥ 0.3 % of the frame | **1.6 %** (Nordlys golden: the frame against itself with the lamps off, ≥ 4 L*) | `MoodGoldens._lamp_fraction` |
-| 3 | Cloud shadows move (temporal variance on land) | **0.82** mean \|dL*\| on the land in 12 s with the shadows, 0.18 without (4.5x; min 0.5 and 3x) | `MoodGoldens._shadow_motion`, frames `20_mood_sommerdag_shadows_t0/t1.png` |
+| 1a | Eight mood goldens pairwise distinct (pHash Δ ≥ 9) | min **12** (Blåtime/Høst, Gråvær/Frostrøyk) | `MoodGoldens.gd`, pHash 64-bit DCT on 32x32 luma |
+| 1b | Sky and water mean within ΔE 10 of spec | every mood, worst sky 8.4 (Midnattssol, Høst), worst water 9.6 (Midnattssol); the owner's overcast grey water #5E666C at **3.6** (1.6-3.7 across runs), sunny deep blue 8.1, slate mirror 6.8 (Blåtime) | CIEDE2000 (checked against Sharma et al. 2005 test pairs) on the sky and on the water within 2 km, pens excluded, against `EnvironmentMood.SPECS` |
+| 2 | Night shot: emissive pen lights ≥ 0.3 % of the frame | **1.5 %** (Nordlys golden: the frame against itself with the lamps off, ≥ 4 L*) | `MoodGoldens._lamp_fraction` |
+| 3 | Cloud shadows move (temporal variance on land) | **0.79** mean \|dL*\| on the land in 12 s with the shadows, 0.20 without (4.0x; min 0.5 and 3x) | `MoodGoldens._shadow_motion`, frames `20_mood_sommerdag_shadows_t0/t1.png` |
 | 4 | Storm Hs ≥ 2 m at exposed sites | **2.58 m** at the golden's 16 m/s, **2.10 m** at the sim's weakest storm (13 m/s); the drawn sea (WaveField) 2.08 m | `MoodGoldens`, `WeatherDramaChecks._check_storm_sea` |
-| + | The storm keeps the mountains' outline | skyline **15.4 dL*** off the sky (min 15); was a murk (mean luma 60, the coast lost) | `MoodGoldens.skyline_contrast`, `storm_before_after.jpg` |
+| + | The storm keeps the mountains' outline | skyline **16.0 dL*** off the sky (min 15; sky 58.4 over land 42.8 L*); was a murk (mean luma 60, the coast lost) | `MoodGoldens.skyline_contrast`, `storm_before_after.jpg` |
 | + | Every golden is the sim's own day | each reads as its mood with weight ≥ 0.9 from `GameBridge.SkyContextFor` (regime, wind, sea temperature, day, latitude) at an hour | `WeatherDramaChecks._check_moods_from_the_sim` |
 
 The full harness (`tools/capture_screenshots.sh`, 38 shots) passes every content check,
-including 09 (aurora 12.9 %, mirrored 4.0 %), 18 (mirror SSIM 0.648 against 0.524 for the
-sky's reflection alone) and 19 (shore foam 18.7 % / 0.0 %).
+including 09 (aurora 12.9 %, mirrored 4.0 %), 18 (mirror SSIM 0.648 against 0.515 for the
+sky's reflection alone) and 19 (shore foam 18.9 % / 0.0 %).
 
 ## What changed in this stage, and why it shows
 
@@ -59,18 +59,30 @@ reaches the engine unchanged (UI flow check). With the fog at its true luminance
 
 ## Performance (P0-04 harness, 2560x1440, High)
 
-The machine was shared with other agents' Godot captures throughout (the panel segment,
-which none of this touches, ran 9.7 ms against stage 2's 8.56 ms), so absolute numbers
-are high; the costs below are paired ratios inside one run (`--paired`, 4 pairs x 3 s).
+The machine was shared with other agents' Godot captures throughout, so the stage is
+measured against the stage-2 build itself (`git archive 5004f7b`, built and imported in a
+scratch directory), the two alternated in one session, 6 s per segment:
 
-| Segment | cloud shadows on/off (p50) | 3x first-cloud search vs 1x (p50) |
-|---|---:|---:|
-| FARM | x1.04 | x1.00 |
-| FJORD | x1.04 | x1.03 |
-| COAST | x1.06 | x1.00 |
-| panel (noise floor) | x1.04 | x1.04 |
+| Segment | stage 2 p50 / p95 ms | this branch p50 / p95 ms | Δ p50 |
+|---|---:|---:|---:|
+| FARM | 15.05 / 15.87 | 15.73 / 17.23 | +0.68 |
+| FJORD | 15.27 / 16.06 | 16.63 / 17.76 | +1.36 |
+| COAST | 13.99 / 15.45 | 15.53 / 17.23 | +1.54 |
+| panel (world hidden) | 8.18 / 8.63 | 8.89 / 9.44 | +0.71 |
 
-High takes the search at 2x (`cloud_search` 2; clouds checked for slices), Low has neither
-(`cloud_search` 1, `cloud_shadows` false). Mist banks, frost smoke and lamps cost nothing on
-the gate's clear noon (hidden, one uniform test). Gate result on this machine: see the
-final row of the stage report (`PERF_GATE` lines).
+**PERF_GATE WARN** on this machine (p95 FARM 17.2, FJORD 17.8, COAST 17.2 > 16.7 ms; the
+gate is warn-only until the Phase 1 exit). Where the time goes (alternated or paired runs,
+p50 at FJORD):
+
+| Item | Cost | Done |
+|---|---:|---|
+| the water's lamp glow and frost smoke in the fragment stage (register pressure; off on most days) | 0.8-1.0 ms | moved to the vertex stage: **0** |
+| the fine cloud march in the half pass, the radiance map and the mirror's sky | 0.8 ms | 4 bisections, 3 steps in, one sun look; the radiance map and the mirror's sky on the plain march; High searches at 2x: **0.26 ms** |
+| cloud shadows (the Decal over the view; the water's own fetch costs nothing) | 0.6-0.8 ms (COAST 1.0-1.4) | knob `cloud_shadows` (off on Low); the decal's normal fade is free |
+| the rest (director, moods, chips) | ~0.3 ms | — |
+
+The open item is the cloud shadows' decal: Godot evaluates a decal per land fragment in
+every cluster it covers, and this one covers the view. The water already reads the same
+map through `cloud_shadow_at()` for nothing measurable; the terrain shader reading it the
+same way (the gfx-terrain track's file) would retire the decal and close the gap to the
+budget.
