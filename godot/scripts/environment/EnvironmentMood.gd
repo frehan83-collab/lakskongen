@@ -121,9 +121,9 @@ const PROFILES := [
 	# wind; the far land fades lighter than the deck, so the mountains keep
 	# their outline.
 	{"zenith": "#4C5861", "horizon": "#6A767E", "horizon_sun": "#6A767E", "sky_grade": 0.85,
-		"deck": "#4C5861", "deck_grade": 0.9, "fog": "#6E7A82", "fog_grade": 0.85, "fog_value": 0.27,
+		"deck": "#4C5861", "deck_grade": 0.9, "fog": "#6E7A82", "fog_grade": 0.85, "fog_value": 0.24,
 		"sun": "#DDE3E6", "sun_grade": 0.7, "water": Color(0.008, 0.022, 0.026), "exposure_ev": 0.65,
-		"cloud_base_m": 220.0, "cloud_base_fog": 0.004, "sky_haze": 0.5, "deck_value": 0.42, "horizon_lift": 1.4, "mist": 0.2},
+		"cloud_base_m": 220.0, "cloud_base_fog": 0.004, "sky_haze": 0.75, "deck_value": 0.42, "horizon_lift": 1.4, "mist": 0.15},
 	# Blåtime / mørketid: the sun just under the horizon, the sky deep blue
 	# with a pink south, the water a slate mirror.
 	{"zenith": "#3C5A8A", "horizon": "#7F96BC", "horizon_sun": "#D99AA8", "sky_grade": 0.9,

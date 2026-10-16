@@ -136,6 +136,7 @@ func capture(harness, env: Node, game: Node) -> void:
 			var sea: Dictionary = director.sea_state
 			entry["exposed_hs"] = float(sea.get("exposed_hs", 0.0))
 			entry["skyline_dl"] = skyline_contrast(img, regions, STEP)
+			entry["skyline_sky_land_l"] = skyline_levels(img, regions, STEP)
 			if float(entry["skyline_dl"]) < MIN_SKYLINE_DL:
 				failures.append("mood goldens: the storm's skyline stands %.1f dL* off the sky (min %.0f)" % [float(entry["skyline_dl"]), MIN_SKYLINE_DL])
 			var weakest: Dictionary = gb.SkyContextFor("Storm", WEAKEST_STORM_WIND, 8.0, int(g["day"]), float(g["lat"]))
@@ -292,3 +293,21 @@ static func skyline_contrast(img: Image, regions: PackedByteArray, step: int) ->
 					count += 1
 				break
 	return sum / count if count > 0 else 0.0
+
+
+## Mean L* of the sky just over the skyline and of the land just under it
+## (the report's breakdown of skyline_contrast).
+static func skyline_levels(img: Image, regions: PackedByteArray, step: int) -> Vector2:
+	var cols := img.get_width() / step
+	var rows := regions.size() / cols
+	var sky := 0.0
+	var land := 0.0
+	var count := 0
+	for x in cols:
+		for y in range(2, rows - 3):
+			if regions[(y - 1) * cols + x] == MoodMetrics.Region.SKY and regions[y * cols + x] == MoodMetrics.Region.LAND:
+				sky += MoodMetrics.srgb_to_lab(img.get_pixel(x * step + step / 2, (y - 1) * step + step / 2)).x
+				land += MoodMetrics.srgb_to_lab(img.get_pixel(x * step + step / 2, (y + 1) * step + step / 2)).x
+				count += 1
+				break
+	return Vector2(sky, land) / maxf(count, 1)
