@@ -5777,6 +5777,29 @@ func _test_harvest_planner_orders_and_reports() -> void:
 	var realized_gross := _sum_key(batches, "gross_nok")
 	_check(absf(float(projected.get("gross_nok", 0.0)) / maxf(1.0, realized_gross) - 1.0) <= 0.05,
 		"harvest planner: the projection was within 5 %% of the realized sale (%.0f vs %.0f NOK)" % [float(projected.get("gross_nok", 0.0)), realized_gross])
+	# The toast is the way to the report: a click on its body opens this
+	# harvest's report (a toast still queued behind warnings runs the same
+	# action when it is clicked later; the check names which case ran).
+	var harvest_msg: String = harvest_toasts[0] if harvest_toasts.size() == 1 else ""
+	var toast_box: Control = null
+	for i in 80: # a full stack drains one slide-out at a time
+		toast_box = toast_node._visible_toast_for(harvest_msg) if harvest_msg != "" else null
+		if toast_box != null or harvest_msg == "":
+			break
+		await get_tree().create_timer(0.1).timeout
+	if toast_box != null:
+		await get_tree().create_timer(0.3).timeout # past its slide-in
+		await _click_at(toast_box.get_global_rect().get_center())
+	else:
+		for queued in toast_node._queue:
+			if str(queued.message) == harvest_msg and queued.action.is_valid():
+				queued.action.call()
+	var from_toast := HarvestScreens.report(get_tree()) as HarvestReport
+	_check(from_toast != null and from_toast.is_open() and str(from_toast.report.get("order_id", "")) == order_id
+			and int(from_toast.report.get("batches", 0)) == batches.size(),
+		"harvest planner: the toast opens this harvest's report (%s)" % ("clicked" if toast_box != null else "queued, its action"))
+	if from_toast != null and from_toast.is_open():
+		from_toast.close()
 
 	# The report: opened from the planner's "Siste slakterapport", the ledger's figures.
 	panel = await _open_panel(ui, "pens")

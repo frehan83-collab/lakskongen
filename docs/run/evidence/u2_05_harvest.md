@@ -23,7 +23,7 @@ until a site's fish reach 4.5 kg: day 294, week 42, October of year 1).
 | 1 | Report figures equal the ledger entries | UI test (`_test_harvest_planner_orders_and_reports`): the report's gross, cost and net are the ledger's `harvest` revenue and cost deltas to the krone, for the planned order (2 batches) and for the express harvest; the histogram sums to the batches' gutted kilos. |
 | 2 | Same-day projection within ±5 % of realized revenue | `HarvestPlannerTests`, player path: 28 of 30 within ±5 %, median 1.09 %, mean -0.11 % (docs/BALANCE.md §1n); UI flow: projected 17,873,202 NOK gross, booked 18,591,607 (-3.9 %); the express quote equals the booking exactly. |
 | 3 | "Wait N weeks" uses twin-lite and leaves the live RNG untouched | `TheProjection_LeavesTheLiveGameAndItsRngUntouched`: > 100 projections over 60 days, every SimRng stream and the save unchanged, the probed game equals its twin. |
-| 4 | Exactly one toast per harvest | UI tests: a planned order with 2 slaughter days gives one toast and one `harvest_announced`; an express harvest one; the legacy `harvest_pen` verb (heard through two signals) one. |
+| 4 | Exactly one toast per harvest | UI tests: a planned order with 2 slaughter days gives one toast and one `harvest_announced`; an express harvest one; the legacy `harvest_pen` verb (heard through two signals) one. A real click on that toast opens the harvest's report. |
 
 ## The presentation beat
 
