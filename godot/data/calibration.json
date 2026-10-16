@@ -1,5 +1,11 @@
 {
-  "version": "1.0.10",
+  "version": "1.1.0",
+  "facilitiesIncludes": [
+    "calibration/facilities_common.json",
+    "calibration/facilities_land.json",
+    "calibration/facilities_offshore.json",
+    "calibration/facilities_closed_sea.json"
+  ],
   "economy": {
     "startingCapitalNOK": 10000000,
     "smoltCostPerFishNOK": 12,

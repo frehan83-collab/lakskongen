@@ -35,6 +35,10 @@
     <EmbeddedResource Include="..\..\godot\data\calibration.json"
                       Link="Calibration\calibration.json"
                       LogicalName="LakskongenSim.Calibration.calibration.json" />
+    <!-- F2-04: the facilities include files (one per lane; CalibrationIncludes). -->
+    <EmbeddedResource Include="..\..\godot\data\calibration\*.json"
+                      Link="Calibration\Includes\%(Filename)%(Extension)"
+                      LogicalName="LakskongenSim.Calibration.Includes.%(Filename)%(Extension)" />
     <!-- F2-03: the farm-type plots' gameplay attributes (SitePlotCatalog). -->
     <EmbeddedResource Include="..\..\godot\data\site_plots.json"
                       Link="Farm\site_plots.json"
