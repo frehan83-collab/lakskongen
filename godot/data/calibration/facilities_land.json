@@ -87,6 +87,31 @@
     "appetiteLimitMgL": 20,
     "co2PerO2": 1.375
   },
+  "competence": {
+    "consultancy": 0.1,
+    "consultancyDays": 365,
+    "consultancyNok": 8000000,
+    "driftsleder": 0.1,
+    "driftslederNokPerYear": 2500000,
+    "earlyHiring": 0.1,
+    "earlyHiringLeadDays": 180,
+    "growthAtStart": 0.73,
+    "perCycle": 0.2,
+    "research": 0.1,
+    "start": 0.4,
+    "trainingMax": 0.15,
+    "trainingNok": 3000000,
+    "trainingPerStep": 0.05,
+    "trainingStepDays": 182,
+    "utilisationCapAtStart": 0.55
+  },
+  "costs": {
+    "equipmentInsuranceShareOfCapexPerYear": 0.0015,
+    "fishInsuranceNokPerKgFeed": 0.86,
+    "maintenanceShareOfCapexPerYear": 0.0088,
+    "otherNokPerTonneNameplateYear": 3617,
+    "sludgeNokPerKgFeed": 1.57
+  },
   "density": {
     "growthAtReference": 0.85,
     "kneeKgM3": 50,
@@ -108,12 +133,21 @@
     "seawaterDensityKgM3": 1027,
     "staticLiftM": 13
   },
+  "growth": {
+    "feedPlanFcrPenalty": 0.12,
+    "feedPlanPenaltyBelowCompetence": 0.6,
+    "feedPlanPenaltyDays": 60,
+    "harvestPlanWeeks": 26,
+    "shortfallDays": 30,
+    "shortfallShare": 0.85
+  },
   "hfs": {
     "baseKWhPerDay": 6000,
     "biofilterKgTanPerM3Day": 0,
     "biofilterMaturationDays": 30,
     "defaultReuse": 0.65,
     "defaultSetpointC": 12,
+    "fcrFactor": 1,
     "growOutDiameterM": 28,
     "growOutTanks": 12,
     "heatPumpMWe": 8,
@@ -137,6 +171,7 @@
     "biofilterMaturationDays": 30,
     "defaultReuse": 0.65,
     "defaultSetpointC": 12,
+    "fcrFactor": 1,
     "growOutDiameterM": 28,
     "growOutTanks": 4,
     "heatPumpMWe": 3,
@@ -212,6 +247,7 @@
     "biofilterMaturationDays": 60,
     "defaultReuse": 0.97,
     "defaultSetpointC": 12,
+    "fcrFactor": 1,
     "growOutDiameterM": 16,
     "growOutTanks": 2,
     "heatPumpMWe": 0.3,
@@ -241,6 +277,7 @@
     "biofilterMaturationDays": 60,
     "defaultReuse": 0.97,
     "defaultSetpointC": 12,
+    "fcrFactor": 1.15,
     "growOutDiameterM": 20,
     "growOutTanks": 16,
     "heatPumpMWe": 1.5,
@@ -257,6 +294,25 @@
     "stripperDesignReuse": 0.97,
     "treatKWhPerM3Reused": 0.05,
     "waterDepthM": 8
+  },
+  "smolt": {
+    "desmoltDays": 60,
+    "desmoltSalinityPpt": 12,
+    "desmoltTransferMortalityMultiplier": 2,
+    "largeMinWeightKg": 0.2,
+    "maxTransferDays": 3,
+    "minBlendSalinityPpt": 0,
+    "minTransferWeightKg": 0.1,
+    "salePriceNokPerKgLive": 90,
+    "seawaterRecordDays": 30,
+    "seawaterSalinityPpt": 35,
+    "sulphateReferenceSalinityPpt": 35,
+    "superSmoltMinSalinityPpt": 25,
+    "superSmoltMinWeightKg": 0.4,
+    "tierPremiumLarge": 1.6,
+    "tierPremiumSuperSmolt": 2.5,
+    "transferHireNokPerDay": 150000,
+    "transferTonnesPerDay": 450
   },
   "tan": {
     "appetiteLimitMgL": 2,

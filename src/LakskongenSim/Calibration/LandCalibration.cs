@@ -73,6 +73,18 @@ namespace LakskongenSim.Calibration
         /// <summary>Running costs of a land site beyond energy and oxygen (F2-12).</summary>
         public LandOperationsCalibration Operations { get; init; } = new();
 
+        /// <summary>The post-smolt bridge: tiers, salinity, desmoltification, transfers, sales and the tier premium (F2-13).</summary>
+        public LandSmoltCalibration Smolt { get; init; } = new();
+
+        /// <summary>Competence, its levers, the utilisation cap and the growth it gives (F2-15).</summary>
+        public LandCompetenceCalibration Competence { get; init; } = new();
+
+        /// <summary>A cohort against its plan, the feed-plan penalty, the harvest planner's reach (F2-15).</summary>
+        public LandGrowthCalibration Growth { get; init; } = new();
+
+        /// <summary>Maintenance, insurance, sludge and the other running costs (F2-15).</summary>
+        public LandCostCalibration Costs { get; init; } = new();
+
         /// <summary>The code defaults (the values the draft JSON holds).</summary>
         public static LandCalibration Default { get; } = new();
 
@@ -312,6 +324,17 @@ namespace LakskongenSim.Calibration
         [Source("L:R2")]
         public int Staff { get; init; }
 
+        /// <summary>
+        /// The unit's FCR against the land plan's biological FCR at 2 kg (unit
+        /// ×, F2-15). HFS, pilot and post-smolt 1.0, RAS hall 1.15. Range:
+        /// 0.8-1.5. Source: [L:A3] (Andfjord flow-through, accumulated FCR 1.02)
+        /// and [L:R2] (Salmon Evolution 1.03-1.06 per kg LW) for the flow-through
+        /// units; [L:R7] and [L:S9] (RAS FCR 1.1-1.3 achieved) for the RAS hall.
+        /// </summary>
+        [Range(0.8, 1.5)]
+        [Source("L:A3", "L:R2", "L:R7", "L:S9")]
+        public double FcrFactor { get; init; } = 1.0;
+
         /// <summary>Total tanks in one unit.</summary>
         [JsonIgnore]
         public int TankCount => GrowOutTanks + PreGrowTanks;
@@ -385,6 +408,7 @@ namespace LakskongenSim.Calibration
             PlanHarvestWeightKg = 4.5,
             NameplateTonnesHogPerYear = 4_300.0,
             Staff = 35,
+            FcrFactor = 1.15,
         };
 
         /// <summary>

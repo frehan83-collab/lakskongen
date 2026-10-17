@@ -102,6 +102,17 @@ namespace LakskongenSim.Farm
         public static TransferResult ExecuteTransfer(
             TransferPlan plan, GameState state, Action<decimal> payCost, Random rng,
             GrowthModel growth, MortalityModel mortality)
+            => ExecuteTransfer(plan, state, payCost, growth, mortality); // the losses never drew from rng (Phase 1.4)
+
+        /// <summary>
+        /// Execute a transfer (F2-13: engine-owned through
+        /// <see cref="Core.SimulationEngine.ExecuteCohortTransfer"/>). The
+        /// handling losses are the plan's rate exactly, so no random source is
+        /// needed. The cost is paid through <c>payCost</c>.
+        /// </summary>
+        public static TransferResult ExecuteTransfer(
+            TransferPlan plan, GameState state, Action<decimal> payCost,
+            GrowthModel growth, MortalityModel mortality)
         {
             ArgumentNullException.ThrowIfNull(payCost);
             ArgumentNullException.ThrowIfNull(growth);

@@ -37,7 +37,8 @@ internal static class LandHooks
         if (tank == null)
             return new HoldingWater(site.CurrentWaterTemp, site.OxygenLevel,
                 HoldingWater.SeawaterSalinityPsu, engine.HomeProductionArea, HoldingKind.LandTank);
-        return new HoldingWater(tank.TemperatureC, tank.DoMgL, HoldingWater.SeawaterSalinityPsu,
+        // F2-13: a post-smolt site on a pad with a river intake may blend its water to brackish.
+        return new HoldingWater(tank.TemperatureC, tank.DoMgL, engine.LandSalinityOf(site),
             engine.ProductionAreaOfZone(site.ZoneId), HoldingKind.LandTank);
     }
 
@@ -58,7 +59,7 @@ internal static class LandHooks
         var site = holding.LandFacility;
         var tank = site != null && site.HasLots ? site.TankOf(population) : null;
         if (tank == null) return 1.0;
-        double saturation = WaterQuality.CalculateDOSaturation(tank.DoMgL, tank.TemperatureC, HoldingWater.SeawaterSalinityPsu);
+        double saturation = WaterQuality.CalculateDOSaturation(tank.DoMgL, tank.TemperatureC, engine.LandSalinityOf(site!));
         return tank.AppetiteFactor * WaterQuality.CalculateDOSaturationModifier(saturation);
     }
 
@@ -89,25 +90,73 @@ internal static class LandHooks
     {
         var site = holding.LandFacility;
         var tank = site != null && site.HasLots ? site.TankOf(population) : null;
-        return tank == null ? null : engine.Calibration.Facilities.Land.Production.BiologicalFcrAt2Kg;
+        if (tank == null) return null;
+        var land = engine.Calibration.Facilities.Land;
+        // F2-15: the unit's own FCR (RAS hall 1.15, [L:R7]/[L:S9]) and the
+        // penalty a low-competence plant pays after changing its feeding plan.
+        var lot = site!.LotOf(tank);
+        double factor = lot == null ? 1.0 : land.For(lot.Template).FcrFactor;
+        return land.Production.BiologicalFcrAt2Kg * factor + engine.LandFcrPenaltyOf(site);
+    }
+
+    /// <summary>
+    /// The growth a land grow-out site's competence gives its tanks' fish (F2-15,
+    /// spec §3.3: the achieved result at competence 0.4, the plan at 1.0), on
+    /// the growth law's environment multiplier with the density stress; 1.0 at a
+    /// post-smolt site, a pre-F2 site or for fish in no tank.
+    /// </summary>
+    internal static double CompetenceGrowthMultiplier(SimulationEngine engine, in PopulationHolding holding, FishPopulation population)
+    {
+        var site = holding.LandFacility;
+        var tank = site != null && site.HasLots ? site.TankOf(population) : null;
+        return tank == null ? 1.0 : engine.LandCompetenceGrowthMultiplierOf(site!);
     }
 
     /// <summary>A land tank's own mortality terms: the anchor × 1 and no extra cause before F2-15/F2-16.</summary>
     internal static MortalityTerms MortalityTermsFor(SimulationEngine engine, in PopulationHolding holding, FishPopulation population)
         => MortalityTerms.None;
 
-    /// <summary>Smolt-quality multiplier on the anchor hazard: 1.0 before F2-13 (the tier's mortality multiplier was never live).</summary>
+    /// <summary>
+    /// Smolt-quality multiplier on the anchor hazard (F2-13): the sea-phase
+    /// carryover of the fish's tier, 0.67 for a SuperSmolt and 0.82 for a large
+    /// smolt (<see cref="SmoltQuality.MortalityMultiplier"/>, the Chilean
+    /// SuperSmolt trial), fish-weighted over the population's cohorts. Land
+    /// fish carry none: the carryover is the sea phase's (1.0 in a tank, and
+    /// 1.0 for standard smolts, as before F2-13).
+    /// </summary>
     internal static double QualityMortalityMultiplier(SimulationEngine engine, FishPopulation population)
-        => 1.0;
+    {
+        if (population == null || engine.HoldingOf(population).Kind == HoldingKind.LandTank) return 1.0;
+        double fish = 0.0, weighted = 0.0;
+        bool standardOnly = true;
+        foreach (var cohort in population.Cohorts)
+        {
+            if (cohort.Count <= 0) continue;
+            if (cohort.Quality != SmoltQualityTier.Standard) standardOnly = false;
+            fish += cohort.Count;
+            weighted += cohort.Count * SmoltQualityRegistry.Get(cohort.Quality).MortalityMultiplier;
+        }
+        // Standard smolts multiply by exactly 1 (no rounding of a weighted mean of ones).
+        return standardOnly || fish <= 0.0 ? 1.0 : weighted / fish;
+    }
 
     /// <summary>
-    /// Price of one smolt (NOK): the calibrated price × the strain's cost
-    /// multiplier, whatever the tier and the source (pre-F2: a quality tier
-    /// carried no premium). F2-13 charges the tier premium for bought smolts.
+    /// Price of one smolt (NOK, F2-13): the calibrated price × the strain's
+    /// cost multiplier, × the tier's premium for a bought large smolt (1.6) or
+    /// SuperSmolt (2.5) (<c>facilities.land.smolt</c>); a smolt from the
+    /// player's own post-smolt site carries no premium (the exploit of buying
+    /// the tier's carryover at the standard price is closed; the player paid
+    /// for the land days in the module). A standard smolt costs what it always did.
     /// </summary>
     internal static decimal SmoltTierCostPerFish(SimulationEngine engine, decimal smoltPricePerFish,
         SmoltQualityTier tier, SmoltStrain strain, SmoltSource source)
-        => smoltPricePerFish * (decimal)strain.CostMultiplier;
+    {
+        decimal price = smoltPricePerFish * (decimal)strain.CostMultiplier;
+        if (source == SmoltSource.OwnFacility || tier == SmoltQualityTier.Standard) return price;
+        var smolt = engine.Calibration.Facilities.Land.Smolt;
+        double premium = tier == SmoltQualityTier.SuperSmolt ? smolt.TierPremiumSuperSmolt : smolt.TierPremiumLarge;
+        return price * (decimal)premium;
+    }
 
     /// <summary>A land facility's harvest never counts toward the resource-rent tax.</summary>
     internal static bool IsResourceRentLiable(SimulationEngine engine, string unitId)
