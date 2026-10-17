@@ -247,9 +247,9 @@ namespace LakskongenSim.Tests.Environment
                     (r.MinX, r.MaxZ));
             }
             Assert.True(cover.Trees.Count > 12000, $"{cover.Trees.Count} trees");
-            Assert.Empty(cover.Trees.Where(t => pads.Any(p => p.Contains(t.X, t.Z))));
-            Assert.Empty(cover.Trees.Where(t => GroundRect.AnyContains(cover.Cleared, t.X, t.Z)));
-            Assert.Empty(cover.Props.Where(p => GroundRect.AnyContains(cover.Cleared, p.X, p.Z)));
+            Assert.DoesNotContain(cover.Trees, t => pads.Any(p => p.Contains(t.X, t.Z)));
+            Assert.DoesNotContain(cover.Trees, t => GroundRect.AnyContains(cover.Cleared, t.X, t.Z));
+            Assert.DoesNotContain(cover.Props, p => GroundRect.AnyContains(cover.Cleared, p.X, p.Z));
             foreach (var pad in pads)
                 foreach (var v in MaskVertices(gen, pad))
                 {

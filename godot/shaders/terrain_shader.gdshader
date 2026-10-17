@@ -116,6 +116,9 @@ uniform vec3 black_lichen_color : source_color = vec3(0.141, 0.149, 0.157); // #
 // geometry change at runtime.
 uniform vec4 pad_rects[4];
 uniform float pad_state[4];
+// F2-20: per pad the rectangle (x0, z0, x1, z1) its campus blasts; zero (x1 <=
+// x0) blasts the whole pad.
+uniform vec4 pad_blast[4];
 uniform int pad_count = 0;
 uniform float pad_rim_m = 50.0;
 uniform vec3 granite_color : source_color = vec3(0.420, 0.451, 0.471);     // #6B7378
@@ -329,9 +332,12 @@ vec3 soil_colour(float layer, vec3 albedo, float tone) {
 // F2-19: the pad under a ground point: x the flat top (1 on the pad, feathered
 // over its last 1.5 m), y the pad with its rim (1 to pad_rim_m - 4 m beyond
 // the edge, 0 from pad_rim_m), z the pad's state, w the distance beyond the
-// pad's edge (m).
-vec4 pad_at(vec2 p) {
+// pad's edge (m). `blast_d`: the signed distance (m) beyond the pad's blasted
+// rectangle (F2-20: only the ground a campus builds on is blasted; an empty
+// rectangle blasts the whole pad).
+vec4 pad_at(vec2 p, out float blast_d) {
 	vec4 best = vec4(0.0, 0.0, 0.0, 1e6);
+	blast_d = -1e6;
 	for (int i = 0; i < 4; i++) {
 		if (i >= pad_count) {
 			break;
@@ -343,6 +349,14 @@ vec4 pad_at(vec2 p) {
 		float rim = 1.0 - smoothstep(pad_rim_m - 4.0, pad_rim_m, outside);
 		if (rim > best.y) {
 			best = vec4(top, rim, pad_state[i], outside);
+			vec4 b = pad_blast[i];
+			if (b.z > b.x) {
+				vec2 bc = (b.xy + b.zw) * 0.5;
+				vec2 bd = abs(p - bc) - (b.zw - b.xy) * 0.5;
+				blast_d = length(max(bd, vec2(0.0))) + min(max(bd.x, bd.y), 0.0);
+			} else {
+				blast_d = -1e6;
+			}
 		}
 	}
 	return best;
@@ -375,7 +389,10 @@ void fragment() {
 	float mottle = n_mid.g;
 	// F2-19 pads: where the granite is (the blast spreads it across the pad
 	// in ~85 m patches as pad_state rises), and the unbuilt heath top.
-	vec4 pad = pad_count > 0 ? pad_at(p.xz) : vec4(0.0, 0.0, 0.0, 1e6);
+	float blast_d = -1e6;
+	vec4 pad = pad_count > 0 ? pad_at(p.xz, blast_d) : vec4(0.0, 0.0, 0.0, 1e6);
+	// The blasted ground ends in a ragged edge (~26 m) round the campus.
+	pad.z *= 1.0 - smoothstep(-8.0, 8.0, blast_d + (n_mid.b - 0.5) * 24.0);
 	float blast_front = mottle * 0.7 + macro * 0.3;
 	// The rim is granite where it is cut or filled (steep) and, near the pad,
 	// where its low shelf is armoured with blasted rock; not on the natural
@@ -470,8 +487,8 @@ void fragment() {
 	// F2-19: an unbuilt pad is heath over the strandflat's rock, a few bare
 	// slabs breaking through; a blasted pad, its cut faces and its rock fill
 	// are bare granite.
-	float slab = smoothstep(0.52, 0.66, slab_n * 0.65 + mottle * 0.35);
-	bare = mix(bare, slab * 0.85, pad_heath);
+	float slab = smoothstep(0.56, 0.68, slab_n * 0.65 + mottle * 0.35);
+	bare = mix(bare, slab * 0.8, pad_heath);
 	// Blasted: the rim's cut faces bare rock, the pad's top crushed stone (a soil, below).
 	bare = max(bare * (1.0 - granite_top), pad_granite - granite_top);
 
@@ -646,7 +663,7 @@ void fragment() {
 		// and ~26 m) so the yard is never one flat grey.
 		float shingle_luma = dot(shingle_base_color, vec3(0.2126, 0.7152, 0.0722));
 		float fines = smoothstep(0.55, 0.8, mottle * 0.6 + slab_n * 0.4);
-		vec3 yard = mix(granite_color, granite_wet_color * 1.15, fines * 0.6);
+		vec3 yard = mix(granite_color, granite_wet_color * 1.15, fines * 0.4);
 		yard = mix(yard, yard * vec3(1.08, 1.02, 0.94), smoothstep(0.4, 0.7, macro) * 0.5);
 		vec3 crushed_a = yard * pow(dot(alb_a.rgb, vec3(0.2126, 0.7152, 0.0722)) / shingle_luma, 1.6);
 		vec3 crushed_b = yard * pow(dot(alb_b.rgb, vec3(0.2126, 0.7152, 0.0722)) / shingle_luma, 1.6);
