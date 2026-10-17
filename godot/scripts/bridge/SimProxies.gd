@@ -173,6 +173,18 @@ func install_bloom_mitigation(site_id: String, kind: String) -> bool:
 		return game_bridge.InstallBloomMitigation(site_id, kind)
 	return false
 
+## U2-02: the tutorial's current step (GameBridge.GetTutorialStatus: active,
+## skipped, step, total, kind, pace, target, title_key, text_key, do_key,
+## unlocks, progress), the step list and the tab gate.
+func get_tutorial_status() -> Dictionary:
+	return game_bridge.GetTutorialStatus() if game_bridge else {}
+
+func get_tutorial_steps() -> Array:
+	return game_bridge.GetTutorialSteps() if game_bridge else []
+
+func is_tutorial_tab_unlocked(tab_id: String) -> bool:
+	return game_bridge.IsTutorialTabUnlocked(tab_id) if game_bridge else true
+
 ## Feeding plans (U2-04): a site's plan, every site's, the card's options
 ## and a plan's projected next days (twin-lite, never touches the game).
 func get_feed_plan(site_id: String) -> Dictionary:

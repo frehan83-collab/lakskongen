@@ -219,12 +219,35 @@ func get_pacing_deadlines() -> Array[Dictionary]:
 	return out
 
 
-## Skip the tutorial silently (no rewards). From TutorialUI skip button.
+## Skip the tutorial (no rewards, no win: D19). From TutorialUI's skip button.
 func skip_tutorial() -> void:
 	if game_bridge and game_bridge.has_method("SkipTutorial"):
 		game_bridge.SkipTutorial()
 		if state != null:
 			state._refresh_state()
+
+
+## U2-02: a UI event the player caused ("tab:pens", "inbox", "clock",
+## "harvest_report", "map_area_home"). True when it completed the step that
+## waited for it; ignored outside the tutorial and by any other step.
+func tutorial_mark(mark: String) -> bool:
+	if not game_bridge:
+		return false
+	var done: bool = game_bridge.TutorialMark(mark)
+	if done and state != null:
+		state._refresh_state()
+	return done
+
+
+## U2-02: check the current step against the game now (after a command
+## while the clock stands). True when a step completed.
+func tutorial_check() -> bool:
+	if not game_bridge:
+		return false
+	var done: bool = game_bridge.TutorialCheck()
+	if done and state != null:
+		state._refresh_state()
+	return done
 
 
 ## Get current game state as JSON (for saving)

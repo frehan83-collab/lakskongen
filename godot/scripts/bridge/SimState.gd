@@ -137,6 +137,10 @@ var tutorial_hint: String = ""
 var tutorial_is_complete: bool = false
 var tutorial_completed_count: int = 0
 var tutorial_total_steps: int = 0
+## U2-02: the tutorial runs (Første sesong, neither finished nor skipped).
+var tutorial_active: bool = false
+## U2-02: the player skipped the tutorial (no win, D19).
+var tutorial_skipped: bool = false
 
 # ── Empire Systems State (T65) ────────────────────────────────────────────────
 
@@ -291,6 +295,8 @@ func _refresh_state() -> void:
 	tutorial_is_complete    = game_bridge.TutorialIsComplete
 	tutorial_completed_count = game_bridge.TutorialCompletedCount
 	tutorial_total_steps     = game_bridge.TutorialTotalSteps
+	tutorial_active          = game_bridge.TutorialActive
+	tutorial_skipped         = game_bridge.TutorialSkipped
 
 	# Fetch latest events from C#
 	var raw = game_bridge.GetRecentEvents(10)

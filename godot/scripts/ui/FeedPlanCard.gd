@@ -64,6 +64,11 @@ func _ready() -> void:
 
 
 ## Show `site_id`'s plan (a new site drops any unsaved edit).
+## U2-02: "Bruk på …" (the first season's pointer moves to it once a plan is chosen).
+func apply_button() -> Button:
+	return _btn_apply
+
+
 func show_site(site_id: String, site_name: String) -> void:
 	if site_id != _site_id:
 		_editing = false

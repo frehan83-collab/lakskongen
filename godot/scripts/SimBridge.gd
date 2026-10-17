@@ -236,6 +236,12 @@ var tutorial_hint: String:
 var tutorial_is_complete: bool:
 	get(): return _state.tutorial_is_complete
 	set(v): _state.tutorial_is_complete = v
+var tutorial_active: bool:
+	get(): return _state.tutorial_active
+	set(v): _state.tutorial_active = v
+var tutorial_skipped: bool:
+	get(): return _state.tutorial_skipped
+	set(v): _state.tutorial_skipped = v
 var tutorial_completed_count: int:
 	get(): return _state.tutorial_completed_count
 	set(v): _state.tutorial_completed_count = v
@@ -400,6 +406,11 @@ func register_pacing_deadline(key: String, deadline_day: int, headline: String =
 func resolve_pacing_deadline(key: String) -> bool: return _actions.resolve_pacing_deadline(key)
 func get_pacing_deadlines() -> Array[Dictionary]: return _actions.get_pacing_deadlines()
 func skip_tutorial() -> void: _actions.skip_tutorial()
+func tutorial_mark(mark: String) -> bool: return _actions.tutorial_mark(mark)
+func tutorial_check() -> bool: return _actions.tutorial_check()
+func get_tutorial_status() -> Dictionary: return _proxies.get_tutorial_status()
+func get_tutorial_steps() -> Array: return _proxies.get_tutorial_steps()
+func is_tutorial_tab_unlocked(tab_id: String) -> bool: return _proxies.is_tutorial_tab_unlocked(tab_id)
 func get_game_state_json() -> String: return _actions.get_game_state_json()
 func place_pen(zone_id: String, pen_name: String = "New Pen") -> bool: return _actions.place_pen(zone_id, pen_name)
 func set_feed_plan(site_id: String, ration_pct: float, recipe: String, window_days: int) -> Dictionary: return _actions.set_feed_plan(site_id, ration_pct, recipe, window_days)

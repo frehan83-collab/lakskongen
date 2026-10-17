@@ -130,6 +130,13 @@ func _style_time_controls() -> void:
 		_speed_buttons()[i].tooltip_text = tr(SPEED_TIP_KEYS[i])
 	next_event_btn.tooltip_text = tr("UI_HUD_NEXT_EVENT_TIP")
 
+## U2-02 highlight targets: the clock strip and the bell.
+func clock_controls() -> Control:
+	return time_controls
+
+func inbox_button() -> Button:
+	return inbox_btn
+
 func _speed_buttons() -> Array[Button]:
 	return [speed_1x, speed_3x, speed_10x, speed_30x]
 
@@ -312,6 +319,7 @@ func _set_speed(speed: float) -> void:
 	if _sim:
 		_sim.set_time_speed(speed)
 		_sim.set_paused(false)
+		_sim.tutorial_mark("clock")
 	speed_changed.emit(speed, false)
 
 func _toggle_pause() -> void:
@@ -321,6 +329,8 @@ func _toggle_pause() -> void:
 	if not pause and _sim.is_clock_held(""):
 		return   # a card or a menu holds the clock: it gives it back itself
 	_sim.set_paused(pause)
+	if not pause:
+		_sim.tutorial_mark("clock")
 	speed_changed.emit(_current_speed, pause)
 
 func _on_pause_pressed() -> void:
@@ -333,8 +343,8 @@ func _on_next_event_pressed() -> void:
 		return
 	if _sim.is_running_to_next_event():
 		_sim.stop_run_to_next_event()
-	else:
-		_sim.run_to_next_event()
+	elif _sim.run_to_next_event():
+		_sim.tutorial_mark("clock")
 	_on_clock_changed(_sim.get_clock_state())
 
 func _on_clock_changed(clock: Dictionary) -> void:
