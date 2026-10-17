@@ -269,7 +269,7 @@ script = ExtResource("5_weather")
 rain_particles = NodePath("RainParticles")
 snow_particles = NodePath("SnowParticles")
 
-[node name="EnvironmentDirector" type="Node" parent="." node_paths=PackedStringArray("world_environment", "sun_light", "moon_light", "time_system", "weather_system", "camera", "water_grid", "terrain", "reflection_probe", "planar_reflection", "cloud_shadows", "pen_lamps")]
+[node name="EnvironmentDirector" type="Node" parent="." node_paths=PackedStringArray("world_environment", "sun_light", "moon_light", "time_system", "weather_system", "camera", "water_grid", "terrain", "reflection_probe", "planar_reflection", "cloud_shadows", "pen_lamps", "pen_spray")]
 script = ExtResource("18_director")
 world_environment = NodePath("../WorldEnvironment")
 sun_light = NodePath("../Sun")
@@ -283,6 +283,7 @@ reflection_probe = NodePath("../ReflectionProbe")
 planar_reflection = NodePath("../PlanarReflection")
 cloud_shadows = NodePath("../CloudShadows")
 pen_lamps = NodePath("../PenLamps")
+pen_spray = NodePath("../PenSpray")
 
 [node name="PlanarReflection" type="Node" parent="." node_paths=PackedStringArray("camera", "water_grid")]
 script = ExtResource("20_planar")

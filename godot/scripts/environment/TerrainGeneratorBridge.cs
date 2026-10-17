@@ -195,12 +195,19 @@ public partial class TerrainGeneratorBridge : RefCounted
         var normals = new Godot.Vector3[count];
         var uvs = new Godot.Vector2[count];
         var colors = new Godot.Color[count];
+        var macro = new Godot.Vector2[count];
+        bool hasMacro = chunk.Macro.Length >= count * 2;
         for (int i = 0; i < count; i++)
         {
             vertices[i] = new Godot.Vector3(chunk.Positions[i * 3], chunk.Positions[i * 3 + 1], chunk.Positions[i * 3 + 2]);
             normals[i] = new Godot.Vector3(chunk.Normals[i * 3], chunk.Normals[i * 3 + 1], chunk.Normals[i * 3 + 2]);
             uvs[i] = new Godot.Vector2(chunk.Uvs[i * 2], chunk.Uvs[i * 2 + 1]);
             colors[i] = new Godot.Color(chunk.Colors[i * 4], chunk.Colors[i * 4 + 1], chunk.Colors[i * 4 + 2], chunk.Colors[i * 4 + 3]);
+            // UV2: the slope and the cavity with the wall ledges averaged out
+            // (TerrainMesh.Chunk.Macro); without them, the vertex's own.
+            macro[i] = hasMacro
+                ? new Godot.Vector2(chunk.Macro[i * 2], chunk.Macro[i * 2 + 1])
+                : new Godot.Vector2(normals[i].Y > 1e-6f ? new Godot.Vector2(normals[i].X, normals[i].Z).Length() / normals[i].Y : 0f, colors[i].R);
         }
         return new Godot.Collections.Dictionary
         {
@@ -208,6 +215,7 @@ public partial class TerrainGeneratorBridge : RefCounted
             ["normals"] = normals,
             ["tangents"] = chunk.Tangents,
             ["uvs"] = uvs,
+            ["uv2"] = macro,
             ["colors"] = colors,
             ["indices"] = chunk.Indices,
             ["first_column"] = chunk.FirstColumn,

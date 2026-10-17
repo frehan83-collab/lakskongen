@@ -342,6 +342,10 @@ func _chunk_instance(chunk: Dictionary, instance_name: String) -> MeshInstance3D
 	arrays[Mesh.ARRAY_NORMAL] = chunk["normals"]
 	arrays[Mesh.ARRAY_TANGENT] = chunk["tangents"]
 	arrays[Mesh.ARRAY_TEX_UV] = chunk["uvs"]
+	# The slope with the wall ledges averaged out (the terrain shader's
+	# masks at a distance, gfx-polish-1).
+	if chunk.has("uv2"):
+		arrays[Mesh.ARRAY_TEX_UV2] = chunk["uv2"]
 	arrays[Mesh.ARRAY_COLOR] = chunk["colors"]
 	arrays[Mesh.ARRAY_INDEX] = chunk["indices"]
 	var mesh := ArrayMesh.new()

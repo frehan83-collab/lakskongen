@@ -109,13 +109,13 @@ const PROFILES := [
 		"cloud_base_m": 0.0, "cloud_base_fog": 0.0, "sky_haze": 1.0, "deck_value": 1.0, "horizon_lift": 0.0, "mist": 0.0},
 	# Midnattssol: the sun a few degrees up in the north, gold on the horizon.
 	{"zenith": "#5A8AB4", "horizon": "#F8CC8C", "horizon_sun": "#F7CC90", "sky_grade": 1.0,
-		"deck": "#F4D19C", "deck_grade": 0.85, "fog": "#D8CDB8", "fog_grade": 0.5, "fog_value": 0.92,
-		"sun": "#FFC27A", "sun_grade": 0.45, "water": Color(0.0, 0.02, 0.03), "exposure_ev": 0.4,
-		"cloud_base_m": 0.0, "cloud_base_fog": 0.0, "sky_haze": 1.0, "deck_value": 1.2, "horizon_lift": 0.0, "mist": 0.0},
+		"deck": "#F4D19C", "deck_grade": 0.85, "fog": "#E6C89C", "fog_grade": 0.6, "fog_value": 0.5,
+		"sun": "#FFC27A", "sun_grade": 0.45, "water": Color(0.0, 0.016, 0.040), "exposure_ev": 0.45,
+		"cloud_base_m": 0.0, "cloud_base_fog": 0.0, "sky_haze": 1.0, "deck_value": 1.3, "horizon_lift": 0.0, "mist": 0.0},
 	# Gråvær: the west coast's closed grey deck, grey water, mist on the tops.
 	{"zenith": "#9AA8B0", "horizon": "#A7B3BA", "horizon_sun": "#A7B3BA", "sky_grade": 0.8,
-		"deck": "#A7B3BA", "deck_grade": 0.85, "fog": "#9AA7AE", "fog_grade": 0.85, "fog_value": 1.1,
-		"sun": "#E8ECEE", "sun_grade": 0.6, "water": Color(0.090, 0.100, 0.105), "exposure_ev": 0.35,
+		"deck": "#A7B3BA", "deck_grade": 0.85, "fog": "#9AA7AE", "fog_grade": 0.85, "fog_value": 0.85,
+		"sun": "#E8ECEE", "sun_grade": 0.6, "water": Color(0.090, 0.100, 0.105), "exposure_ev": 0.2,
 		"cloud_base_m": 200.0, "cloud_base_fog": 0.008, "sky_haze": 1.0, "deck_value": 1.0, "horizon_lift": 0.25, "mist": 1.0},
 	# Storm: a dark slate deck over a lighter horizon, rain driven by the
 	# wind; the far land fades lighter than the deck, so the mountains keep
@@ -142,10 +142,10 @@ const PROFILES := [
 		"sun": "#FFE6C8", "sun_grade": 0.5, "water": Color(0.0016, 0.0050, 0.0072), "exposure_ev": -0.35,
 		"cloud_base_m": 0.0, "cloud_base_fog": 0.0, "sky_haze": 1.0, "deck_value": 1.0, "horizon_lift": 0.0, "mist": 0.0},
 	# Høst: a low golden sun on the birches, a clear, dark sea.
-	{"zenith": "#5E8DB8", "horizon": "#C8D8E6", "horizon_sun": "#DED6C6", "sky_grade": 0.9,
-		"deck": "#E2DED6", "deck_grade": 0.25, "fog": "#B7BDB8", "fog_grade": 0.5, "fog_value": 0.9,
-		"sun": "#FFD9A0", "sun_grade": 0.8, "water": Color(0.0016, 0.0085, 0.0135), "exposure_ev": -0.25,
-		"cloud_base_m": 0.0, "cloud_base_fog": 0.0, "sky_haze": 1.0, "deck_value": 1.0, "horizon_lift": 0.0, "mist": 0.0},
+	{"zenith": "#5E8DB8", "horizon": "#AEC4DA", "horizon_sun": "#DCCFB8", "sky_grade": 0.9,
+		"deck": "#C4CCD6", "deck_grade": 0.6, "fog": "#AAB8C2", "fog_grade": 0.5, "fog_value": 0.6,
+		"sun": "#FFD9A0", "sun_grade": 0.8, "water": Color(0.0, 0.0085, 0.0125), "exposure_ev": -0.25,
+		"cloud_base_m": 0.0, "cloud_base_fog": 0.0, "sky_haze": 1.0, "deck_value": 0.9, "horizon_lift": 0.0, "mist": 0.0},
 ]
 
 ## Colour keys (sRGB hex in PROFILES, blended in linear light).

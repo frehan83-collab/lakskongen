@@ -124,6 +124,33 @@ const float LACE_RAGGED = 0.9;
 // shore distance is under 5 m).
 const float SHORE_FRINGE_M = 4.0;
 
+// ── Pens damp the sea (gfx-polish-1) ─────────────────────────────────────────
+// A pen's collar rides the waves and its net drags on the water inside it,
+// so no whitecap breaks within a collar (the storm frames drew caps inside
+// the pens). The director hands over every pen's collar (PenSpray.collars:
+// x, z, collar radius m, 1; nearest the camera first) while caps break; the
+// calm fades in over PEN_CALM_EDGE_M inside the collar and reaches
+// PEN_CALM_OUT_M past it, where the collar's own spray (PenSpray) flies.
+#define MAX_PEN_CALM 32
+uniform vec4 pen_calm[MAX_PEN_CALM];
+uniform int pen_calm_count = 0;
+const float PEN_CALM_EDGE_M = 2.5;
+const float PEN_CALM_OUT_M = 0.5;
+
+// 1 inside a pen's collar, 0 in open water.
+float pen_calm_at(vec2 xz) {
+	float calm = 0.0;
+	for (int i = 0; i < MAX_PEN_CALM; i++) {
+		if (i >= pen_calm_count) {
+			break;
+		}
+		vec4 pc = pen_calm[i];
+		float d = length(xz - pc.xy);
+		calm = max(calm, 1.0 - smoothstep(pc.z - PEN_CALM_EDGE_M, pc.z + PEN_CALM_OUT_M, d));
+	}
+	return calm;
+}
+
 varying vec3 v_world;
 varying vec2 v_p0;
 // The still water level (the grid's height).
@@ -382,6 +409,10 @@ void fragment() {
 			caps = mix(caps, far_caps, smoothstep(0.1, 0.35, footprint / max(dominant_lambda, 0.1)));
 			// Below about 5 m/s Monahan's share is a few isolated caps: none drawn.
 			caps *= smoothstep(0.0, 3.0, depth) * smoothstep(0.0008, 0.004, whitecaps);
+			// None inside a pen (gfx-polish-1).
+			if (pen_calm_count > 0 && caps > 0.0) {
+				caps *= 1.0 - pen_calm_at(p0);
+			}
 		}
 		foam = clamp(max(shore_foam, caps), 0.0, 1.0);
 	}

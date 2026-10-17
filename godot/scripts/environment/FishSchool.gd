@@ -39,9 +39,12 @@ const SALMON_LOD_SCENES := [
 const SCHOOL_MATERIAL := preload("res://assets/models/fish/salmon_school_material.tres")
 const SHOAL_MATERIAL := preload("res://assets/models/fish/fish_shoal_material.tres")
 ## Camera distance (m) where the solid school swaps LOD0 for LOD1, and where
-## the shoal swaps LOD1 fish for LOD2.
+## the shoal swaps LOD1 fish for LOD2. The shoal draws blurred dark shapes
+## under the water: at 30 m a fish is ~35 px long and 42 triangles hold its
+## outline (gfx-polish-1: within 90 m the LOD1 salmon, ~170 vertices a fish
+## and 4,000 fish a pen, cost ~1.5 ms at FARM for no visible difference).
 const LOD_SWITCH := 20.0
-const SHOAL_LOD_SWITCH := 90.0
+const SHOAL_LOD_SWITCH := 30.0
 ## Fish are drawn within this camera distance (m); the pen's water column
 ## (a stocked pen's colour) within COLUMN_RANGE_M.
 const FISH_RANGE_M := 400.0

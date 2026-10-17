@@ -381,17 +381,25 @@ func _apply_variant(v: Dictionary) -> void:
 ## "water.<uniform>" (the water material), "hide.<path under the
 ## FjordEnvironment>=true" (visible = false), "mirrorenv.<property>",
 ## "mirrorcam.<property>" and "mirrorvp.<property>" (the planar mirror's
-## environment, camera and viewport). They are set right before every draw,
-## after the director composed the frame, so they win.
+## environment, camera and viewport), and "hideall.<name prefix>=true" (every
+## GeometryInstance3D under the FjordEnvironment whose name begins with the
+## prefix: "Shoal", "FishSchool", "Net"... to split a node's cost by part).
+## They are set right before every draw, after the director composed the
+## frame, so they win.
 var _raw := {}
 ## Values the raw overrides replaced: [object, property, value, is_uniform].
 var _raw_saved := {}
+## hideall: the nodes each prefix matched (found once per variant).
+var _hideall_nodes := {}
 
 
 func _apply_raw_overrides() -> void:
 	if _raw.is_empty() or _env == null:
 		return
 	for key: String in _raw:
+		if scope_of(key) == "hideall":
+			_hide_all(key.substr(key.find(".") + 1), bool(_raw[key]))
+			continue
 		var target := _raw_target(key)
 		if target.is_empty():
 			continue
@@ -409,7 +417,30 @@ func _apply_raw_overrides() -> void:
 			obj.set(prop, value)
 
 
+## Hide (or show) every GeometryInstance3D under the environment whose name
+## begins with `prefix`, remembering each one's visibility for the restore.
+## The nodes are found once per variant (the walk would cost script time
+## every frame).
+func _hide_all(prefix: String, hidden: bool) -> void:
+	if not _hideall_nodes.has(prefix):
+		var found: Array[Node3D] = []
+		var stack: Array[Node] = [_env]
+		while not stack.is_empty():
+			var node: Node = stack.pop_back()
+			for child in node.get_children():
+				stack.append(child)
+			if node is GeometryInstance3D and String(node.name).begins_with(prefix):
+				found.append(node as Node3D)
+				_raw_saved["hideall:%d" % node.get_instance_id()] = [node, "visible", (node as Node3D).visible, false]
+		_hideall_nodes[prefix] = found
+		print("PERF_HIDEALL prefix=%s nodes=%d" % [prefix, found.size()])
+	for node: Node3D in _hideall_nodes[prefix]:
+		if is_instance_valid(node):
+			node.visible = not hidden
+
+
 func _restore_raw() -> void:
+	_hideall_nodes = {}
 	for key in _raw_saved:
 		var saved: Array = _raw_saved[key]
 		if not is_instance_valid(saved[0]):
