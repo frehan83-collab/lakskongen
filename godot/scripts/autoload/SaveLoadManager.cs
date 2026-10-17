@@ -229,6 +229,11 @@ public partial class SaveLoadManager : Node
             RotateAutoSaves();
             
             string saveName = $"{AUTOSAVE_PREFIX}_latest";
+            // Every autosave, the day cadence's or an explicit one, starts the
+            // real minute the next day-cadence autosave waits for (U2-07), so
+            // the cadence never overwrites a fresh autosave_latest at once.
+            _autoSavedOnce = true;
+            _lastAutoSaveMs = Time.GetTicksMsec();
             return SaveGame(saveName);
         }
         catch (Exception ex)
@@ -805,8 +810,6 @@ public partial class SaveLoadManager : Node
             ulong now = Time.GetTicksMsec();
             if (_autoSavedOnce && now - _lastAutoSaveMs < MinAutoSaveIntervalMs)
                 return;
-            _autoSavedOnce = true;
-            _lastAutoSaveMs = now;
             AutoSave();
         }
     }
