@@ -486,6 +486,10 @@ public partial class GameBridge : Node
     public Godot.Collections.Dictionary StockLandTank(string siteId, string tankId, int count, string strainId)
         => SimulationEngine?.State == null ? LandNotReady() : LandOutcome(SimulationEngine.StockLandTank(siteId, tankId, count, strainId));
 
+    /// <summary>Grade a share (0-1] of one land tank's fish into an empty, ready tank of the same site.</summary>
+    public Godot.Collections.Dictionary GradeTank(string siteId, string fromTankId, string toTankId, double share)
+        => SimulationEngine?.State == null ? LandNotReady() : LandOutcome(SimulationEngine.GradeTank(siteId, fromTankId, toTankId, share));
+
     /// <summary>Harvest a land tank now.</summary>
     public Godot.Collections.Dictionary HarvestLandTank(string siteId, string tankId)
         => SimulationEngine?.State == null ? LandNotReady() : LandOutcome(SimulationEngine.HarvestLandTank(siteId, tankId));

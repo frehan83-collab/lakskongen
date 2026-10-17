@@ -435,6 +435,44 @@ public class LandSiteEngineTests
     }
 
     [Fact]
+    public void GradingATank_MovesItsShareIntoAnEmptyTank_AndKeepsEveryFish()
+    {
+        var engine = NewEngine(55);
+        var site = Commission(engine);
+        var lot = site.Lots[0];
+        var pre = lot.Tanks.First(t => t.Role == TankRole.PreGrowOut);
+        Assert.True(engine.StockLandTank(site.Id, pre.Id, 20_000).Ok);
+        engine.Advance(30);
+        var source = site.PopulationIn(pre)!;
+        int before = source.TotalCount;
+        double weight = source.GetTotalBiomassKg() / before;
+        long all = engine.State.Populations.Sum(p => (long)p.TotalCount);
+
+        Assert.Equal(LandSiteReasons.OutOfRange, engine.GradeTank(site.Id, pre.Id, "t01", 0.0).ErrorKey);
+        Assert.Equal(LandSiteReasons.OutOfRange, engine.GradeTank(site.Id, pre.Id, pre.Id, 0.5).ErrorKey);
+        Assert.Equal("holding_empty", engine.GradeTank(site.Id, "t02", "t03", 0.5).ErrorKey);
+        var half = engine.GradeTank(site.Id, pre.Id, "t01", 0.5);
+        Assert.True(half.Ok, half.Message);
+        var moved = site.PopulationIn(lot.Tanks[0])!;
+        Assert.NotSame(source, moved);
+        Assert.Equal(before, source.TotalCount + moved.TotalCount);
+        Assert.Equal(before / 2.0, moved.TotalCount, 0);
+        Assert.Equal(weight, moved.GetTotalBiomassKg() / moved.TotalCount, 9);
+        Assert.Equal(all, engine.State.Populations.Sum(p => (long)p.TotalCount));
+        Assert.Equal(LandSiteReasons.TankOccupied, engine.GradeTank(site.Id, pre.Id, "t01", 1.0).ErrorKey);
+        // The whole tank moves as it is: the same population, the source empty.
+        Assert.True(engine.GradeTank(site.Id, pre.Id, "t02", 1.0).Ok);
+        Assert.Same(source, site.PopulationIn(lot.Tanks[1]));
+        Assert.Null(site.PopulationIn(pre));
+        // Too many fish for the target's limit on the plan.
+        Assert.True(engine.StockLandTank(site.Id, "t03", engine.PreviewLandStocking(site.Id, "t03", 0).DensityRoomSmolts).Ok);
+        var pre2 = lot.Tanks.Last(t => t.Role == TankRole.PreGrowOut);
+        Assert.True(engine.GradeTank(site.Id, "t03", pre2.Id, 1.0).ErrorKey == LandSiteReasons.DensityExceeded);
+        engine.Advance(5);
+        Assert.Empty(UnitResolver.Violations(engine.State));
+    }
+
+    [Fact]
     public void APreF2LandSite_KeepsThePreF2Tick()
     {
         var engine = NewEngine(53);

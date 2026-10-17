@@ -702,6 +702,7 @@ func get_land_construction() -> Array[Dictionary]: return _proxies.get_land_cons
 func get_land_permit_cases(plot_id: String) -> Array[Dictionary]: return _proxies.get_land_permit_cases(plot_id)
 func preview_land_stocking(site_id: String, tank_id: String, count: int, strain_id: String) -> Dictionary: return _proxies.preview_land_stocking(site_id, tank_id, count, strain_id)
 func stock_land_tank(site_id: String, tank_id: String, count: int, strain_id: String) -> Dictionary: return _proxies.stock_land_tank(site_id, tank_id, count, strain_id)
+func grade_tank(site_id: String, from_tank_id: String, to_tank_id: String, share: float) -> Dictionary: return _proxies.grade_tank(site_id, from_tank_id, to_tank_id, share)
 func harvest_land_tank(site_id: String, tank_id: String) -> Dictionary: return _proxies.harvest_land_tank(site_id, tank_id)
 func set_vannstrategi(site_id: String, reuse: float, deep_intake_share: float, setpoint_c: float, blend: bool) -> Dictionary: return _proxies.set_vannstrategi(site_id, reuse, deep_intake_share, setpoint_c, blend)
 func install_heat_recovery(lot_id: String) -> Dictionary: return _proxies.install_heat_recovery(lot_id)

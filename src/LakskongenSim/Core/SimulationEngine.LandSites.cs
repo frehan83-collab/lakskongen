@@ -561,6 +561,87 @@ public partial class SimulationEngine
         return result;
     }
 
+    /// <summary>
+    /// Grade a tank (spec §3.4 <c>GradeTank</c>): move <paramref name="share"/>
+    /// of its fish (each cohort's share, rounded) into an empty, ready tank of
+    /// the same site, as from a pre-grow-out tank to grow-out tanks. The whole
+    /// tank moves as it is; a share splits off a new population (the fish leave
+    /// the source through the mortality ledger as a transfer). Refused before
+    /// any change: not_found, tank_not_found, out_of_range (a share outside
+    /// (0, 1], the same tank), holding_empty, not_operational (the target is
+    /// not built), tank_occupied, density_exceeded (the moved fish's projected
+    /// peak in the target over its limit).
+    /// </summary>
+    public CommandResult GradeTank(string siteId, string fromTankId, string toTankId, double share)
+    {
+        if (State == null)
+            return CommandResult.Fail("engine_not_ready", "Engine not initialized");
+        var site = FindLandSite(siteId);
+        if (site == null || !site.HasLots)
+            return CommandResult.Fail(LandSiteReasons.NotFound, $"No land site with tanks '{siteId}'");
+        SyncLandSite(site);
+        var from = site.FindTank(fromTankId);
+        var to = site.FindTank(toTankId);
+        if (from == null || to == null)
+            return CommandResult.Fail(LandSiteReasons.TankNotFound, $"No tank '{(from == null ? fromTankId : toTankId)}' at '{site.Name}'");
+        if (!(share > 0.0 && share <= 1.0) || ReferenceEquals(from, to))
+            return CommandResult.Fail(LandSiteReasons.OutOfRange, "Grade a share in (0, 1] into another tank");
+        var source = site.PopulationIn(from);
+        if (source == null || source.TotalCount <= 0)
+            return CommandResult.Fail("holding_empty", $"{from.Id} holds no fish");
+        var toLot = site.LotOf(to)!;
+        if (!IsTankReadyNow(toLot, toLot.Tanks.IndexOf(to)))
+            return CommandResult.Fail(LandSiteReasons.NotOperational, $"{to.Id} is not built yet");
+        if (site.PopulationIn(to) != null)
+            return CommandResult.Fail(LandSiteReasons.TankOccupied, $"{to.Id} already holds fish");
+
+        var moves = source.Cohorts.Select(c => (Cohort: c,
+            Count: share >= 1.0 ? c.Count : (int)Math.Round(c.Count * share, MidpointRounding.AwayFromZero))).ToList();
+        int fish = moves.Sum(m => m.Count);
+        if (fish <= 0)
+            return CommandResult.Fail(LandSiteReasons.OutOfRange, "The share moves no fish");
+        var cal = LandCalibration;
+        var t = cal.For(toLot.Template);
+        double meanKg = moves.Sum(m => m.Count * m.Cohort.MeanWeightKg) / fish;
+        var plan = LandStockingPlan.For(t, cal.Production) with
+        {
+            ReleaseWeightKg = meanKg,
+            HarvestWeightKg = Math.Max(meanKg, t.PlanHarvestWeightKg),
+            TemperatureC = site.TargetWaterTemp,
+            GrowthMultiplier = source.Cohorts.Where(c => c.Count > 0).Select(CohortGrowthMultiplier).DefaultIfEmpty(1.0).Max(),
+        };
+        var verdict = LandStockingPlanner.Check(Growth.Law, plan, to.VolumeM3, fish, t.MaxDensityKgM3);
+        if (!verdict.Allowed)
+            return CommandResult.Fail(verdict.Reason,
+                $"{fish:N0} fish would peak at {verdict.PeakDensityKgM3:F1} kg/m³ in {to.Id} (limit {t.MaxDensityKgM3:F0})", verdict.MaxSmolts);
+
+        if (share >= 1.0)
+        {
+            to.Pen.PopulationId = source.Id;
+            from.Pen.PopulationId = "";
+        }
+        else
+        {
+            var split = new FishPopulation { ZoneId = site.ZoneId, SiteId = site.Id, SeaLiceLoad = 0.0, VaccinatedDay = source.VaccinatedDay };
+            split.InjectDependencies(Growth, Mortality);
+            foreach (var (cohort, n) in moves)
+            {
+                int moved = source.RemoveAlive(cohort, n, FishRemoval.TransferOut);
+                if (moved <= 0) continue;
+                split.Cohorts.Add(new FishPopulation.Cohort(cohort.AgeDays, moved, cohort.MeanWeightKg, cohort.Stage, cohort.Genetics)
+                {
+                    Quality = cohort.Quality,
+                    WeightCv = cohort.WeightCv,
+                });
+            }
+            site.Tanks.Add(split);
+            State.Populations.Add(split);
+            to.Pen.PopulationId = split.Id;
+        }
+        LogFacilityEvent("Sortering av kar", SimText.Nb($"{site.Name}: {fish:N0} fisk flyttet fra {from.Id} til {to.Id}"), 0m);
+        return CommandResult.Success($"Graded {fish:N0} fish from {from.Id} to {to.Id}", fish, verdict.PeakDensityKgM3, to.Id);
+    }
+
     // ── Water strategy and heat recovery ───────────────────────────────────
 
     /// <summary>Lowest tank setpoint a Vannstrategi may set (°C): the calibration's range of the template setpoint.</summary>

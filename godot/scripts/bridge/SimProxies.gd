@@ -695,6 +695,9 @@ func preview_land_stocking(site_id: String, tank_id: String, count: int, strain_
 ## Stock a land tank.
 func stock_land_tank(site_id: String, tank_id: String, count: int, strain_id: String) -> Dictionary:
 	return game_bridge.StockLandTank(site_id, tank_id, count, strain_id) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## Grade a share of one land tank's fish into an empty, ready tank.
+func grade_tank(site_id: String, from_tank_id: String, to_tank_id: String, share: float) -> Dictionary:
+	return game_bridge.GradeTank(site_id, from_tank_id, to_tank_id, share) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
 ## Harvest a land tank now.
 func harvest_land_tank(site_id: String, tank_id: String) -> Dictionary:
 	return game_bridge.HarvestLandTank(site_id, tank_id) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
