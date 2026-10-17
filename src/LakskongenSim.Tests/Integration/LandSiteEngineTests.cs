@@ -427,6 +427,11 @@ public class LandSiteEngineTests
         Assert.True(growth > 3_000_000.0, $"growth {growth:N0} kg");
         Assert.InRange(kwhPerKg, 6.0, 7.5);
         Assert.InRange(loxPerKg, 0.45, 0.65);
+        // And the engine path is the standalone physics: within 6 % of the projection's year (§1p).
+        var standalone = LandLotProjector.Run(LakskongenSim.Tests.Farm.LandTestSites.SalmonEvolutionYear(cal), cal);
+        _output.WriteLine($"standalone: {standalone.KWhPerKgGrowth:F2} kWh/kg, {standalone.LoxPerKgGrowth:F3} kg O2/kg");
+        Assert.InRange(kwhPerKg / standalone.KWhPerKgGrowth, 0.94, 1.06);
+        Assert.InRange(loxPerKg / standalone.LoxPerKgGrowth, 0.94, 1.06);
     }
 
     [Fact]

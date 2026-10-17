@@ -91,3 +91,22 @@ fixed in number (spec §3.7).
 - A **live-state projection** for the UI previews (F2-32 "equal to the engine projection ± 3 %")
   needs a `LandLotProjector` overload that starts from a facility's tanks instead of staggered empty
   tanks.
+
+## 7. Stage 2 landed (wave4/sim-land-1, 2026-10-17)
+
+What the table of §2 became in the engine (decisions: RUN_LOG §7, 2026-10-17 F2-12/F2-14 rows;
+numbers: docs/BALANCE.md §1v):
+
+| Seam | Wired as |
+|---|---|
+| Calibration | `FacilitiesCalibration.Land` (`[JsonPropertyName("land")]`, in `LandBuildCalibration.cs`), read by F2-04's include loader; `LandCalibration.Parse` kept for the file-equals-code test; every leaf carries `[Range]` and one `[Source]`/`[GameBalance]` and still documents them (the Roslyn doc test stays) |
+| `TankWater` | the tank's `TemperatureC`/`DoMgL`, seawater, the pad's production area; a pre-F2 site keeps the facility's values |
+| `AppetiteFactorFor` | `tank.AppetiteFactor` × the DO-saturation factor at the tank's DO (a pad is no fjord zone, so the frozen biology tick's DO path never reaches a tank) |
+| Density | `LandHooks.DensityGrowthMultiplier` in `GrowAndFeedOneDay` (no new frozen hook: the tick passes 1.0 for a pad); `HoldingIndex.LandTank` carries the tank's pen |
+| FCR | `LandHooks.BiologicalFcrAt2Kg` (the plan's 1.0 at 2 kg × the size factor) in `GrowAndFeedOneDay`; the land tick reads the feed eaten (`NoteLandFeed`) |
+| `LandSiteTickSystem` | `TickLandSiteDay`: sync, 10 reserved uniforms, one `LandLotDaySolver` per commissioned lot, `land_energy`/`land_oxygen`/`land_staff`, Scope 3 LOX upstream, the pre-F2 fields mirrored |
+| `StockLandTank` | `LandStockingPlanner.Check` at the site's setpoint and the strain's genome (no sea-phase tier bonus), the rolling-year nameplate, `biofilter_immature` |
+| `SetVannstrategi`, `InstallHeatRecovery` | as §2; the HFS lot and pilot are built with heat recovery |
+
+Still open: §6's live-state projection for the UI previews, the pre-F2 RAS migration onto lots
+(spec §3.8 step 3) and the rest listed in RUN_LOG §8 ("Remainder (F2-12/F2-14)").

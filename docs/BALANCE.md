@@ -2388,6 +2388,107 @@ fee (D16: medals, never cash). The win the UI tests play:
 ressursrente seed 5 harvesting at 4.5 kg, won after 308 days with bronze (16.3 %
 mortality and 7 kNOK of fines missed the other two).
 
+## 1v. F2-12 wiring and F2-14: land sites in the engine, permits, grid and phased construction (2026-10-17, branch `wave4/sim-land-1`)
+
+_The standalone land physics of §1p now run in the engine (`LandSiteTickSystem` → `TickLandSiteDay`,
+`LandHooks`), and a land site is applied for, permitted and built through the engine's verbs.
+Calibration `facilities.land` (registry 1.1.2): `facilities_land.json` gains `build`, `permits` and
+`operations`. Decisions: RUN_LOG §7 (2026-10-17 F2-12/F2-14 rows); findings: §8._
+
+### The engine reproduces the standalone anchors
+
+`LandSiteEngineTests.TheEngineLot_HoldsTheStandaloneEnergyAndOxygenAnchors`: one full HFS lot on
+pad_a in PO5 water, Salmon Evolution's strategy (r 0.65, the intakes blended toward 12 °C, heat
+recovery), every tank stocked for its 80 kg/m³ plan peak in rotation (one tank every 26 days) and
+harvested at 5.2 kg, measured over the second year:
+
+| Measure | Engine (seed 54) | Standalone (§1p) | Band |
+|---|---|---|---|
+| Live-weight growth | 6,617 t | 6,640 t | — |
+| Electricity | 40.8 GWh, **6.16 kWh/kg** | 6.40 kWh/kg | 6.0-7.5 [L:R2] |
+| Liquid oxygen | **0.494 kg O2/kg** | 0.479 | 0.45-0.65 [L:R2] |
+
+Two wiring choices close the gap between the two paths (before them the engine read 5.54 kWh/kg and
+0.684 kg O2/kg): land tanks feed at the land plan's biological FCR (1.0 at 2 kg × the law's size
+factor, [L:A3]/[L:R2]) instead of the sea's FCR model, and the land tick runs on the feed eaten (the
+oxygen coefficient was back-calculated on it); land-stocked cohorts carry no sea-phase smolt-tier
+growth bonus (the 400 g fish's tier prices it through the F2-13 hook). A pre-F2 land site keeps the
+sea FCR and the pre-F2 tick (FarmTypeMoveTests).
+
+### Opex lines of a land site
+
+| Line | Daily amount | Source |
+|---|---|---|
+| `land_energy` | metered kWh × 0.80 NOK/kWh | [L:E1] midpoint (`energy.powerPriceNokPerKWh`) |
+| `land_oxygen` | LOX bought × 4.0 NOK/kg | [L:S6] (`oxygen.loxPriceNokPerKg`) |
+| `land_staff` | template FTE (HFS lot 33, pilot 15, module 6, RAS hall 35) × 650 k NOK/yr | [L:R2] staff; [code] salary |
+
+Each line is attributed to the site and stays out of the resource-rent base (F2-04). Scope 2 =
+metered kWh at the grid factor; the purchased LOX's upstream energy (0.75 kWh/kg) is booked as
+`Scope3_Oxygen`. Maintenance, insurance, smolt and feed purchase, and the farming-cost band
+(60-75 NOK/kg HOG) are F2-15's.
+
+### Permits: refusal odds per pad (the quoted probability is the decided one)
+
+Refusal = (base + per-sensitivity × the pad's nature sensitivity) × (production / 7,900 t)^0.5 for
+zoning, the land permit and discharge, × 0.7 with an environmental survey (zoning, discharge, sea
+works), × 0.5 with a denitrification commitment (discharge). Bases: zoning 0.01 + 0.35 s, land
+0.005 + 0.10 s, discharge 0.01 + 0.35 s, sea works 0.005 + 0.10 s, biosecurity 0.01. Probability
+that at least one case of the package is refused:
+
+| Pad (sensitivity) | Full lot | Pilot lot | Post-smolt module | Full lot, survey + denitrification |
+|---|---|---|---|---|
+| a plot of 0.1 | 0.124 | 0.083 | 0.048 | 0.080 |
+| pad_a Storholmen (0.2) | 0.203 | 0.134 | 0.074 | 0.130 |
+| pad_delta Elveøyra (0.4, pre-zoned: no zoning case) | 0.233 | 0.158 | 0.096 | 0.132 |
+| pad_b Skjærvika (0.6) | 0.473 | 0.320 | 0.176 | 0.310 |
+
+Sensitivity 0.6 refuses 3.8× as often as 0.1 (package), 4.9× per zoning or discharge case; over 400
+engine cases (200 zoning + 200 discharge per plot) the drawn refusal rates keep the ≥ 3× ratio
+(`LandPermitTests.NatureSensitivity06_RefusesAtLeastThreeTimesAsOftenAs01`). Windows: zoning
+365-730 d, land 135-225 d, discharge 180-300 d, sea works 90-150 d, biosecurity 68-113 d (± 25 %
+around 180/240/120/90); appeals 180 d at half the refused case's odds; grid projects 365-1,095 d,
+never refused, NOK 40 M per 10 MW connected (a second feed connects the pad's whole capacity on a
+new line: 160 M NOK at pad_a).
+
+### Construction: budgets, schedule and risk
+
+| Unit | Budget | Phases (planned days) | First tanks | Complete |
+|---|---|---|---|---|
+| HFS lot | 2.07 bn + pad blasting (pad_a 120 M) | site works 180, tank rings 240, treatment hall 150, sea works 60, first tanks 40, completion 243 | 670 d (22 months) | 913 d (30 months) |
+| HFS pilot (4 + 1 tanks) | 0.90 bn + blasting | 180, 150, 120, 60, 40 | 550 d (every tank) | 550 d |
+| Pilot → full lot | 1.25 bn (pilot + expansion 2.15 bn) | tank rings 210, hall 90, first tanks 40, completion 60 | — | 400 d |
+| Post-smolt module | 110 M + blasting | 90, 270, 90, 60, 38 | 548 d [code] | 548 d |
+| RAS hall | 1.376 bn | 180, 270, 270, 60, 133 | 913 d | 913 d |
+
+A full lot's first commissioning hands over half its grow-out tanks (6 of 14, [L:R1]). Started on
+1 June (Salmon Evolution's phase-2 decision month) the planned lot reaches 22 and 30 whole months
+exactly. The sea works neither start nor run in April-June ([L:R12]); a phase overtaken by the
+season stands still in it (2,639 closed days stood still over 159 sampled starts × slips, never a
+sea-works day worked in the season).
+
+Over the engine's own draws (`facility_construction/cp_1/<phase>`, seeds 1-200, a June start):
+
+| Measure | p50 | p90 | Acceptance |
+|---|---|---|---|
+| Managed overrun (budget share) | **+9.7 %** | **+17.5 %** | median 5-10 %, p90 ≤ 30 % (F2-14 #4) |
+| Turnkey | +12 % up front | no overrun | +12 %, zero overrun |
+| First tanks | 26 months | 29 months | plan 22 (finding §8) |
+| Complete | 35 months | 39 months | plan 30 (finding §8) |
+
+The preview's p50/p90 come from the same inverse CDFs on a 4,096-point Halton grid: overrun p50
+within ±1 pp and p90 within ±3 pp of the 200-seed draws; first tanks and completion within a month.
+
+One engine build (seed 82, pad_a, managed, started day 321): planned first tanks day 991, built
+1,035 (+44 d); planned completion 1,234, built 1,336 (+102 d); paid 2.41 bn of a 2.19 bn budget
+(preview p50 overrun 201 M, p90 392 M).
+
+### Grid
+
+Design load of a lot (heat pumps at full input + the intake pumps at the design new-water flow +
+loop pumping, treatment and UV at the design loop flow + base load): HFS lot **10.76 MW**. pad_a's
+40 MW carries 3 full lots; the 4th needs a 10 MW capacity project (`LandCommissioningTests.TheGrid_...`).
+
 ## 2. Key economic knobs
 
 | Knob | Current | Real reference | Source | Recommended playtest band |
