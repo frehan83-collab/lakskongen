@@ -646,6 +646,64 @@ func get_land_sites() -> Array[Dictionary]:
 ## The land pads, free or held.
 func get_land_plots() -> Array[Dictionary]:
 	return _arr(game_bridge.GetLandPlots()) if game_bridge else []
+# F2-12 / F2-14: lots and tanks, the build preview, permits, grid, construction.
+## One land site in full: its Vannstrategi, lots, tanks and their water.
+func get_land_site_detail(site_id: String) -> Dictionary:
+	return game_bridge.GetLandSiteDetail(site_id) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## The preview of a new land site on a pad (budget, payments with p50/p90, schedule, first harvest, permit timeline).
+func preview_land_build(plot_id: String, template: String, contract: String, mitigations: Array) -> Dictionary:
+	return game_bridge.PreviewLandBuild(plot_id, template, contract, mitigations) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## The preview of expanding a land site (pilot to full lot, or the next lot or module).
+func preview_land_expansion(site_id: String, contract: String) -> Dictionary:
+	return game_bridge.PreviewLandExpansion(site_id, contract) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## Apply for every permit a land plan on a pad still needs.
+func apply_land_permits(plot_id: String, template: String, lots: int, mitigations: Array) -> Dictionary:
+	return game_bridge.ApplyLandPermits(plot_id, template, lots, mitigations) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## Apply for the zoning of a pad alone.
+func apply_for_zoning(plot_id: String, mitigations: Array) -> Dictionary:
+	return game_bridge.ApplyForZoning(plot_id, mitigations) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## Appeal a refused land permit case.
+func appeal_land_permit(case_id: String) -> Dictionary:
+	return game_bridge.AppealLandPermit(case_id) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## Apply again for a refused land permit with more mitigations.
+func reapply_land_permit(case_id: String, mitigations: Array) -> Dictionary:
+	return game_bridge.ReapplyLandPermit(case_id, mitigations) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## Queue a grid project at a pad ("capacity" or "second_feed").
+func start_grid_project(plot_id: String, kind: String) -> Dictionary:
+	return game_bridge.StartGridProject(plot_id, kind) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## Start building a land site on a pad.
+func build_land_site(plot_id: String, template: String, contract: String, site_name: String) -> Dictionary:
+	return game_bridge.BuildLandSite(plot_id, template, contract, site_name) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## Expand a land site.
+func expand_land_site(site_id: String, contract: String) -> Dictionary:
+	return game_bridge.ExpandLandSite(site_id, contract) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## Accelerate a land construction project's current phase.
+func accelerate_land_construction(project_id: String) -> Dictionary:
+	return game_bridge.AccelerateLandConstruction(project_id) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## Cancel a land construction project.
+func cancel_land_construction(project_id: String) -> Dictionary:
+	return game_bridge.CancelLandConstruction(project_id) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## Every land construction project with its phase and progress (0-1).
+func get_land_construction() -> Array[Dictionary]:
+	return _arr(game_bridge.GetLandConstruction()) if game_bridge else []
+## The permit cases filed on a pad ("" = every pad).
+func get_land_permit_cases(plot_id: String) -> Array[Dictionary]:
+	return _arr(game_bridge.GetLandPermitCases(plot_id)) if game_bridge else []
+## What stocking a land tank would do.
+func preview_land_stocking(site_id: String, tank_id: String, count: int, strain_id: String) -> Dictionary:
+	return game_bridge.PreviewLandStocking(site_id, tank_id, count, strain_id) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## Stock a land tank.
+func stock_land_tank(site_id: String, tank_id: String, count: int, strain_id: String) -> Dictionary:
+	return game_bridge.StockLandTank(site_id, tank_id, count, strain_id) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## Harvest a land tank now.
+func harvest_land_tank(site_id: String, tank_id: String) -> Dictionary:
+	return game_bridge.HarvestLandTank(site_id, tank_id) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## Set a land site's Vannstrategi.
+func set_vannstrategi(site_id: String, reuse: float, deep_intake_share: float, setpoint_c: float, blend: bool) -> Dictionary:
+	return game_bridge.SetVannstrategi(site_id, reuse, deep_intake_share, setpoint_c, blend) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## Fit heat recovery to a lot.
+func install_heat_recovery(lot_id: String) -> Dictionary:
+	return game_bridge.InstallHeatRecovery(lot_id) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
 # ═══ END sim·land lane block ═══
 
 # ═══ BEGIN sim·sea lane block (F2-03 list verbs; F2-06 … F2-11 append below) ═══

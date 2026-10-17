@@ -151,6 +151,7 @@ public partial class SimulationEngine
         for (int i = 0; i < lots; i++)
             AddLot(site, template, "", State.Day);
         RefreshLandMirrors(site);
+        ApplyDriftsplanDefaults(site.Id); // F2-05: the land lane's default standing orders (F2-15/F2-16 add them)
         LogFacilityBuilt("Landanlegg i drift",
             SimText.Nb($"{site.Name} er i drift på {plot.Name} ({site.AllTanks().Count()} kar)"), 0m);
         return CommandResult.Success($"Land site '{site.Name}' placed on {plot.Id} with {lots} × {template}",
@@ -266,18 +267,7 @@ public partial class SimulationEngine
         for (int i = 0; i < site.Lots.Count; i++)
         {
             var lot = site.Lots[i];
-            var project = FindProject(lot.ConstructionProjectId);
-            if (project != null)
-            {
-                int first = project.Phases.FindIndex(p => p.Key == LandConstructionPhases.FirstTanks);
-                if (lot.FirstTanksDay < 0 && first >= 0 && project.PhaseCompletedDays.Count > first)
-                    lot.FirstTanksDay = project.PhaseCompletedDays[first];
-                if (lot.CompleteDay < 0 && project.Status == ConstructionStatus.Complete && project.PhaseCompletedDays.Count > 0)
-                {
-                    lot.CompleteDay = project.PhaseCompletedDays[^1];
-                    if (lot.FirstTanksDay < 0) lot.FirstTanksDay = lot.CompleteDay;
-                }
-            }
+            (lot.FirstTanksDay, lot.CompleteDay) = LotDaysNow(lot);
             var expansion = FindProject(lot.ExpansionProjectId);
             if (expansion != null && expansion.Status == ConstructionStatus.Complete && lot.Template == LandTemplate.HfsPilotLot)
                 site.Lots[i] = ExpandedLot(site, lot, expansion.PhaseCompletedDays[^1]);
@@ -296,6 +286,51 @@ public partial class SimulationEngine
             free.Pen.PopulationId = population.Id;
         }
         RefreshLandMirrors(site);
+    }
+
+    /// <summary>
+    /// A lot's first-tanks and completion days as they stand now: its own, or
+    /// the days its construction project's phases ended (a pure read: the land
+    /// tick and the commands write them, <see cref="SyncLandSite"/>). -1 for a
+    /// day not reached.
+    /// </summary>
+    internal (int FirstTanksDay, int CompleteDay) LotDaysNow(LandLot lot)
+    {
+        int first = lot.FirstTanksDay, complete = lot.CompleteDay;
+        var project = FindProject(lot.ConstructionProjectId);
+        if (project != null)
+        {
+            int index = project.Phases.FindIndex(p => p.Key == LandConstructionPhases.FirstTanks);
+            if (first < 0 && index >= 0 && project.PhaseCompletedDays.Count > index)
+                first = project.PhaseCompletedDays[index];
+            if (complete < 0 && project.Status == ConstructionStatus.Complete && project.PhaseCompletedDays.Count > 0)
+            {
+                complete = project.PhaseCompletedDays[^1];
+                if (first < 0) first = complete;
+            }
+        }
+        return (first, complete);
+    }
+
+    /// <summary>Day the lot's first tanks took fish, as it stands now (-1 when not yet; a pure read).</summary>
+    public int LotFirstTanksDayNow(LandLot lot) => LotDaysNow(lot).FirstTanksDay;
+
+    /// <summary>Day the whole lot was ready, as it stands now (-1 when not yet; a pure read).</summary>
+    public int LotCompleteDayNow(LandLot lot) => LotDaysNow(lot).CompleteDay;
+
+    /// <summary>True when the lot has a tank ready for fish now (a pure read).</summary>
+    public bool IsLotCommissionedNow(LandLot lot)
+    {
+        var (first, complete) = LotDaysNow(lot);
+        return first >= 0 || complete >= 0;
+    }
+
+    /// <summary>True when tank <paramref name="index"/> (tank order) of the lot takes fish now (a pure read).</summary>
+    public bool IsTankReadyNow(LandLot lot, int index)
+    {
+        if (lot == null || index < 0 || index >= lot.Tanks.Count) return false;
+        var (first, complete) = LotDaysNow(lot);
+        return complete >= 0 || (first >= 0 && index < lot.FirstTankCount);
     }
 
     /// <summary>The ready, empty tanks of a site, in tank order.</summary>
@@ -384,6 +419,7 @@ public partial class SimulationEngine
     /// </summary>
     public CommandResult StockLandTank(string siteId, string tankId, int count, string strainId = "standard")
     {
+        if (FindLandSite(siteId) is { HasLots: true } synced) SyncLandSite(synced);
         var preview = PreviewLandStocking(siteId, tankId, count, strainId);
         if (!preview.Allowed)
             return CommandResult.Fail(preview.Reason, preview.Message, preview.MaxSmolts);
@@ -398,7 +434,9 @@ public partial class SimulationEngine
         var population = new FishPopulation { ZoneId = site.ZoneId, SiteId = site.Id, SeaLiceLoad = 0.0 };
         population.InjectDependencies(Growth, Mortality);
         population.Cohorts.Add(new FishPopulation.Cohort(Hatchery.MaturationDays, count, preview.ReleaseWeightKg,
-            LifeStage.Smolt, strain.BuildGenome()) { Quality = preview.Tier });
+            LifeStage.Smolt, strain.BuildGenome()));
+        // The size tier prices the fish (the F2-13 hook); its growth carryover is a
+        // sea phase's (P5), so a fish that stays on land grows on the land plan.
         site.Tanks.Add(population);
         State.Populations.Add(population);
         tank.Pen.PopulationId = population.Id;
@@ -422,7 +460,6 @@ public partial class SimulationEngine
         var site = FindLandSite(siteId);
         if (site == null || !site.HasLots)
             return LandStockingPreview.Refused(LandSiteReasons.NotFound, $"No land site with tanks '{siteId}'");
-        SyncLandSite(site);
         var tank = site.FindTank(tankId);
         var lot = tank == null ? null : site.LotOf(tank);
         if (tank == null || lot == null)
@@ -433,7 +470,7 @@ public partial class SimulationEngine
         var strain = SmoltStrainRegistry.Get(strainId);
         double releaseKg = t.PlanReleaseWeightKg;
         var tier = TierOfWeight(releaseKg);
-        double growth = strain.BuildGenome().GetGrowthMultiplier() * SmoltQualityRegistry.Get(tier).GrowthMultiplier;
+        double growth = strain.BuildGenome().GetGrowthMultiplier(); // the cohort's: land fish carry no sea-phase tier bonus
         var plan = LandStockingPlan.For(t, cal.Production) with { TemperatureC = site.TargetWaterTemp, GrowthMultiplier = growth };
         var verdict = LandStockingPlanner.Check(Growth.Law, plan, tank.VolumeM3, Math.Max(0, count), t.MaxDensityKgM3);
         double hogPerSmolt = t.PlanHarvestWeightKg * cal.Production.CycleSurvival * cal.Production.HogPerLw;
@@ -448,12 +485,12 @@ public partial class SimulationEngine
         int index = lot.Tanks.IndexOf(tank);
         if (count <= 0)
             return preview with { Allowed = false, Reason = LandSiteReasons.OutOfRange, Message = "Stock at least one fish" };
-        if (!lot.IsTankReady(index))
+        if (!IsTankReadyNow(lot, index))
             return preview with { Allowed = false, Reason = LandSiteReasons.NotOperational, Message = $"{tank.Id} is not built yet" };
         if (lot.Biofilter != BiofilterType.None
-            && LandSiteTemplates.BiofilterMaturity(State.Day - lot.FirstTanksDay, t, cal.Tan) < 1.0)
+            && LandSiteTemplates.BiofilterMaturity(State.Day - LotDaysNow(lot).FirstTanksDay, t, cal.Tan) < 1.0)
             return preview with { Allowed = false, Reason = LandSiteReasons.BiofilterImmature, Message = $"The biofilter of {lot.Id} is still maturing" };
-        if (!tank.Pen.IsEmpty)
+        if (site.PopulationIn(tank) != null)
             return preview with { Allowed = false, Reason = LandSiteReasons.TankOccupied, Message = $"{tank.Id} already holds fish" };
         if (!verdict.Allowed)
             return preview with { Allowed = false, Reason = verdict.Reason, Message =
@@ -482,7 +519,7 @@ public partial class SimulationEngine
     {
         if (site == null) throw new ArgumentNullException(nameof(site));
         var cal = LandCalibration;
-        double nameplate = site.Lots.Where(l => l.IsCommissioned).Sum(l => cal.For(l.Template).NameplateTonnesHogPerYear);
+        double nameplate = site.Lots.Where(IsLotCommissionedNow).Sum(l => cal.For(l.Template).NameplateTonnesHogPerYear);
         double permitted = PermittedProductionTonnes(site.PlotId, PermitKind.LandAquaculture);
         return permitted > 0.0 ? Math.Min(nameplate, permitted) : nameplate;
     }
@@ -658,16 +695,10 @@ public partial class SimulationEngine
         decimal power = (decimal)(energy.TotalKWh * cal.Energy.PowerPriceNokPerKWh);
         decimal oxygen = (decimal)(lox * cal.Oxygen.LoxPriceNokPerKg);
         decimal wages = staff * cal.Operations.StaffCostNokPerFteYear / SimCalendar.DaysPerYear;
-        BookLandCost(site, power, "land_energy");
-        BookLandCost(site, oxygen, "land_oxygen");
-        BookLandCost(site, wages, "land_staff");
-    }
-
-    private void BookLandCost(RASFacility site, decimal amount, string category)
-    {
-        if (amount <= 0m) return;
-        PayCost(amount, CostBooking.Opex, category);
-        AttributeUnitCost(site.Id, HoldingKind.LandTank, amount); // F2-04 ring-fence
+        if (power > 0m) PayCost(power, CostBooking.Opex, "land_energy");
+        if (oxygen > 0m) PayCost(oxygen, CostBooking.Opex, "land_oxygen");
+        if (wages > 0m) PayCost(wages, CostBooking.Opex, "land_staff");
+        AttributeUnitCost(site.Id, HoldingKind.LandTank, power + oxygen + wages); // F2-04 ring-fence
     }
 
     /// <summary>

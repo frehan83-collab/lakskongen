@@ -77,6 +77,21 @@ internal static class LandHooks
         return LandWaterModel.DensityGrowthMultiplier(density, engine.Calibration.Facilities.Land.Density);
     }
 
+    /// <summary>
+    /// The biological FCR at 2 kg of fish in a land tank (F2-12): the land
+    /// plan's ([L:A3], [L:R2], <see cref="Calibration.LandProductionCalibration.BiologicalFcrAt2Kg"/>),
+    /// which the growth law's size factor scales, the FCR the land physics'
+    /// oxygen and energy were calibrated on; null at a pre-F2 site or for fish
+    /// in no tank (the engine's sea FCR model then applies, as before F2).
+    /// F2-15 brings competence and the feed-plan penalty.
+    /// </summary>
+    internal static double? BiologicalFcrAt2Kg(SimulationEngine engine, in PopulationHolding holding, FishPopulation population)
+    {
+        var site = holding.LandFacility;
+        var tank = site != null && site.HasLots ? site.TankOf(population) : null;
+        return tank == null ? null : engine.Calibration.Facilities.Land.Production.BiologicalFcrAt2Kg;
+    }
+
     /// <summary>A land tank's own mortality terms: the anchor × 1 and no extra cause before F2-15/F2-16.</summary>
     internal static MortalityTerms MortalityTermsFor(SimulationEngine engine, in PopulationHolding holding, FishPopulation population)
         => MortalityTerms.None;

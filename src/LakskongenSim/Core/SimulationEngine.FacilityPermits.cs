@@ -491,13 +491,16 @@ public partial class SimulationEngine
 
         string verdict = "";
         if (site == null && !plot.IsFree) verdict = LandSiteReasons.PlotTaken;
-        else if (site != null && site.Lots.Any(l => !l.IsCommissioned || !string.IsNullOrEmpty(l.ExpansionProjectId) && l.Template == LandTemplate.HfsPilotLot))
+        else if (site != null && site.Lots.Any(l => !IsLotCommissionedNow(l) || !string.IsNullOrEmpty(l.ExpansionProjectId) && l.Template == LandTemplate.HfsPilotLot))
             verdict = LandSiteReasons.NotReady;
         else if (after.Count(a => a == LandTemplate.PostSmoltModule) > plot.PostSmoltModules
                  || after.Count(a => a != LandTemplate.PostSmoltModule) > plot.PhaseLots)
             verdict = LandSiteReasons.LotsExhausted;
-        else if (site == null && !IsFarmTypeUnlocked(FarmTypeVariantOf(template)))
-            verdict = LandSiteReasons.NotUnlocked; // a site's own expansion was unlocked when it was built
+        // Every gate but money and the zoned pad: the build's own pad must be
+        // zoned, which the permits check names (a site's own expansion was
+        // unlocked when it was built).
+        else if (site == null && !GatesMetForApplication(template))
+            verdict = LandSiteReasons.NotUnlocked;
         else if (missing.Count > 0) verdict = LandSiteReasons.PermitsMissing;
         else if (designMw > gridMw + 1e-9) verdict = LandSiteReasons.GridCapacity;
         else if (FinanceManager != null && payments.Count > 0 && FinanceManager.Balance < payments[0].PaymentNok)
@@ -560,6 +563,7 @@ public partial class SimulationEngine
         site.DenitrificationCommitted = preview.DenitrificationNok > 0m;
         var started = StartLandProject(site, template, LandBuildKind.NewLot, contract, preview);
         if (!started.Ok) return started;
+        ApplyDriftsplanDefaults(site.Id); // F2-05: the land lane's default standing orders (F2-15/F2-16 add them)
         LogFacilityBuilt("Landanlegg under bygging",
             SimText.Nb($"{site.Name} bygges på {plot.Name}: {preview.BudgetNok:N0} kr, første kar dag {preview.FirstTanksDay}"),
             0m);
@@ -580,6 +584,7 @@ public partial class SimulationEngine
     {
         if (State == null || FinanceManager == null)
             return CommandResult.Fail("engine_not_ready", "Engine not initialized");
+        if (FindLandSite(siteId) is { HasLots: true } synced) SyncLandSite(synced);
         var preview = PreviewLandExpansion(siteId, contract);
         if (preview.Verdict != "")
             return CommandResult.Fail(preview.Verdict, VerdictMessage(preview));
@@ -657,11 +662,13 @@ public partial class SimulationEngine
     public CommandResult CancelLandConstruction(string projectId)
     {
         var project = FindProject(projectId);
-        var site = project == null ? null : FindLandSite(project.UnitId);
-        if (project == null || site == null)
+        if (project == null || project.AssetKind != FacilityAssetKind.LandSite)
             return CommandResult.Fail(LandSiteReasons.NotFound, $"No land construction project '{projectId}'");
         if (project.Status is ConstructionStatus.Complete or ConstructionStatus.Cancelled)
             return CommandResult.Fail(LandSiteReasons.NotReady, $"{projectId} is {project.Status}");
+        var site = FindLandSite(project.UnitId);
+        if (site == null)
+            return CommandResult.Fail(LandSiteReasons.NotFound, $"No land site '{project.UnitId}'");
         SyncLandSite(site);
         var lot = site.Lots.FirstOrDefault(l => l.ConstructionProjectId == projectId);
         var expanded = site.Lots.FirstOrDefault(l => l.ExpansionProjectId == projectId);
@@ -725,7 +732,7 @@ public partial class SimulationEngine
         if (project.Status == ConstructionStatus.Complete || project.Status == ConstructionStatus.Cancelled)
         {
             int end = project.PhaseCompletedDays.Count > 0 ? project.PhaseCompletedDays[^1] : -1;
-            return (expansion ? end : lot.FirstTanksDay, end);
+            return (expansion ? end : LotDaysNow(lot).FirstTanksDay, end);
         }
         // The phase under way ends on its end day; the phases after it run their planned days from there.
         bool building = project.Status == ConstructionStatus.Building;
@@ -735,7 +742,7 @@ public partial class SimulationEngine
         var schedule = LandConstructionPhases.Schedule(rest, start);
         int complete = rest.Count == 0 ? start : schedule.CompleteDay;
         if (expansion) return (complete, complete);
-        if (lot.FirstTanksDay >= 0) return (lot.FirstTanksDay, complete);
+        if (LotDaysNow(lot).FirstTanksDay is int done and >= 0) return (done, complete);
         int firstIndex = project.Phases.FindIndex(p => p.Key == LandConstructionPhases.FirstTanks);
         if (firstIndex < 0) return (complete, complete);
         if (firstIndex < project.PhaseCompletedDays.Count) return (project.PhaseCompletedDays[firstIndex], complete);
