@@ -4,33 +4,54 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using LakskongenSim.Data;
+using LakskongenSim.Farm;
 
 namespace LakskongenSim.Core
 {
-    /// <summary>Data for one tutorial step.</summary>
+    /// <summary>One step of the first season (data in <c>godot/data/tutorial_steps.json</c>).</summary>
     public class TutorialStep
     {
-        // Shared tutorial_steps.json uses numeric ids (GDScript click-through
-        // track) — accept numbers or strings so deserialization never fails.
-        [JsonConverter(typeof(LenientStringConverter))]
         public string Id { get; init; } = "";
         public int StepNumber { get; init; }
-        public string Title { get; init; } = "";
-        public string Description { get; init; } = "";
-        public string Hint { get; init; } = "";
-        
+
+        /// <summary><see cref="TutorialStepKind"/>: "do" (the player acts) or "wait" (the world moves).</summary>
+        public string Kind { get; init; } = TutorialStepKind.Do;
+
+        /// <summary><see cref="TutorialPace"/>: how the clock behaves while the step waits.</summary>
+        public string Pace { get; init; } = TutorialPace.Hold;
+
         [JsonPropertyName("triggerCondition")]
         public string TriggerConditionString { get; init; } = "";
-        
+
         [JsonPropertyName("completionCondition")]
         public string CompletionConditionString { get; init; } = "";
-        
+
+        /// <summary>The control the UI highlights (a target id the GDScript resolver knows).</summary>
         [JsonPropertyName("highlightTarget")]
         public string HighlightTarget { get; init; } = "";
-        
+
+        /// <summary>Tabs that open (in the tutorial scenario) once this step is reached.</summary>
+        public List<string> Unlocks { get; init; } = new();
+
+        /// <summary>Translation key of the step's title.</summary>
+        [JsonIgnore]
+        public string Title => KeyPrefix + "_TITLE";
+
+        /// <summary>Translation key of what the step shows (the why).</summary>
+        [JsonIgnore]
+        public string Description => KeyPrefix + "_TEXT";
+
+        /// <summary>Translation key of what the player does now.</summary>
+        [JsonIgnore]
+        public string Hint => KeyPrefix + "_DO";
+
+        [JsonIgnore]
+        private string KeyPrefix => "TUTORIAL_" + Id.ToUpperInvariant();
+
         [JsonIgnore]
         public Func<TutorialSystem, bool>? TriggerCondition { get; set; }
-        
+
         [JsonIgnore]
         public Func<TutorialSystem, bool>? CompletionCondition { get; set; }
 
@@ -40,31 +61,76 @@ namespace LakskongenSim.Core
     }
 
     /// <summary>
-    /// Step-based tutorial engine for Lakskongen — 12-step onboarding.
-    /// Tracks player progress, checks completion conditions each day,
-    /// and fires OnStepCompleted. Steps pay no cash (owner decision D16,
-    /// S1-03): the 18 steps used to pay 1.45M NOK, in every scenario, and
-    /// completing the tutorial is its own reward (the forste_sesong win).
+    /// The learn-by-doing first season (roadmap U2-02, owner decision D19):
+    /// eighteen steps that each teach one verb by asking the player to do it.
+    /// A step completes on a real UI event the screens send (<see cref="Mark"/>)
+    /// or on an engine state only the player's verb or the world produces
+    /// (<see cref="TutorialConditions"/>); never on a day count. It runs only in
+    /// a scenario whose win condition is the tutorial (Første sesong): anywhere
+    /// else it neither advances nor gates a panel. Steps pay nothing (D16);
+    /// completing them all is the scenario's win, skipping them is not
+    /// (<see cref="IsEarned"/>).
     ///
-    /// Registered in SimulationEngine and updated via CheckProgress() each day.
-    /// NOTE: Uses GameState.Balance for step conditions (to be migrated to FinanceManager)
+    /// The engine checks the steps at the end of every day
+    /// (TutorialAnalyticsTickSystem) and the bridge checks them again after the
+    /// player's commands, so a step the player finishes while the clock stands
+    /// completes at once.
     /// </summary>
     #pragma warning disable CS0618 // Type or member is obsolete
     public class TutorialSystem
     {
+        /// <summary>Embedded copy of <c>godot/data/tutorial_steps.json</c> (the one source of the steps).</summary>
+        public const string EmbeddedResourceName = "LakskongenSim.Core.tutorial_steps.json";
+
+        /// <summary>
+        /// Mean live weight at which the growth step hands over to the harvest
+        /// planner: 4.0 kg (the first-season track's harvest step since F1014).
+        /// A 4 kg fish gives about 3.4 kg gutted, the lower edge of the 3-4 kg
+        /// class; the planner then shows what waiting 2, 4 and 8 weeks adds.
+        /// </summary>
+        public const double HarvestTeachingWeightKg = 4.0;
+
+        /// <summary>
+        /// Months of the new site's running cost the funding step wants in the
+        /// bank beside the build's price: 3. The build takes the cash and the
+        /// new site has no fish to sell until its first harvest; three months
+        /// of wages and upkeep keep the company off the overdraft while the
+        /// first site grows its next generation (S1-03's liquidity ladder warns
+        /// at a 60-day runway).
+        /// </summary>
+        public const int FundingReserveMonths = 3;
+
+        private static IReadOnlyList<TutorialStep>? _cachedTemplate;
+
         private readonly SimulationEngine _engine;
         private readonly List<TutorialStep> _steps;
-        private int _currentStepIndex = 0;
+        private int _currentStepIndex;
+        private string? _pendingMark;
 
         /// <summary>Fired when the player completes a tutorial step.</summary>
         public event Action<TutorialStep>? OnStepCompleted;
+
+        /// <summary>The steps in order.</summary>
+        public IReadOnlyList<TutorialStep> Steps => _steps;
 
         /// <summary>The active tutorial step, or null when the tutorial is finished.</summary>
         public TutorialStep? CurrentStep =>
             _currentStepIndex < _steps.Count ? _steps[_currentStepIndex] : null;
 
-        /// <summary>True after all 12 steps are completed.</summary>
+        /// <summary>True once every step is done or the tutorial was skipped.</summary>
         public bool IsComplete => _currentStepIndex >= _steps.Count;
+
+        /// <summary>True after the player skipped the tutorial (saved).</summary>
+        public bool IsSkipped => _engine.State.TutorialSkipped;
+
+        /// <summary>True when every step was completed by play: the Tutorial win condition (D19: a skip is no win).</summary>
+        public bool IsEarned => IsComplete && !IsSkipped;
+
+        /// <summary>True in a scenario whose win condition is the tutorial (Første sesong, D19).</summary>
+        public bool InTutorialScenario => _engine.Scenario?.ActiveScenario?.WinCondition == WinCondition.Tutorial;
+
+        /// <summary>True while the tutorial runs: the tutorial scenario, not yet complete or skipped.</summary>
+        public bool IsActive => InTutorialScenario && !IsComplete;
 
         /// <summary>1-based number of the current step (returns TotalSteps after completion).</summary>
         public int CurrentStepNumber =>
@@ -72,268 +138,216 @@ namespace LakskongenSim.Core
 
         public int TotalSteps => _steps.Count;
 
-        /// <summary>How many steps have been completed so far.</summary>
+        /// <summary>Steps marked complete (by play, or all of them after a skip).</summary>
         public int CompletedCount => _steps.Count(s => s.CompletedOnDay.HasValue);
 
-        /// <summary>Share of the tutorial completed (0-1).</summary>
-        public double Progress01 => _steps.Count == 0
-            ? 1.0
-            : System.Math.Min(_currentStepIndex, _steps.Count) / (double)_steps.Count;
+        /// <summary>Steps the player completed by play (a skip adds none).</summary>
+        public int EarnedCount => _steps.Count(s => _engine.State.CompletedTutorialStepIds.Contains(s.Id));
+
+        /// <summary>Share of the tutorial completed by play (0-1): the Tutorial goal's progress.</summary>
+        public double Progress01 => _steps.Count == 0 ? 1.0 : EarnedCount / (double)_steps.Count;
 
         public TutorialSystem(SimulationEngine engine)
         {
             _engine = engine ?? throw new ArgumentNullException(nameof(engine));
-            _steps = LoadStepsFromJson();
-            RestoreTutorialState();
-        }
-        
-        /// <summary>Restore tutorial progress from GameState (used when loading saved games).</summary>
-        private void RestoreTutorialState()
-        {
-            _currentStepIndex = _engine.State.TutorialCurrentStepIndex;
-            
-            // Mark steps as completed based on saved IDs
+            _steps = CloneSteps(Template());
             foreach (var step in _steps)
             {
-                if (_engine.State.CompletedTutorialStepIds.Contains(step.Id))
-                {
-                    step.CompletedOnDay = _engine.State.Day; // Set to current day (actual day unknown)
-                }
+                step.TriggerCondition = TutorialConditions.Parse(step.TriggerConditionString, step.Id, isCompletion: false);
+                step.CompletionCondition = TutorialConditions.Parse(step.CompletionConditionString, step.Id, isCompletion: true);
             }
-            
-            if (_currentStepIndex > 0)
+            RestoreTutorialState();
+        }
+
+        // ── Steps (embedded data) ─────────────────────────────────────────────
+
+        /// <summary>
+        /// The steps as <c>tutorial_steps.json</c> lists them, validated: ids
+        /// unique, numbered 1..n in order, a known kind and pace, and conditions
+        /// from the vocabulary (an unknown one throws). Loaded from the embedded
+        /// copy, so the game, the tests and an exported build read the same file.
+        /// </summary>
+        public static IReadOnlyList<TutorialStep> Template()
+        {
+            if (_cachedTemplate != null) return _cachedTemplate;
+            using var stream = typeof(TutorialSystem).Assembly.GetManifestResourceStream(EmbeddedResourceName)
+                ?? throw new InvalidOperationException($"Embedded resource '{EmbeddedResourceName}' is missing");
+            using var reader = new StreamReader(stream);
+            _cachedTemplate = ParseSteps(reader.ReadToEnd());
+            return _cachedTemplate;
+        }
+
+        /// <summary>Parse and validate a <c>tutorial_steps.json</c> text (throws <see cref="InvalidDataException"/> on a defect).</summary>
+        public static IReadOnlyList<TutorialStep> ParseSteps(string json)
+        {
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var steps = JsonSerializer.Deserialize<List<TutorialStep>>(json, options)
+                ?? throw new InvalidDataException("tutorial_steps.json is empty");
+            if (steps.Count == 0)
+                throw new InvalidDataException("tutorial_steps.json has no steps");
+            var ids = new HashSet<string>(StringComparer.Ordinal);
+            for (int i = 0; i < steps.Count; i++)
             {
-                Console.WriteLine($"📖 Tutorial restored: step {_currentStepIndex}/{TotalSteps}, " +
-                                  $"{CompletedCount} steps completed");
+                var step = steps[i];
+                if (string.IsNullOrWhiteSpace(step.Id) || !ids.Add(step.Id))
+                    throw new InvalidDataException($"tutorial step {i + 1}: missing or duplicate id '{step.Id}'");
+                if (step.StepNumber != i + 1)
+                    throw new InvalidDataException($"tutorial step '{step.Id}': number {step.StepNumber}, expected {i + 1}");
+                if (!TutorialStepKind.All.Contains(step.Kind))
+                    throw new InvalidDataException($"tutorial step '{step.Id}': unknown kind '{step.Kind}'");
+                if (!TutorialPace.All.Contains(step.Pace))
+                    throw new InvalidDataException($"tutorial step '{step.Id}': unknown pace '{step.Pace}'");
+                TutorialConditions.Parse(step.TriggerConditionString, step.Id, isCompletion: false);
+                TutorialConditions.Parse(step.CompletionConditionString, step.Id, isCompletion: true);
             }
+            return steps;
+        }
+
+        private static List<TutorialStep> CloneSteps(IReadOnlyList<TutorialStep> template) => template
+            .Select(s => new TutorialStep
+            {
+                Id = s.Id,
+                StepNumber = s.StepNumber,
+                Kind = s.Kind,
+                Pace = s.Pace,
+                TriggerConditionString = s.TriggerConditionString,
+                CompletionConditionString = s.CompletionConditionString,
+                HighlightTarget = s.HighlightTarget,
+                Unlocks = new List<string>(s.Unlocks),
+            })
+            .ToList();
+
+        // ── Saved progress ────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Restore progress from the state (a new game, or a loaded one). A save
+        /// from before this track (its step ids are not this track's) keeps its
+        /// count of finished steps, as this track's first steps.
+        /// </summary>
+        private void RestoreTutorialState()
+        {
+            var state = _engine.State;
+            foreach (var step in _steps)
+                step.CompletedOnDay = null;
+            _pendingMark = null;
+            if (state.TutorialSkipped)
+            {
+                MarkAllComplete();
+                return;
+            }
+            int index = Math.Clamp(state.TutorialCurrentStepIndex, 0, _steps.Count);
+            var known = new HashSet<string>(_steps.Select(s => s.Id), StringComparer.Ordinal);
+            if (state.CompletedTutorialStepIds.Any(id => !known.Contains(id)))
+            {
+                state.CompletedTutorialStepIds.Clear();
+                foreach (var step in _steps.Take(index))
+                    state.CompletedTutorialStepIds.Add(step.Id);
+            }
+            _currentStepIndex = index;
+            foreach (var step in _steps.Take(index))
+                step.CompletedOnDay = state.Day; // the real day is not saved
         }
 
         /// <summary>
-        /// Re-run the restore AFTER AdoptSavedState copied the saved progress.
-        /// The constructor runs against a fresh state (index 0, nothing
-        /// completed); without this, CheckProgress re-completes finished
-        /// steps and re-pays their rewards (Phase 1 wave 6).
+        /// Re-run the restore AFTER AdoptSavedState copied the saved progress
+        /// (the constructor ran against a fresh state).
         /// </summary>
         internal void ResyncFromState() => RestoreTutorialState();
-        
-        /// <summary>Load tutorial steps from JSON file and parse condition strings.</summary>
-        private List<TutorialStep> LoadStepsFromJson()
-        {
-            string? dir = SimulationEngine.ResolveDataDirectory("tutorial_steps.json");
-            string jsonPath = dir != null ? Path.Combine(dir, "tutorial_steps.json") : string.Empty;
-            
-            // Fallback to hardcoded steps if JSON doesn't exist
-            if (!File.Exists(jsonPath))
-            {
-                Console.WriteLine("⚠️ tutorial_steps.json not found, using legacy hardcoded steps");
-                return BuildSteps();
-            }
-            
-            try
-            {
-                string jsonContent = File.ReadAllText(jsonPath);
-                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                var steps = JsonSerializer.Deserialize<List<TutorialStep>>(jsonContent, options);
-                
-                if (steps == null || steps.Count == 0)
-                {
-                    Console.WriteLine("⚠️ Failed to parse tutorial_steps.json, using legacy steps");
-                    return BuildSteps();
-                }
-
-                // Schema guard: the shared tutorial_steps.json belongs to the
-                // GDScript click-through track (id/title/text/action, no
-                // conditions). Condition-less steps would auto-complete on day
-                // 1, wiping the real onboarding — only accept JSON that
-                // actually drives progression.
-                if (!steps.Any(s => !string.IsNullOrWhiteSpace(s.TriggerConditionString)
-                    || !string.IsNullOrWhiteSpace(s.CompletionConditionString)))
-                {
-                    Console.WriteLine("⚠️ tutorial_steps.json has no conditions (GDScript track schema); using built-in steps");
-                    return BuildSteps();
-                }
-                
-                // Parse condition strings into Func<TutorialSystem, bool>
-                foreach (var step in steps)
-                {
-                    step.TriggerCondition = ParseCondition(step.TriggerConditionString);
-                    step.CompletionCondition = ParseCondition(step.CompletionConditionString);
-                }
-                
-                Console.WriteLine($"✅ Loaded {steps.Count} tutorial steps from JSON");
-                return steps;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"⚠️ Error loading tutorial_steps.json: {ex.Message}");
-                return BuildSteps();
-            }
-        }
-        
-        /// <summary>Parse condition string (e.g., "day >= 7") into executable function.</summary>
-        private Func<TutorialSystem, bool> ParseCondition(string conditionStr)
-        {
-            if (string.IsNullOrWhiteSpace(conditionStr))
-                return _ => true; // Always true for empty conditions
-            
-            string condition = conditionStr.Trim().ToLowerInvariant();
-            
-            // Simple condition parser — extend as needed
-            return condition switch
-            {
-                // Basic progression
-                "game_started" => t => t.State.Day >= 0,
-                "day >= 1" => t => t.State.Day >= 1,
-                "day >= 2" => t => t.State.Day >= 2,
-                "day >= 7" => t => t.State.Day >= 7,
-                "day >= 10" => t => t.State.Day >= 10,
-                "day >= 15" => t => t.State.Day >= 15,
-                "day >= 30" => t => t.State.Day >= 30,
-                "day >= 60" => t => t.State.Day >= 60,
-                "day >= 90" => t => t.State.Day >= 90,
-                "day >= 120" => t => t.State.Day >= 120,
-                
-                // Fish and production
-                "smolts_purchased >= 50000" => t => t.TotalFishCount >= 50000,
-                "smolts_purchased >= 75000" => t => t.TotalFishCount >= 75000,
-                "smolts_purchased >= 100000" => t => t.TotalFishCount >= 100000,
-                "average_weight >= 4.0" => t => t.AverageFishWeightKg >= 4.0,
-                
-                // Health and treatment
-                // Lice step: on a lice event, or by day 150 for a player who kept lice
-                // low all along (it used to wait for 0.8 forever, review F1014).
-                "lice_detection_acknowledged" => t => t.SeaLicePerFish >= 0.8 || t.State.Day >= LiceStepFallbackDay,
-                "delousing_completed" => t => t.SeaLicePerFish < 0.5, // Completed when under threshold
-                "biosecurity_enabled" => t => t.State.Day >= 35, // Placeholder: needs BiosecurityManager
-                "cleaner_fish_deployed" => t => t.State.Day >= 40, // Placeholder: needs CleanerFish system
-                
-                // Harvest and sales
-                // A harvest sells at once (HarvestSite books the sale). Processing
-                // snapshots are only ever restored from saves, never produced in
-                // play, so these steps could never complete; the sale also needed
-                // a 10M balance a one-pen tutorial farm cannot reach (F1014).
-                "first_harvest_initiated" => t => HasSold(t),
-                "first_sale_completed" => t => HasSold(t),
-                "pl_report_viewed" => t => HasSold(t) && t.State.Day >= 1,
-                
-                // Expansion and systems
-                "feed_strategy_adjusted" => t => t.State.Day >= 1, // Placeholder: needs FeedStrategy tracking
-                "hatchery_built" => t => t.State.Day >= 50, // Placeholder: needs Hatchery.IsBuilt check
-                "research_project_started" => t => t.State.UnlockedResearchIds.Count > 0 || t.State.ActiveResearchId != null,
-                "genetics_viewed" => t => t.State.Day >= 61, // Placeholder: needs UI tracking
-                "sustainability_checked" => t => t.State.Day >= 62, // Placeholder: needs UI tracking
-                "second_site_built" => t => t.State.SeaSites.Count >= 2,
-                "contract_signed" => t => t.State.Day >= 1, // Placeholder: needs ContractsManager
-                "processing_plant_built" => t => t.State.Day >= 1, // Placeholder: needs ProcessingPlant system
-                "export_market_opened" => t => t.State.Day >= 1, // Placeholder: needs ExportManager
-                "tutorial_complete" => t => true, // Final step auto-completes
-                
-                // Legacy conditions
-                "cinematic_watched" => t => t.State.Day >= 1,
-                "license_inspected" => t => t.State.SeaSites.Count >= 0,
-                "pens_inspected" => t => t.State.Zones.Count >= 1,
-                "pen_1_stocked" => t => t.State.Populations.Any(),
-                "health_panel_opened" => t => t.State.Day >= 1,
-                "feed_panel_opened" => t => t.State.Day >= 1,
-                "temperature_checked" => t => t.State.Day >= 1,
-                "zone_inspected" => t => t.State.Zones.Count >= 1,
-                "smolts_stocked" => t => t.State.Populations.Any(),
-                "fish_fed_7_days" => t => t.State.Day >= 7,
-                "health_checked" => t => t.State.Day >= 7,
-                "delousing_performed" => t => t.SeaLicePerFish < 0.5,
-                "day_90_reached" => t => t.State.Day >= 90,
-                "disease_event_handled" => t => t.State.Day >= 30,
-                "first_harvest" => t => HasSold(t),
-                "first_sale" => t => HasSold(t),
-                "production_chain_viewed" => t => t.State.Day >= 1,
-                "weather_storm_survived" => t => t.State.Day >= 30,
-                "crew_hired" => t => t.State.Day >= 14,
-                "revenue_10_million" => t => t.LiveBalance >= 10_000_000m,
-                
-                // Default: parse numeric comparisons
-                _ when condition.Contains("day >=") => ParseDayCondition(condition),
-                _ when condition.Contains(">=") || condition.Contains("<=") || condition.Contains(">") || condition.Contains("<") 
-                    => ParseNumericCondition(condition),
-                    
-                // Unknown condition — log and return false
-                _ => t => { Console.WriteLine($"⚠️ Unknown tutorial condition: {conditionStr}"); return false; }
-            };
-        }
-        
-        /// <summary>Parse "day >= N" conditions.</summary>
-        private Func<TutorialSystem, bool> ParseDayCondition(string condition)
-        {
-            try
-            {
-                var parts = condition.Replace("day", "").Trim().Split(new[] { ">=", "<=", ">", "<", "==" }, StringSplitOptions.None);
-                if (parts.Length != 2) return _ => false;
-                
-                int targetDay = int.Parse(parts[1].Trim());
-                
-                if (condition.Contains(">=")) return t => t.State.Day >= targetDay;
-                if (condition.Contains("<=")) return t => t.State.Day <= targetDay;
-                if (condition.Contains(">")) return t => t.State.Day > targetDay;
-                if (condition.Contains("<")) return t => t.State.Day < targetDay;
-                if (condition.Contains("==")) return t => t.State.Day == targetDay;
-            }
-            catch { }
-            
-            return _ => false;
-        }
-        
-        /// <summary>Parse generic numeric conditions (extensible).</summary>
-        private Func<TutorialSystem, bool> ParseNumericCondition(string condition)
-        {
-            // Placeholder for future complex conditions
-            return _ => false;
-        }
 
         // ── Public API ────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Skip the tutorial silently: marks all steps complete WITHOUT
-        /// rewards or completion events (skip ≠ earn). Called from the
-        /// TutorialUI skip button via GameBridge.SkipTutorial.
+        /// Skip the tutorial: every step is marked done WITHOUT completion events
+        /// and the skip is saved; a skipped tutorial is no win (D19).
         /// </summary>
         public void Skip()
+        {
+            _engine.State.TutorialSkipped = true;
+            MarkAllComplete();
+        }
+
+        private void MarkAllComplete()
         {
             foreach (var step in _steps)
                 step.CompletedOnDay ??= _engine.State.Day;
             _currentStepIndex = _steps.Count;
+            _engine.State.TutorialCurrentStepIndex = _currentStepIndex;
+            _pendingMark = null;
         }
 
         /// <summary>
-        /// Called each simulated day by SimulationEngine.
-        /// Evaluates the current step's trigger and completion conditions and advances when met.
-        /// Chains through multiple steps if conditions are immediately satisfied.
+        /// A UI event the player caused (<see cref="TutorialMarks"/>). It completes
+        /// the current step if that step waits for exactly this event; an event
+        /// for another step is not remembered (each step is shown, then done).
+        /// Returns true when a step completed.
         /// </summary>
-        public void CheckProgress()
+        public bool Mark(string mark)
         {
-            bool advanced;
-            do
+            if (!IsActive || string.IsNullOrEmpty(mark)) return false;
+            _pendingMark = mark;
+            try
             {
-                advanced = false;
-                if (IsComplete) break;
-
-                var step = CurrentStep!;
-                
-                // Check trigger condition first (if defined)
-                bool triggered = step.TriggerCondition == null || step.TriggerCondition(this);
-                if (!triggered) break; // Wait for trigger
-                
-                // Check completion condition
-                if (step.CompletionCondition == null || step.CompletionCondition(this))
-                {
-                    CompleteStep(step);
-                    advanced = true;
-                }
+                return CheckProgress();
             }
-            while (advanced);
+            finally
+            {
+                _pendingMark = null;
+            }
+        }
+
+        /// <summary>
+        /// Evaluate the current step and advance while its condition holds
+        /// (chaining through steps already satisfied). Runs at the end of every
+        /// day and after the player's commands. Returns true when a step completed.
+        /// </summary>
+        public bool CheckProgress()
+        {
+            if (!IsActive) return false;
+            bool any = false;
+            while (!IsComplete)
+            {
+                var step = CurrentStep!;
+                if (step.TriggerCondition != null && !step.TriggerCondition(this)) break;
+                if (step.CompletionCondition == null || !step.CompletionCondition(this)) break;
+                CompleteStep(step);
+                any = true;
+            }
+            if (any && IsEarned)
+                _engine.Scenario?.CheckWinConditions(_engine.State.SustainabilityScore, tutorialComplete: true);
+            return any;
+        }
+
+        /// <summary>
+        /// The current step's progress toward its goal where it has one (the
+        /// growth step's mean weight, the funding step's cash), else null.
+        /// </summary>
+        public TutorialProgress? CurrentProgress()
+        {
+            if (!IsActive) return null;
+            return CurrentStep!.CompletionConditionString switch
+            {
+                "harvest_weight_reached" => new TutorialProgress(AverageFishWeightKg, HarvestTeachingWeightKg, "kg"),
+                "build_funded" => new TutorialProgress((double)LiveBalance, (double)FundingTargetNok(), "nok"),
+                _ => null,
+            };
+        }
+
+        /// <summary>Tabs open in the tutorial scenario now: none is gated outside it or after it.</summary>
+        public bool IsTabUnlocked(string tabId)
+        {
+            if (!IsActive) return true;
+            int unlockedAt = _steps.FindIndex(s => s.Unlocks.Contains(tabId, StringComparer.Ordinal));
+            return unlockedAt < 0 || unlockedAt <= _currentStepIndex;
         }
 
         // ── Internal helpers used by conditions ───────────────────────────────
 
         internal GameState State => _engine.State;
+
+        internal bool HasPendingMark(string mark) => string.Equals(_pendingMark, mark, StringComparison.Ordinal);
+
+        /// <summary>The company's fjord localities, the scenario's first.</summary>
+        internal IReadOnlyList<SeaSite> FjordLocalities => _engine.FjordSites().ToList();
 
         /// <summary>
         /// Live cash from FinanceManager (single source of truth).
@@ -341,9 +355,6 @@ namespace LakskongenSim.Core
         /// transactions — conditions must read this instead.
         /// </summary>
         internal decimal LiveBalance => _engine.FinanceManager?.Balance ?? State.Balance;
-
-        /// <summary>Day by which the lice step triggers even without a lice event.</summary>
-        internal const int LiceStepFallbackDay = 150;
 
         /// <summary>
         /// Fish have been sold (every harvest path books TotalHarvestRevenueNok).
@@ -368,13 +379,53 @@ namespace LakskongenSim.Core
             }
         }
 
-        internal double SeaLicePerFish => _engine.GetCompanyLiceAverage();
+        /// <summary>The site holds a standing "Avlus ved telling" order (F2-05).</summary>
+        internal bool HasLiceOrder(string siteId) => State.Driftsplan.Any(e =>
+            e.UnitId == siteId && e.Policy == FjordPolicies.DelouseOnCount);
 
-        /// <summary>Returns the day step N was completed, or null if not yet completed.</summary>
-        internal int? GetStepCompletedDay(int stepNumber)
+        /// <summary>A fjord site was stocked on or after the day of the first harvest and holds fish.</summary>
+        internal bool RestockedAfterFirstHarvest
         {
-            var step = _steps.FirstOrDefault(s => s.StepNumber == stepNumber);
-            return step?.CompletedOnDay;
+            get
+            {
+                if (!HasSold(this) || State.HarvestReports.Count == 0) return false;
+                int firstHarvest = State.HarvestReports.Min(r => r.Day);
+                return FjordLocalities.Any(s => s.LastStockedDay >= firstHarvest && s.Pens.Sum(p => p.TotalCount) > 0);
+            }
+        }
+
+        /// <summary>
+        /// A research project runs, or one beyond the scenario's starting
+        /// research is done. Reads the live research system (the state's copy
+        /// is synced at the end of the day, after the player's command).
+        /// </summary>
+        internal bool ResearchStartedByPlayer
+        {
+            get
+            {
+                var research = _engine.Research;
+                string? active = research != null ? research.ActiveResearchId : State.ActiveResearchId;
+                if (!string.IsNullOrEmpty(active)) return true;
+                var unlocked = research != null ? research.GetUnlockedIds() : State.UnlockedResearchIds;
+                var starting = _engine.Scenario?.ActiveScenario?.StartingResearch ?? Array.Empty<string>();
+                return unlocked.Any(id => !starting.Contains(id, StringComparer.Ordinal));
+            }
+        }
+
+        /// <summary>The company owes the bank (a loan it took; Første sesong starts debt-free).</summary>
+        internal bool HasBorrowed => State.ActiveLoans.Any(l => l.Principal > 0m);
+
+        /// <summary>
+        /// Cash the funding step asks for: the second site's price in the first
+        /// site's zone (<see cref="SimulationEngine.PlanSiteBuild"/>) plus
+        /// <see cref="FundingReserveMonths"/> months of its running cost.
+        /// </summary>
+        internal decimal FundingTargetNok()
+        {
+            var home = FjordLocalities.FirstOrDefault();
+            if (home == null) return 0m;
+            var plan = _engine.PlanSiteBuild(home.ZoneId);
+            return plan.CostNok + plan.RunningCostPerMonthNok * FundingReserveMonths;
         }
 
         // ── Private ───────────────────────────────────────────────────────────
@@ -383,262 +434,16 @@ namespace LakskongenSim.Core
         {
             step.CompletedOnDay = _engine.State.Day;
             _currentStepIndex++;
+            _pendingMark = null;
 
             // Persist completion to GameState
             _engine.State.TutorialCurrentStepIndex = _currentStepIndex;
             _engine.State.CompletedTutorialStepIds.Add(step.Id);
 
-            SimLog.Info($"🎓 Tutorial Step {step.StepNumber}/{TotalSteps} complete: {step.Title}");
+            SimLog.Info($"Tutorial step {step.StepNumber}/{TotalSteps} complete: {step.Id}");
 
             OnStepCompleted?.Invoke(step);
         }
-
-        // ══════════════════════════════════════════════════════════════════════
-        // TUTORIAL STEP DEFINITIONS — 12 steps of Norwegian salmon onboarding
-        // ══════════════════════════════════════════════════════════════════════
-
-        private List<TutorialStep> BuildSteps() => new()
-        {
-            // ── Step 1: Welcome ───────────────────────────────────────────────
-            new TutorialStep
-            {
-                Id              = "welcome",
-                StepNumber      = 1,
-                Title           = "Velkommen til Lakskongen!",
-                Description     = "Welcome to Lakskongen — Norway's premier salmon farming simulator. " +
-                                  "You are about to build a world-class aquaculture operation on the " +
-                                  "Norwegian coast. Watch the dashboard to track your balance, " +
-                                  "fish health, and sustainability score.",
-                Hint            = "Look around the dashboard to get familiar with the key indicators: " +
-                                  "Balance (NOK), Fish Count, Sea Lice/fish, and Sustainability.",
-                // Completes on day 1 — the player simply sees the welcome screen
-                CompletionCondition = t => t.State.Day >= 1
-            },
-
-            // ── Step 2: Buy Aquaculture License ──────────────────────────────
-            new TutorialStep
-            {
-                Id              = "buy-license",
-                StepNumber      = 2,
-                Title           = "Buy Your First Aquaculture License",
-                Description     = "Before farming salmon, you need a government-issued aquaculture " +
-                                  "license (akvakulturtillatelse). Each license grants the right to " +
-                                  "operate one sea site up to a maximum allowed biomass (MTB). " +
-                                  "Licenses are your most valuable asset — Norwegian licenses trade " +
-                                  "for hundreds of millions of NOK.",
-                Hint            = "Navigate to Expansion → Purchase License to acquire your first license. " +
-                                  "Starting capital covers the cost.",
-                // Complete once a sea site exists, or after day 2 (guided onboarding)
-                CompletionCondition = t => t.State.SeaSites.Count >= 1 || t.State.Day >= 2
-            },
-
-            // ── Step 3: Set Up Your First Sea Site ───────────────────────────
-            new TutorialStep
-            {
-                Id              = "setup-sea-site",
-                StepNumber      = 3,
-                Title           = "Set Up Your First Sea Site",
-                Description     = "Your sea site (lokalitet) contains the net pens (merder) where " +
-                                  "salmon grow at sea. Choose a fjord with good water flow, " +
-                                  "optimal temperature (8–14°C), and low disease pressure. " +
-                                  "Add a zone to activate water chemistry monitoring.",
-                Hint            = "Go to Farm → New Sea Site and select a fjord location. " +
-                                  "Add at least one zone to enable production.",
-                CompletionCondition = t => t.State.Zones.Count >= 1 || t.State.SeaSites.Count >= 1
-            },
-
-            // ── Step 4: Stock Smolts from Hatchery ───────────────────────────
-            new TutorialStep
-            {
-                Id              = "stock-smolts",
-                StepNumber      = 4,
-                Title           = "Stock Smolts from Your Hatchery",
-                Description     = "Smolts are young salmon (80–100 g) that have undergone " +
-                                  "smoltification — the physiological transformation allowing " +
-                                  "them to survive in seawater. Transfer at least 10,000 smolts " +
-                                  "from your hatchery to begin your first sea-phase production cycle.",
-                Hint            = "Open Hatchery → Transfer Smolts and select your sea site pen. " +
-                                  "Stocking density should be < 25 kg/m³ at harvest weight.",
-                CompletionCondition = t => t.TotalFishCount >= 10_000
-            },
-
-            // ── Step 5: Manage Feed (FCR) ─────────────────────────────────────
-            new TutorialStep
-            {
-                Id              = "manage-feed",
-                StepNumber      = 5,
-                Title           = "Manage Feed and Understand FCR",
-                Description     = "Feed Conversion Ratio (FCR) measures how efficiently fish convert " +
-                                  "feed into body weight. A good FCR is 1.1–1.2 (1.1 kg feed → 1 kg fish). " +
-                                  "Feed accounts for ~50% of production costs. Temperature drives appetite: " +
-                                  "optimal feeding is at 12–14°C. Watch your fish feed for one week.",
-                Hint            = "Check the FCR indicator on the Production panel. " +
-                                  "Reduce feeding if temperature rises above 16°C to avoid waste.",
-                CompletionCondition = t =>
-                {
-                    int? day4 = t.GetStepCompletedDay(4);
-                    return day4.HasValue && t.State.Day >= day4.Value + 7;
-                }
-            },
-
-            // ── Step 6: Monitor Fish Health ───────────────────────────────────
-            new TutorialStep
-            {
-                Id              = "monitor-health",
-                StepNumber      = 6,
-                Title           = "Monitor Fish Health",
-                Description     = "Sea lice (Lepeophtheirus salmonis) are the primary parasite threat " +
-                                  "in Norwegian salmon farming. The regulatory limit is 0.5 adult " +
-                                  "female lice per fish. Above 2.0 you risk fines; above 5.0 is critical. " +
-                                  "Also watch for IPN, ISA, and Amoebic Gill Disease (AGD). " +
-                                  "Monitor the health panel for one week.",
-                Hint            = "Check the Health panel daily. Red indicators mean immediate action needed. " +
-                                  "Sea lice levels typically rise slowly — catch them early.",
-                CompletionCondition = t =>
-                {
-                    int? day5 = t.GetStepCompletedDay(5);
-                    return day5.HasValue && t.State.Day >= day5.Value + 7;
-                }
-            },
-
-            // ── Step 7: Apply Delousing Treatment ────────────────────────────
-            new TutorialStep
-            {
-                Id              = "delousing-treatment",
-                StepNumber      = 7,
-                Title           = "Apply Delousing Treatment",
-                Description     = "When sea lice exceed the threshold, you must act. Treatment options: " +
-                                  "bath treatments (hydrogen peroxide, azamethiphos), " +
-                                  "biological control (leppefisk / cleaner fish), or " +
-                                  "mechanical removal (Hydrolicer, Thermolicer). " +
-                                  "Each has different costs, efficacy rates, and fish stress levels. " +
-                                  "Get lice below 0.5 per fish.",
-                Hint            = "Go to Health → Treatments. Bath treatments are fast but stressful. " +
-                                  "Cleaner fish provide continuous biological control.",
-                CompletionCondition = t =>
-                {
-                    int? day6 = t.GetStepCompletedDay(6);
-                    if (!day6.HasValue) return false;
-                    // Pass when lice are controlled OR 7 days of management have elapsed
-                    return t.SeaLicePerFish <= 0.5 || t.State.Day >= day6.Value + 7;
-                }
-            },
-
-            // ── Step 8: Wait for Harvest Weight ──────────────────────────────
-            new TutorialStep
-            {
-                Id              = "harvest-weight",
-                StepNumber      = 8,
-                Title           = "Wait for Harvest Weight",
-                Description     = "Atlantic salmon require 14–22 months at sea to reach harvest weight. " +
-                                  "Target: 4–6 kg gutted weight (5–7 kg live weight). " +
-                                  "Growth rate depends on temperature, feed quality, genetics, and health. " +
-                                  "A healthy fish in 12°C water gains ~10 g/day. " +
-                                  "Wait until average fish weight reaches 4.0 kg.",
-                Hint            = "The Production panel shows average fish weight. " +
-                                  "Keep health optimal and FCR low for fastest growth.",
-                CompletionCondition = t => t.AverageFishWeightKg >= 4.0 && t.TotalFishCount > 0
-            },
-
-            // ── Step 9: Harvest and Sell to Market ───────────────────────────
-            new TutorialStep
-            {
-                Id              = "harvest-and-sell",
-                StepNumber      = 9,
-                Title           = "Harvest and Sell to Market",
-                Description     = "When fish reach target weight, initiate harvest. Salmon are " +
-                                  "transferred to a well boat, slaughtered at the processing plant " +
-                                  "(slakteri), graded by size and quality, and sold fresh. " +
-                                  "Norwegian salmon prices range NOK 60–90/kg HOG (head-on gutted) " +
-                                  "depending on market conditions.",
-                Hint            = "Go to Harvest → Initiate Harvest for your ready population. " +
-                                  "Sell on the spot market or negotiate a contract price.",
-                CompletionCondition = HasSold
-            },
-
-            // ── Step 10: Check Your P&L ──────────────────────────────────────
-            new TutorialStep
-            {
-                Id              = "check-pl",
-                StepNumber      = 10,
-                Title           = "Check Your Profit & Loss",
-                Description     = "After your first harvest, review financial performance. " +
-                                  "Key metrics: Revenue (price × HOG volume), " +
-                                  "Feed Cost (~50% of OpEx), " +
-                                  "EBIT/kg (industry benchmark: NOK 20–35/kg), " +
-                                  "and Return on Invested Capital (ROIC). " +
-                                  "The best Norwegian farmers achieve EBIT above 30 NOK/kg.",
-                Hint            = "Open Finance → P&L Summary to see your full cost-per-kg breakdown. " +
-                                  "Compare your FCR and mortality % against industry benchmarks.",
-                CompletionCondition = t =>
-                {
-                    int? day9 = t.GetStepCompletedDay(9);
-                    return day9.HasValue && t.State.Day >= day9.Value + 1;
-                }
-            },
-
-            // ── Step 11: Explore Genetics & Breeding ─────────────────────────
-            new TutorialStep
-            {
-                Id              = "explore-genetics",
-                StepNumber      = 11,
-                Title           = "Explore Genetics & Breeding",
-                Description     = "Norwegian salmon breeding programmes have " +
-                                  "doubled growth rates over 40 years of selective breeding. " +
-                                  "In Lakskongen, you can select broodstock for traits: " +
-                                  "growth rate, disease resistance, FCR efficiency, and flesh quality. " +
-                                  "Better genetics = higher production at lower cost. " +
-                                  "Spend a week exploring the genetics panel.",
-                Hint            = "Open Genetics → Breeding Programme. Select high-growth, " +
-                                  "disease-resistant parents for your next smolt cohort.",
-                CompletionCondition = t =>
-                {
-                    int? day10 = t.GetStepCompletedDay(10);
-                    return day10.HasValue && t.State.Day >= day10.Value + 7;
-                }
-            },
-
-            // ── Step 12: Tutorial Complete ────────────────────────────────────
-            new TutorialStep
-            {
-                Id              = "tutorial-complete",
-                StepNumber      = 12,
-                Title           = "Tutorial Complete — Free Play!",
-                Description     = "Congratulations, oppdrettskonge! You have completed the " +
-                                  "Lakskongen tutorial. You now understand the full salmon cycle:\n" +
-                                  "License → Setup → Stock → Feed → Monitor → Treat → Harvest → Sell.\n\n" +
-                                  "The full game awaits: expand your license portfolio, " +
-                                  "earn ASC and organic certifications, navigate regulatory politics, " +
-                                  "build integrated processing plants, and become Norway's leading " +
-                                  "salmon producer. Lykke til — good luck!",
-                Hint            = "Your goal: reach 10,000 tonnes annual production with " +
-                                  "Sustainability Leader certification. Explore all panels freely.",
-                // Auto-completes when reached — reward is the graduation bonus
-                CompletionCondition = _ => true
-            },
-        };
     }
     #pragma warning restore CS0618
-
-    /// <summary>
-    /// Accepts a JSON string or number for string-typed ids (shared config
-    /// files use numeric ids). Numbers serialize back as strings.
-    /// </summary>
-    public class LenientStringConverter : JsonConverter<string>
-    {
-        public override string Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-        {
-            return reader.TokenType switch
-            {
-                JsonTokenType.String => reader.GetString() ?? "",
-                JsonTokenType.Number => reader.TryGetInt64(out var n) ? n.ToString() : reader.GetDouble().ToString(),
-                JsonTokenType.True => "true",
-                JsonTokenType.False => "false",
-                _ => "",
-            };
-        }
-
-        public override void Write(Utf8JsonWriter writer, string value, JsonSerializerOptions options)
-            => writer.WriteStringValue(value);
-    }
 }

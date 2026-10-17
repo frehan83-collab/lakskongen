@@ -163,8 +163,6 @@ Every unit on a plot sits in its plot's own water area: its `ZoneId` is the plot
 | `src/LakskongenSim/Core/SimulationEngine.cs` | `SiteLabelOf` | 1 | units-and-lists | include | Label lookup by id |
 | `src/LakskongenSim/Core/SimulationEngine.cs` | `UpdateSiteLiceCounts` | 1 | lice | include | The weekly census counts a unit against its area's limit and Mattilsynet orders it like any sea site |
 | `src/LakskongenSim/Core/SimulationEngine.cs` | `ZoneLabel` | 1 | fjord-zone | exclude | By zone: a fjord zone's name is its first site's; a unit's plot zone is never asked for |
-| `src/LakskongenSim/Core/TutorialSystem.cs` | `BuildSteps` | 2 | reports | include | Tutorial completion "a sea site exists": a unit is one |
-| `src/LakskongenSim/Core/TutorialSystem.cs` | `ParseCondition` | 2 | reports | include | Tutorial conditions by sea-site count ("second_site_built") |
 | `src/LakskongenSim/Core/UnitResolver.cs` | `ForEach` | 1 | units-and-lists | include | Every sea site's pens are units' populations (a unit's zones too) |
 | `src/LakskongenSim/Core/UnitResolver.cs` | `Resolve` | 1 | units-and-lists | include | The precedence land tank -> pre-F2 offshore pen -> sea-site pen (fjord or unit) |
 | `src/LakskongenSim/Events/NorwegianEvents.cs` | `FirstSeaPen` | 1 | events | include | ISA culls the first sea pen wherever it is (spec: offshore is excluded from the fjord cards except ISA) |
@@ -201,6 +199,7 @@ The consumers that read the list before F2-03 and now read the fjord view instea
 | `src/LakskongenSim/Core/SimulationEngine.cs` | `ProcessDailyFinance` | 1 | fjord-economics | exclude | Hot-file one-liner: fjord site crews' wages; a unit's crew of 12 is in its own opex (`OffshoreUnit.TickDay`) |
 | `src/LakskongenSim/Core/SimulationEngine.cs` | `ProcessNightShiftPolicy` | 1 | fjord-economics | exclude | Hot-file one-liner: the remote operations centre's night rolls (bloom detection, oxygen response) are for the fjord sites it watches; a unit is crewed on board |
 | `src/LakskongenSim/Core/SimulationEngine.cs` | `TotalSiteScale` | 1 | fjord-economics | exclude | Hot-file one-liner: fjord site upkeep scales with the fjord sites' size; a unit's upkeep is its own |
+| `src/LakskongenSim/Core/TutorialSystem.cs` | `FjordLocalities` | 1 | reports | exclude | U2-02: the first season teaches the fjord locality; its feeding plan, lice order, restock, second site and the new site's fish are read on the fjord sites (an offshore unit is no step of Første sesong; the old track's `BuildSteps`/`ParseCondition` rows went with the old track) |
 | `src/LakskongenSim/Events/NorwegianEvents.cs` | `FjordSites` | 1 | events | include | The storyteller's fjord view (definition) |
 | `src/LakskongenSim/Events/NorwegianEvents.cs` | `RegisterCommunityEvents` | 2 | events | exclude | Fjord-use dispute (two fjord sites) and the tourism view (a fjord site) |
 | `src/LakskongenSim/Events/NorwegianEvents.cs` | `RegisterEquipmentEvents` | 1 | events | exclude | Net damage at a fjord pen |

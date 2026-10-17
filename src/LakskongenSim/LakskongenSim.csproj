@@ -43,6 +43,10 @@
     <EmbeddedResource Include="..\..\godot\data\site_plots.json"
                       Link="Farm\site_plots.json"
                       LogicalName="LakskongenSim.Farm.site_plots.json" />
+    <!-- U2-02: the first season's steps (TutorialSystem.Template). -->
+    <EmbeddedResource Include="..\..\godot\data\tutorial_steps.json"
+                      Link="Core\tutorial_steps.json"
+                      LogicalName="LakskongenSim.Core.tutorial_steps.json" />
   </ItemGroup>
 
 </Project>

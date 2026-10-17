@@ -147,13 +147,29 @@ public class ScenarioCampaignTests
         Assert.Null(engine.GetScenarioGoalStatus()!.DaysLeft);
     }
 
+    /// <summary>
+    /// U2-02 (stronger than "progress after 3 days", RUN_LOG §7): the goal
+    /// follows the steps the player completes by play. Three idle days move it
+    /// not at all (no step waits for a day count); the steps the player does
+    /// move it, step by step; a skip leaves it where play left it.
+    /// </summary>
     [Fact]
     public void GoalStatus_TutorialFollowsTheSteps_AndNoScenarioMeansNoGoal()
     {
         var engine = Started("forste_sesong", 6);
         engine.Advance(3);
+        Assert.Equal(0.0, engine.GetScenarioGoalStatus()!.Progress01, 9);
+
+        var player = new Tutorial.TutorialPlayer();
+        player.DoToday(engine);   // the five day-0 steps: pens, feeding plan, lice order, inbox, clock
+        Assert.Equal(5, engine.Tutorial.EarnedCount);
+        Assert.Equal(5.0 / engine.Tutorial.TotalSteps, engine.GetScenarioGoalStatus()!.Progress01, 9);
         Assert.Equal(engine.Tutorial.Progress01, engine.GetScenarioGoalStatus()!.Progress01, 9);
-        Assert.True(engine.Tutorial.Progress01 > 0.0);
+
+        engine.Tutorial.Skip();
+        engine.Advance(1);
+        Assert.Equal(5.0 / engine.Tutorial.TotalSteps, engine.GetScenarioGoalStatus()!.Progress01, 9);
+        Assert.False(engine.GetScenarioGoalStatus()!.Won);
 
         Assert.Null(NewEngine(6).GetScenarioGoalStatus());
     }
@@ -289,44 +305,21 @@ public class ScenarioCampaignTests
     private sealed record TutorialRun(bool Complete, bool Won, bool Lost, int Day, int Step, decimal MinCash);
 
     /// <summary>
-    /// A minimal player: delouse above 0.4 adult females, harvest at 4.5 kg,
-    /// restock up to 20,000 smolts, start the cheapest research once a harvest
-    /// paid, build a second site when 6.5M is in the bank.
+    /// A minimal player: it does what each step asks through the step's own
+    /// verbs and UI marks (U2-02: steps advance on real events), so it sets a
+    /// feeding plan and the lice standing order (delouse above 0.4 adult
+    /// females, as this player always did by hand), orders the harvest at
+    /// 4.5 kg, restocks, starts the cheapest research once a harvest paid and
+    /// borrows the finance panel's 5 MNOK when the second site's cash is short
+    /// (<see cref="Tutorial.TutorialPlayer"/>).
     /// </summary>
     private static TutorialRun PlayTutorial(int seed, int horizonDays = 1500)
     {
         var engine = Started("forste_sesong", seed, events: true);
-        bool harvested = false, research = false, secondSite = false;
-        decimal minCash = decimal.MaxValue;
-        for (int day = 0; day < horizonDays && !engine.Tutorial.IsComplete; day++)
-        {
-            engine.Advance(1);
-            minCash = Math.Min(minCash, engine.FinanceManager.Balance);
-            var site = engine.State.SeaSites[0];
-            int fish = site.Pens.Sum(p => p.TotalCount);
-            if (fish > 0)
-            {
-                if (site.Lice.AdultFemalePerFish > 0.4) engine.DelouseSite(site.Id, "hydrolicer");
-                if (site.Pens.Sum(p => p.GetTotalBiomassKg()) / fish >= 4.5)
-                    harvested |= engine.HarvestSite(site.Id).Ok;
-            }
-            else if (harvested)
-            {
-                int smolts = (int)Math.Min(20_000, Math.Max(0m, engine.FinanceManager.Balance - 500_000m) / 12m);
-                if (smolts >= 5_000) engine.StockSmolts(site.Id, smolts);
-            }
-            if (!research && harvested)
-            {
-                var node = engine.Research.Nodes.Values
-                    .Where(n => engine.Research.CanResearch(n.Id)).OrderBy(n => n.CostNOK).First();
-                if (engine.FinanceManager.Balance > node.CostNOK + 200_000m)
-                    research = engine.StartResearchProject(node.Id).Ok;
-            }
-            if (!secondSite && engine.FinanceManager.Balance > 6_500_000m)
-                secondSite = engine.BuildSeaSite(site.ZoneId, "andre_anlegg").Ok;
-        }
+        var player = new Tutorial.TutorialPlayer();
+        player.Play(engine, horizonDays);
         return new TutorialRun(engine.Tutorial.IsComplete, engine.Scenario.IsWon, engine.Scenario.IsLost,
-            engine.State.Day, engine.Tutorial.CurrentStepNumber, minCash);
+            engine.State.Day, engine.Tutorial.CurrentStepNumber, player.MinCash);
     }
 
     [Theory]
@@ -352,16 +345,28 @@ public class ScenarioCampaignTests
         Assert.True(run.Step >= 16, $"seed {seed}: stalled at step {run.Step} on day {run.Day}");
     }
 
+    /// <summary>
+    /// U2-02 (stronger than the day-150 time fallback it replaces, RUN_LOG §7):
+    /// the lice step is the "Avlus ved telling" standing order, so it never
+    /// waits for lice or for a date. A calm tutorial with no events and no
+    /// order stays on the step for 200 days (no fallback opens it); setting the
+    /// order completes it on the day it is set, with the lice low.
+    /// </summary>
     [Fact]
-    public void TutorialLiceStep_HasATimeFallback()
+    public void TutorialLiceStep_IsAStandingOrder_WithNoTimeFallback()
     {
-        // Calm tutorial, no events: lice stay low, so the lice step can only open
-        // through the day-150 fallback (it used to wait for 0.8 lice forever).
         var engine = Started("forste_sesong", 9, events: false);
-        engine.Advance(TutorialSystem.LiceStepFallbackDay - 10);
-        Assert.Equal("apply-delousing", engine.Tutorial.CurrentStep?.Id);
-        engine.Advance(15);
-        Assert.True(engine.Tutorial.CurrentStepNumber > 6,
-            $"still at step {engine.Tutorial.CurrentStepNumber} on day {engine.State.Day}");
+        var site = engine.State.SeaSites[0];
+        engine.Tutorial.Mark(TutorialMarks.Tab("pens"));
+        Assert.True(engine.SetFeedPlan(site.Id, 100.0, LakskongenSim.Farm.FeedRecipeKind.Standard, 30).Ok);
+        engine.Tutorial.CheckProgress();
+        Assert.Equal("lice_order", engine.Tutorial.CurrentStep?.Id);
+        engine.Advance(200);
+        Assert.Equal("lice_order", engine.Tutorial.CurrentStep?.Id);
+
+        Assert.True(engine.SetDriftsplan(site.Id, LakskongenSim.Farm.FjordPolicies.DelouseOnCount).Ok);
+        engine.Tutorial.CheckProgress();
+        Assert.Equal("inbox", engine.Tutorial.CurrentStep?.Id);
+        Assert.Equal(engine.State.Day, engine.Tutorial.Steps[2].CompletedOnDay);
     }
 }

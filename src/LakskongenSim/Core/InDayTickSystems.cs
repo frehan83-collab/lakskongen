@@ -756,7 +756,8 @@ namespace LakskongenSim.Core;
             engine.SyncResearchToState();
 
             // ─── Scenario win/loss evaluation (runs after all subsystems) ───
-            engine.Scenario?.CheckWinConditions(engine.State.SustainabilityScore, engine.Tutorial?.IsComplete ?? false);
+            // U2-02 / D19: the tutorial is won by play; a skipped one is complete but not earned.
+            engine.Scenario?.CheckWinConditions(engine.State.SustainabilityScore, engine.Tutorial?.IsEarned ?? false);
 
         }
     }
