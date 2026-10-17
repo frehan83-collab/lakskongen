@@ -8,7 +8,7 @@ BALANCE 2619, FJORD_RENDERER 782, AGENTS 368. Do not read them whole.
 ## 0. TL;DR
 
 - **Lakskongen** is a Norwegian salmon-farming management sim. The simulation is deterministic C# .NET 10 (`src/LakskongenSim`). The frontend is Godot 4.7.2 Mono (`godot/`).
-- **Build on `review-remediation`**, which equals `integration/wave2`, head `04735a8`; it is draft PR #5 against `main`. `main` is older, so do not start from it.
+- **Build on `review-remediation`**, which equals `integration/wave2`; current head: `git log -1 origin/review-remediation`; it is draft PR #5 against `main`. `main` is older, so do not start from it.
 - **Roadmap waves 1-3 are done**: graphics, simulation core, core loop UI, and farm-type foundations. **Wave 4 is paused**: work in progress sits on `wave4/*` branches (§6).
 - **Owner rules:**
   - wait for the owner's go and never autostart;
