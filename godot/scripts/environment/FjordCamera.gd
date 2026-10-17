@@ -117,6 +117,9 @@ var _orbiting := false
 var _panning := false
 var _fly_tween: Tween = null
 var _settled := false
+## F2-20 (farm-types spec §4; F2-21 adds the bookmarks): places the focus may
+## stand beyond the world's focus clamp, id -> {pos, distance, pitch, radius}.
+var _focus_targets: Dictionary = {}
 
 signal zoom_level_changed(level: ZoomLevel)
 signal entered_underwater()
@@ -157,6 +160,57 @@ func look_at_position(world_pos: Vector3, zoom: ZoomLevel = current_zoom) -> voi
 func fly_to_position(world_pos: Vector3, zoom: ZoomLevel = current_zoom, duration: float = 1.2) -> void:
 	set_zoom_level(zoom)
 	_cancel_fly()
+	var dest := _clamp_to_world(Vector3(world_pos.x, 0.0, world_pos.z))
+	if not _user_rotated:
+		_yaw_target = _nearest_angle(_yaw, home_yaw(dest))
+	if not is_inside_tree() or duration <= 0.0:
+		_focus_target = dest
+		return
+	_fly_tween = create_tween()
+	_fly_tween.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	_fly_tween.tween_property(self, "_focus_target", dest, duration)
+
+
+## F2-20 (spec §4 "Camera"): register a place the camera frames, such as a
+## land campus or an offshore unit, at its own distance and pitch (degrees,
+## negative looks down). The focus clamp takes the union of the world's box
+## and every target's disc of `radius` metres, so a unit beyond the world's
+## edge can be focused and panned round. Re-registering an id moves it.
+func register_focus_target(id: String, pos: Vector3, framing_distance: float, pitch_deg: float, radius: float) -> void:
+	_focus_targets[id] = {"pos": pos, "distance": framing_distance, "pitch": pitch_deg, "radius": maxf(radius, 0.0)}
+
+
+func unregister_focus_target(id: String) -> void:
+	_focus_targets.erase(id)
+
+
+func has_focus_target(id: String) -> bool:
+	return _focus_targets.has(id)
+
+
+## The registered target {pos, distance, pitch, radius}, or {}.
+func get_focus_target(id: String) -> Dictionary:
+	return _focus_targets.get(id, {})
+
+
+## Fly to a registered target at its framing. False for an unknown id.
+func focus_target(id: String, duration: float = 1.2) -> bool:
+	if not _focus_targets.has(id):
+		return false
+	var t: Dictionary = _focus_targets[id]
+	frame_position(t["pos"], float(t["distance"]), float(t["pitch"]), duration)
+	return true
+
+
+## Fly the focus to `world_pos` at `distance` metres and `pitch_deg` (below the
+## horizon, e.g. -40): the pitch becomes an offset from the distance table's,
+## as a right-drag tilt would, so Home restores the table.
+func frame_position(world_pos: Vector3, distance: float, pitch_deg: float, duration: float = 1.2) -> void:
+	_cancel_fly()
+	_top_down = false
+	_distance_target = clampf(distance, MIN_DISTANCE, MAX_DISTANCE)
+	_pitch_offset_target = clampf(pitch_deg - view_for_distance(_distance_target).x, -40.0, 15.0)
+	_update_zoom_band(_band_for(_distance_target))
 	var dest := _clamp_to_world(Vector3(world_pos.x, 0.0, world_pos.z))
 	if not _user_rotated:
 		_yaw_target = _nearest_angle(_yaw, home_yaw(dest))
@@ -404,10 +458,29 @@ func _world_half() -> Vector2:
 
 
 ## Clamp per axis: as the camera orbits, the clamped point slides along the
-## edge no faster than the orbit itself.
+## edge no faster than the orbit itself. With farm-type focus targets
+## registered (F2-20, spec §4) the focus may also stand in any target's disc:
+## the clamp takes the union, so a point outside every shape goes to the
+## nearest of the box and the discs.
 func _clamp_to_world(p: Vector3) -> Vector3:
 	var half := _world_half()
-	return Vector3(clampf(p.x, -half.x, half.x), p.y, clampf(p.z, -half.y, half.y))
+	var boxed := Vector3(clampf(p.x, -half.x, half.x), p.y, clampf(p.z, -half.y, half.y))
+	if _focus_targets.is_empty() or boxed.is_equal_approx(p):
+		return boxed
+	var best := boxed
+	var best_d := Vector2(boxed.x - p.x, boxed.z - p.z).length_squared()
+	for target: Dictionary in _focus_targets.values():
+		var c: Vector3 = target["pos"]
+		var r: float = target["radius"]
+		var off := Vector2(p.x - c.x, p.z - c.z)
+		if off.length() <= r:
+			return p
+		var edge := Vector2(c.x, c.z) + off.normalized() * r
+		var d := Vector2(edge.x - p.x, edge.y - p.z).length_squared()
+		if d < best_d:
+			best_d = d
+			best = Vector3(edge.x, p.y, edge.y)
+	return best
 
 
 ## Where the camera itself may go (G2-01): the focus limit plus the longest

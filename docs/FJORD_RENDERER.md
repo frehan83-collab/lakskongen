@@ -130,8 +130,10 @@ black per building) on sheltered, gentle (under 14°), dry shore 1.8-9 m above
 the sea and 5-28 m from it, doors turned to the water by the shore distance
 field's gradient, rows 300 m apart; one solid quay beside a row, from the
 waterline 18 m out to at least 2.5 m of water. The trees keep a 14 m yard
-around each. On the seed-42 fjord: two rows on the head delta and a row with
-the quay on the spruce spit by the mouth (in the default FJORD view). Meshes:
+around each. Nothing stands or grows on a land pad or its rim (F2-19). On
+the seed-42 fjord: a row on the head delta east of pad_delta (the delta's
+second row stood where pad_delta is carved) and a row with the quay on the
+spruce spit by the mouth (in the default FJORD view). Meshes:
 `blender/build_shore_props.py` (manifest entries `naust`, `quay`).
 
 ## Far field (G2-01)
@@ -197,9 +199,36 @@ facing the nearest water) with `IntakeReachM(pad)` (computed: the nearest
 heightfield vertex at −95 m or the world edge), and `OffshoreSlots()` (off_1
 Ytre kyst, off_2 Havkanten, hav_1 Havområde beyond the world, exposure 1,
 depth from the far field). `FjordTerrain.land_pad_slots()` /
-`offshore_slots()` hand them to GDScript. The pads are not carved yet (F2-19
-carves them with their `pad_state` heath/granite and the vegetation and shore
-exclusions); the heightfield, and its golden hash, are unchanged.
+`offshore_slots()` hand them to GDScript; a baked region (G2-01) names the same
+fields in its `meta.json` (`schemas/terrain/meta.schema.json`: `land_pads[]`,
+`offshore_slots[]`, the intake reach never authored).
+
+The pads are carved (F2-19, `TerrainGenerator.CarvePads` over `Sample`): each
+pad flat at +3.6 m over its rectangle, and round it a rim of up to 105 m
+(`PadRimMaxM`). Where the ground stands higher, the rim is a cut face into the
+hill (24 m, wider where the slope bound needs it); toward the sea it is a low
+rock shelf 6-70 m wide (its width wanders along the edge, read at the nearest
+edge point) down to a lip 0.4 m over the sea, then a drop to the seabed at
+least 18 m wide, never steeper than 1:3 and at most 35 m wide; in front of the
+quay edge a quay face (lip 3.0 m, shelf 1.5 m, drop 9 m) lets a wellboat lie
+alongside. The quay edge is fixed from the uncarved ground (`QuaySides`: the
+water-facing edge nearest the channel's centreline); near the world edge the
+shelf takes at most 40% of the room left. Trees, meadow and shore buildings
+keep off every pad and its rim (`FjordGroundCover`: the masks are zeroed and
+the scatter and `ShorePropPlacer` skip `PadClearings()`). The seed-42 golden
+hash is `a7b58a2c48dd4a8f` (headless and windowed equal); pad_a's quay at
+(−130, −1720) has 25 m of water 80 m out and its −95 m intake line at the
+world edge 280 m out (BALANCE §1p).
+
+The terrain shader paints each pad by `pad_state` (0 heath, 1 built;
+`FjordTerrain.set_pad_state(id, state, blast)`, at most four pads): unbuilt,
+the pad and its rim keep the heath with a few granite slabs; built, the
+blasted rectangle `blast` (world x0, z0, x1, z1; zero = the whole pad; the
+facility presenter passes its campus's footprint + 22 m) turns crushed stone
+(the shingle layer tinted to granite #6B7378, with fines and warm patches),
+its edge broken by noise, and the rim's cut faces and the armoured shelf turn
+bare granite (wet #3E4448 toward the sea). Shots `43_pads_*` measure the
+pads' mean colour built against heath (ΔE76; `docs/run/evidence/f2_19_pads.md`).
 
 ## Camera (G1-03)
 
@@ -227,6 +256,16 @@ mouth looks up the fjord from out at sea. Camera input acts only while the Fjord
 shows the world (`GameUI.world_view_changed` → `FjordVistaBridge` →
 `input_enabled`), letters are ignored while a text field has focus and arrows
 while any Control has focus. Idle auto-orbit starts after 30 s.
+
+Focus targets (F2-20, farm-types spec §4): `register_focus_target(id, pos,
+distance, pitch, radius)` names a place the camera frames at its own distance
+and pitch (a campus at 520 m and −40°, one lot at 380 m, an OF1-class unit at
+220 m and −18°); `focus_target(id)` and `frame_position(pos, distance, pitch)`
+fly there, the pitch kept as an offset from the distance table's so Home
+restores the table. The focus clamp and the camera-position clamp both take
+the union of the world box and every target's disc, so a unit beyond the
+world's edge can be framed and orbited. The facility presenter registers each
+unit; the bookmark key and the framings' horizon rule are F2-21's.
 
 The water grid (`WaterGrid.gd`, below) runs out to ±32.8 km under the far
 field, so the view out of the mouth ends at a horizon.

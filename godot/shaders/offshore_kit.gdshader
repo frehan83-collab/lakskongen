@@ -1,5 +1,6 @@
 shader_type spatial;
 render_mode cull_back, diffuse_burley, specular_schlick_ggx;
+#include "res://shaders/include/mirror_pass.gdshaderinc"
 
 // The offshore kit's one solid material (LK_OffshoreKit, farm-types F2-26).
 // Every solid face of a mesh built by blender/build_offshore.py points at one
@@ -74,6 +75,10 @@ void vertex() {
 	model_pos = VERTEX;
 	model_normal = NORMAL;
 	part_group = floor(UV2.x + 0.5);
+	// F2-20 mirror pass (G2-03): the pontoons, columns and bracing below the
+	// waterline are laid on the water plane for the planar mirror's camera,
+	// which sits under the water and would see them over the reflection.
+	VERTEX = lk_mirror_vertex(VERTEX, MODEL_MATRIX, CAMERA_VISIBLE_LAYERS, CAMERA_POSITION_WORLD);
 }
 
 float row_of(vec2 uv) {

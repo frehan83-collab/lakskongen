@@ -1,5 +1,6 @@
 shader_type spatial;
 render_mode cull_back, diffuse_burley, specular_schlick_ggx;
+#include "res://shaders/include/mirror_pass.gdshaderinc"
 
 // The farm-types facility kit's one material (LK_FacilityKit, F2-25; F2-20
 // extends the per-instance part). Every land-kit mesh built by
@@ -15,9 +16,16 @@ render_mode cull_back, diffuse_burley, specular_schlick_ggx;
 // the plain-wall variant (band off), the pipe-bridge legs' stretch and the
 // feeder rotor's spin. With use_instance_custom a MultiMesh drives them per
 // instance: INSTANCE_CUSTOM.r build progress (fragments above
-// progress * build_height_m are discarded), .g lid swatch (0 dark, 1 pale),
-// .b leg length / 10 m (pipe bridge) or band off (tanks, > 0.5), .a rotor
-// phase in turns.
+// progress * build_height_m are discarded; build_height_m is per node, the
+// tank type's shell height), .g lid swatch (0 dark, 1 pale), .b leg length /
+// 10 m (pipe bridge) or band off (tanks, > 0.5), .a rotor: the phase in turns
+// (fract), spinning at rotor_turns_per_s while a >= 1 (a tank that feeds).
+// A plain mesh (a lot's merged buildings, F2-20) rises through the per-node
+// build_cut_m instead: fragments above that model height are discarded.
+//
+// Mirror pass (G2-03): what stands below the water (quay piles, the intake
+// basin's footing) is laid on the water plane for the planar mirror's camera,
+// as the terrain does (mirror_pass.gdshaderinc).
 //
 // Mips: a strip is one texel tall at mip 5 (32 x 32), so the sampled level
 // stops there and strips never bleed into each other.
@@ -40,7 +48,12 @@ uniform float plain_wall : hint_range(0.0, 1.0) = 0.0;
 uniform float leg_scale = 1.0;
 uniform float rotor_turns_per_s = 0.5;
 uniform bool use_instance_custom = false;
-uniform float build_height_m = 13.0;
+// Per node (F2-20): a MultiMesh's tank shell height, a plain mesh's build cut.
+instance uniform float build_height_m = 13.0;
+instance uniform float build_cut_m = 100000.0;
+// Per node (F2-20): 1 makes a MultiMesh read its INSTANCE_CUSTOM (the shared
+// material keeps use_instance_custom off for plain meshes).
+instance uniform float instance_custom_on = 0.0;
 // Strip rows (blender/build_land_base.py STRIPS order).
 const float ROW_TANK_WALL = 0.0;
 const float ROW_TANK_BAND = 1.0;
@@ -62,13 +75,15 @@ void vertex() {
 	float plain = plain_wall;
 	float legs = leg_scale;
 	float phase = 0.0;
+	float spin = 0.0;
 	build_cut = 1.0;
-	if (use_instance_custom) {
+	if (use_instance_custom || instance_custom_on > 0.5) {
 		build_cut = INSTANCE_CUSTOM.r;
 		lid = INSTANCE_CUSTOM.g;
 		plain = step(0.5, INSTANCE_CUSTOM.b);
 		legs = INSTANCE_CUSTOM.b;
-		phase = INSTANCE_CUSTOM.a;
+		phase = fract(INSTANCE_CUSTOM.a);
+		spin = step(1.0, INSTANCE_CUSTOM.a);
 	}
 	// Pipe-bridge legs: stretch below the deck to the terrain.
 	if (row == ROW_BRIDGE_LEG && VERTEX.y < 0.0) {
@@ -76,7 +91,6 @@ void vertex() {
 	}
 	// The feeder's spreader turns about the feeder axis while it feeds.
 	if (row == ROW_ROTOR) {
-		float spin = use_instance_custom ? 1.0 : 0.0;
 		float a = TAU * (phase + TIME * rotor_turns_per_s * spin);
 		VERTEX.xz = mat2(vec2(cos(a), -sin(a)), vec2(sin(a), cos(a))) * VERTEX.xz;
 		NORMAL.xz = mat2(vec2(cos(a), -sin(a)), vec2(sin(a), cos(a))) * NORMAL.xz;
@@ -89,10 +103,11 @@ void vertex() {
 		row_shift = ROW_TANK_WALL - ROW_TANK_BAND;
 	}
 	model_y = VERTEX.y;
+	VERTEX = lk_mirror_vertex(VERTEX, MODEL_MATRIX, CAMERA_VISIBLE_LAYERS, CAMERA_POSITION_WORLD);
 }
 
 void fragment() {
-	if (build_cut < 0.999 && model_y > build_cut * build_height_m) {
+	if ((build_cut < 0.999 && model_y > build_cut * build_height_m) || model_y > build_cut_m) {
 		discard;
 	}
 	vec2 uv = UV + vec2(0.0, row_shift / atlas_strips);

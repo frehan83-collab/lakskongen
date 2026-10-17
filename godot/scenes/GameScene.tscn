@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3 uid="uid://cx3r7m9t1q5n4"]
+[gd_scene load_steps=17 format=3 uid="uid://cx3r7m9t1q5n4"]
 
 [ext_resource type="Script" path="res://scripts/GameController.gd" id="1_gamecontroller"]
 [ext_resource type="PackedScene" uid="uid://bks2yj3v1fkl8" path="res://scenes/ui/HUD.tscn" id="3_hud"]
@@ -15,6 +15,7 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/CriticalEventCard.tscn" id="16_critical"]
 [ext_resource type="PackedScene" path="res://scenes/ui/BriefingCard.tscn" id="17_briefing"]
 [ext_resource type="PackedScene" path="res://scenes/ui/ScenarioEndScreen.tscn" id="18_endscreen"]
+[ext_resource type="Script" path="res://scripts/visual/FarmFacilityVisualManager.gd" id="19_facilities"]
 
 [node name="GameScene" type="Control"]
 layout_mode = 3
@@ -35,6 +36,9 @@ far = 20000.0
 
 [node name="FishPenManager" type="Node3D" parent="FjordEnvironment"]
 script = ExtResource("10_penmanager")
+
+[node name="FarmFacilityVisualManager" type="Node3D" parent="FjordEnvironment"]
+script = ExtResource("19_facilities")
 
 [node name="FjordVistaBridge" type="Node" parent="."]
 unique_name_in_owner = true

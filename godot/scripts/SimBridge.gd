@@ -680,6 +680,9 @@ func get_next_planned(unit_id: String) -> Dictionary: return _proxies.get_next_p
 func get_notification_meter() -> Array[Dictionary]: return _proxies.get_notification_meter()
 func get_notification_budget() -> Dictionary: return _proxies.get_notification_budget()
 
+# ── F2-20: the facility presenter's read (gfx) ───────────────────────────────
+func get_facility_visuals() -> Array[Dictionary]: return _proxies.get_facility_visuals()
+
 # ── F2-03: farm types (land sites, offshore units, their plots) ───────────────
 # Each lane forwards only inside its own block (FARM_TYPES_SPEC §7.6).
 

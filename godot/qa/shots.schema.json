@@ -64,6 +64,24 @@
           "additionalProperties": {"type": "number", "minimum": 0, "maximum": 1}
         },
         "measure_pads": {"type": "boolean", "description": "F2-19: record each pad's mean CIE Lab in the frame."},
+        "facilities": {"type": "boolean", "description": "F2-20: build the farm-type QA set (one HFS lot, one post-smolt site, one OF1-class unit) through the engine and let the presenter draw it."},
+        "construction": {
+          "type": "object",
+          "description": "F2-20: build progress (0-1, 1 = operational) of the QA set's land, post-smolt and offshore units.",
+          "additionalProperties": false,
+          "properties": {
+            "land": {"type": "number", "minimum": 0, "maximum": 1},
+            "post_smolt": {"type": "number", "minimum": 0, "maximum": 1},
+            "offshore": {"type": "number", "minimum": 0, "maximum": 1}
+          }
+        },
+        "land_lots": {"type": "integer", "minimum": 1, "maximum": 4, "description": "F2-20: the QA set's grow-out site at this many lots (GameBridge.QaSetLandLots; 4 = the full campus of the spec section 5 budget)."},
+        "perf_units": {
+          "type": "array",
+          "description": "F2-20: with perf, only these QA-set units are shown in the A/B's 'on' frame, so one unit's own draw calls are measured.",
+          "items": {"enum": ["land", "post_smolt", "offshore"]},
+          "uniqueItems": true
+        },
         "state": {"type": "string", "description": "A UI shot's game state, named by its capture scene (U2-01: map, build_refused, auction_preview, auction_live, auction_won, build_new_zone, built_view)."},
         "purpose": {"type": "string", "minLength": 10}
       }

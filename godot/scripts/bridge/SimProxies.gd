@@ -634,6 +634,12 @@ func get_notification_meter() -> Array[Dictionary]:
 func get_notification_budget() -> Dictionary:
 	return game_bridge.GetNotificationBudget() if game_bridge else {}
 
+# ── F2-20: the facility presenter's read (gfx) ───────────────────────────────
+## Every land site and offshore unit as the 3D scene draws it: plot, lots,
+## modules, tanks, the construction phase and fish (GameBridge.FacilityVisuals.cs).
+func get_facility_visuals() -> Array[Dictionary]:
+	return _arr(game_bridge.GetFacilityVisuals()) if game_bridge else []
+
 # ── F2-03: farm types (land sites, offshore units, their plots) ───────────────
 # Two lane blocks (FARM_TYPES_SPEC §7.6): the land lane (F2-12 … F2-16) appends
 # only inside the land block, the sea lane (F2-06 … F2-11) only inside the sea
