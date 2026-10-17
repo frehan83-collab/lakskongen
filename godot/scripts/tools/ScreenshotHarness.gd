@@ -82,6 +82,18 @@ const MIRROR_PITCH_UP_DEG := 14.0
 const MIN_MIRROR_SSIM := 0.5
 const MIN_MIRROR_SSIM_GAIN := 0.1
 const MIRROR_BAND := 0.12
+# Merge-captain ruling (wave 3, RUN_LOG §7): a water mirror cannot keep
+# detail finer than its ripples, so 18 judges the mirror at the ripple scale.
+# Both frames (the tier's and the Low tier's sky-only twin) are blurred by a
+# Gaussian of sigma = the ripple wavelength as the camera sees it at the
+# waterline (ripple_sigma_px); the bars above stay. The ripple wavelength is
+# the coarser of the wind sea's peak (the director's sea state) and the drawn
+# ripple field's dominant wavelength: the water shader's long ripple map tiles
+# every MIRROR_RIPPLE_TILE_M (water_shader.gdshader `q / 31.0`) and its
+# spectrum (tools/gen_water_textures.py: k^-3.5 on wavenumbers 4-30 a tile)
+# puts the most slope on its lowest wavenumber, MIRROR_RIPPLE_K_MIN.
+const MIRROR_RIPPLE_TILE_M := 31.0
+const MIRROR_RIPPLE_K_MIN := 4.0
 const CALM_SKY := {"weather_state": "Calm", "cloud_cover": 0.15, "wind_ms": 1.5, "visibility_km": 50.0,
 	"precip_mm_h": 0.0, "sea_fog": 0.0, "wave_m": 0.1}
 const SHORE_FOAM_SDF_M := 5.0
@@ -133,6 +145,15 @@ func _ready() -> void:
 
 func _run_sequence() -> void:
 	await _wait(0.4)
+	# `-- --only=mirror`: boot the game and shoot 18 (the mirror) alone.
+	if "--only=mirror" in OS.get_cmdline_user_args():
+		await _boot_game()
+		await _capture_fjord_calm_dusk()
+		_print_summary()
+		for failure in _content_failures:
+			push_error("[ScreenshotHarness] content check failed: %s" % failure)
+		get_tree().quit(0 if _content_failures.is_empty() else 1)
+		return
 	# `-- --only=moods`: boot the game and shoot the mood goldens alone (G3-05).
 	if "--only=moods" in OS.get_cmdline_user_args():
 		await _boot_game()
@@ -942,21 +963,30 @@ func _capture_fjord_calm_dusk() -> void:
 	if img == null:
 		_content_failures.append("18_fjord_calm_dusk was not captured")
 	else:
-		var row := int((cam as Camera3D).unproject_position(shore).y / get_viewport().get_visible_rect().size.y * img.get_height())
-		var ssim := mirror_ssim(img, row)
+		var view_h := get_viewport().get_visible_rect().size.y
+		var row := int((cam as Camera3D).unproject_position(shore).y / view_h * img.get_height())
+		var director = _env.get("director")
+		var ripple := ripple_sigma_px(cam as Camera3D, img.get_height(), (cam as Camera3D).global_position.distance_to(shore),
+			_sea_peak_wavelength_m(director))
+		var sigma := float(ripple["sigma_px"])
+		var ssim := mirror_ssim(img, row, sigma)
+		var ssim_sharp := mirror_ssim(img, row)
 		# The same frame with the sky's radiance alone (the Low tier's water):
 		# the mirror must be what makes the band match.
-		var director = _env.get("director")
 		var tier := String(director.call("get_quality_name")) if director != null else ""
 		var ssim_sky := 0.0
+		var ssim_sky_sharp := 0.0
 		if director != null:
 			director.call("set_quality", "low")
 			await _wait(1.2)
-			ssim_sky = mirror_ssim(await _grab_frame(), row)
+			var sky_frame := await _grab_frame()
+			ssim_sky = mirror_ssim(sky_frame, row, sigma)
+			ssim_sky_sharp = mirror_ssim(sky_frame, row)
 			director.call("set_quality", tier)
 			await _wait(1.0)
-		print("[ScreenshotHarness] 18_fjord_calm_dusk: waterline row %d of %d, mirror SSIM %.3f (%s), sky reflection alone %.3f" % [
-			row, img.get_height(), ssim, tier, ssim_sky])
+		print("[ScreenshotHarness] 18_fjord_calm_dusk: waterline row %d of %d at %.0f m; ripple %.2f m (sea peak %.2f m, drawn ripples %.2f m), f %.0f px -> sigma %.1f px; mirror SSIM %.3f (%s), sky reflection alone %.3f; unblurred (information) %.3f vs %.3f" % [
+			row, img.get_height(), float(ripple["distance_m"]), float(ripple["wavelength_m"]), float(ripple["sea_peak_m"]),
+			float(ripple["drawn_ripple_m"]), float(ripple["focal_px"]), sigma, ssim, tier, ssim_sky, ssim_sharp, ssim_sky_sharp])
 		if ssim < MIN_MIRROR_SSIM:
 			_content_failures.append("18_fjord_calm_dusk: the reflection band matches the flipped skyline at SSIM %.3f (min %.2f)" % [ssim, MIN_MIRROR_SSIM])
 		if tier != "low" and ssim - ssim_sky < MIN_MIRROR_SSIM_GAIN:
@@ -966,11 +996,54 @@ func _capture_fjord_calm_dusk() -> void:
 	cam.set("_user_rotated", false)
 
 
+## The ripple scale of 18's reflection, in frame pixels (the merge captain's
+## ruling): the ripple wavelength as the camera sees it at the waterline,
+##   sigma_px = lambda * f_px / d
+## lambda (m) = max(lambda_p, lambda_r): the coarser of the wind sea's peak
+##   wavelength lambda_p (EnvironmentDirector.sea_state "sheltered_peak_m":
+##   SeaStateModel for the shot's wind over the basin's fetch) and the drawn
+##   ripple field's dominant wavelength lambda_r = MIRROR_RIPPLE_TILE_M /
+##   MIRROR_RIPPLE_K_MIN (the water shader's long ripple map; its k^-3.5
+##   spectrum puts the most slope on its lowest wavenumber);
+## f_px = (H / 2) / tan(fov / 2): the focal length in frame pixels (H the frame
+##   height; Godot's fov is the vertical one);
+## d (m): the camera's distance to the waterline point the band starts at (the
+##   shore whose walls the band mirrors).
+## A ripple tilts the reflected ray over one wavelength, so the water itself
+## scrambles reflected detail finer than this. Returns sigma_px, wavelength_m,
+## sea_peak_m, drawn_ripple_m, distance_m, focal_px (sigma 0 without a camera
+## or a distance).
+static func ripple_sigma_px(cam: Camera3D, frame_h: int, distance_m: float, sea_peak_m: float) -> Dictionary:
+	var drawn := MIRROR_RIPPLE_TILE_M / MIRROR_RIPPLE_K_MIN
+	var wavelength := maxf(sea_peak_m, drawn)
+	var out := {"sigma_px": 0.0, "wavelength_m": wavelength, "sea_peak_m": sea_peak_m, "drawn_ripple_m": drawn,
+		"distance_m": distance_m, "focal_px": 0.0}
+	if cam == null or frame_h <= 0 or distance_m <= 0.0:
+		return out
+	var focal := 0.5 * float(frame_h) / tan(deg_to_rad(cam.fov) * 0.5)
+	out["focal_px"] = focal
+	out["sigma_px"] = wavelength * focal / distance_m
+	return out
+
+
+## The wind sea's peak wavelength the water draws (m): the director's
+## sheltered peak, 0 without a sea state.
+func _sea_peak_wavelength_m(director: Object) -> float:
+	if director == null:
+		return 0.0
+	var sea = director.get("sea_state")
+	if sea is Dictionary and (sea as Dictionary).has("sheltered_peak_m"):
+		return float(sea["sheltered_peak_m"])
+	return 0.0
+
+
 ## Mean SSIM (8 x 8 windows, luminance, C1 = 0.01^2, C2 = 0.03^2) between the
 ## band of MIRROR_BAND of the frame height above the waterline row and the
 ## band below it flipped about that row, over the central half of the
-## columns, on a half-size copy of the frame.
-static func mirror_ssim(img: Image, row: int) -> float:
+## columns, on a half-size copy of the frame. With sigma_px > 0 (frame
+## pixels) the luminance is first blurred by a Gaussian of that sigma (half
+## of it on the half-size copy): the ripple scale of ripple_sigma_px.
+static func mirror_ssim(img: Image, row: int, sigma_px: float = 0.0) -> float:
 	var small := img.duplicate() as Image
 	small.resize(img.get_width() / 2, img.get_height() / 2, Image.INTERPOLATE_BILINEAR)
 	var w := small.get_width()
@@ -979,6 +1052,18 @@ static func mirror_ssim(img: Image, row: int) -> float:
 	var band := mini(int(h * MIRROR_BAND), mini(r, h - r - 1))
 	if band < 8:
 		return 0.0
+	# The luminance of the compared region (both bands, the central half of
+	# the columns) with a margin for the blur, blurred if asked.
+	var sigma := 0.5 * maxf(sigma_px, 0.0)
+	var margin := int(ceil(3.0 * sigma))
+	var x0 := maxi(w / 4 - margin, 0)
+	var x1 := mini(w * 3 / 4 + margin, w)
+	var y0 := maxi(r - band - margin, 0)
+	var y1 := mini(r + band + margin, h)
+	var lum := _luminance(small, x0, y0, x1, y1)
+	if sigma > 0.05:
+		lum = _gaussian_blur(lum, x1 - x0, y1 - y0, sigma)
+	var rw := x1 - x0
 	var c1 := 0.01 * 0.01
 	var c2 := 0.03 * 0.03
 	var total := 0.0
@@ -992,8 +1077,8 @@ static func mirror_ssim(img: Image, row: int) -> float:
 			var sab := 0.0
 			for j in 8:
 				for i in 8:
-					var a := small.get_pixel(bx + i, r - 1 - (by + j)).get_luminance()
-					var b := small.get_pixel(bx + i, r + by + j).get_luminance()
+					var a := lum[(r - 1 - (by + j) - y0) * rw + bx + i - x0]
+					var b := lum[(r + by + j - y0) * rw + bx + i - x0]
 					sa += a
 					sb += b
 					saa += a * a
@@ -1007,6 +1092,50 @@ static func mirror_ssim(img: Image, row: int) -> float:
 			total += ((2.0 * ma * mb + c1) * (2.0 * cov + c2)) / ((ma * ma + mb * mb + c1) * (va + vb + c2))
 			count += 1
 	return total / maxf(float(count), 1.0)
+
+
+## Luminance of img over the rectangle [x0, x1) x [y0, y1), row by row.
+static func _luminance(img: Image, x0: int, y0: int, x1: int, y1: int) -> PackedFloat32Array:
+	var out := PackedFloat32Array()
+	out.resize((x1 - x0) * (y1 - y0))
+	var k := 0
+	for y in range(y0, y1):
+		for x in range(x0, x1):
+			out[k] = img.get_pixel(x, y).get_luminance()
+			k += 1
+	return out
+
+
+## A separable Gaussian blur (sigma in pixels, kernel to 3 sigma) of a w x h
+## array; the edges repeat their last pixel.
+static func _gaussian_blur(src: PackedFloat32Array, w: int, h: int, sigma: float) -> PackedFloat32Array:
+	var radius := int(ceil(3.0 * sigma))
+	var kernel := PackedFloat32Array()
+	kernel.resize(2 * radius + 1)
+	var norm := 0.0
+	for i in range(-radius, radius + 1):
+		var v := exp(-0.5 * float(i * i) / (sigma * sigma))
+		kernel[i + radius] = v
+		norm += v
+	for i in kernel.size():
+		kernel[i] /= norm
+	var tmp := PackedFloat32Array()
+	tmp.resize(w * h)
+	for y in h:
+		for x in w:
+			var s := 0.0
+			for i in range(-radius, radius + 1):
+				s += kernel[i + radius] * src[y * w + clampi(x + i, 0, w - 1)]
+			tmp[y * w + x] = s
+	var out := PackedFloat32Array()
+	out.resize(w * h)
+	for y in h:
+		for x in w:
+			var s := 0.0
+			for i in range(-radius, radius + 1):
+				s += kernel[i + radius] * tmp[clampi(y + i, 0, h - 1) * w + x]
+			out[y * w + x] = s
+	return out
 
 
 ## 19: a calm day, the camera straight above a shore. Water pixels are told

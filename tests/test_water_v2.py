@@ -230,3 +230,38 @@ def test_whitecaps_break_on_the_peak_band_and_the_mapping_is_recalibrated():
     # z(1 - W) = 2.46, 1.866, 1.253 -> thresholds 3.46, 2.72, 1.96.
     for z, th in ((2.46, 3.46), (1.866, 2.72), (1.253, 1.96)):
         assert abs(scale * z + offset - th) < 0.03
+
+
+HARNESS = GODOT / "scripts/tools/ScreenshotHarness.gd"
+
+
+def test_the_calm_dusk_mirror_is_judged_at_the_ripple_scale_with_the_bars_unchanged():
+    # Merge-captain ruling (wave-3 integration, RUN_LOG §7): a water mirror
+    # cannot keep detail finer than its ripples, so 18_fjord_calm_dusk blurs
+    # both frames (the tier's and the Low tier's sky-only twin) by the ripple
+    # wavelength as the camera sees it at the waterline, sigma = lambda * f / d
+    # with lambda the coarser of the sea state's peak and the drawn ripples,
+    # and keeps G2-03's bars: SSIM >= 0.5 and a gain >= 0.1 over the sky alone.
+    harness = _code(HARNESS)
+    assert re.search(r"const MIN_MIRROR_SSIM := 0\.5\b", harness), "the SSIM bar stays 0.5"
+    assert re.search(r"const MIN_MIRROR_SSIM_GAIN := 0\.1\b", harness), "the gain bar stays 0.1"
+    assert 'out["sigma_px"] = wavelength * focal / distance_m' in harness
+    assert "var focal := 0.5 * float(frame_h) / tan(deg_to_rad(cam.fov) * 0.5)" in harness
+    assert "var wavelength := maxf(sea_peak_m, drawn)" in harness
+    assert 'float(sea["sheltered_peak_m"])' in harness, "the sea state's peak wavelength takes part"
+    assert "(cam as Camera3D).global_position.distance_to(shore)" in harness, "d is the camera's distance to the waterline"
+    # The drawn ripple wavelength is the shader's long ripple map's: its tile
+    # and the generator's lowest wavenumber.
+    tile = float(re.search(r"const MIRROR_RIPPLE_TILE_M := ([\d.]+)", harness).group(1))
+    k_min = float(re.search(r"const MIRROR_RIPPLE_K_MIN := ([\d.]+)", harness).group(1))
+    water = _code(WATER)
+    assert f"texture(normal_map_1, q / {tile:.1f}" in water, "the harness's ripple tile is the shader's long ripple tile"
+    generator = (REPO / "tools/gen_water_textures.py").read_text(encoding="utf-8")
+    assert f"ripple_height(4242, {int(k_min)}, 30, 4.0)" in generator, "the lowest wavenumber of the long ripple map"
+    # The same sigma for the mirror frame and the sky-only frame, and the
+    # sharp SSIM is still computed (logged as information).
+    assert "var ssim := mirror_ssim(img, row, sigma)" in harness
+    assert "ssim_sky = mirror_ssim(sky_frame, row, sigma)" in harness
+    assert "var ssim_sharp := mirror_ssim(img, row)" in harness
+    assert "if ssim < MIN_MIRROR_SSIM:" in harness
+    assert "ssim - ssim_sky < MIN_MIRROR_SSIM_GAIN" in harness
