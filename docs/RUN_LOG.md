@@ -57,11 +57,11 @@ blocked, and stop — editing the scoreboard is a human gate.
 
 ## 4. Status header — EDIT IN PLACE
 
-- **Run phase:** `Roadmap wave 1 (Phase 0/1 "First Light") integrated and landed on review-remediation; wave 2 (Phase 2 + farm types F2) in progress`
-- **Active claim:** `session 6 — merge captain for docs/ROADMAP_TOP_TIER.md wave 1 (12 stage branches + integration fix) and wave 2 dispatch`
-- **Gate state:** `push gate: owner said "do what is necessary" (2026-10-14); first push of review-remediation attempted by the merge captain`
-- **Last verified artifact:** `CI_REQUIRE_ALL=1 /bin/bash tools/ci.sh → CI PASSED 17/17 on integration/wave1 (cf007e3); UI flow 671 checks, 0 failures; visual baseline re-promoted from the reviewed cf007e3 frames`
-- **Baseline freeze:** `UI flow 671 checks (MIN_CHECKS 671); CI 17/17 with every step required; visual baseline 28 shots re-promoted 2026-10-14 after the wave-1 art review (docs: WAVE1 art review notes in the session-6 report)`
+- **Run phase:** `Roadmap waves 1-3 integrated on integration/wave2 = review-remediation (165fd6b, draft PR #5); wave 4 PAUSED by the owner on 2026-10-17 to save weekly usage — see docs/HANDOFF.md`
+- **Active claim:** `none — waiting for the owner's go (do not autostart; align with GitHub first)`
+- **Gate state:** `GitHub CI on 165fd6b: dotnet, python, golden-traces pass; Quality gate fails one Linux UI flow timing check (U2-07 next-event N); visual-qa needs a self-hosted Mac runner`
+- **Last verified artifact:** `CI_REQUIRE_ALL=1 /bin/bash tools/ci.sh -> CI PASSED 18/18 on wave3/int 4f927a1 (dotnet 1795 passed / 1 skipped, pytest 662, UI flow 1425 checks 0 failures, perf p95 FARM 14.8 / FJORD 14.4 / COAST 15.9 ms); 165fd6b adds requirements-dev.txt only (fresh venv: pytest 661 passed)`
+- **Baseline freeze:** `UI flow MIN_CHECKS 1425; CI 18/18 with every step required; golden traces re-recorded at the wave-3 merge (docs/run/evidence/wave3_int_golden_diff.md); visual baseline 28 shots from 2026-10-14`
 
 ### Session-0 note
 After CI is green, create a **local baseline commit** (do NOT push — pushing is a human

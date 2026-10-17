@@ -1,5 +1,9 @@
 # AGENTS.md — LakskongenSim Agent Instructions
 
+> **Start here:** read `docs/HANDOFF.md` first. It says which branch to build on
+> (`review-remediation`, not `main`), where wave 4 stopped, and the rules: wait for
+> the owner's go, and align with GitHub before changing anything.
+
 ## Project Overview
 LakskongenSim is a realistic Norwegian salmon-farming simulation with Godot 4.7.2 (Mono) frontend and C# .NET 10 backend. The engine is deterministic, save/load round-trips exactly, and all subsystems implement `ITickSystem` + `ISnapshotable`.
 
