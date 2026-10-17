@@ -276,7 +276,10 @@ public partial class SimulationEngine
             unit.AlarmLoad, drivers, windows,
             unit.Bookings.OrderBy(b => b.IsOpen ? 0 : 1).ThenBy(b => b.BookedDay).ToList(),
             unit.ShakedownEndDay, known, unit.TeethingDefects.Count - known.Count, unit.Sensors.ToList(),
-            unit.StructureKnown, unit.StructureKnownAsOfDay, unit.NetKnownPct, unit.NetKnownAsOfDay, unit.EquityShare);
+            unit.StructureKnown, unit.StructureKnownAsOfDay, unit.NetKnownPct, unit.NetKnownAsOfDay, unit.EquityShare,
+            unit.ShakedownDays, TeethingFixCostNok(unit), BuyOutPriceNok(site),
+            Enum.GetValues<SensorPackageKind>().Select(k => (k, SensorCalibration(k).InstallNok * (decimal)unit.EquityShare,
+                SensorCalibration(k).ServiceNok * (decimal)unit.EquityShare)).ToList());
     }
 
     /// <summary>The alarm load's terms on <paramref name="day"/> (spec §3.3; F2-08 adds the review's cut).</summary>

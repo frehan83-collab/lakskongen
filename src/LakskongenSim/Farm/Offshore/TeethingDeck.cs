@@ -66,9 +66,12 @@ namespace LakskongenSim.Farm.Offshore
             return defects;
         }
 
-        /// <summary>The daily probability a shakedown reveals one hidden defect: 1 − exp(−rate / 30).</summary>
+        /// <summary>Days the shakedown's reveal rate is given per (spec §3.3 "0.5 per 30 days"; a rate window, not a calendar month).</summary>
+        public const double RevealRateWindowDays = 30.0;
+
+        /// <summary>The daily probability a shakedown reveals one hidden defect: 1 − exp(−rate / the rate's window).</summary>
         public static double ShakedownRevealProbabilityPerDay(OffshoreTeethingCalibration cal)
-            => 1.0 - Math.Exp(-Math.Max(0.0, cal.ShakedownRevealPer30Days) / 30.0);
+            => 1.0 - Math.Exp(-Math.Max(0.0, cal.ShakedownRevealPer30Days) / RevealRateWindowDays);
 
         /// <summary>
         /// The daily hazard a firing defect adds to its unit's fish: its extra

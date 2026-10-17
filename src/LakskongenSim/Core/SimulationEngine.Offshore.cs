@@ -118,7 +118,7 @@ public partial class SimulationEngine
             Gates: gates,
             FirstPaymentNok: firstPayment,
             Affordable: (FinanceManager?.Balance ?? 0m) >= firstPayment,
-            RefusalKey: refusal);
+            RefusalKey: refusal.Length > 0 ? refusal : (FinanceManager?.Balance ?? 0m) >= firstPayment ? "" : OffshoreReasons.InsufficientFunds);
     }
 
     /// <summary>

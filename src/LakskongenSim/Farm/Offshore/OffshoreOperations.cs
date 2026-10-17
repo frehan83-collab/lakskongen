@@ -237,11 +237,17 @@ namespace LakskongenSim.Farm.Offshore
     /// <param name="NetKnownPct">Net integrity as last known (%).</param>
     /// <param name="NetKnownAsOfDay">The day it was last known.</param>
     /// <param name="EquityShare">The company's share (1, or 0.35 in a consortium).</param>
+    /// <param name="ShakedownDays">The shakedown chosen (0, 60, 90 or 120 days; -1 while none is chosen).</param>
+    /// <param name="FixCostNok">The price of one teething fix (NOK, the company's share).</param>
+    /// <param name="BuyOutPriceNok">The partner's buy-out price (NOK; 0 when the unit is the company's alone).</param>
+    /// <param name="SensorPrices">Each package's install and service price (NOK, the company's share).</param>
     public sealed record OffshoreUnitStateView(string SiteId, bool Operational, double HsTodayM, double AppetiteToday,
         double SiloTonnes, double SiloCapacityTonnes, double SiloDays, int SiloEmptyDays, double SilageTonnes,
         double SilageCapacityTonnes, int CrewDaysSinceChange, int CrewChangeIntervalDays, int CrewOverdueDays,
         double AlarmLoad, IReadOnlyList<(string Driver, double Value)> AlarmDrivers,
         IReadOnlyList<(string Row, int Day, double Probability)> NextWindows, IReadOnlyList<OffshoreBooking> Bookings,
         int ShakedownEndDay, IReadOnlyList<TeethingDefect> Defects, int HiddenDefects, IReadOnlyList<SensorPackage> Sensors,
-        double StructureKnown, int StructureKnownAsOfDay, double NetKnownPct, int NetKnownAsOfDay, double EquityShare);
+        double StructureKnown, int StructureKnownAsOfDay, double NetKnownPct, int NetKnownAsOfDay, double EquityShare,
+        int ShakedownDays, decimal FixCostNok, decimal BuyOutPriceNok,
+        IReadOnlyList<(SensorPackageKind Kind, decimal InstallNok, decimal ServiceNok)> SensorPrices);
 }
