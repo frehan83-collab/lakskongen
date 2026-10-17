@@ -26,38 +26,50 @@
         0.9344
       ]
     },
+    "salmon_LOD2": {
+      "path": "godot/assets/models/fish/salmon_LOD2.glb",
+      "sha256": "5c427d683a93921bea7a16c98df76efa3eecb993ecdf71520cfb3684b4353399",
+      "size": 2592,
+      "tri_count": 42,
+      "material_count": 1,
+      "bbox_size": [
+        0.1144,
+        0.228,
+        0.9344
+      ]
+    },
     "pen_cage_LOD0": {
       "path": "godot/assets/models/pen_cage/pen_cage_LOD0.glb",
-      "sha256": "72d040cfd1d689d948df5d17bbbe84eeb9e7ce49d34ff324fb6f1bd4fe5756ea",
-      "size": 1675808,
-      "tri_count": 51768,
-      "material_count": 8,
+      "sha256": "48a4c890df2da9563c089f5e3063e707135c720b01db674ef81ac303f1dd2ec8",
+      "size": 1776716,
+      "tri_count": 54772,
+      "material_count": 12,
       "bbox_size": [
-        67.0048,
+        57.0362,
         46.0,
         54.0696
       ]
     },
     "pen_cage_LOD1": {
       "path": "godot/assets/models/pen_cage/pen_cage_LOD1.glb",
-      "sha256": "e76e8ee565ba3733a3f7549e0b2877b04ca5d7ef38d186a79e5a587cfab26a92",
-      "size": 490012,
-      "tri_count": 13036,
-      "material_count": 8,
+      "sha256": "9d80fee1c42a503052db037580686d76f4601f07c057e78e148f4b8bb6782ae7",
+      "size": 527948,
+      "tri_count": 13940,
+      "material_count": 12,
       "bbox_size": [
-        66.8237,
+        56.8546,
         46.0,
         53.7074
       ]
     },
     "pen_cage_LOD2": {
       "path": "godot/assets/models/pen_cage/pen_cage_LOD2.glb",
-      "sha256": "eddabb1cb2d3b24ac4d599dda9d2d39657bfc482ac58fa77bc83d4b059cbce5a",
-      "size": 56172,
-      "tri_count": 1962,
-      "material_count": 8,
+      "sha256": "c1f0a9911513fbab5712c6faa1081afa5f697a1e4842fc9b3cbf09a14903f58d",
+      "size": 61792,
+      "tri_count": 1910,
+      "material_count": 12,
       "bbox_size": [
-        66.7848,
+        56.8223,
         45.5,
         53.6296
       ]
@@ -132,6 +144,42 @@
         0.22,
         1.26,
         0.22
+      ]
+    },
+    "hose_float_LOD0": {
+      "path": "godot/assets/models/site_kit/hose_float_LOD0.glb",
+      "sha256": "901c2aec7a8a70603f1ed295129e7c89851e32af758ea28c0c44f7a9e92cf459",
+      "size": 9152,
+      "tri_count": 236,
+      "material_count": 2,
+      "bbox_size": [
+        0.724,
+        0.565,
+        0.7058
+      ]
+    },
+    "hose_float_LOD1": {
+      "path": "godot/assets/models/site_kit/hose_float_LOD1.glb",
+      "sha256": "ab5b1d591de86c54652da60930f85638ef94a8abac50055d41990a0d92ea032d",
+      "size": 4372,
+      "tri_count": 70,
+      "material_count": 2,
+      "bbox_size": [
+        0.6882,
+        0.52,
+        0.7058
+      ]
+    },
+    "hose_float_LOD2": {
+      "path": "godot/assets/models/site_kit/hose_float_LOD2.glb",
+      "sha256": "367303dc2b54d61a688f751bb1e627e227e5522c3a1fe0ae78ed653a076c868d",
+      "size": 4088,
+      "tri_count": 60,
+      "material_count": 2,
+      "bbox_size": [
+        0.724,
+        0.52,
+        0.627
       ]
     },
     "workboat_LOD0": {
