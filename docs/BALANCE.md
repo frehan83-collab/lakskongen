@@ -2446,7 +2446,7 @@ fires, the alarm load, and the unit's own ledger lines at its equity.
 | 4 | the tow | only on `StartTow`; a failed window shelters 5-15 days with the tugs paid, no damage | as required (`OffshoreUnitBuildTests`) |
 | 5 | a 90-day shakedown reveals ≥ 1 defect | ≥ 70 % of seeds | 40 of 40 seeds; a defect fixed before stocking never fires |
 | 6 | consortium | 35 % of every line and capex; buy-out book × 1.2 | as required (`AConsortiumUnit_…`) |
-| 7 | opex/kg HOG ex feed and depreciation against an open pen in the same PO | 1.15-1.45 | median 1.885 (1.58-2.37), held back: RUN_LOG §8 (F2-07) |
+| 7 | no fjord storm wear on a unit; opex/kg HOG ex feed and depreciation against an open pen in the same PO | no fjord wear; 1.15-1.45 | 240 days at off_1, storm days included: every day's net and structure loss is exactly the unit's own wear for its sea; the ratio: median 1.885 (1.58-2.37), held back: RUN_LOG §8 (F2-07) |
 | 8 | a policy-only unit, 2 years, events on | ≥ 18 of 20 seeds without a silo-empty day | 20 of 20; 10-19 resupplies, 97-102 crew changes |
 | 9 | save and twin mid-tow and mid-booking; goldens | identical | identical; 27 of 27 golden traces identical |
 

@@ -140,6 +140,40 @@ public class OffshoreOperationsTests
     }
 
     /// <summary>
+    /// Acceptance 7, first half: no fjord storm wear on an offshore unit. Over
+    /// a winter at off_1 with fish in the unit, every day's loss of net
+    /// integrity and structural integrity is exactly the unit's own wear for
+    /// the sea it stood in (spec §3.3: the nets' daily decay plus its share
+    /// above 3 m, the structure's fatigue by the cube of Hs over its design),
+    /// fjord storm days included: the fjord's storm damage, net decay and
+    /// storm fish loss skip the unit (the F2-02 hook <c>SkipsFjordStormWear</c>).
+    /// </summary>
+    [Fact]
+    public void AFjordStorm_WearsTheUnitOnlyByItsOwnSea()
+    {
+        var engine = OffshoreTestUnits.RichEngine(37);
+        var site = OffshoreTestUnits.Commissioned(engine);
+        OffshoreTestUnits.ClearDriftsplan(engine, site.Id);
+        Assert.True(engine.StockOffshoreFarm(site.Id, 300_000).Ok);
+        var unit = site.Offshore!;
+        var s = Cal.Structure;
+        double design = unit.DesignHsM + unit.DesignHsBonusM;
+        int stormDays = 0;
+        for (int d = 0; d < 240; d++)
+        {
+            double net = site.NetIntegrityPct, structure = unit.StructuralIntegrity;
+            engine.Advance(1);
+            double hs = unit.CurrentWaveHeight;
+            double ownWear = s.NetDecayPctPerDay + s.NetDecayPerMetreOver * Math.Max(0.0, hs - s.NetDecayThresholdHsM);
+            Assert.Equal(Math.Max(0.0, net - ownWear), site.NetIntegrityPct, 9);
+            Assert.Equal(Math.Max(0.0, structure - s.FatigueCoeff * Math.Pow(hs / design, 3.0)), unit.StructuralIntegrity, 12);
+            if (engine.Weather.CurrentState is WeatherState.Storm or WeatherState.Severe) stormDays++;
+        }
+        Assert.True(stormDays > 0, "no fjord storm in the window");
+        Assert.True(engine.SkipsFjordStormWear(site));
+    }
+
+    /// <summary>
     /// The booking verbs refuse before any change (spec §3.4), and the first
     /// green window is the first forecast day at P ≥ 0.8.
     /// </summary>
