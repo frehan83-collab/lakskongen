@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=3 uid="uid://dpx7fmb1qnf3q"]
+[gd_scene load_steps=4 format=3 uid="uid://dpx7fmb1qnf3q"]
 
 [ext_resource type="Script" path="res://scripts/ui/PenManagement.gd" id="1"]
 [ext_resource type="Theme" path="res://theme/lakskongen_chart_theme.tres" id="theme_chart"]
+[ext_resource type="PackedScene" path="res://scenes/ui/FeedPlanCard.tscn" id="2_feedplan"]
 
 [node name="PenManagement" type="Control"]
 theme = ExtResource("theme_chart")
@@ -125,6 +126,90 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "--"
 
+[node name="KpiRow" type="HBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="CountCard" type="PanelContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow"]
+theme_type_variation = &"CardCompact"
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VBox" type="VBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/CountCard"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Title" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/CountCard/VBox"]
+theme_type_variation = &"OverlineMuted"
+layout_mode = 2
+text = "ANTALL FISK"
+
+[node name="DetCount" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/CountCard/VBox"]
+theme_type_variation = &"Heading"
+unique_name_in_owner = true
+layout_mode = 2
+text = "--"
+
+[node name="WeightCard" type="PanelContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow"]
+theme_type_variation = &"CardCompact"
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VBox" type="VBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/WeightCard"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Title" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/WeightCard/VBox"]
+theme_type_variation = &"OverlineMuted"
+layout_mode = 2
+text = "SNITTVEKT"
+
+[node name="DetWeight" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/WeightCard/VBox"]
+theme_type_variation = &"Heading"
+unique_name_in_owner = true
+layout_mode = 2
+text = "--"
+
+[node name="BiomassCard" type="PanelContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow"]
+theme_type_variation = &"CardCompact"
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VBox" type="VBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/BiomassCard"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Title" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/BiomassCard/VBox"]
+theme_type_variation = &"OverlineMuted"
+layout_mode = 2
+text = "BIOMASSE"
+
+[node name="DetBiomass" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/BiomassCard/VBox"]
+theme_type_variation = &"Heading"
+unique_name_in_owner = true
+layout_mode = 2
+text = "--"
+
+[node name="FcrCard" type="PanelContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow"]
+theme_type_variation = &"CardCompact"
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VBox" type="VBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/FcrCard"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Title" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/FcrCard/VBox"]
+theme_type_variation = &"OverlineMuted"
+layout_mode = 2
+text = "FCR (AKTUELL)"
+
+[node name="DetFcr" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/FcrCard/VBox"]
+theme_type_variation = &"Heading"
+unique_name_in_owner = true
+layout_mode = 2
+text = "--"
+
 [node name="DetailActions" type="HFlowContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot"]
 unique_name_in_owner = true
 layout_mode = 2
@@ -155,6 +240,13 @@ theme_type_variation = &"SmallSuccessButton"
 unique_name_in_owner = true
 layout_mode = 2
 text = "📦 Høst"
+
+[node name="BtnHarvestReport" type="Button" parent="Margin/MainSplit/DetailScroll/DetailRoot/DetailActions"]
+theme_type_variation = &"SmallGhostButton"
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+text = "Siste slakterapport"
 
 [node name="BtnRepair" type="Button" parent="Margin/MainSplit/DetailScroll/DetailRoot/DetailActions"]
 theme_type_variation = &"SmallPrimaryButton"
@@ -256,89 +348,9 @@ layout_mode = 2
 autowrap_mode = 3
 text = "--"
 
-[node name="KpiRow" type="HBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot"]
-layout_mode = 2
-theme_override_constants/separation = 12
-
-[node name="CountCard" type="PanelContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow"]
-theme_type_variation = &"CardCompact"
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="VBox" type="VBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/CountCard"]
-layout_mode = 2
-theme_override_constants/separation = 4
-
-[node name="Title" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/CountCard/VBox"]
-theme_type_variation = &"OverlineMuted"
-layout_mode = 2
-text = "ANTALL FISK"
-
-[node name="DetCount" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/CountCard/VBox"]
-theme_type_variation = &"Heading"
+[node name="FeedPlanCard" parent="Margin/MainSplit/DetailScroll/DetailRoot" instance=ExtResource("2_feedplan")]
 unique_name_in_owner = true
 layout_mode = 2
-text = "--"
-
-[node name="WeightCard" type="PanelContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow"]
-theme_type_variation = &"CardCompact"
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="VBox" type="VBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/WeightCard"]
-layout_mode = 2
-theme_override_constants/separation = 4
-
-[node name="Title" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/WeightCard/VBox"]
-theme_type_variation = &"OverlineMuted"
-layout_mode = 2
-text = "SNITTVEKT"
-
-[node name="DetWeight" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/WeightCard/VBox"]
-theme_type_variation = &"Heading"
-unique_name_in_owner = true
-layout_mode = 2
-text = "--"
-
-[node name="BiomassCard" type="PanelContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow"]
-theme_type_variation = &"CardCompact"
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="VBox" type="VBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/BiomassCard"]
-layout_mode = 2
-theme_override_constants/separation = 4
-
-[node name="Title" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/BiomassCard/VBox"]
-theme_type_variation = &"OverlineMuted"
-layout_mode = 2
-text = "BIOMASSE"
-
-[node name="DetBiomass" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/BiomassCard/VBox"]
-theme_type_variation = &"Heading"
-unique_name_in_owner = true
-layout_mode = 2
-text = "--"
-
-[node name="FcrCard" type="PanelContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow"]
-theme_type_variation = &"CardCompact"
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="VBox" type="VBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/FcrCard"]
-layout_mode = 2
-theme_override_constants/separation = 4
-
-[node name="Title" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/FcrCard/VBox"]
-theme_type_variation = &"OverlineMuted"
-layout_mode = 2
-text = "FCR (AKTUELL)"
-
-[node name="DetFcr" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/FcrCard/VBox"]
-theme_type_variation = &"Heading"
-unique_name_in_owner = true
-layout_mode = 2
-text = "--"
 
 [node name="BottomRow" type="HBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot"]
 layout_mode = 2

@@ -24,6 +24,9 @@ extends Node
 
 ## The channel an event was routed to ("modal" | "toast" | "log").
 signal event_routed(event: Dictionary, channel: String)
+## A harvest's one payoff was announced (U2-05): its holding and the key of
+## its report (the order id, or the batch's report id).
+signal harvest_announced(holding_id: String, report_key: String)
 
 const CHANNEL_MODAL := "modal"
 const CHANNEL_TOAST := "toast"
@@ -147,20 +150,40 @@ func _on_achievement_unlocked(id: String, achievement_name: String, _description
 func _on_pen_action_completed(action: String, pen_id: String, success: bool) -> void:
 	if not success or action != "harvest":
 		return
-	if _is_duplicate("harvest:%s" % pen_id):
+	_harvest_payoff(pen_id)
+
+
+## A harvest's payoff (U2-05): exactly one toast per harvest, with its net
+## and a click to its report, and the harvest stinger. A planned order is one
+## harvest however many slaughter days it takes (its last batch announces
+## it); the same harvest heard through a second signal is not announced again.
+func _harvest_payoff(holding_id: String) -> void:
+	var key := HarvestReport.latest_key_for(_sim, holding_id)
+	if _is_duplicate("harvest:%s" % (key if not key.is_empty() else holding_id)):
 		return
-	_toast("🐟 " + tr("UI_TOAST_HARVEST_OK") % _site(pen_id), "SUCCESS", 5.0)
+	var text := tr("UI_TOAST_HARVEST_OK") % _site(holding_id)
+	if not key.is_empty():
+		var batches: Array = _sim.get_harvest_reports().filter(func(r: Dictionary) -> bool:
+			return str(r.get("order_id", "")) == key or str(r.get("id", "")) == key)
+		var sum := HarvestReport.sum_batches(batches)
+		text = tr("UI_TOAST_HARVEST_DONE") % [_site(holding_id), SimFormatters.format_biomass(float(sum.get("hog_kg", 0.0))),
+			SimFormatters.format_nok(float(sum.get("net_nok", 0.0)))]
+	_toast(text, "SUCCESS", 7.0, _open_harvest_report.bind(key) if not key.is_empty() else Callable())
 	_audio_call("play_harvest_stinger")
+	harvest_announced.emit(holding_id, key)
+
+
+func _open_harvest_report(key: String) -> void:
+	var sheet := HarvestScreens.report(get_tree())
+	if sheet != null:
+		sheet.show_harvest(key)
 
 func _on_farm_action_completed(action: String, site_id: String, success: bool) -> void:
 	if not success:
 		return
 	match action:
 		"harvest":
-			if _is_duplicate("harvest:%s" % site_id):
-				return
-			_toast("🐟 " + tr("UI_TOAST_HARVEST_OK") % _site(site_id), "SUCCESS", 5.0)
-			_audio_call("play_harvest_stinger")
+			_harvest_payoff(site_id)
 		"mitigation", "countermeasure":
 			if _is_duplicate("mitigation:%s" % site_id):
 				return

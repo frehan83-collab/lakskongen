@@ -189,9 +189,9 @@ func _on_quick_action(action: String) -> void:
 	_pop_button(action)
 	match action:
 		"feeding":
-			# Feeding is automatic; recipe and AI feeding live in their panel.
-			# (The old "Fôr alle" only toasted "feeding all pens" — a dead verb.)
-			_route_to_tab("ai_feeding")
+			# U2-04: the feeding plan (ration, recipe, "Fôr alle") lives on
+			# the Pens tab, one card per site.
+			_route_to_tab("pens")
 		"harvest":
 			_toast(tr("UI_TOAST_HARVEST_START"), "INFO")
 			_route_to_tab("pens")
@@ -286,7 +286,7 @@ func _apply_localization() -> void:
 	_fin_title.text = "💰 " + tr("UI_DASHBOARD_FINANCE_TITLE")
 	_alerts_title.text = "⚠️ " + tr("UI_DASHBOARD_ALERTS_TITLE")
 	_actions_title.text = "⚡ " + tr("UI_DASHBOARD_ACTIONS_TITLE")
-	_btn_feeding.text = "🤖 " + tr("UI_DASHBOARD_ACTION_FEEDING")
+	_btn_feeding.text = tr("UI_DASHBOARD_ACTION_FEEDING")
 	_btn_feeding.tooltip_text = tr("UI_DASHBOARD_ACTION_FEEDING_TIP")
 	_btn_harvest.text = "📦 " + tr("UI_DASHBOARD_ACTION_HARVEST")
 	_btn_delouse.text = "🧪 " + tr("UI_DASHBOARD_ACTION_DELOUSE")
@@ -562,7 +562,8 @@ func _refresh_pens() -> void:
 	if not _sim:
 		return
 
-	show_sites(_sim.get_all_pens() if _sim.has_method("get_all_pens") else [])
+	# The refresh's own snapshot of the sites (no second bridge call a day).
+	show_sites(_sim.sea_sites if "sea_sites" in _sim else [])
 
 
 ## One card per site in `sites` (GameBridge site dictionaries), in order;
@@ -712,7 +713,8 @@ func _refresh_weather() -> void:
 	_weather_visibility.text = tr("UI_DASHBOARD_NETS_VALUE") % SimFormatters.percent(float(_sim.min_net_integrity) / 100.0)
 	_weather_humidity.text = tr("UI_DASHBOARD_LICE_VALUE") % SimFormatters.num(float(_sim.sea_lice_per_fish), 2)
 
-## Alert rows built (tests: an unchanged list is not rebuilt, U2-07).
+## Times the alert list changed and its rows were updated (tests: an
+## unchanged list is not touched, U2-07).
 var alert_rebuilds: int = 0
 
 func _refresh_alerts() -> void:
@@ -720,59 +722,14 @@ func _refresh_alerts() -> void:
 		return
 
 	var alerts: Array[Dictionary] = _collect_alert_rows()
-	# Diff, not rebuild: the same rows (text, level, time, count) keep their
-	# nodes; at 30× the list used to be freed and rebuilt every other frame.
+	# Diff, not rebuild: an unchanged list is left alone, a changed one
+	# keeps its row nodes (at 30× the list was rebuilt every other frame).
 	if alert_rebuilds > 0 and alerts == _alert_rows:
 		return
 	alert_rebuilds += 1
 	_alert_rows = alerts
-
-	# Clear existing alerts
-	for child in _alerts_container.get_children():
-		child.queue_free()
-
-	if alerts.is_empty():
-		UIPolish.show_empty_state_localized(_alerts_container, tr("UI_DASHBOARD_ALERTS_EMPTY"), 13, "", _theme)
-		return
-
-	for alert in alerts:
-		var hbox := HBoxContainer.new()
-		hbox.add_theme_constant_override("separation", 12)
-		_alerts_container.add_child(hbox)
-
-		var dot := ColorRect.new()
-		dot.custom_minimum_size = Vector2(8, 8)
-		match alert.level:
-			"warning": dot.color = Color("#8A5A00")
-			"danger", "critical": dot.color = Color("#B3172F")
-			"info": dot.color = Color("#1F5E73")
-			_: dot.color = Color("#5A6168")
-		hbox.add_child(dot)
-
-		var text_vbox := VBoxContainer.new()
-		text_vbox.add_theme_constant_override("separation", 2)
-		text_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		hbox.add_child(text_vbox)
-
-		var text_lbl := Label.new()
-		text_lbl.text = alert.text
-		LakskongenTheme.set_size(text_lbl, 13)
-		LakskongenTheme.set_tone(text_lbl, &"")
-		text_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		text_vbox.add_child(text_lbl)
-
-		var time_lbl := Label.new()
-		time_lbl.text = alert.time
-		if int(alert.count) > 1:
-			time_lbl.text += " · " + tr("UI_DASHBOARD_ALERT_REPEATS") % int(alert.count)
-		LakskongenTheme.set_size(time_lbl, 11)
-		LakskongenTheme.set_tone(time_lbl, &"Muted")
-		text_vbox.add_child(time_lbl)
-		hbox.set_meta("alert_category", alert.category)
-		hbox.set_meta("alert_site", alert.site)
-
-	# UIPolish: vertical keyboard navigation for alerts list
-	UIPolish.link_vertical_focus(_alerts_container)
+	# The rows keep their nodes; only changed labels are set (AlertRowList).
+	AlertRowList.sync(_alerts_container, alerts, tr("UI_DASHBOARD_ALERTS_EMPTY"), _theme)
 
 ## The alert rows: live alerts first (newest event alerts, then conditions),
 ## then recent sim events, newest first. One row per (category, site)

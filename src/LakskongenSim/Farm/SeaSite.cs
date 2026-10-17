@@ -109,6 +109,13 @@ namespace LakskongenSim.Farm
         /// "auto" (0 + 8% feed spill + slower escape response).</summary>
         public string WatchMode { get; set; } = "watch";
 
+        /// <summary>
+        /// The site's feeding plan (U2-04): ration, recipe and window, set by
+        /// <c>SimulationEngine.SetFeedPlan</c>. Null feeds the standard recipe to
+        /// full appetite (every site before U2-04; saves before v9 load so).
+        /// </summary>
+        public SiteFeedPlan? FeedPlan { get; set; }
+
         /// <summary>Gill health 0-100 (Phase 4.3). Blooms damage, recovery heals.
         /// Throttles appetite, inflates FCR, worsens treatment mortality.</summary>
         public double GillScore { get; set; } = 100.0;

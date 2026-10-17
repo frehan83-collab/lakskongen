@@ -70,6 +70,9 @@ namespace LakskongenSim.Market
         private readonly SimRngStream _rng;
         internal SimRngStream RngForSnapshot => _rng;
         private int _currentWeek = 0;
+
+        /// <summary>The contract week (advanced by the weekly expiry tick); a contract runs until <see cref="Contract.IsExpired"/> at it.</summary>
+        public int CurrentWeek => _currentWeek;
         // Sequential contract ids (deterministic and persisted; was Guid.NewGuid()).
         private int _nextContractNumber = 1;
         // Offers on the table for one game day (see SimulationEngine.GetContractOffers).

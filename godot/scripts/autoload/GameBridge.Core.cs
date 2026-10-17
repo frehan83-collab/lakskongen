@@ -245,8 +245,10 @@ public partial class GameBridge : Node
         RestoreMitigationsFromState(snapshot.BloomMitigations);
         SyncMitigationsToState();
 
-        // Phase 4.4: re-apply saved recipe to the fresh FeedSystem.
-        ApplyFeedRecipe();
+        // U2-04: the feed price is the engine's calibrated one after a load as
+        // in a new game (the Phase 4.4 recipe used to replace it here, so a
+        // loaded game paid 14.97 NOK/kg against a new game's 22.3); each site's
+        // recipe is part of its feeding plan, saved with the site.
         ResetSessionState();
 
         _gameRunning = true;
@@ -273,8 +275,7 @@ public partial class GameBridge : Node
         {
             SimulationEngine.Advance(days);
             ProjectDayNotes();
-            EmitSignal(SignalName.SimulationTicked, SimulationEngine.State.Day);
-            EmitSignal(SignalName.GameStateUpdated);
+            AnnounceDay();
             CheckGameOverConditions();
         }
         catch (Exception ex)
@@ -360,18 +361,19 @@ public partial class GameBridge : Node
                     EmitSignal(SignalName.FarmActionCompleted, "delousing", note.SiteId, note.Success);
                     break;
                 case "wellboat_harvest":
+                    // U2-05: the harvest's stinger plays once, with its one
+                    // toast (ConsequenceDirector), not here as well.
                     EmitSignal(SignalName.FarmActionCompleted, "wellboat", note.SiteId, note.Success);
                     EmitSignal(SignalName.FarmActionCompleted, "harvest", note.SiteId, note.Success);
-                    engine.Audio?.TriggerAlert("harvest");
                     break;
                 case "harvest_batch":
                     // S2-04: a planned harvest slaughtered a batch (cash moved).
                     EmitSignal(SignalName.GameStateUpdated);
                     break;
                 case "harvest_completed":
-                    // S2-04: the order's last batch: one harvest toast per harvest.
+                    // S2-04: the order's last batch: one harvest toast per harvest
+                    // (U2-05: the toast carries the stinger and the report).
                     EmitSignal(SignalName.FarmActionCompleted, "harvest", note.SiteId, note.Success);
-                    if (note.Success) engine.Audio?.TriggerAlert("harvest");
                     EmitSignal(SignalName.GameStateUpdated);
                     break;
                 case "wellboat_rov":
@@ -914,8 +916,7 @@ public partial class GameBridge : Node
             SimulationEngine.Advance(1);
             LastTickEngineMs = System.Diagnostics.Stopwatch.GetElapsedTime(tickStart).TotalMilliseconds;
             ProjectDayNotes();
-            EmitSignal(SignalName.SimulationTicked, SimulationEngine.State.Day);
-            EmitSignal(SignalName.GameStateUpdated);
+            AnnounceDay();
 
             // Fire audio alert signal if a new alert was queued this tick, then clear it
             var alertKey = SimulationEngine.Audio?.ActiveAlert ?? "";

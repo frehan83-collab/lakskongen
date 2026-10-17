@@ -146,6 +146,10 @@ var wellboat_jobs: Array[Dictionary]:
 var active_blooms: Array[Dictionary]:
 	get(): return _state.active_blooms
 	set(v): _state.active_blooms = v
+## The player's sea sites and their pens as of the last refresh (read-only;
+## get_all_pens() asks the bridge afresh).
+var sea_sites: Array[Dictionary]:
+	get(): return _state.sea_sites
 var sustainability_score: int:
 	get(): return _state.sustainability_score
 	set(v): _state.sustainability_score = v
@@ -387,7 +391,8 @@ func get_pacing_deadlines() -> Array[Dictionary]: return _actions.get_pacing_dea
 func skip_tutorial() -> void: _actions.skip_tutorial()
 func get_game_state_json() -> String: return _actions.get_game_state_json()
 func place_pen(zone_id: String, pen_name: String = "New Pen") -> bool: return _actions.place_pen(zone_id, pen_name)
-func feed_pen(pen_id: String, amount_kg: float) -> bool: return _actions.feed_pen(pen_id, amount_kg)
+func set_feed_plan(site_id: String, ration_pct: float, recipe: String, window_days: int) -> Dictionary: return _actions.set_feed_plan(site_id, ration_pct, recipe, window_days)
+func set_feed_plan_all(ration_pct: float, recipe: String, window_days: int) -> Dictionary: return _actions.set_feed_plan_all(ration_pct, recipe, window_days)
 func harvest_pen(pen_id: String) -> float: return _actions.harvest_pen(pen_id)
 func delouse_pen(pen_id: String, method: String = "mechanical") -> bool: return _actions.delouse_pen(pen_id, method)
 func repair_nets(site_id: String) -> bool: return _actions.repair_nets(site_id)
@@ -403,7 +408,10 @@ func get_attention_budget() -> Dictionary: return _proxies.get_attention_budget(
 func get_active_blooms() -> Array[Dictionary]: return _proxies.get_active_blooms()
 func get_bloom_mitigations() -> Array[Dictionary]: return _proxies.get_bloom_mitigations()
 func install_bloom_mitigation(site_id: String, kind: String) -> bool: return _proxies.install_bloom_mitigation(site_id, kind)
-func get_feed_recipe() -> Dictionary: return _proxies.get_feed_recipe()
+func get_feed_plan(site_id: String) -> Dictionary: return _proxies.get_feed_plan(site_id)
+func get_feed_plans() -> Array: return _proxies.get_feed_plans()
+func get_feed_plan_options() -> Dictionary: return _proxies.get_feed_plan_options()
+func preview_feed_plan(site_id: String, ration_pct: float, recipe: String, days: int = 0) -> Dictionary: return _proxies.preview_feed_plan(site_id, ration_pct, recipe, days)
 func get_forecast() -> Dictionary: return _proxies.get_forecast()
 func get_night_shift_status() -> Dictionary: return _proxies.get_night_shift_status()
 func set_night_shift_policy(policy: String) -> bool: return _actions.set_night_shift_policy(policy)
@@ -416,7 +424,6 @@ func get_game_event_catalog() -> Array[Dictionary]: return _proxies.get_game_eve
 func publish_condition_event(type_id: String, severity: String, site_id: String, message: String, variant: String = "", deadline_day: int = -1) -> Dictionary: return _proxies.publish_condition_event(type_id, severity, site_id, message, variant, deadline_day)
 func game_events_suppressed() -> int: return _proxies.game_events_suppressed()
 func open_attention_inbox() -> void: _proxies.open_attention_inbox()
-func set_feed_recipe(protein: float, replace: float, astax: float) -> void: return _actions.set_feed_recipe(protein, replace, astax)
 func deploy_countermeasure(site_id: String, kind: String) -> bool: return _actions.deploy_countermeasure(site_id, kind)
 func vaccinate_site(site_id: String) -> bool: return _actions.vaccinate_site(site_id)
 func set_watch_mode(site_id: String, mode: String) -> bool: return _actions.set_watch_mode(site_id, mode)
@@ -532,6 +539,10 @@ func order_harvest(holding_id: String, pen_ids: Array[String] = [], fraction: fl
 func cancel_harvest_order(order_id: String) -> Dictionary: return _proxies.cancel_harvest_order(order_id)
 func get_harvest_orders() -> Array[Dictionary]: return _proxies.get_harvest_orders()
 func get_harvest_reports() -> Array[Dictionary]: return _proxies.get_harvest_reports()
+func project_harvest(holding_id: String, pen_ids: Array[String] = [], fraction: float = 1.0, wait_days: int = 0) -> Dictionary: return _proxies.project_harvest(holding_id, pen_ids, fraction, wait_days)
+func get_harvest_planner_options() -> Dictionary: return _proxies.get_harvest_planner_options()
+func harvest_express(holding_id: String, pen_ids: Array[String] = [], fraction: float = 1.0) -> Dictionary: return _proxies.harvest_express(holding_id, pen_ids, fraction)
+func get_ledger_totals() -> Dictionary: return _proxies.get_ledger_totals()
 func get_offshore_farms() -> Array[Dictionary]: return _proxies.get_offshore_farms()
 func build_offshore_farm(offname: String, farm_type: String) -> bool: return _proxies.build_offshore_farm(offname, farm_type)
 func repair_offshore(farm_id: String) -> float: return _proxies.repair_offshore(farm_id)

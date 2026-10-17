@@ -312,8 +312,9 @@ public partial class SimulationEngine
         if (State.OwnsProcessingPlant)
         {
             // VAP fillet line (Phase 3.5): +12% when a plant is owned; a pale
-            // grade-C recipe halves the premium to +6% (Phase 4.4).
-            string recipeGrade = FeedRecipe.Grade(State.RecipeProteinPct, State.RecipeAstaxPpm);
+            // grade-C recipe halves the premium to +6% (Phase 4.4). A site on a
+            // feeding plan (U2-04) is graded by its plan's recipe.
+            string recipeGrade = FilletGradeOf(holding.Site);
             vap = FeedRecipe.VapMult(recipeGrade);
             gross *= vap;
             if (recipeGrade == "C")

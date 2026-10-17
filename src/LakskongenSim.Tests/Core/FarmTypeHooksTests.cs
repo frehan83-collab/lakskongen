@@ -194,8 +194,11 @@ public class FarmTypeHooksTests
     public void FeedAvailableFor_IsTrue_ForEveryHolding()
     {
         Assert.All(Engine.State.Populations, p => Assert.True(Engine.FeedAvailableFor(p), Engine.HoldingOf(p).Kind.ToString()));
-        // The husbandry record's default is the same: a holding with feed.
-        Assert.True(new SimulationEngine.HoldingHusbandry(default, 1.0, 1.0, 1.0, 20.0, 0.9).FeedAvailable);
+        // The husbandry record's default is the same: a holding with feed
+        // (U2-04's recipe is a required argument since the wave-3 integration;
+        // the standard feed changes nothing).
+        Assert.True(new SimulationEngine.HoldingHusbandry(default, 1.0, 1.0, 1.0, 20.0, 0.9,
+            FeedRecipeEffect.Standard(new FeedPlanCalibration())).FeedAvailable);
     }
 
     /// <summary>Pre-move (Biology feeding): the appetite was the oxygen × gill factor alone.</summary>

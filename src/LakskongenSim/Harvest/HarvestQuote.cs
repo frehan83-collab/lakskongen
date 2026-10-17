@@ -4,8 +4,8 @@ namespace LakskongenSim.Harvest
 {
     /// <summary>
     /// What a harvest would bring if ordered now (S2-04): the fish, their
-    /// gutted kilos by size class and grade, the gross sale at today's
-    /// reference price, the harvest cost and the schedule (fasting, the
+    /// gutted kilos by size class and grade, the gross sale today (contracts,
+    /// spot at today's reference price, the processing plant's premium), the harvest cost and the schedule (fasting, the
     /// wellboat slot, the slaughter days). Read-only: quoting moves nothing and
     /// draws no random numbers. The harvest planner (U2-05) shows it.
     /// </summary>
@@ -65,7 +65,25 @@ namespace LakskongenSim.Harvest
         /// <summary>Today's reference price (superior HOG 4-5 kg, NOK/kg).</summary>
         public decimal ReferencePriceNok { get; init; }
 
-        /// <summary>Gross sale at today's reference price, all at spot (NOK).</summary>
+        /// <summary>Gutted kilos the running contracts take (oldest first, at their prices).</summary>
+        public double ContractHogKg { get; init; }
+
+        /// <summary>Sales on contracts (NOK, before the processing plant's premium).</summary>
+        public decimal ContractRevenueNok { get; init; }
+
+        /// <summary>Gutted kilos sold at today's spot.</summary>
+        public double SpotHogKg { get; init; }
+
+        /// <summary>Sales at today's spot (NOK, before the processing plant's premium).</summary>
+        public decimal SpotRevenueNok { get; init; }
+
+        /// <summary>The processing plant's value-added premium (1 without a plant).</summary>
+        public decimal VapMultiplier { get; init; } = 1m;
+
+        /// <summary>
+        /// Gross sale today (NOK): contracts first, the rest at today's spot,
+        /// times the processing plant's premium; what a sale today books (U2-05).
+        /// </summary>
         public decimal GrossRevenueNok { get; init; }
 
         /// <summary>Transport cost (NOK).</summary>

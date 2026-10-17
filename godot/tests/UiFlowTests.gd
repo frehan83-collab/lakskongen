@@ -142,7 +142,13 @@ func _run() -> void:
 	await _test_critical_card_holds_the_clock()
 	await _test_new_game_opens_paused_on_its_briefing()
 	await _test_thirty_times_refreshes_once_a_day_within_a_frame()
+	await _test_audio_reads_tracks_off_the_tick()
 	await _test_hud_fits_its_bar()
+	# U2-04: the feeding plan.
+	await _test_feed_plan_card_sets_a_plan_and_feeds_all()
+	# U2-05: the harvest planner, the planned order, the report, the payoff.
+	await _test_harvest_planner_orders_and_reports()
+	await _test_harvest_pen_announces_once()
 	_test_farm_type_graybox()
 	_test_land_kit_imports()
 	_test_offshore_unit_and_fleet()
@@ -5965,6 +5971,15 @@ func _test_thirty_times_refreshes_once_a_day_within_a_frame() -> void:
 	var refreshes0: int = dash.refresh_count
 	var rebuilds0: int = dash.alert_rebuilds
 	var day0: int = _sim.current_day
+	# Wave 3 ui-a: one snapshot a day (the tick's GameStateUpdated no longer
+	# refreshes it a second time), and the 3D sites touch only what changed.
+	var snapshots := [0]
+	var count_snapshot := func() -> void: snapshots[0] += 1
+	_sim.state_updated.connect(count_snapshot)
+	var body_writes0: int = FishSchool.body_writes
+	var pen_count := 0
+	for site in _sim.get_all_pens():
+		pen_count += int(site.get("pen_count", 0))
 	var ui_ms: Array[float] = []
 	var engine_ms: Array[float] = []
 	var ticks0: int = bridge.TickCount
@@ -5989,10 +6004,15 @@ func _test_thirty_times_refreshes_once_a_day_within_a_frame() -> void:
 			_sim.set_time_speed(30.0)
 	_sim.set_paused(true)
 	await get_tree().process_frame
+	_sim.state_updated.disconnect(count_snapshot)
 	var days: int = int(_sim.current_day) - day0
 	var refreshes: int = dash.refresh_count - refreshes0
 	var rebuilds: int = dash.alert_rebuilds - rebuilds0
+	var body_writes: int = FishSchool.body_writes - body_writes0
 	_check(days >= 20, "30×: the clock ran %d days in 2.5 s" % days)
+	_check(snapshots[0] <= days + 2, "30×: the sim snapshot refreshed %d times for %d days (once a day, not twice)" % [snapshots[0], days])
+	_check(pen_count >= 10 and body_writes * 3 <= pen_count * days,
+		"30×: the schools' uniforms were rewritten %d times over %d pen-days (only visible changes)" % [body_writes, pen_count * days])
 	_check(refreshes <= days + 1, "30×: the dashboard refreshed %d times for %d days (at most once a day)" % [refreshes, days])
 	_check(rebuilds < refreshes, "30×: alert rows were rebuilt %d times in %d refreshes (only on change)" % [rebuilds, refreshes])
 	ui_ms.sort()
@@ -6008,6 +6028,477 @@ func _test_thirty_times_refreshes_once_a_day_within_a_frame() -> void:
 	GameplayPrefs.force_auto_pause(null)
 	scene.queue_free()
 	await get_tree().process_frame
+
+## U2-04: the Fôringsplan card on the Pens tab, driven by clicks. A site
+## starts on the standard plan; the "Begrenset" stop moves the slider to the
+## best-conversion ration and the projection shows less growth, a better FCR
+## and a lower feed cost a day than full appetite; "Bruk" sets the site's plan
+## (every pen's ration, the recipe, the window) and leaves the other site
+## alone; "Fôr alle" gives every site the plan (acceptance 3); the plan comes
+## back with a saved game (acceptance 4) and "Tilbake til standard" clears it.
+func _test_feed_plan_card_sets_a_plan_and_feeds_all() -> void:
+	var scene := await _spawn_po3_scene(91)
+	await _drain_cards(scene.get_node("%CriticalEventCard"))
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	var panel := await _open_panel(ui, "pens")
+	var sites: Array = _sim.get_all_pens()
+	var site_id := str(sites[0].get("id", "")) if sites.size() > 1 else ""
+	var other_id := str(sites[1].get("id", "")) if sites.size() > 1 else ""
+	panel.select_pen(site_id)
+	await get_tree().process_frame
+	var card: FeedPlanCard = panel.get_node("%FeedPlanCard")
+	var scroll: ScrollContainer = panel.get_node("%DetailScroll")
+	scroll.ensure_control_visible(card._btn_apply)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_check(card.is_visible_in_tree() and card._status.text == tr("FEEDPLAN_STATUS_STANDARD")
+			and is_equal_approx(card._ration_slider.value, 100.0) and card._btn_apply.disabled and card._btn_reset.disabled,
+		"feed plan: a site starts on the standard plan, nothing to apply or reset (%s, %.0f %%)" % [card._status.text, card._ration_slider.value])
+	_check(card._recipe_option.item_count == 3 and card._window_option.item_count == card.WINDOWS.size()
+			and card._recipe_option.get_item_text(0).contains("NOK/kg"),
+		"feed plan: three feed types with their price and %d windows to choose from (%s)" % [card.WINDOWS.size(), card._recipe_option.get_item_text(0)])
+
+	await _click_control(card._stop_buttons[0])
+	var plan: Dictionary = card.last_preview.get("plan", {})
+	var base: Dictionary = card.last_preview.get("baseline", {})
+	_check(is_equal_approx(card._ration_slider.value, 70.0) and card._stop_buttons[0].button_pressed
+			and not card._stop_buttons[2].button_pressed and card._ration_value.text.begins_with("70"),
+		"feed plan: the Begrenset stop sets 70 %% of appetite (%s)" % card._ration_value.text)
+	_check(bool(plan.get("ok", false)) and float(plan.get("growth_kg_per_day", 0.0)) < float(base.get("growth_kg_per_day", 0.0))
+			and float(plan.get("fcr", 9.0)) < float(base.get("fcr", 0.0))
+			and float(plan.get("cost_nok_per_day", 9e9)) < float(base.get("cost_nok_per_day", 0.0)),
+		"feed plan: at 70 %% the projection grows less (%.0f vs %.0f kg/day), converts better (%.3f vs %.3f) and costs less a day (%.0f vs %.0f NOK)" % [
+			float(plan.get("growth_kg_per_day", 0.0)), float(base.get("growth_kg_per_day", 0.0)), float(plan.get("fcr", 0.0)),
+			float(base.get("fcr", 0.0)), float(plan.get("cost_nok_per_day", 0.0)), float(base.get("cost_nok_per_day", 0.0))])
+	var growth_change: String = card._rows["growth"][2].text
+	var cost_change: String = card._rows["cost"][2].text
+	_check(growth_change.begins_with("−") and cost_change.begins_with("−") and not card._btn_apply.disabled,
+		"feed plan: the card shows the change against full appetite (growth %s, cost %s) and offers to apply it" % [growth_change, cost_change])
+
+	card._recipe_option.select(1)
+	card._recipe_option.item_selected.emit(1)
+	card._window_option.select(2)
+	card._window_option.item_selected.emit(2)
+	await get_tree().process_frame
+	await _click_control(card._btn_apply)
+	var set_plan: Dictionary = _sim.get_feed_plan(site_id)
+	var site_pens: Array = _sim.get_site_pens(site_id)
+	var stocked := site_pens.filter(func(p: Dictionary) -> bool: return bool(p.get("occupied", false)))
+	_check(not bool(set_plan.get("standard", true)) and is_equal_approx(float(set_plan.get("ration_pct", 0.0)), 70.0)
+			and str(set_plan.get("recipe", "")) == "high_energy" and int(set_plan.get("days_left", -1)) == 30
+			and not stocked.is_empty() and stocked.all(func(p: Dictionary) -> bool: return is_equal_approx(float(p.get("ration", 0.0)), 0.7)),
+		"feed plan: Bruk sets the site's plan: 70 %%, high energy, 30 days, every stocked pen fed 0.70 (%s)" % str(set_plan))
+	_check(card._status.text == tr("FEEDPLAN_STATUS_DAYS_LEFT") % 30 and bool(_sim.get_feed_plan(other_id).get("standard", false)),
+		"feed plan: the card says %s and the other site keeps the standard plan" % card._status.text)
+	_check(card._btn_apply.disabled and card._btn_apply.tooltip_text == tr("FEEDPLAN_WHY_IN_USE") and not card._btn_reset.disabled,
+		"feed plan: the plan just applied is the one in use (Bruk waits, Tilbake til standard is offered)")
+
+	await _click_control(card._btn_apply_all)
+	var every := true
+	for s in _sim.get_all_pens():
+		var sp: Dictionary = _sim.get_feed_plan(str(s.get("id", "")))
+		every = every and str(sp.get("recipe", "")) == "high_energy" and is_equal_approx(float(sp.get("ration_pct", 0.0)), 70.0)
+		for p in _sim.get_site_pens(str(s.get("id", ""))):
+			if bool(p.get("occupied", false)):
+				every = every and is_equal_approx(float(p.get("ration", 0.0)), 0.7)
+	_check(every and sites.size() >= 2, "feed plan: Fôr alle gives every site (%d) the plan and every stocked pen its ration" % sites.size())
+
+	_check(_sim.save_game("ci_feed_plan"), "feed plan: setup: the game saves")
+	await _click_control(card._btn_reset)
+	_check(bool(_sim.get_feed_plan(site_id).get("standard", false)) and card._status.text == tr("FEEDPLAN_STATUS_STANDARD"),
+		"feed plan: Tilbake til standard clears the site's plan (%s)" % card._status.text)
+	var file := str(_find_save("ci_feed_plan").get("file", ""))
+	_check(_sim.load_game(file), "feed plan: setup: the save loads")
+	_sim.set_paused(true)
+	var loaded: Dictionary = _sim.get_feed_plan(site_id)
+	_check(not bool(loaded.get("standard", true)) and str(loaded.get("recipe", "")) == "high_energy"
+			and is_equal_approx(float(loaded.get("ration_pct", 0.0)), 70.0) and int(loaded.get("days_left", -1)) == 30,
+		"feed plan: the plan comes back with the saved game (%s)" % str(loaded))
+	_sim.delete_save(file)
+	scene.queue_free()
+	await get_tree().process_frame
+
+## U2-05: the harvest planner and the harvest report, driven by real clicks.
+## "Høst" opens the planner and the clock waits; its histogram is the
+## projection's gutted kilos per size class with each class's price, the
+## columns compare ordering now with waiting 2, 4 and 8 weeks, and picking
+## pens re-projects. "Bestill slakting" (the default verb) places the planned
+## order, closes the sheet and sends the harvest carrier out; the order's
+## batches are one harvest: exactly one toast, and its report shows the
+## ledger's own entries. "Ekspress i dag" (the secondary verb) sells today at
+## the planner's figure, with one toast, the report at once, and a spot
+## wellboat that comes out and leaves.
+func _test_harvest_planner_orders_and_reports() -> void:
+	MotionPrefs.force(true)
+	_check(_sim.start_qa_scenario("po3_red_sone", 91), "harvest planner: setup: po3_red_sone starts")
+	_sim.skip_tutorial()
+	_sim.set_paused(true)
+	var site_id := _site_at_weight(4.5)
+	for i in 60:
+		if site_id != "":
+			break
+		_sim.advance_days(7)
+		site_id = _site_at_weight(4.5)
+	_check(site_id != "", "harvest planner: setup: a site reaches 4.5 kg (day %d)" % int(_sim.current_day))
+	var other_id := ""
+	for s in _sim.get_all_pens():
+		if str(s.get("id", "")) != site_id and int(s.get("fish_count", 0)) > 0:
+			other_id = str(s.get("id", ""))
+	var scene: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+	add_child(scene)
+	for i in 5:
+		await get_tree().process_frame
+	_sim.set_paused(true)
+	await _drain_cards(scene.get_node("%CriticalEventCard"))
+	var boats: WellboatVisualManager = scene.get_node("FjordEnvironment/WellboatVisualManager")
+	boats.sail_seconds = 0.2
+	boats.return_delay = 0.1
+	_sim.state_updated.emit()
+	await get_tree().process_frame
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	var panel := await _open_panel(ui, "pens")
+	panel.select_pen(site_id)
+	await get_tree().process_frame
+	(panel.get_node("%DetailScroll") as ScrollContainer).ensure_control_visible(panel._btn_harvest)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_check(not panel._btn_harvest.disabled and panel._btn_harvest.text.ends_with(tr("UI_PEN_HARVEST")),
+		"harvest planner: the site's Høst button is offered (%s)" % panel._btn_harvest.text)
+	await _click_control(panel._btn_harvest)
+	var planner := HarvestScreens.planner(get_tree()) as HarvestPlanner
+	_check(planner != null and planner.is_open() and _sim.is_clock_held(HarvestPlanner.CLOCK_HOLD),
+		"harvest planner: Høst opens the planner and the clock waits")
+	if planner == null or not planner.is_open():
+		scene.queue_free()
+		MotionPrefs.force(null)
+		return
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var planner_body: Control = planner.get_node("%Body")
+	var planner_slack: float = planner._scroll.custom_minimum_size.y - planner_body.get_combined_minimum_size().y
+	_check(planner_slack <= HarvestPlanner.BODY_SLACK_PX + 1.0,
+		"harvest planner: the sheet is as tall as its content, no empty band (%.0f px under it)" % planner_slack)
+
+	# What the sheet shows is the engine's projection.
+	var site_pens: Array = _sim.get_site_pens(site_id).filter(func(p: Dictionary) -> bool: return bool(p.get("occupied", false)))
+	_check(planner.pen_chips().size() == site_pens.size() and planner.pen_chips().all(func(b: Button) -> bool: return b.button_pressed),
+		"harvest planner: one chip per pen with fish, all picked (%d)" % planner.pen_chips().size())
+	_check(planner.projections.size() == 4 and planner.projections.all(func(p: Dictionary) -> bool: return bool(p.get("success", false))),
+		"harvest planner: now and waiting 2, 4 and 8 weeks are projected (%d)" % planner.projections.size())
+	var now: Dictionary = planner.projections[0]
+	var chart := planner.size_chart
+	var shown_kg := 0.0
+	for v in chart.hog_kg:
+		shown_kg += float(v)
+	var top := 0
+	for i in chart.hog_kg.size():
+		if float(chart.hog_kg[i]) > float(chart.hog_kg[top]):
+			top = i
+	var proportional := chart.hog_kg.size() == 8
+	for i in chart.hog_kg.size():
+		proportional = proportional and absf(chart.bar_height(i) / chart.bar_height(top) - float(chart.hog_kg[i]) / float(chart.hog_kg[top])) < 0.02 \
+			or (float(chart.hog_kg[i]) > 0.0 and chart.bar_height(i) == SizeClassChart.MIN_BAR_PX)
+	_check(is_equal_approx(shown_kg, float(now.get("hog_kg", 0.0))) and proportional and chart.labels.size() == 8,
+		"harvest planner: the histogram is the projection's %.0f kg gutted over 8 size classes, bars in proportion" % shown_kg)
+	_check(chart.tone_for(float(chart.factors[2])) == chart.tone_for(0.5) and chart.tone_for(float(chart.factors[4])) == chart.tone_for(1.0),
+		"harvest planner: a 2-3 kg class reads as a discount, the 4-5 kg reference does not")
+	var vb := planner.wait_buttons
+	_check(vb.size() == 4 and vb[0].button_pressed and planner.best_wait() >= 0 and vb[planner.best_wait()].text.contains(tr("HARVESTPLAN_BEST")),
+		"harvest planner: four wait columns, 'Nå' shown, the best net after feed tagged (%s)" % (vb[planner.best_wait()].text.replace("\n", " ") if not vb.is_empty() else ""))
+	_check(int(planner.projections[2].get("order_day", 0)) == int(_sim.current_day) + 28
+			and float(planner.projections[2].get("feed_nok", 0.0)) > float(now.get("feed_nok", 0.0)),
+		"harvest planner: waiting four weeks orders on day %d and eats more feed (%.0f vs %.0f NOK)" % [
+			int(planner.projections[2].get("order_day", 0)), float(planner.projections[2].get("feed_nok", 0.0)), float(now.get("feed_nok", 0.0))])
+	await _click_control(vb[2])
+	_check(planner.shown_wait == 2 and is_equal_approx(_sum(chart.hog_kg), float(planner.projections[2].get("hog_kg", 0.0))),
+		"harvest planner: a click on 'Om 4 uker' shows its fish (%.0f kg gutted)" % _sum(chart.hog_kg))
+	await _click_control(vb[0])
+	var express_net := float(planner.express_quote.get("net_nok", 0.0))
+	_check(planner.order_button.text.contains(SimFormatters.format_day(int(now.get("slot_day", 0)))) and not planner.order_button.disabled
+			and not planner.express_button.disabled and planner.express_button.text.contains(SimFormatters.format_nok(express_net)),
+		"harvest planner: 'Bestill slakting' names the wellboat's day and 'Ekspress i dag' its net (%s | %s)" % [
+			planner.order_button.text, planner.express_button.text])
+	var chips := planner.pen_chips()
+	await _click_control(chips[chips.size() - 1])
+	_check(planner.projections[0].get("fish", 0) < now.get("fish", 0) and planner.pen_chips().size() == chips.size(),
+		"harvest planner: leaving a pen out re-projects (%d fish, was %d)" % [int(planner.projections[0].get("fish", 0)), int(now.get("fish", 0))])
+	await _click_control(planner.pen_chips()[chips.size() - 1])
+
+	# "Bestill slakting": the planned order, the boat sails out.
+	var toast_node := get_node("/root/ToastNotification")
+	var director := get_node("/root/ConsequenceDirector")
+	var toasts: Array[String] = []
+	var announced: Array[String] = []
+	var on_toast := func(message: String, _level: String) -> void: toasts.append(message)
+	var on_harvest := func(_holding: String, key: String) -> void: announced.append(key)
+	toast_node.toast_shown.connect(on_toast)
+	director.harvest_announced.connect(on_harvest)
+	toast_node.clear_all()
+	var ledger0: Dictionary = _sim.get_ledger_totals()
+	var projected: Dictionary = planner.projections[0]
+	await _click_control(planner.order_button)
+	var orders: Array = _sim.get_harvest_orders().filter(func(o: Dictionary) -> bool: return str(o.get("holding_id", "")) == site_id)
+	_check(not planner.is_open() and not _sim.is_clock_held(HarvestPlanner.CLOCK_HOLD) and orders.size() == 1
+			and int(orders[0].get("pens", 0)) == site_pens.size(),
+		"harvest planner: 'Bestill slakting' places the planned order for every pen and gives the clock back (%d orders)" % orders.size())
+	var order_id := str(orders[0].get("id", "")) if not orders.is_empty() else ""
+	var job := WellboatVisualManager.ORDER_PREFIX + order_id
+	_sim.state_updated.emit()
+	await get_tree().create_timer(0.5).timeout
+	_check(boats.job_state(job) == "at_destination" and boats.chip_text_of(job).begins_with(tr("UI_VESSEL_JOB_HARVEST")),
+		"harvest planner: the harvest carrier sailed out and lies alongside (%s, '%s')" % [boats.job_state(job), boats.chip_text_of(job)])
+	panel._refresh()
+	_check(panel._btn_harvest.text.ends_with(tr("HARVESTPLAN_BUTTON_ORDERED")),
+		"harvest planner: the site's button now reads '%s'" % panel._btn_harvest.text)
+
+	boats.return_delay = 3.0 # the carrier lingers at the pen long enough to read its chip
+	for d in 40:
+		if _sim.get_harvest_orders().any(func(o: Dictionary) -> bool: return str(o.get("id", "")) == order_id):
+			_sim.advance_days(1)
+	await get_tree().create_timer(0.8).timeout
+	await _drain_cards(scene.get_node("%CriticalEventCard"))
+	var batches: Array = _sim.get_harvest_reports().filter(func(r: Dictionary) -> bool: return str(r.get("order_id", "")) == order_id)
+	var harvest_toasts := _harvest_toasts(toasts, toast_node)
+	_check(batches.size() >= 1 and announced == [order_id] and harvest_toasts.size() == 1,
+		"harvest planner: %d slaughter day(s), exactly one harvest toast (%s) and one announcement (%s)" % [batches.size(), str(harvest_toasts), str(announced)])
+	_check(boats.job_state(job) == "return" and boats.chip_text_of(job).contains(SimFormatters.format_nok(_sum_key(batches, "net_nok")))
+			and boats.chip_text_of(job).contains(WellboatVisualManager.chip_text("harvest", 0, true)),
+		"harvest planner: the carrier sails home with the harvest's net on its chip ('%s')" % boats.chip_text_of(job))
+	var ledger1: Dictionary = _sim.get_ledger_totals()
+	var revenue := float(ledger1["revenue"].get("harvest", 0.0)) - float(ledger0["revenue"].get("harvest", 0.0))
+	var cost := float(ledger1["cost"].get("harvest", 0.0)) - float(ledger0["cost"].get("harvest", 0.0))
+	var realized_gross := _sum_key(batches, "gross_nok")
+	_check(absf(float(projected.get("gross_nok", 0.0)) / maxf(1.0, realized_gross) - 1.0) <= 0.05,
+		"harvest planner: the projection was within 5 %% of the realized sale (%.0f vs %.0f NOK)" % [float(projected.get("gross_nok", 0.0)), realized_gross])
+	# The toast is the way to the report: a click on its body opens this
+	# harvest's report (a toast still queued behind warnings runs the same
+	# action when it is clicked later; the check names which case ran).
+	var harvest_msg: String = harvest_toasts[0] if harvest_toasts.size() == 1 else ""
+	var toast_box: Control = null
+	for i in 80: # a full stack drains one slide-out at a time
+		toast_box = toast_node._visible_toast_for(harvest_msg) if harvest_msg != "" else null
+		if toast_box != null or harvest_msg == "":
+			break
+		await get_tree().create_timer(0.1).timeout
+	if toast_box != null:
+		await get_tree().create_timer(0.3).timeout # past its slide-in
+		await _click_at(toast_box.get_global_rect().get_center())
+	else:
+		for queued in toast_node._queue:
+			if str(queued.message) == harvest_msg and queued.action.is_valid():
+				queued.action.call()
+	var from_toast := HarvestScreens.report(get_tree()) as HarvestReport
+	_check(from_toast != null and from_toast.is_open() and str(from_toast.report.get("order_id", "")) == order_id
+			and int(from_toast.report.get("batches", 0)) == batches.size(),
+		"harvest planner: the toast opens this harvest's report (%s)" % ("clicked" if toast_box != null else "queued, its action"))
+	if from_toast != null and from_toast.is_open():
+		from_toast.close()
+
+	# The report: opened from the planner's "Siste slakterapport", the ledger's figures.
+	panel = await _open_panel(ui, "pens")
+	panel.select_pen(site_id)
+	await get_tree().process_frame
+	(panel.get_node("%DetailScroll") as ScrollContainer).ensure_control_visible(panel._btn_harvest_report)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_check(panel._btn_harvest.disabled and panel._btn_harvest_report.visible and not panel._btn_harvest_report.disabled,
+		"harvest report: the emptied site offers its last report (Høst waits for fish)")
+	await _click_control(panel._btn_harvest_report)
+	var report := HarvestScreens.report(get_tree()) as HarvestReport
+	_check(report != null and report.is_open() and _sim.is_clock_held(HarvestReport.CLOCK_HOLD),
+		"harvest report: 'Siste slakterapport' opens the report and the clock waits")
+	if report != null and report.is_open():
+		_check(report.shown.get("gross", "") == HarvestReport._nok(revenue) and report.shown.get("cost", "") == HarvestReport._nok(cost)
+				and report.shown.get("net", "") == HarvestReport._nok(revenue - cost) and int(report.report.get("batches", 0)) == batches.size(),
+			"harvest report: gross %s, cost %s, net %s are the ledger's harvest entries (%s, %s)" % [
+				report.shown.get("gross", ""), report.shown.get("cost", ""), report.shown.get("net", ""), HarvestReport._nok(revenue), HarvestReport._nok(cost)])
+		_check(int(report.report.get("fish", 0)) == int(_sum_key(batches, "fish")) and report._size_chart.hog_kg.size() == 8
+				and is_equal_approx(_sum(report._size_chart.hog_kg), _sum_key(batches, "hog_kg")),
+			"harvest report: %d fish and the histogram of the %.0f kg gutted" % [int(report.report.get("fish", 0)), _sum(report._size_chart.hog_kg)])
+		await _click_control(report.close_button)
+		_check(not report.is_open() and not _sim.is_clock_held(HarvestReport.CLOCK_HOLD), "harvest report: Fortsett closes it and the clock runs")
+		# The payoff beat with motion on: the net tallies up from zero and the
+		# bars grow in, then both land on the booked figures; reduced motion
+		# shows them whole at once.
+		MotionPrefs.force(false)
+		report.show_harvest(order_id)
+		await get_tree().process_frame
+		var net_text := "+" + HarvestReport._nok(revenue - cost)
+		var rising: bool = report._size_chart.grow < 1.0 and report._net_value.text != net_text
+		await get_tree().create_timer(HarvestReport.COUNT_UP_S + HarvestReport.NET_SETTLE_S + 0.3).timeout
+		_check(rising and is_equal_approx(report._size_chart.grow, 1.0) and report._net_value.text == net_text
+				and report._net_value.scale.is_equal_approx(Vector2.ONE),
+			"harvest report: with motion the net tallies up and the bars grow in, landing on %s" % report._net_value.text)
+		report.close()
+		MotionPrefs.force(true)
+		report.show_harvest(order_id)
+		_check(is_equal_approx(report._size_chart.grow, 1.0) and report._net_value.text == net_text,
+			"harvest report: reduced motion shows the net and the bars whole at once")
+		report.close()
+
+	# "Ekspress i dag" on the other site: sold today at the planner's figure.
+	if other_id != "":
+		panel.select_pen(other_id)
+		await get_tree().process_frame
+		(panel.get_node("%DetailScroll") as ScrollContainer).ensure_control_visible(panel._btn_harvest)
+		await get_tree().process_frame
+		await _click_control(panel._btn_harvest)
+		toasts.clear()
+		announced.clear()
+		toast_node.clear_all()
+		boats.return_delay = 0.1
+		var returned: Array[String] = []
+		var on_return := func(site: String) -> void: returned.append(site)
+		boats.wellboat_returned.connect(on_return)
+		ledger0 = _sim.get_ledger_totals()
+		var quoted := float(planner.express_quote.get("net_nok", 0.0))
+		await _click_control(planner.express_button)
+		await get_tree().create_timer(0.6).timeout
+		var express: Array = _sim.get_harvest_reports().filter(func(r: Dictionary) -> bool:
+			return str(r.get("holding_id", "")) == other_id and str(r.get("mode", "")) == "Express")
+		var express_report: Dictionary = express[-1] if not express.is_empty() else {}
+		ledger1 = _sim.get_ledger_totals()
+		revenue = float(ledger1["revenue"].get("harvest", 0.0)) - float(ledger0["revenue"].get("harvest", 0.0))
+		cost = float(ledger1["cost"].get("harvest", 0.0)) - float(ledger0["cost"].get("harvest", 0.0))
+		_check(not planner.is_open() and report.is_open() and str(report.report.get("mode", "")) == "Express"
+				and report.shown.get("net", "") == HarvestReport._nok(revenue - cost),
+			"harvest express: the report opens at once with the ledger's net (%s)" % report.shown.get("net", ""))
+		_check(absf(float(express_report.get("net_nok", 0.0)) - quoted) < 1.0,
+			"harvest express: the planner's same-day figure is what was booked (%.0f vs %.0f NOK)" % [quoted, float(express_report.get("net_nok", 0.0))])
+		var express_toasts := _harvest_toasts(toasts, toast_node)
+		_check(express_toasts.size() == 1 and announced.size() == 1,
+			"harvest express: exactly one toast (%s) and one announcement" % str(express_toasts))
+		var spot := WellboatVisualManager.EXPRESS_PREFIX + str(express_report.get("id", ""))
+		await get_tree().create_timer(1.0).timeout
+		_check(returned.has(other_id) and not boats.active_job_ids().has(spot),
+			"harvest express: the spot wellboat came out to %s, loaded and left (%s)" % [other_id, str(returned)])
+		boats.wellboat_returned.disconnect(on_return)
+		await _click_control(report.close_button)
+	toast_node.toast_shown.disconnect(on_toast)
+	director.harvest_announced.disconnect(on_harvest)
+	MotionPrefs.force(null)
+	scene.queue_free()
+	await get_tree().process_frame
+
+
+## U2-05: the legacy express verb (SimBridge.harvest_pen) is heard twice, as
+## the action's pen_action_completed and the bridge's FarmActionCompleted; the
+## harvest is still announced once: one toast, one stinger, one report key.
+func _test_harvest_pen_announces_once() -> void:
+	_check(_sim.start_qa_scenario("po3_red_sone", 91), "harvest once: setup: po3_red_sone starts")
+	_sim.skip_tutorial()
+	_sim.set_paused(true)
+	var site_id := ""
+	for s in _sim.get_all_pens():
+		if site_id == "" and int(s.get("fish_count", 0)) > 0:
+			site_id = str(s.get("id", ""))
+	var toast_node := get_node("/root/ToastNotification")
+	var director := get_node("/root/ConsequenceDirector")
+	var toasts: Array[String] = []
+	var announced: Array[String] = []
+	var on_toast := func(message: String, _level: String) -> void: toasts.append(message)
+	var on_harvest := func(_holding: String, key: String) -> void: announced.append(key)
+	toast_node.clear_all()
+	toast_node.toast_shown.connect(on_toast)
+	director.harvest_announced.connect(on_harvest)
+	var kg: float = _sim.harvest_pen(site_id)
+	for i in 3:
+		await get_tree().process_frame
+	var reports: Array = _sim.get_harvest_reports().filter(func(r: Dictionary) -> bool: return str(r.get("holding_id", "")) == site_id)
+	var key := str(reports[-1].get("id", "")) if not reports.is_empty() else "?"
+	var harvest_toasts := _harvest_toasts(toasts, toast_node)
+	_check(kg > 0.0 and announced == [key] and harvest_toasts.size() == 1,
+		"harvest once: harvest_pen on %s is announced once (%s) with one toast (%s)" % [site_id, str(announced), str(harvest_toasts)])
+	toast_node.toast_shown.disconnect(on_toast)
+	director.harvest_announced.disconnect(on_harvest)
+	toast_node.clear_all()
+
+
+## The harvest toasts shown, plus any still waiting in the toast queue (a
+## stack full of warnings shows them first): each is one harvest's payoff.
+## Both harvest texts count (the payoff with its figures, and the plain
+## "Høsting fullført" a harvest without a report gets), with or without an
+## icon in front, so a second toast from any path is caught.
+func _harvest_toasts(shown: Array[String], toast_node: Node) -> Array[String]:
+	var prefixes: Array[String] = [tr("UI_TOAST_HARVEST_DONE").get_slice("%s", 0), tr("UI_TOAST_HARVEST_OK").get_slice("%s", 0)]
+	var is_harvest := func(m: String) -> bool:
+		return prefixes.any(func(p: String) -> bool: return m.contains(p))
+	var out: Array[String] = []
+	for m in shown:
+		if is_harvest.call(m):
+			out.append(m)
+	for queued in toast_node._queue:
+		var m := str(queued.message)
+		if is_harvest.call(m) and not out.has(m):
+			out.append(m)
+	return out
+
+
+## The id of a site whose fish have reached `kg` mean live weight ("" when none).
+func _site_at_weight(kg: float) -> String:
+	for s in _sim.get_all_pens():
+		var fish := int(s.get("fish_count", 0))
+		if fish > 0 and float(s.get("biomass_kg", 0.0)) / fish >= kg:
+			return str(s.get("id", ""))
+	return ""
+
+
+func _sum(values: Array) -> float:
+	var total := 0.0
+	for v in values:
+		total += float(v)
+	return total
+
+
+func _sum_key(rows: Array, key: String) -> float:
+	var total := 0.0
+	for r in rows:
+		total += float(r.get(key, 0.0))
+	return total
+
+## Wave 3 ui-a: no audio file is read from disk inside a sim tick (at 30×
+## a season's music or a weather layer read there cost 9-11 ms, a cue up to
+## 9 ms). A track is read on a worker thread and starts when it arrives; a
+## cue is read once and kept; a missing file is refused, never waited for.
+func _test_audio_reads_tracks_off_the_tick() -> void:
+	var cache := AudioStreamCache.new()
+	var path := MusicLibrary.music("autumn_theme")
+	var got: Array = []
+	var queued := cache.later(path, func(stream: AudioStream) -> void: got.append(stream))
+	_check(queued and got.is_empty() and cache.is_loading(path),
+		"audio: a track is asked for on the caller's frame and read on a worker thread")
+	var frames := 0
+	while cache.is_loading(path) and frames < 600:
+		await get_tree().process_frame
+		cache.poll()
+		frames += 1
+	_check(got.size() == 1 and got[0] is AudioStream and cache.now(path) == got[0],
+		"audio: the worker's stream reaches the caller once and stays cached (%d frames)" % frames)
+	var cue := MusicLibrary.ui_sfx("notification")
+	var first := cache.now(cue)
+	_check(first != null and cache.now(cue) == first, "audio: a cue is read once and kept")
+	_check(not cache.later("res://assets/audio/music/ci_missing.ogg", func(_s: AudioStream) -> void: pass)
+			and not cache.is_loading() and not cache.exists(""),
+		"audio: a missing file is refused, never waited for")
+	# The controller names the new track at once and plays it when it is read.
+	var audio := get_node_or_null("/root/AudioController")
+	var track := MusicLibrary.music("spring_theme")
+	if audio.get_current_music() == track:
+		track = MusicLibrary.music("winter_theme")
+	audio._update_bgm_direct(track)
+	var named: bool = audio.get_current_music() == track
+	frames = 0
+	var playing_path := ""
+	while frames < 600:
+		await get_tree().process_frame
+		frames += 1
+		for player: AudioStreamPlayer in [audio._bgm_active, audio._bgm_pending]:
+			if player.stream != null and player.stream.resource_path == track:
+				playing_path = track
+		if playing_path != "":
+			break
+	_check(named and playing_path == track,
+		"audio: a new season's music is named at once and on a player %d frames later" % frames)
 
 ## The HUD fits its bar at 1280 px and UI scale 125 %: readouts give way in
 ## order (weather, spot price, sea temperature) rather than leave the screen,

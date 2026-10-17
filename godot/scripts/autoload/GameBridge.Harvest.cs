@@ -16,6 +16,16 @@ public partial class GameBridge
     private static string[] PenIdsOf(Godot.Collections.Array<string>? penIds)
         => penIds == null ? System.Array.Empty<string>() : penIds.Select(id => (string)id).ToArray();
 
+    /// <summary>The pens an order still holds: each pen's id ("site/p03"), or its population id for fish in no pen.</summary>
+    private static Godot.Collections.Array<string> PenIdsInOrder(HarvestOrder order)
+    {
+        var ids = new Godot.Collections.Array<string>();
+        foreach (var p in order.Pens)
+            if (p.FishRemaining > 0)
+                ids.Add(string.IsNullOrEmpty(p.PenId) ? p.PopulationId : p.PenId);
+        return ids;
+    }
+
     private static Godot.Collections.Array<double> SizeClassesOf(System.Collections.Generic.IEnumerable<double> kg)
     {
         var classes = new Godot.Collections.Array<double>();
@@ -28,7 +38,9 @@ public partial class GameBridge
     /// bring if ordered now: success, error, message, route, mode, fish,
     /// live_kg, hog_kg, mean_kg, weight_cv, size_classes (HOG kg per class
     /// &lt;1 .. 7+ kg), superior / ordinary / production shares, size_factor,
-    /// grade_factor, reference_price, gross_nok, transport_nok, slaughter_nok,
+    /// grade_factor, reference_price, contract_hog_kg, contract_nok,
+    /// spot_hog_kg, spot_nok, vap, gross_nok (contracts, spot and the plant's
+    /// premium: what a sale today books), transport_nok, slaughter_nok,
     /// surcharge_nok, net_nok, fasting_days, first_day, last_day, capacity_t.
     /// Empty pen_ids = every pen with fish; fraction (0, 1] of each pen's fish.
     /// </summary>
@@ -59,6 +71,11 @@ public partial class GameBridge
             ["size_factor"] = q.SizeFactor,
             ["grade_factor"] = q.GradeFactor,
             ["reference_price"] = (double)q.ReferencePriceNok,
+            ["contract_hog_kg"] = q.ContractHogKg,
+            ["contract_nok"] = (double)q.ContractRevenueNok,
+            ["spot_hog_kg"] = q.SpotHogKg,
+            ["spot_nok"] = (double)q.SpotRevenueNok,
+            ["vap"] = (double)q.VapMultiplier,
             ["gross_nok"] = (double)q.GrossRevenueNok,
             ["transport_nok"] = (double)q.TransportCostNok,
             ["slaughter_nok"] = (double)q.SlaughterCostNok,
@@ -87,7 +104,8 @@ public partial class GameBridge
 
     /// <summary>
     /// The open harvest orders, oldest slot first: id, holding_id, route,
-    /// status, fraction, ordered_day, slot_day, pens, fish_planned,
+    /// status, fraction, ordered_day, slot_day, pens, pen_ids (the pens it
+    /// still holds), fish_planned,
     /// fish_harvested, hog_kg, gross_nok, cost_nok.
     /// </summary>
     public Godot.Collections.Array<Godot.Collections.Dictionary> GetHarvestOrders()
@@ -106,6 +124,7 @@ public partial class GameBridge
                 ["ordered_day"] = o.OrderedDay,
                 ["slot_day"] = o.SlotDay,
                 ["pens"] = o.Pens.Count,
+                ["pen_ids"] = PenIdsInOrder(o),
                 ["fish_planned"] = o.Pens.Sum(p => p.FishToHarvest),
                 ["fish_harvested"] = o.FishHarvested,
                 ["hog_kg"] = o.HogKg,
@@ -119,8 +138,9 @@ public partial class GameBridge
     /// The latest harvest reports, newest last, exactly as booked: id, day,
     /// holding_id, holding_label, order_id, mode, route, fish, live_kg, hog_kg,
     /// mean_kg, weight_cv, size_classes, superior, ordinary, production,
-    /// size_factor, grade_factor, reference_price, contract_nok, gross_nok,
-    /// transport_nok, slaughter_nok, surcharge_nok, cost_nok, net_nok.
+    /// size_factor, grade_factor, reference_price, reference_kg (the kilos the
+    /// price is paid on), contract_hog_kg, contract_nok, vap, price_multiplier,
+    /// gross_nok, transport_nok, slaughter_nok, surcharge_nok, cost_nok, net_nok.
     /// </summary>
     public Godot.Collections.Array<Godot.Collections.Dictionary> GetHarvestReports()
     {
@@ -149,7 +169,11 @@ public partial class GameBridge
                 ["size_factor"] = r.SizeFactor,
                 ["grade_factor"] = r.GradeFactor,
                 ["reference_price"] = (double)r.ReferencePriceNok,
+                ["reference_kg"] = r.ReferenceEquivalentKg,
+                ["contract_hog_kg"] = r.ContractHogKg,
                 ["contract_nok"] = (double)r.ContractRevenueNok,
+                ["vap"] = (double)r.VapMultiplier,
+                ["price_multiplier"] = (double)r.PriceMultiplier,
                 ["gross_nok"] = (double)r.GrossRevenueNok,
                 ["transport_nok"] = (double)r.TransportCostNok,
                 ["slaughter_nok"] = (double)r.SlaughterCostNok,

@@ -72,10 +72,11 @@ func _on_state_updated() -> void:
 		return
 	_sync_barges()
 
+## The sites of the snapshot state_updated announced (SimState.sea_sites).
 func _sync_barges() -> void:
-	if not _sim_bridge or not _sim_bridge.has_method("get_all_pens"):
+	if not _sim_bridge or not ("sea_sites" in _sim_bridge):
 		return
-	var sites: Array = _sim_bridge.get_all_pens()
+	var sites: Array = _sim_bridge.sea_sites
 	var stocked: Array = []
 	for site_dict in sites:
 		var site_id: String = str(site_dict.get("id", ""))

@@ -28,6 +28,7 @@ public partial class SimulationEngine
     /// <param name="ContainmentGrowthMultiplier">Containment rung's growth effect (1 = open net).</param>
     /// <param name="StockingDensityKgM3">Effective density the FCR model reads (kg/m³).</param>
     /// <param name="SpreadQuality">Feed-spreading precision (0-1).</param>
+    /// <param name="Recipe">What the holding's feed recipe does to the FCR and the feed price (U2-04; the standard feed changes nothing).</param>
     /// <param name="FeedAvailable">False when the holding has no feed to give today (the F2 hook <see cref="FeedAvailableFor"/>): the fish then eat nothing.</param>
     internal readonly record struct HoldingHusbandry(
         HoldingWater Water,
@@ -36,6 +37,7 @@ public partial class SimulationEngine
         double ContainmentGrowthMultiplier,
         double StockingDensityKgM3,
         double SpreadQuality,
+        FeedRecipeEffect Recipe,
         bool FeedAvailable = true);
 
     /// <summary>
@@ -125,6 +127,10 @@ public partial class SimulationEngine
             double satiationFcr = Feed.SatiationFcr(temperature, cohort.Stage,
                 law.FcrSizeFactor(cohort.MeanWeightKg), husbandry.StockingDensityKgM3,
                 husbandry.AppetiteModifier, researchFcrReduction);
+            // U2-04: a recipe's energy sets how many kilos of feed the same
+            // growth takes (the standard feed multiplies nothing).
+            if (husbandry.Recipe.FcrFactor != 1.0)
+                satiationFcr *= husbandry.Recipe.FcrFactor;
 
             var day = law.GrowOneDay(cohort.MeanWeightKg, cohort.WeightCv, cohort.Stage, conditions, satiationFcr);
             cohort.MeanWeightKg = day.WeightKg;
@@ -134,7 +140,9 @@ public partial class SimulationEngine
         }
 
         double appetite = law.ThermalAppetiteIndex(temperature) * husbandry.AppetiteModifier;
-        var fed = Feed.FeedRation(population, eatenKg, grownKg, husbandry.SpreadQuality, ResearchEffectFor(ResearchEffectKeys.FeedWasteReduction, researchScope), appetite);
+        var fed = Feed.FeedRation(population, eatenKg, grownKg, husbandry.SpreadQuality,
+            ResearchEffectFor(ResearchEffectKeys.FeedWasteReduction, researchScope), appetite,
+            husbandry.Recipe.PriceFactor);
         // F2-04: a land tank's (or a non-liable offshore unit's) feed stays out of the rent base.
         if (husbandry.Water.Kind != HoldingKind.SeaPen) AttributePopulationCost(population, fed.CostNOK);
         return fed;

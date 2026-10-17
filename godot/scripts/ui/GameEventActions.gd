@@ -15,7 +15,7 @@ extends RefCounted
 ## window board (F2-33) and the land board (F2-32) take them over.
 const TAB_VERBS := {
 	"check_water": "telemetry",
-	"review_feeding": "ai_feeding",
+	"review_feeding": "pens",
 	"raise_capital": "finance",
 	"open_sustainability": "sustainability",
 	"book_operation": "offshore",

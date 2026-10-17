@@ -22,7 +22,7 @@ namespace LakskongenSim.Market
     ///   - Weekly sigma ~8-12 NOK/kg (high volatility typical of salmon spot)
     ///   - Price range: NOK 40-160/kg historically
     /// </summary>
-    public class MarketSimulation
+    public partial class MarketSimulation
     {
 // ─── Calibrated to Fish Pool FPI 2020-2025 data ───
         // Live values are sourced from CalibrationRegistry.Market (single source of

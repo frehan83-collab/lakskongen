@@ -173,11 +173,19 @@ func install_bloom_mitigation(site_id: String, kind: String) -> bool:
 		return game_bridge.InstallBloomMitigation(site_id, kind)
 	return false
 
-## Feed recipe + preview (Phase 4.4).
-func get_feed_recipe() -> Dictionary:
-	if game_bridge and game_bridge.has_method("GetFeedRecipe"):
-		return game_bridge.GetFeedRecipe()
-	return {"protein": 42.0, "replace": 20.0, "astax": 50.0, "cost_per_kg": 15.0, "fcr_mult": 1.0, "grade": "A", "vap_mult": 1.12}
+## Feeding plans (U2-04): a site's plan, every site's, the card's options
+## and a plan's projected next days (twin-lite, never touches the game).
+func get_feed_plan(site_id: String) -> Dictionary:
+	return game_bridge.GetFeedPlan(site_id) if game_bridge else {}
+
+func get_feed_plans() -> Array:
+	return game_bridge.GetFeedPlans() if game_bridge else []
+
+func get_feed_plan_options() -> Dictionary:
+	return game_bridge.GetFeedPlanOptions() if game_bridge else {}
+
+func preview_feed_plan(site_id: String, ration_pct: float, recipe: String, days: int = 0) -> Dictionary:
+	return game_bridge.PreviewFeedPlan(site_id, ration_pct, recipe, days) if game_bridge else {"ok": false}
 
 ## Twin-lite forecast (Phase 4.5): PROJECTION, cached per day.
 func get_forecast() -> Dictionary:
@@ -317,6 +325,18 @@ func get_harvest_orders() -> Array[Dictionary]:
 	return _arr(game_bridge.GetHarvestOrders()) if game_bridge else ([] as Array[Dictionary])
 func get_harvest_reports() -> Array[Dictionary]:
 	return _arr(game_bridge.GetHarvestReports()) if game_bridge else ([] as Array[Dictionary])
+
+## Harvest planner (U2-05): a planned harvest projected today or after a wait
+## (twin-lite, no RNG moves), the planner's options, an express harvest of the
+## chosen pens, and the ledger's totals by category (the report's check).
+func project_harvest(holding_id: String, pen_ids: Array[String] = [], fraction: float = 1.0, wait_days: int = 0) -> Dictionary:
+	return game_bridge.ProjectHarvest(holding_id, pen_ids, fraction, wait_days) if game_bridge else {"success": false, "message": "Not initialized"}
+func get_harvest_planner_options() -> Dictionary:
+	return game_bridge.GetHarvestPlannerOptions() if game_bridge else {}
+func harvest_express(holding_id: String, pen_ids: Array[String] = [], fraction: float = 1.0) -> Dictionary:
+	return game_bridge.HarvestExpress(holding_id, pen_ids, fraction) if game_bridge else {"success": false, "message": "Not initialized"}
+func get_ledger_totals() -> Dictionary:
+	return game_bridge.GetLedgerTotals() if game_bridge else {"revenue": {}, "cost": {}}
 
 ## Perform maintenance on RAS facility, returns cost
 func ras_maintenance(facility_id: String) -> float:

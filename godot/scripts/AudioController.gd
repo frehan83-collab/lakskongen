@@ -60,6 +60,10 @@ var _wind_target_volume: float = 0.0
 const SFX_POOL_SIZE: int = 8
 var _sfx_pool: Array[AudioStreamPlayer] = []
 
+## Streams read once and kept; tracks read off the main thread (no disk
+## read inside a sim tick).
+var _files := AudioStreamCache.new()
+
 var _sim_bridge: Node = null
 var _fjord_env = null
 var _camera = null
@@ -72,6 +76,8 @@ func _l2db(v: float) -> float:
 
 func _ready() -> void:
 	MusicLibrary.validate_catalog()
+	# The short cues come back all game: read them in the background now.
+	_files.prefetch(MusicLibrary.UI_SFX.values() + MusicLibrary.ALERT_SFX.values())
 	_create_players()
 	_connect_signals()
 	_start_ocean_ambient()
@@ -80,6 +86,7 @@ func _ready() -> void:
 	_init_wind_layers()
 
 func _process(delta: float) -> void:
+	_files.poll()
 	if _bgm_fading:
 		_tick_crossfade(delta)
 	if _amb_base_fading:
@@ -337,7 +344,7 @@ func _on_state_updated() -> void:
 	var seasonal_key := str(_sim_bridge.audio_seasonal_track)
 	if not seasonal_key.is_empty():
 		var music_path := MusicLibrary.music(seasonal_key)
-		if music_path.is_empty() or not ResourceLoader.exists(music_path):
+		if not _files.exists(music_path):
 			music_path = MusicLibrary.music("main_theme")
 		if not music_path.is_empty():
 			_update_bgm_direct(music_path)
@@ -393,21 +400,20 @@ func get_current_music() -> String:
 func is_music_playing() -> bool:
 	return _bgm_active != null and _bgm_active.playing
 
+## Ask for a music track: it starts (or crossfades in) once it is read, off
+## the main thread; a newer request in the meantime wins.
 func _update_bgm_direct(path: String) -> void:
 	if path == _current_bgm_track:
 		return
-	
-	if not ResourceLoader.exists(path):
+	if not _files.exists(path):
 		push_warning("AudioController: Missing BGM file: " + path)
 		return
-	
-	var stream := load(path) as AudioStream
-	if stream == null:
-		push_warning("AudioController: Failed to load BGM: " + path)
-		return
-
 	_current_bgm_track = path
+	_files.later(path, _start_bgm.bind(path))
 
+func _start_bgm(stream: AudioStream, path: String) -> void:
+	if path != _current_bgm_track:
+		return  # another track was asked for while this one was read
 	if not _bgm_active.playing:
 		_bgm_active.stream = stream
 		_bgm_active.volume_db = _l2db(_music_volume)
@@ -432,21 +438,19 @@ func _tick_crossfade(delta: float) -> void:
 		_bgm_active  = _bgm_pending
 		_bgm_pending = tmp
 
+## Ask for an ambient base loop (read off the main thread, like music).
 func _update_ambient_base_direct(path: String) -> void:
 	if path == _current_base_track:
 		return
-	
-	if not ResourceLoader.exists(path):
+	if not _files.exists(path):
 		push_warning("AudioController: Missing ambient file: " + path)
 		return
-	
-	var stream := load(path) as AudioStream
-	if stream == null:
-		push_warning("AudioController: Failed to load ambient: " + path)
-		return
-
 	_current_base_track = path
+	_files.later(path, _start_ambient_base.bind(path))
 
+func _start_ambient_base(stream: AudioStream, path: String) -> void:
+	if path != _current_base_track:
+		return
 	if not _amb_base_active.playing:
 		_amb_base_active.stream = stream
 		_amb_base_active.volume_db = _l2db(_ambient_volume)
@@ -484,14 +488,13 @@ func _update_ambient_weather(weather_key: String) -> void:
 		return
 
 	var path := MusicLibrary.ambient_weather(weather_key)
-	if path.is_empty() or not ResourceLoader.exists(path):
+	if not _files.exists(path):
 		return
-	
-	var stream := load(path) as AudioStream
-	if stream == null:
-		push_warning("AudioController: Missing weather overlay: " + path)
+	_files.later(path, _start_weather_layer.bind(weather_key))
+
+func _start_weather_layer(stream: AudioStream, weather_key: String) -> void:
+	if weather_key != _current_weather_track:
 		return
-	
 	_amb_weather.stream = stream
 	_amb_weather.volume_db = _l2db(0.0)
 	_amb_weather.play()
@@ -512,11 +515,11 @@ func play_sfx(path: String, volume_db: float = 0.0, pitch: float = 1.0) -> Audio
 		push_warning("AudioController: SFX pool exhausted (all 8 players busy)")
 		return null
 	
-	if not ResourceLoader.exists(path):
+	if not _files.exists(path):
 		push_warning("AudioController: Missing SFX file: " + path)
 		return null
-	
-	var stream := load(path) as AudioStream
+
+	var stream := _files.now(path)
 	if stream == null:
 		push_warning("AudioController: Failed to load SFX: " + path)
 		return null
@@ -530,13 +533,8 @@ func play_sfx(path: String, volume_db: float = 0.0, pitch: float = 1.0) -> Audio
 ## Play a UI sound by key (button_click, button_hover, notification, etc.)
 func play_ui(sound_key: String) -> void:
 	var path := MusicLibrary.ui_sfx(sound_key)
-	if path.is_empty():
-		return
-	
-	if not ResourceLoader.exists(path):
-		# Silently skip missing UI sounds (optional audio)
-		return
-	
+	if not _files.exists(path):
+		return  # silently skip missing UI sounds (optional audio)
 	play_sfx(path)
 
 ## UI convenience methods
@@ -551,7 +549,7 @@ func play_notification() -> void:
 
 func play_achievement() -> void:
 	var path := MusicLibrary.alert_sfx("achievement")
-	if not path.is_empty() and ResourceLoader.exists(path):
+	if _files.exists(path):
 		play_sfx(path)
 
 func play_panel_open() -> void:

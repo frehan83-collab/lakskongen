@@ -36,7 +36,7 @@ const BALANCE_LOW := 1_000_000.0
 const BALANCE_CRITICAL := 0.0
 
 ## The panel that fixes each factor, and the call-to-action caption key.
-const ACTION_TABS := {"lice": "pens", "oxygen": "telemetry", "fcr": "ai_feeding", "balance": "finance"}
+const ACTION_TABS := {"lice": "pens", "oxygen": "telemetry", "fcr": "pens", "balance": "finance"}
 const ACTION_KEYS := {"lice": "UI_FARM_STATE_CTA_LICE", "oxygen": "UI_FARM_STATE_CTA_OXYGEN",
 	"fcr": "UI_FARM_STATE_CTA_FCR", "balance": "UI_FARM_STATE_CTA_BALANCE"}
 

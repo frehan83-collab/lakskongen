@@ -248,6 +248,8 @@ static func health_color_of(state: int) -> Color:
 
 ## Show the site's health on the ring (colour, opacity and pulse).
 func set_health_state(state: int) -> void:
+	if state == health_state and health_color == health_color_of(state):
+		return  # the sim repeats it every day: nothing to write
 	health_state = state
 	health_color = health_color_of(state)
 	_apply_health()

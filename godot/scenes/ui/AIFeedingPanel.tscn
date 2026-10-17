@@ -100,71 +100,36 @@ layout_mode = 2
 [node name="RecipeHeader" type="Label" parent="Margin/MainScroll/RootVBox/RecipeCard/Outer/Header"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "🧪 Fôrresept"
+text = "Fôrtype og fôrmengde"
 
-[node name="RecipeBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/RecipeCard/Outer"]
+[node name="RecipePad" type="MarginContainer" parent="Margin/MainScroll/RootVBox/RecipeCard/Outer"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="RecipeBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/RecipeCard/Outer/RecipePad"]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="ProteinRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/RecipeCard/Outer/RecipeBody"]
-layout_mode = 2
-theme_override_constants/separation = 8
-
-[node name="ProteinLbl" type="Label" parent="Margin/MainScroll/RootVBox/RecipeCard/Outer/RecipeBody/ProteinRow"]
-layout_mode = 2
-custom_minimum_size = Vector2(150, 0)
-text = "Protein %"
-
-[node name="ProteinSlider" type="HSlider" parent="Margin/MainScroll/RootVBox/RecipeCard/Outer/RecipeBody/ProteinRow"]
+[node name="RecipeMoved" type="Label" parent="Margin/MainScroll/RootVBox/RecipeCard/Outer/RecipePad/RecipeBody"]
+theme_type_variation = &"BodySmall"
 unique_name_in_owner = true
 layout_mode = 2
-size_flags_horizontal = 3
-min_value = 38.0
-max_value = 48.0
-step = 0.5
-value = 42.0
-
-[node name="ReplaceRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/RecipeCard/Outer/RecipeBody"]
-layout_mode = 2
-theme_override_constants/separation = 8
-
-[node name="ReplaceLbl" type="Label" parent="Margin/MainScroll/RootVBox/RecipeCard/Outer/RecipeBody/ReplaceRow"]
-layout_mode = 2
-custom_minimum_size = Vector2(150, 0)
-text = "Nye råvarer %"
-
-[node name="ReplaceSlider" type="HSlider" parent="Margin/MainScroll/RootVBox/RecipeCard/Outer/RecipeBody/ReplaceRow"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-max_value = 60.0
-step = 1.0
-value = 20.0
-
-[node name="AstaxRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/RecipeCard/Outer/RecipeBody"]
-layout_mode = 2
-theme_override_constants/separation = 8
-
-[node name="AstaxLbl" type="Label" parent="Margin/MainScroll/RootVBox/RecipeCard/Outer/RecipeBody/AstaxRow"]
-layout_mode = 2
-custom_minimum_size = Vector2(150, 0)
-text = "Astaxanthin ppm"
-
-[node name="AstaxSlider" type="HSlider" parent="Margin/MainScroll/RootVBox/RecipeCard/Outer/RecipeBody/AstaxRow"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-max_value = 80.0
-step = 1.0
-value = 50.0
-
-[node name="RecipePreview" type="Label" parent="Margin/MainScroll/RootVBox/RecipeCard/Outer/RecipeBody"]
-theme_type_variation = &"Small"
-unique_name_in_owner = true
-layout_mode = 2
+autowrap_mode = 3
 text = "--"
 
-[node name="BtnApplyRecipe" type="Button" parent="Margin/MainScroll/RootVBox/RecipeCard/Outer/RecipeBody"]
+[node name="PlanSummary" type="Label" parent="Margin/MainScroll/RootVBox/RecipeCard/Outer/RecipePad/RecipeBody"]
+theme_type_variation = &"SmallMuted"
 unique_name_in_owner = true
 layout_mode = 2
-text = "Bruk resept"
+autowrap_mode = 3
+text = "--"
+
+[node name="BtnOpenFeedPlan" type="Button" parent="Margin/MainScroll/RootVBox/RecipeCard/Outer/RecipePad/RecipeBody"]
+theme_type_variation = &"SmallPrimaryButton"
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 0
+text = "Åpne fôringsplanen"

@@ -53,6 +53,9 @@ const VISIBLE_M := FISH_RANGE_M
 ## and more shows them all); an empty pen shows none.
 const MIN_FISH := 1500
 const MAX_FISH := 4000
+## The shown count moves in steps of 1 % of that range (25 fish): a pen's
+## daily growth no longer changes it every day (wave 3 ui-a).
+const FISH_STEP := 25
 const FULL_PEN_KG := 900000.0
 ## The first JUMPERS fish of a school leap now and then
 ## (fish_school.gdshaderinc jumper_count).
@@ -94,6 +97,15 @@ const SHOAL_BOX := AABB(Vector3(-38.0, -32.0, -38.0), Vector3(76.0, 36.0, 76.0))
 ## Past this distance a school's uniforms are refreshed every FAR_FRAMES-th
 ## frame (only its water column shows there).
 const FAR_FRAMES := 4
+## The sim's day moves a pen's fish a little; the GPU hears of it once the
+## change can show: 5 mm of fork length (about 1 % of a grown salmon, under
+## a pixel beyond ~7 m at 1080p), 1 % of a full pen's water-column tint, a
+## fish more or less, or the skirt (wave 3 ui-a: at 30x every day rewrote
+## every pen's uniforms).
+const BODY_LENGTH_STEP_M := 0.005
+const BODY_STOCK_STEP := 0.01
+## Writes of a school's body uniforms since launch (tests count them).
+static var body_writes := 0
 
 static var _salmon_meshes: Dictionary = {}  # lod -> Mesh
 static var _shoal_meshes: Dictionary = {}  # lod -> ArrayMesh
@@ -268,7 +280,8 @@ static func _state(school: MultiMeshInstance3D) -> Dictionary:
 static func fish_for(fish_count: int, biomass_kg: float) -> int:
 	if fish_count <= 0:
 		return 0
-	return int(round(lerpf(MIN_FISH, MAX_FISH, clampf(biomass_kg / FULL_PEN_KG, 0.0, 1.0))))
+	var extra := float(MAX_FISH - MIN_FISH) * clampf(biomass_kg / FULL_PEN_KG, 0.0, 1.0)
+	return MIN_FISH + int(round(extra / FISH_STEP)) * FISH_STEP
 
 
 ## Fork length (m) of a fish of `mean_weight_kg` (L(cm) = (100 W_g / 1.1)^(1/3)).
@@ -316,7 +329,19 @@ static func apply_pen(school: MultiMeshInstance3D, pen: Dictionary) -> void:
 	st["stock"] = lerpf(STOCK_MIN, 1.0, full) if count > 0 else 0.0
 	st["speed_target"] = speed_for_oxygen(_num(pen, "oxygen_mgl", NAN))
 	st["skirt"] = bool(pen.get("has_skirt", false))
-	_write_body(school)
+	if body_changed(st):
+		_write_body(school)
+
+
+## Whether the school's shape differs visibly from what its shaders have
+## (BODY_LENGTH_STEP_M, BODY_STOCK_STEP; any change of fish or skirt).
+static func body_changed(st: Dictionary) -> bool:
+	var w: Array = st.get("written", [])
+	if w.size() != 4:
+		return true
+	return int(w[0]) != int(st["count"]) or bool(w[3]) != bool(st["skirt"]) \
+		or absf(float(w[1]) - float(st["length_m"])) >= BODY_LENGTH_STEP_M \
+		or absf(float(w[2]) - float(st["stock"])) >= BODY_STOCK_STEP
 
 
 ## Kept for the G2-04 callers: fish_count fish of mean_weight_kg.
@@ -422,6 +447,8 @@ static func _write_motion(school: MultiMeshInstance3D) -> void:
 
 static func _write_body(school: MultiMeshInstance3D) -> void:
 	var st := _state(school)
+	st["written"] = [st["count"], st["length_m"], st["stock"], st["skirt"]]
+	body_writes += 1
 	var body := Vector4(st["length_m"], st["dir"], SCHOOL_OUTER_M, st["count"])
 	school.set_instance_shader_parameter("school_body", body)
 	var shoal := shoal_of(school)

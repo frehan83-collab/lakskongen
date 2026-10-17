@@ -2106,6 +2106,131 @@ others by tensor Gauss-Hermite, all rarer combinations by one antithetic Hammers
   reveal the peak. A player would have to invert the displayed p50 to use it.
 - **The forecast is not free.** Long leads cost ~0.25 ms a probability; the wiring
   should cache a day's forecast per plot and query short leads first.
+## 1r. U2-04: feeding plans (2026-10-15, branch `wave3/ui-a-1`)
+
+A site's feeding plan is its ration (a share of its fish's appetite, S2-03's
+`RationPolicy` on every pen's population), the recipe its barge carries and a
+window (0 = until changed). Calibration section `feedPlan` (v1.0.11 on its branch; registry 1.1.1 on the wave-3 integration); a site
+with no plan feeds the standard feed to full appetite, as every site did, so
+the golden traces are unchanged (`GoldenTrace` 35 of 35, and
+`StandardPlans_LeaveTheGameUnchanged`: a game that sets only standard plans
+serializes byte-identical to one that never touches the verb after 200 days,
+events on).
+
+| knob | value | source |
+|---|---|---|
+| "Begrenset" stop | 70 % of appetite | the growth law's optimum ration (Brett 1979, `growth.rationCurvature`) |
+| "Moderat" stop | 85 % | game estimate after Johansen and Jobling 1998 (Aquaculture International 6: 1-17): satiation grows faster, predetermined rations convert better |
+| lowest ration | 50 % | Stefansson, Imsland and Handeland 2009 (Aquaculture 290: 243 ff.): post-smolts on 50-100 % rations grew, on 0-25 % they did not |
+| high-energy recipe | FCR x 0.95, price x 1.05 | Hillestad et al. 1998 (Aquaculture Nutrition 4: 89-97): FCR falls with dietary energy at equal energy intake; +5 % energy and the price are game estimates |
+| economy recipe | FCR x 1.06, price x 0.94, astaxanthin 30 mg/kg | same rule for ~6 % less energy; pale fillets (FeedRecipe grade C, VAP premium halved; Torrissen 1989) |
+| longest window | 365 days | one sea year |
+
+A recipe is priced on its energy: the feed cost per kg of growth stays within
+1 % of the standard feed's (0.9975 high energy, 0.9964 economy); the recipes
+differ in feed tonnage (sludge, N and P under the pens) and fillet colour.
+
+### Acceptance 1: 120 days at 70 % against full appetite (player path)
+
+`FeedPlanTests.SeventyPercent_For120Days_*`: the family farm (forste_sesong,
+36,000 fish, 0.63 kg on day 30), the verb on day 30, 120 days.
+
+| seed | events | ration | growth (kg) | mean weight day 150 | biological FCR | economic FCR | feed cost per day | feed cost per kg growth |
+|---|---|---|---|---|---|---|---|---|
+| 1 | off | 100 % | 26,477 | 1.39 kg | 1.112 | 1.123 | 5,527 NOK | 25.05 |
+| 1 | off | 85 % | 22,015 | 1.27 kg | 1.091 | 1.102 | 4,509 NOK | 24.58 |
+| 1 | off | 70 % | 17,520 | 1.14 kg | 1.080 | 1.090 | 3,550 NOK | 24.31 |
+| 7 | off | 100 % | 22,267 | 1.27 kg | 1.111 | 1.122 | 4,644 NOK | 25.03 |
+| 7 | off | 70 % | 14,871 | 1.06 kg | 1.080 | 1.090 | 3,013 NOK | 24.32 |
+| 13 | on | 100 % | 23,885 | 1.31 kg | 1.111 | 1.122 | 4,982 NOK | 25.03 |
+| 13 | on | 70 % | 15,894 | 1.08 kg | 1.079 | 1.090 | 3,220 NOK | 24.31 |
+
+At 70 % the fish grow 66-67 % as much at a 2.9 % lower biological FCR and
+35-36 % less feed cost a day; the feed cost per kg of growth is 3 % lower,
+paid for in time (the fish reach harvest weight weeks later). That is the
+trade the plan offers: hold biomass under MTB or wait for a price, not cheaper
+salmon.
+
+### Acceptance 2: the 30-day projection (twin-lite, `SimulationEngine.ProjectFeedPlan`)
+
+The projection grows the site's cohorts on the tick's law in the water the
+area can expect (its climatology plus today's anomaly fading at its e-folding
+time), with today's oxygen appetite, the gills healing while no bloom stands,
+the density the growing fish reach in their pens, the site's spreading and the
+day length; fish are held constant. Measured against the game's next 30 days
+at 70 % on the standard feed, 20 seeds x 6 start days:
+
+| setup | n | growth: median / p90 / max error, share within ±10 % | cost per day | FCR |
+|---|---|---|---|---|
+| family farm (zone water, bloom deck), events off | 120 | 4.2 % / 14.0 % / 40.6 %, 81 % (mean signed +1.9 %) | 3.5 % / 10.8 % / 24.4 %, 89 % | 0.4 % / 5.1 % / 11.5 %, 99 % |
+| zone-less PO4 site (only the sea's temperature random) | 120 | 3.7 % / 9.0 % / 20.6 %, 93 % (mean +1.5 %) | 3.5 % / 8.6 % / 19.8 %, 93 % | 0.2 % / 0.4 % / 0.8 %, 100 % |
+| family farm seed 1, first month (nothing random happens) | 1 | 0.0 % | 0.0 % | 0.0 % |
+
+Single cases miss by more than 10 % when the window holds a warm or cold
+spell (the AR(1) anomaly moved 1.2 °C in 15 days on seed 7) or a bloom (seed
+2, day 300: the gills fell from 79 to 60 and growth with them); the projection
+is their expectation, unbiased (mean error +1.5 to +1.9 %). The tests hold the
+median at 5 %, the ±10 % share at 80 % (family farm) and 90 % (zone-less),
+the mean within ±3 %, and the FCR at ±10 % in 95 % of cases (±1 % where only
+the weather is random).
+
+## 1s. U2-05: the harvest planner's projection (2026-10-16, branch `wave3/ui-a-2`)
+
+`SimulationEngine.ProjectHarvest(holding, pens, fraction, waitDays)`
+(`Core/SimulationEngine.HarvestPlanner.cs`, twin-lite, pure: no draw, no
+write) runs S2-04's planned pipeline forward on copies of the chosen pens:
+the wait on the tick's growth law at the site's feeding plan
+(`PopulationTwin`, shared with U2-04's projection), the order, each pen
+fasting ahead of its turn (30 degree-days in the expected water, at least the
+calibrated minimum), the wellboat slot and the slaughterhouse's daily capacity
+behind the orders already queued, then every batch priced as `SellLot` prices
+it: contracts first (oldest first, skipping one the weekly tick will have
+expired), then the market's expected price that day
+(`MarketSimulation.ExpectedPrices`: the daily step without its noise and
+shocks, the player's own batches pressing the price after their day), the
+processing plant's premium. Expected deaths are the median of the ledger's
+last 30 daily death rates (a normal day; an outbreak is not projected
+forward). No new calibration: every number is S2-04's `harvest` section, the
+market's and the growth law's.
+
+The planner compares ordering now with waiting 14, 28 and 56 days. "Net after
+feed" is the figure that compares them: the harvest's net less the feed the
+fish eat until their fast (a wait grows the fish and the gutted kilos, and
+costs feed and a normal day's deaths).
+
+### Acceptance 2: the same-day projection against the realized sale
+
+`HarvestPlannerTests` (the planned order placed the same day as the
+projection, then the game run until the order has sold):
+
+| setup | n | gross | gutted kilos (HOG) |
+|---|---|---|---|
+| player path: forste_sesong seeds 1-20 + po3_red_sone seeds 1-10, events, market noise and shocks on, ordered at 4.5 kg | 30 | within ±5 % in 28 of 30 (93 %), median 1.09 %, mean -0.11 % | within ±3 % in 28 of 30 |
+| zone-less site, market noise off | 12 | within ±2 % in 11 of 12 (seed 1: -4.46 %, the certification level changed during the harvest and the engine repriced) | within ±0.15 %; the kilos the price is paid on within ±0.45 %; last day within a day |
+| wait 14 / 28 / 56 days, then order | 3 x 10 | within ±3.41 %, all 30 within ±5 % | within ±1.70 % |
+| express, same day (the quote is what the sale books) | 2 | exact (gross, net, contract kilos and sales, VAP) | exact |
+| expected price path, bare market, volatility 0, 60 days | 1 | exact until the first weekly tick, within ±1 % after (mean ratio 0.997-1.003) | — |
+
+The two player-path misses on gross: forste_sesong seed 2 (+5.02 % gross,
++4.86 % HOG: fish died during the fast, events a normal day's death rate does
+not foresee) and po3_red_sone seed 3 (-7.76 % gross at -0.02 % HOG: the
+market moved). The two HOG misses are forste_sesong seeds 2 and 4 (+3.08 %). The projection is the
+order's expectation, unbiased (mean -0.11 %); the tests hold ±5 % in at least
+80 % of player-path cases, the median within 3 % and the mean within ±2 %.
+
+In the game (UI flow, po3_red_sone seed 91, day 294, 6 pens at 4.58 kg): the
+planner's "Nå" column said 17,873,202 NOK gross; the two slaughter days
+booked 18,591,607 NOK (-3.9 %), and the report's gross, cost and net were the
+ledger's harvest entries to the krone.
+
+### Acceptance 3: waiting leaves the live game untouched
+
+po3_red_sone seed 17, 60 days, every site projected at waits 0/14/28/56 every
+day (more than 100 projections): every SimRng stream and the save are
+unchanged after each day's projections, and the probed game equals its
+never-probed twin after 60 days (`TheProjection_LeavesTheLiveGameAndItsRngUntouched`;
+mutation: one draw from the live `market` stream inside `ProjectHarvest`
+fails it).
 
 ## 2. Key economic knobs
 

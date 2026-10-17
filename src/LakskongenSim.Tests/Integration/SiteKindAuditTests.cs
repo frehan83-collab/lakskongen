@@ -111,6 +111,24 @@ public class SiteKindAuditTests
         Assert.Contains(resumed.State.Populations, p => ReferenceEquals(p, pen));
         Assert.Equal((unit.Id, unit.ZoneId), (pen.SiteId, pen.ZoneId));
         Assert.Empty(UnitResolver.Violations(resumed.State));
+
+        // U2-04 feeding plans (wave-3 integration, include): a plan by id
+        // reaches the offshore unit's pens like a fjord site's, the twin-lite
+        // projects it in the unit's own water, and "Fôr alle" sets every sea
+        // site's plan, the unit's too.
+        Assert.True(e.SetFeedPlan(m.Unit.Id, 70.0, FeedRecipeKind.Standard, 0).Ok);
+        Assert.NotEmpty(m.Unit.Pens);
+        Assert.All(m.Unit.Pens, p => Assert.Equal(0.70, p.Ration!.FractionOfAppetite, 9));
+        Assert.Equal(0.70, e.FeedPlanOf(m.Unit.Id)!.RationFraction, 9);
+        var projection = e.ProjectFeedPlan(m.Unit.Id, 70.0, FeedRecipeKind.Standard, 30);
+        Assert.NotNull(projection);
+        Assert.Equal(60_000, projection!.Fish);
+        Assert.True(projection.GrowthKg > 0.0);
+        var all = e.SetFeedPlanForAllSites(85.0, FeedRecipeKind.Economy, 30);
+        Assert.True(all.Ok);
+        Assert.Equal(e.State.SeaSites.Count, (int)all.Value);
+        Assert.All(e.State.SeaSites, s => Assert.Equal((0.85, FeedRecipeKind.Economy), (s.FeedPlan!.RationFraction, s.FeedPlan.Recipe)));
+        Assert.All(m.Unit.Pens, p => Assert.Equal(0.85, p.Ration!.FractionOfAppetite, 9));
     }
 
     // ── fjord-zone ──────────────────────────────────────────────────────────

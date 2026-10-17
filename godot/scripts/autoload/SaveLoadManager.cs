@@ -38,7 +38,7 @@ public partial class SaveLoadManager : Node
     /// migration step in MigrateSaveData. Old saves without the field read
     /// as version 0.
     /// </summary>
-    public const int CurrentSaveVersion = 9;
+    public const int CurrentSaveVersion = 10;
 
     private JsonSerializerOptions _jsonOptions;
     private GameBridge _gameBridge;
@@ -649,6 +649,14 @@ public partial class SaveLoadManager : Node
                     // overflow plots past the named ones, and empties the lists
                     // (SimulationEngine.MigrateFacilities, idempotent).
                     saveData.SaveVersion = 9;
+                    break;
+                case 9:
+                    // v9 -> v10 (U2-04): a sea site may carry a feeding plan
+                    // (SeaSite.FeedPlan: ration, recipe, window). A v9 save
+                    // loads with no plans: every site feeds the standard feed to
+                    // full appetite, as it did, and its pens keep the rations
+                    // they were saved with.
+                    saveData.SaveVersion = 10;
                     break;
                 default:
                     GD.PrintErr($"No migrator for save version {saveData.SaveVersion}; loading as-is.");

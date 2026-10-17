@@ -80,6 +80,10 @@ func _init(max_distance: float = 1400.0) -> void:
 
 ## Show `text` with an `accent` dot and rim.
 func set_chip(text: String, accent: Color) -> void:
+	# Called on every sim refresh: measuring the text shapes it, so an
+	# unchanged chip is left alone.
+	if text == _text and accent == _accent and _label.text == text:
+		return
 	_text = text
 	_accent = accent
 	_label.text = text

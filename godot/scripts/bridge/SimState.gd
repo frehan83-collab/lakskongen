@@ -87,6 +87,11 @@ var active_blooms: Array[Dictionary] = []
 var wellboat_jobs: Array[Dictionary] = []
 ## Live traffic-light status per zone (zone/color/mab_factor/capacity_tonnes).
 var traffic_zones: Array[Dictionary] = []
+## The player's sea sites with their pens (GameBridge.GetSeaSiteDetails) as
+## of this refresh. The 3D presenters read it on state_updated instead of
+## asking the bridge again (one call a refresh, not one per listener).
+## Read-only: the dictionaries are shared.
+var sea_sites: Array[Dictionary] = []
 var sustainability_score: int = 0
 var sustainability_level: String = "NonCompliant"
 var zone_count: int = 0
@@ -187,6 +192,10 @@ func _on_game_started() -> void:
 
 
 func _on_game_state_updated() -> void:
+	# The tick's own GameStateUpdated follows its SimulationTicked with no
+	# change in between: that day is refreshed already (once a day, U2-07).
+	if game_bridge and bool(game_bridge.IsAnnouncingDay):
+		return
 	_refresh_state()
 
 
@@ -303,6 +312,12 @@ func _refresh_state() -> void:
 	active_blooms.clear()
 	for b in game_bridge.GetActiveBlooms():
 		active_blooms.append(b)
+
+	# A new array each refresh: a listener holding the last one keeps it whole.
+	var sites: Array[Dictionary] = []
+	for s in game_bridge.GetSeaSiteDetails():
+		sites.append(s)
+	sea_sites = sites
 
 	_rebuild_alerts()
 

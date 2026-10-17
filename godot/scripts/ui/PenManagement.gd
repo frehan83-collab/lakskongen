@@ -22,8 +22,6 @@ var _pen_list_items: Dictionary = {}  # pen_id -> Button
 var _driftsplan_card: DriftsplanCard = null
 
 # ── Scene refs ────────────────────────────────────────────────────────────────
-## Fish below this mean weight are not ready for slaughter (harvest button).
-const HARVEST_MIN_WEIGHT_KG := 3.5
 ## Nets at or above this integrity have nothing to repair.
 const NETS_WHOLE_PCT := 99.5
 
@@ -63,6 +61,8 @@ const NETS_WHOLE_PCT := 99.5
 
 @onready var _btn_delouse: Button = %BtnDelouse
 @onready var _btn_harvest: Button = %BtnHarvest
+## U2-05: the site's last harvest report (shown once the site has one).
+@onready var _btn_harvest_report: Button = %BtnHarvestReport
 @onready var _btn_repair: Button = %BtnRepair
 @onready var _strain_option: OptionButton = %StrainOption
 @onready var _btn_stock: Button = %BtnStock
@@ -76,6 +76,8 @@ const NETS_WHOLE_PCT := 99.5
 @onready var _pen_option: OptionButton = %PenOption
 @onready var _count_spin: SpinBox = %CountSpin
 @onready var _stock_preview: Label = %StockPreview
+# U2-04: the site's feeding plan (ration, recipe, window, 30-day projection).
+@onready var _feed_plan: FeedPlanCard = %FeedPlanCard
 
 # ── Colors ────────────────────────────────────────────────────────────────────
 const C_BG := Color("#F4F1EA")
@@ -110,6 +112,7 @@ func _ready() -> void:
 	_apply_theme_fonts()
 	_btn_delouse.pressed.connect(_on_delouse)
 	_btn_harvest.pressed.connect(_on_harvest)
+	_btn_harvest_report.pressed.connect(_on_harvest_report)
 	_btn_repair.pressed.connect(_on_repair)
 	_btn_stock.pressed.connect(_on_stock)
 	_btn_skirt.pressed.connect(_on_toggle_mitigation.bind("skirt"))
@@ -154,7 +157,7 @@ func _apply_localization() -> void:
 
 ## Juice-only: press feedback on the three detail action buttons.
 func _attach_button_juice() -> void:
-	for btn in [_btn_delouse, _btn_harvest, _btn_repair, _btn_stock, _btn_skirt, _btn_deterrent, _btn_rov]:
+	for btn in [_btn_delouse, _btn_harvest, _btn_harvest_report, _btn_repair, _btn_stock, _btn_skirt, _btn_deterrent, _btn_rov]:
 		if btn is BaseButton:
 			JuiceEffects.attach_press_feedback(btn)
 
@@ -320,7 +323,8 @@ func _refresh_detail() -> void:
 
 	# Button states
 	UIPolish.set_available(_btn_delouse, _delouse_blocker(fish, lice))
-	UIPolish.set_available(_btn_harvest, _harvest_blocker(fish, avg_w))
+	UIPolish.set_available(_btn_harvest, _harvest_blocker(fish))
+	_update_harvest_button()
 	UIPolish.set_available(_btn_repair,
 		tr("UI_WHY_NETS_WHOLE") % SimFormatters.percent(integrity / 100.0) if integrity >= NETS_WHOLE_PCT else "")
 	# Mitigation toggles (Phase 1.5) reflect live site state.
@@ -329,6 +333,7 @@ func _refresh_detail() -> void:
 	_btn_skirt.text = ("🔛 " if has_skirt else "⚪ ") + tr("UI_PEN_SKIRT")
 	_btn_deterrent.text = ("🔛 " if has_det else "⚪ ") + tr("UI_PEN_DETERRENT")
 	_refresh_pens()
+	_feed_plan.show_site(_selected_pen_id, str(pen.get("name", _selected_pen_id)))
 
 # ── Pens and stocking (S2-01b) ────────────────────────────────────────────────
 
@@ -403,13 +408,24 @@ func _delouse_blocker(fish: int, lice: float) -> String:
 		return tr("UI_WHY_LICE_BELOW") % [SimFormatters.num(lice, 2), SimFormatters.num(SimState.LICE_TREATMENT_LIMIT, 2)]
 	return ""
 
-## Why the pen cannot be harvested now ("" when it can).
-func _harvest_blocker(fish: int, avg_w: float) -> String:
-	if fish == 0:
-		return tr("UI_WHY_NO_FISH")
-	if avg_w < HARVEST_MIN_WEIGHT_KG:
-		return tr("UI_WHY_HARVEST_WEIGHT") % [SimFormatters.num(avg_w, 1), SimFormatters.num(HARVEST_MIN_WEIGHT_KG, 1)]
-	return ""
+## Why the site's harvest planner has nothing to plan ("" when it has fish).
+## Small fish open it too: the planner prices them and says they are small
+## (an emergency harvest is a real decision, U2-05).
+func _harvest_blocker(fish: int) -> String:
+	return tr("UI_WHY_NO_FISH") if fish == 0 else ""
+
+
+## "Høst" opens the harvest planner (U2-05); with an order placed it reads
+## "Slakteplan · bestilt" and opens the planner on the order.
+func _update_harvest_button() -> void:
+	var ordered := false
+	if _sim and _sim.has_method("get_harvest_orders"):
+		for o in _sim.get_harvest_orders():
+			ordered = ordered or str(o.get("holding_id", "")) == _selected_pen_id
+	_btn_harvest.text = "📦 " + (tr("HARVESTPLAN_BUTTON_ORDERED") if ordered else tr("UI_PEN_HARVEST"))
+	_btn_harvest.set_meta(&"enabled_tooltip", tr("HARVESTPLAN_BUTTON_TIP"))
+	_btn_harvest_report.text = tr("HARVESTPLAN_LAST_REPORT")
+	_btn_harvest_report.visible = not HarvestReport.latest_key_for(_sim, _selected_pen_id).is_empty()
 
 func _show_no_pen() -> void:
 	_no_pen_label.visible = true
@@ -498,12 +514,32 @@ func _populate_treatments() -> void:
 		_treatment_ids.append("Hydrolicer")
 		_delouse_option.add_item(SimLabels.delousing("Hydrolicer"))
 
+## "Høst" (U2-05): the harvest planner, whose default is the planned order
+## (fast, wellboat slot, slaughterhouse capacity) and whose secondary verb is
+## the express harvest today.
 func _on_harvest() -> void:
 	if _selected_pen_id.is_empty() or not _sim:
 		return
-	if _sim.has_method("harvest_pen"):
-		_sim.harvest_pen(_selected_pen_id)
-	action_requested.emit("harvest", _selected_pen_id)
+	var planner := HarvestScreens.planner(get_tree())
+	if planner != null:
+		var site := str(_sim.site_name(_selected_pen_id)) if _sim.has_method("site_name") else _selected_pen_id
+		planner.open_for(_selected_pen_id, site)
+		if not planner.planner_closed.is_connected(_on_planner_closed):
+			planner.planner_closed.connect(_on_planner_closed)
+	action_requested.emit("harvest_plan", _selected_pen_id)
+
+
+func _on_planner_closed(_action: String) -> void:
+	_refresh()
+
+
+## The site's last harvest report (U2-05), also after its pens are emptied.
+func _on_harvest_report() -> void:
+	if _selected_pen_id.is_empty():
+		return
+	var sheet := HarvestScreens.report(get_tree())
+	if sheet != null:
+		sheet.show_latest_for(_selected_pen_id)
 
 func _on_repair() -> void:
 	if _selected_pen_id.is_empty() or not _sim:
@@ -608,15 +644,15 @@ func _on_rov() -> void:
 
 func _on_pen_action_completed(action: String, pen_id: String, _success: bool) -> void:
 	_refresh()
-	# Juice-only feedback: toast per action, celebration on harvest.
-	# Simulation numbers are untouched; this only reads the completion signal.
+	# Juice-only feedback: toast per action. A harvest's one toast (and its
+	# report) belongs to ConsequenceDirector (U2-05: exactly one per harvest);
+	# the panel only pulses. Simulation numbers are untouched.
 	var site := str(_sim.site_name(pen_id)) if _sim and _sim.has_method("site_name") else pen_id
 	if _success:
 		match action:
 			"delouse", "delousing":
 				_toast("🧪 " + tr("UI_TOAST_DELOUSE_OK") % site, "SUCCESS")
 			"harvest":
-				_toast("📦 " + tr("UI_TOAST_HARVEST_OK") % site, "SUCCESS")
 				_play_harvest_celebration()
 			"repair_nets":
 				_toast("🔧 " + tr("UI_TOAST_REPAIR_OK") % site, "SUCCESS")
@@ -630,6 +666,13 @@ func _on_pen_action_completed(action: String, pen_id: String, _success: bool) ->
 				_toast("🏗️ " + tr("UI_TOAST_BUY_PEN"), "SUCCESS")
 			"sell":
 				_toast("💰 " + tr("UI_TOAST_SELL_PEN") % site, "INFO")
+			"feed_plan":
+				if pen_id == "all_sites":
+					_toast(tr("UI_TOAST_FEED_PLAN_ALL_OK"), "SUCCESS")
+				else:
+					_toast(tr("UI_TOAST_FEED_PLAN_OK") % site, "SUCCESS")
+	elif action == "feed_plan":
+		pass  # the card says why (FeedPlanCard._after_apply)
 	elif action == "stock_smolts" and not _last_stock_reason.is_empty() and tr(_last_stock_reason) != _last_stock_reason:
 		# S2-01b: say why the pen refused (200,000 fish, 25 kg/m³, MTB, money).
 		_toast("⚠️ " + tr(_last_stock_reason), "WARNING")

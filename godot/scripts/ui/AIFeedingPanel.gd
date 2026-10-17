@@ -13,11 +13,11 @@ class_name AIFeedingPanel
 @onready var appetite_level_label: Label = %AppetiteLabel
 @onready var fcr_savings_label: Label = %FcrLabel
 @onready var install_ai_button: Button = %BtnInstallAi
-@onready var protein_slider: HSlider = %ProteinSlider
-@onready var replace_slider: HSlider = %ReplaceSlider
-@onready var astax_slider: HSlider = %AstaxSlider
-@onready var recipe_preview: Label = %RecipePreview
-@onready var apply_recipe_button: Button = %BtnApplyRecipe
+# U2-04: the feed recipe moved into each site's feeding plan (Pens tab).
+@onready var recipe_header: Label = %RecipeHeader
+@onready var recipe_moved_label: Label = %RecipeMoved
+@onready var plan_summary_label: Label = %PlanSummary
+@onready var open_plan_button: Button = %BtnOpenFeedPlan
 
 # ── Autoloads ─────────────────────────────────────────────────────────────────
 var _theme: Node = null
@@ -35,10 +35,7 @@ func _ready():
 	_apply_localization()
 	_apply_theme_fonts()
 	install_ai_button.pressed.connect(_on_install_ai_pressed)
-	protein_slider.value_changed.connect(_on_recipe_changed)
-	replace_slider.value_changed.connect(_on_recipe_changed)
-	astax_slider.value_changed.connect(_on_recipe_changed)
-	apply_recipe_button.pressed.connect(_on_apply_recipe)
+	open_plan_button.pressed.connect(_on_open_feed_plan)
 
 	refresh()
 
@@ -47,6 +44,10 @@ func _ready():
 func _apply_localization() -> void:
 	ai_feeding_header_label.text = tr("UI_AIFEED_TITLE")
 	install_ai_button.text = tr("UI_AIFEED_INSTALL")
+	recipe_header.text = tr("UI_AIFEED_PLAN_TITLE")
+	recipe_moved_label.text = tr("UI_AIFEED_PLAN_MOVED")
+	open_plan_button.text = tr("UI_AIFEED_PLAN_OPEN")
+	open_plan_button.tooltip_text = tr("UI_AIFEED_PLAN_OPEN_TIP")
 
 func _apply_theme_fonts() -> void:
 	if not _theme:
@@ -59,42 +60,33 @@ func refresh():
 	_update_cameras_status()
 	_update_appetite_level()
 	_update_fcr_savings()
-	_sync_recipe_sliders()
-	_update_recipe_preview()
+	_update_plan_summary()
 	_update_install_button()
 
 
-## Feed recipe (Phase 4.4): sliders → preview → apply. Preview is computed
-## locally with the same formula as the engine (cost 12-19, FCR ×0.90-1.0).
-func _sync_recipe_sliders() -> void:
-	if _sim == null or not _sim.has_method("get_feed_recipe"):
+## How the sites are fed now: how many run their own feeding plan.
+func _update_plan_summary() -> void:
+	if plan_summary_label == null or _sim == null or not _sim.has_method("get_feed_plans"):
 		return
-	var r: Dictionary = _sim.get_feed_recipe()
-	protein_slider.set_value_no_signal(float(r.get("protein", 42.0)))
-	replace_slider.set_value_no_signal(float(r.get("replace", 20.0)))
-	astax_slider.set_value_no_signal(float(r.get("astax", 50.0)))
+	var plans: Array = _sim.get_feed_plans()
+	var custom := plans.filter(func(p: Dictionary) -> bool: return not bool(p.get("standard", true))).size()
+	if plans.is_empty():
+		plan_summary_label.text = tr("UI_AIFEED_PLAN_NO_SITES")
+	elif custom == 0:
+		plan_summary_label.text = tr("UI_AIFEED_PLAN_ALL_STANDARD") % plans.size()
+	else:
+		plan_summary_label.text = tr("UI_AIFEED_PLAN_SOME_CUSTOM") % [custom, plans.size()]
 
 
-func _on_recipe_changed(_value: float) -> void:
-	_update_recipe_preview()
-
-
-func _update_recipe_preview() -> void:
-	var p := protein_slider.value
-	var r := replace_slider.value
-	var a := astax_slider.value
-	var cost := 12.0 + (p - 38.0) * 0.18 + r * 0.05 + a * 0.025
-	var fcr := 1.0 - (p - 38.0) * 0.003 - r * 0.0006 - minf(a, 60.0) * 0.0002
-	var grade := "A" if a >= 50.0 and p >= 42.0 else ("B" if a >= 40.0 else "C")
-	recipe_preview.text = tr("UI_AIFEED_RECIPE_PREVIEW") % [SimFormatters.num(cost, 1), SimFormatters.num(fcr, 3), grade,
-		tr("UI_AIFEED_VAP_FULL") if grade != "C" else tr("UI_AIFEED_VAP_PALE")]
-	recipe_preview.add_theme_color_override("font_color",
-		Color("#2E6B45") if grade == "A" else (Color("#8A5A00") if grade == "B" else Color("#B3172F")))
-
-
-func _on_apply_recipe() -> void:
-	if _sim and _sim.has_method("set_feed_recipe"):
-		_sim.set_feed_recipe(protein_slider.value, replace_slider.value, astax_slider.value)
+## The plans live on the Pens tab: open it (the first site's card shows).
+func _on_open_feed_plan() -> void:
+	var node: Node = self
+	while node != null:
+		if node.has_method("show_tab") and node.has_method("has_tab"):
+			if bool(node.call("has_tab", "pens")):
+				node.call("show_tab", "pens")
+			return
+		node = node.get_parent()
 
 func on_panel_shown() -> void:
 	refresh()

@@ -1,5 +1,5 @@
 {
-  "version": "1.1.0",
+  "version": "1.1.1",
   "facilitiesIncludes": [
     "calibration/facilities_common.json",
     "calibration/facilities_land.json",
@@ -220,5 +220,21 @@
     "standardNetWallDepthM": 25.0,
     "standardConeDepthM": 15.0,
     "builtSitePenCount": 8
+  },
+  "feedPlan": {
+    "restrictedRation": 0.70,
+    "moderateRation": 0.85,
+    "minRation": 0.50,
+    "maxWindowDays": 365,
+    "projectionDays": 30,
+    "highEnergyFcrFactor": 0.95,
+    "highEnergyPriceFactor": 1.05,
+    "highEnergyProteinPct": 42.0,
+    "economyFcrFactor": 1.06,
+    "economyPriceFactor": 0.94,
+    "economyProteinPct": 40.0,
+    "economyAstaxanthinPpm": 30.0,
+    "standardAstaxanthinPpm": 50.0,
+    "standardProteinPct": 42.0
   }
 }

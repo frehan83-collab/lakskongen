@@ -66,7 +66,8 @@ const ALERT_SFX: Dictionary = {
 	"disease_outbreak": "res://assets/audio/sfx/disease_alert.wav",
 	"market_crash":     "res://assets/audio/sfx/financial_crisis.wav",
 	"achievement":      "res://assets/audio/sfx/achievement_unlock.wav",
-	"harvest":          "res://assets/audio/sfx/harvest_ready.wav",
+	# U2-05: the harvest's payoff stinger (tools/gen_harvest_stinger.py), 1.9 s.
+	"harvest":          "res://assets/audio/sfx/harvest_stinger.wav",
 	"lice_warning":     "res://assets/audio/sfx/lice_alert.wav",
 }
 

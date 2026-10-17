@@ -39,7 +39,7 @@ namespace LakskongenSim.Calibration
         public const string EmbeddedResourceName = "LakskongenSim.Calibration.calibration.json";
 
         /// <summary>Current schema/balancing version. Bump when reconciled values change.</summary>
-        public const string DefaultVersion = "1.1.0";
+        public const string DefaultVersion = "1.1.1";
 
         /// <summary>Calibration schema/balancing version.</summary>
         [JsonPropertyName("version")]
@@ -151,6 +151,15 @@ namespace LakskongenSim.Calibration
         /// </summary>
         [JsonPropertyName("pens")]
         public PenCalibration Pens { get; init; } = new();
+
+        /// <summary>
+        /// Feeding plans (U2-04): the ration stops of the plan card, the
+        /// lowest ration and longest window a plan may set, the days the card
+        /// projects, and what the high-energy and economy recipes do to the
+        /// FCR, the feed price and the fillet colour.
+        /// </summary>
+        [JsonPropertyName("feedPlan")]
+        public FeedPlanCalibration FeedPlan { get; init; } = new();
 
         /// <summary>
         /// Facilities (F2-04, docs/FARM_TYPES_SPEC.md §3.9): the farm types'
@@ -1414,6 +1423,110 @@ namespace LakskongenSim.Calibration
         /// locality a build clears (<see cref="CapacityCalibration.BuiltSiteLocalityMtbTonnes"/>).
         /// </summary>
         public int BuiltSitePenCount { get; init; } = 8;
+    }
+
+    #endregion
+
+    #region U2-04 feeding plans
+
+    /// <summary>
+    /// Feeding plans (roadmap U2-04): a site's ration as a share of its fish's
+    /// appetite (S2-03 <c>RationPolicy</c>; the growth-ration curve is
+    /// <see cref="GrowthCalibration.RationCurvature"/>) and the recipe its barge
+    /// carries. A recipe is priced on its energy, so its FCR and its price move
+    /// together and the feed cost per kg of growth stays within 1 % of the
+    /// standard feed's; the recipes differ in feed tonnage (sludge, nitrogen and
+    /// phosphorus) and fillet colour.
+    /// </summary>
+    public sealed record FeedPlanCalibration
+    {
+        /// <summary>
+        /// The "Begrenset" stop of the ration slider (fraction of appetite):
+        /// 0.70, the optimum ration of the growth law (best conversion; Brett
+        /// 1979, Fish Physiology VIII: the optimum ration of salmonids lies well
+        /// below the maximum), the ration a farmer holds biomass under MTB with.
+        /// Year 1979.
+        /// </summary>
+        public double RestrictedRation { get; init; } = 0.70;
+
+        /// <summary>
+        /// The "Moderat" stop (fraction of appetite): 0.85. Game estimate
+        /// (2026) between the optimum and satiation, after Johansen and Jobling
+        /// 1998 (Aquaculture International 6: 1-17, doi:10.1023/A:1009250118318,
+        /// cage-reared Atlantic salmon): fish fed to satiation ate more and grew
+        /// faster, fish on predetermined rations converted feed better.
+        /// </summary>
+        public double ModerateRation { get; init; } = 0.85;
+
+        /// <summary>
+        /// The lowest ration a plan may set (fraction of appetite): 0.50.
+        /// Stefansson, Imsland and Handeland 2009 (Aquaculture 290: 243 ff.,
+        /// doi:10.1016/j.aquaculture.2009.02.024): post-smolts in sea water fed
+        /// 50, 75 and 100 % of a full ration for six weeks grew, while 0 and
+        /// 25 % gained no weight and their growth rate fell; all caught up when
+        /// re-fed. Year 2009.
+        /// </summary>
+        public double MinRation { get; init; } = 0.50;
+
+        /// <summary>The longest window a plan may set (days): 365, one year of the sea phase.</summary>
+        public int MaxWindowDays { get; init; } = 365;
+
+        /// <summary>Days the plan card projects a plan over (the U2-04 acceptance horizon): 30.</summary>
+        public int ProjectionDays { get; init; } = 30;
+
+        /// <summary>
+        /// FCR of the high-energy recipe relative to the standard feed: 0.95.
+        /// Hillestad et al. 1998 (Aquaculture Nutrition 4: 89-97): Atlantic
+        /// salmon fed a 30 % against a 22 % fat diet at the same energy intake
+        /// grew alike, and the FCR fell with the diet's energy; 5 % more
+        /// digestible energy per kg is a game estimate (2026) inside that range.
+        /// </summary>
+        public double HighEnergyFcrFactor { get; init; } = 0.95;
+
+        /// <summary>
+        /// Price per kg of the high-energy recipe relative to the standard feed:
+        /// 1.05. Game estimate (2026): feed is priced on its energy, so the cost
+        /// per kg of growth stays at 0.95 x 1.05 = 0.9975 of the standard's.
+        /// </summary>
+        public double HighEnergyPriceFactor { get; init; } = 1.05;
+
+        /// <summary>Crude protein of the high-energy recipe (%): 42, as the standard feed (the energy is fat).</summary>
+        public double HighEnergyProteinPct { get; init; } = 42.0;
+
+        /// <summary>
+        /// FCR of the economy recipe relative to the standard feed: 1.06. The
+        /// same energy rule as <see cref="HighEnergyFcrFactor"/> for a feed with
+        /// about 6 % less digestible energy (more plant ingredients); game
+        /// estimate (2026).
+        /// </summary>
+        public double EconomyFcrFactor { get; init; } = 1.06;
+
+        /// <summary>
+        /// Price per kg of the economy recipe relative to the standard feed:
+        /// 0.94. Game estimate (2026): 1.06 x 0.94 = 0.9964 of the standard's
+        /// cost per kg of growth.
+        /// </summary>
+        public double EconomyPriceFactor { get; init; } = 0.94;
+
+        /// <summary>Crude protein of the economy recipe (%): 40. Game estimate (2026).</summary>
+        public double EconomyProteinPct { get; init; } = 40.0;
+
+        /// <summary>
+        /// Astaxanthin in the economy recipe (mg/kg): 30, against the standard
+        /// feed's <see cref="StandardAstaxanthinPpm"/>. Astaxanthin gives the
+        /// fillet its colour, and the pigment a fish deposits rises with the
+        /// astaxanthin in its feed (Torrissen 1989, Aquaculture 79: 363-374);
+        /// 30 mg/kg is a game estimate (2026). Below 40 mg/kg the fillet line
+        /// grades the fish pale (<c>Processing.FeedRecipe.Grade</c> "C", the VAP
+        /// premium halved).
+        /// </summary>
+        public double EconomyAstaxanthinPpm { get; init; } = 30.0;
+
+        /// <summary>Astaxanthin in the standard feed (mg/kg): 50, the game's default recipe (<c>GameState.RecipeAstaxPpm</c>).</summary>
+        public double StandardAstaxanthinPpm { get; init; } = 50.0;
+
+        /// <summary>Crude protein of the standard feed (%): 42, the game's default recipe (<c>GameState.RecipeProteinPct</c>).</summary>
+        public double StandardProteinPct { get; init; } = 42.0;
     }
 
     #endregion

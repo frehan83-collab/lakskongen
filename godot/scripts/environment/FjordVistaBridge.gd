@@ -87,7 +87,11 @@ func _find_panel(panel_name: String) -> Control:
 
 
 func _initial_sync() -> void:
-	_on_state_updated()
+	# The scene may arrive after the last refresh: ask the bridge afresh once.
+	var sim := get_node_or_null("/root/SimBridge")
+	if pen_manager != null and sim != null and sim.has_method("get_all_pens"):
+		pen_manager.sync_pens_from_sim(sim.get_all_pens())
+		_sync_environment(sim)
 	call_deferred("_focus_first_pen")
 
 
@@ -122,17 +126,20 @@ func _update_world_cover() -> void:
 	director.set_world_visible(world_visible or not ui_drawn)
 
 
+## Once per snapshot refresh (once a sim day while the clock runs): the
+## sites from the refresh's own snapshot (SimState.sea_sites); the pen
+## manager touches only what changed.
 func _on_state_updated() -> void:
 	if pen_manager == null:
 		return
 	var sim := get_node_or_null("/root/SimBridge")
-	if sim == null or not sim.has_method("get_all_pens"):
+	if sim == null or not ("sea_sites" in sim):
 		return
-	pen_manager.sync_pens_from_sim(sim.get_all_pens())
+	pen_manager.sync_pens_from_sim(sim.sea_sites)
 	_sync_environment(sim)
 
 
-## Living-fjord sync (~1 Hz via state_updated): the sim's calendar, latitude
+## Living-fjord sync (once a sim day via state_updated): the sim's calendar, latitude
 ## and atmosphere (GameBridge.GetSkyContext: Koschmieder visibility, cloud,
 ## rain or snow, sea fog, wind, waves) drive the sky and weather; the sea
 ## temperature and bloom severity drive the water. The environment's

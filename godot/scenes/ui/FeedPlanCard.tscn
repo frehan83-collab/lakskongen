@@ -1,0 +1,176 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/FeedPlanCard.gd" id="1_feedplan"]
+
+[node name="FeedPlanCard" type="PanelContainer"]
+theme_type_variation = &"Card"
+size_flags_horizontal = 3
+script = ExtResource("1_feedplan")
+
+[node name="Outer" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="PanelContainer" parent="Outer"]
+theme_type_variation = &"CardHeaderCompact"
+layout_mode = 2
+
+[node name="HeaderRow" type="HBoxContainer" parent="Outer/Header"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="PlanTitle" type="Label" parent="Outer/Header/HeaderRow"]
+theme_type_variation = &"BodySmallStrong"
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Fôringsplan"
+
+[node name="PlanStatus" type="Label" parent="Outer/Header/HeaderRow"]
+theme_type_variation = &"TagMuted"
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 4
+text = "Standard"
+
+[node name="Pad" type="MarginContainer" parent="Outer"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="Body" type="VBoxContainer" parent="Outer/Pad"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="RationRow" type="HBoxContainer" parent="Outer/Pad/Body"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="RationCaption" type="Label" parent="Outer/Pad/Body/RationRow"]
+theme_type_variation = &"SmallMuted"
+unique_name_in_owner = true
+custom_minimum_size = Vector2(96, 0)
+layout_mode = 2
+text = "Fôrmengde"
+
+[node name="RationSlider" type="HSlider" parent="Outer/Pad/Body/RationRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+min_value = 50.0
+step = 1.0
+value = 100.0
+
+[node name="RationValue" type="Label" parent="Outer/Pad/Body/RationRow"]
+theme_type_variation = &"FigureLarge"
+unique_name_in_owner = true
+custom_minimum_size = Vector2(190, 0)
+layout_mode = 2
+horizontal_alignment = 2
+text = "100 % av appetitt"
+
+[node name="StopsRow" type="HBoxContainer" parent="Outer/Pad/Body"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="StopsIndent" type="Control" parent="Outer/Pad/Body/StopsRow"]
+custom_minimum_size = Vector2(96, 0)
+layout_mode = 2
+
+[node name="StopRestricted" type="Button" parent="Outer/Pad/Body/StopsRow"]
+theme_type_variation = &"SmallButton"
+unique_name_in_owner = true
+layout_mode = 2
+toggle_mode = true
+text = "Begrenset"
+
+[node name="StopModerate" type="Button" parent="Outer/Pad/Body/StopsRow"]
+theme_type_variation = &"SmallButton"
+unique_name_in_owner = true
+layout_mode = 2
+toggle_mode = true
+text = "Moderat"
+
+[node name="StopFull" type="Button" parent="Outer/Pad/Body/StopsRow"]
+theme_type_variation = &"SmallButton"
+unique_name_in_owner = true
+layout_mode = 2
+toggle_mode = true
+text = "Full appetitt"
+
+[node name="OptionsRow" type="HFlowContainer" parent="Outer/Pad/Body"]
+layout_mode = 2
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 8
+
+[node name="RecipeCaption" type="Label" parent="Outer/Pad/Body/OptionsRow"]
+theme_type_variation = &"SmallMuted"
+unique_name_in_owner = true
+custom_minimum_size = Vector2(96, 0)
+layout_mode = 2
+size_flags_vertical = 4
+text = "Fôrtype"
+
+[node name="RecipeOption" type="OptionButton" parent="Outer/Pad/Body/OptionsRow"]
+theme_type_variation = &"SmallOptionButton"
+unique_name_in_owner = true
+custom_minimum_size = Vector2(240, 0)
+layout_mode = 2
+
+[node name="WindowCaption" type="Label" parent="Outer/Pad/Body/OptionsRow"]
+theme_type_variation = &"SmallMuted"
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 4
+text = "Varighet"
+
+[node name="WindowOption" type="OptionButton" parent="Outer/Pad/Body/OptionsRow"]
+theme_type_variation = &"SmallOptionButton"
+unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 0)
+layout_mode = 2
+
+[node name="ForecastPanel" type="PanelContainer" parent="Outer/Pad/Body"]
+theme_type_variation = &"Inset"
+layout_mode = 2
+
+[node name="Forecast" type="GridContainer" parent="Outer/Pad/Body/ForecastPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/h_separation = 16
+theme_override_constants/v_separation = 6
+columns = 3
+
+[node name="ForecastNote" type="Label" parent="Outer/Pad/Body"]
+theme_type_variation = &"SmallMuted"
+unique_name_in_owner = true
+layout_mode = 2
+autowrap_mode = 3
+text = "--"
+
+[node name="ActionsRow" type="HFlowContainer" parent="Outer/Pad/Body"]
+layout_mode = 2
+theme_override_constants/h_separation = 10
+theme_override_constants/v_separation = 8
+
+[node name="BtnApplyPlan" type="Button" parent="Outer/Pad/Body/ActionsRow"]
+theme_type_variation = &"SmallPrimaryButton"
+unique_name_in_owner = true
+layout_mode = 2
+text = "Bruk"
+
+[node name="BtnApplyAll" type="Button" parent="Outer/Pad/Body/ActionsRow"]
+theme_type_variation = &"SmallButton"
+unique_name_in_owner = true
+layout_mode = 2
+text = "Fôr alle"
+
+[node name="BtnResetPlan" type="Button" parent="Outer/Pad/Body/ActionsRow"]
+theme_type_variation = &"SmallGhostButton"
+unique_name_in_owner = true
+layout_mode = 2
+text = "Tilbake til standard"

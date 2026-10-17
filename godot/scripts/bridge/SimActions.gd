@@ -259,15 +259,24 @@ func place_pen(zone_id: String, pen_name: String = "New Pen") -> bool:
 	return success
 
 
-## Feed fish in a specific pen.
-## The engine has no per-pen manual feed API (daily feeding is automatic
-## via FeedSystem during Advance) — refuse loudly instead of faking success.
-func feed_pen(pen_id: String, amount_kg: float) -> bool:
+## A site's feeding plan (U2-04): ration (% of appetite), recipe id
+## ("standard" | "high_energy" | "economy") and window (days, 0 = until
+## changed). Returns the bridge's result ({success, message, error_key, plan}).
+func set_feed_plan(site_id: String, ration_pct: float, recipe: String, window_days: int) -> Dictionary:
 	if not game_bridge:
-		return false
-	push_warning("SimBridge: feed_pen('%s', %.1f kg) not supported by GameBridge — no feed applied" % [pen_id, amount_kg])
-	pen_action_completed.emit("feed", pen_id, false)
-	return false
+		return {"success": false, "error_key": "engine_not_ready", "message": "Not initialized"}
+	var result: Dictionary = game_bridge.SetFeedPlan(site_id, ration_pct, recipe, window_days)
+	pen_action_completed.emit("feed_plan", site_id, bool(result.get("success", false)))
+	return result
+
+
+## "Fôr alle": the same plan for every site ({success, message, error_key, site_count}).
+func set_feed_plan_all(ration_pct: float, recipe: String, window_days: int) -> Dictionary:
+	if not game_bridge:
+		return {"success": false, "error_key": "engine_not_ready", "message": "Not initialized"}
+	var result: Dictionary = game_bridge.SetFeedPlanForAll(ration_pct, recipe, window_days)
+	pen_action_completed.emit("feed_plan", "all_sites", bool(result.get("success", false)))
+	return result
 
 
 ## Harvest a pen
@@ -444,13 +453,6 @@ func set_watch_mode(site_id: String, mode: String) -> bool:
 
 	return success
 
-
-## Set feed recipe sliders (Phase 4.4).
-func set_feed_recipe(protein: float, replace: float, astax: float) -> void:
-	if not game_bridge:
-		return
-	game_bridge.SetFeedRecipe(protein, replace, astax)
-	state._refresh_state()
 
 
 ## Set night-shift ROC policy: "Standard"/"ScanOnly"/"AutomatedROC" (Phase 5.2).
