@@ -121,6 +121,7 @@ public partial class SimulationEngine
         project.DurationFactor = ConstructionSchedule.DurationFactor(calibration, durationDraw);
         project.PhaseDays = ConstructionSchedule.PhaseDays(phase, project.DurationFactor);
         project.PhaseStartDay = State.Day;
+        project.SuspendedDays = 0;
         project.Status = ConstructionStatus.Building;
         return true;
     }
@@ -139,6 +140,11 @@ public partial class SimulationEngine
         {
             var project = projects[i];
             if (project.Status == ConstructionStatus.Complete) continue;
+            // F2-14: a phase that stops in its closed months (sea works in
+            // April-June) stands still today; its end moves a day on.
+            if (project.Status == ConstructionStatus.Building && project.Current is { SuspendedInClosedMonths: true } seasonal
+                && seasonal.ClosedMonths.Contains(SimCalendar.Month(State.Day)))
+                project.SuspendedDays++;
             if (project.Status == ConstructionStatus.Building && State.Day >= project.PhaseEndDay)
                 FinishCurrentPhase(project);
             if (project.Status == ConstructionStatus.Waiting)
@@ -162,6 +168,7 @@ public partial class SimulationEngine
         project.PlayerStartRequested = false;
         project.PhaseStartDay = -1;
         project.PhaseDays = 0;
+        project.SuspendedDays = 0;
         if (project.CurrentPhase >= project.Phases.Count)
         {
             project.Status = ConstructionStatus.Complete;

@@ -110,6 +110,12 @@ public partial class SimulationEngine
         double researchGrowth = 1.0 + ResearchEffectFor(ResearchEffectKeys.GrowthRateBonus, researchScope);
         double researchFcrReduction = ResearchEffectFor(ResearchEffectKeys.FcrReduction, researchScope);
         double dayLength = DayLengthHoursOf(husbandry.Water);
+        // F2-12: a land tank's density stress is the tank's own (the land
+        // curve from 50 kg/m³); the biology passes 1.0 for a land pad, which is
+        // no fjord zone, so the product is the tank's multiplier alone.
+        double densityGrowth = husbandry.DensityGrowthMultiplier;
+        if (husbandry.Water.Kind == HoldingKind.LandTank)
+            densityGrowth *= Farm.Land.LandHooks.DensityGrowthMultiplier(this, HoldingOf(population), population);
 
         double grownKg = 0.0;
         double eatenKg = 0.0;
@@ -121,7 +127,7 @@ public partial class SimulationEngine
                 ration,
                 husbandry.AppetiteModifier,
                 CohortGrowthMultiplier(cohort) * husbandry.ContainmentGrowthMultiplier * researchGrowth,
-                husbandry.DensityGrowthMultiplier,
+                densityGrowth,
                 husbandry.SpreadQuality,
                 dayLength);
             double satiationFcr = Feed.SatiationFcr(temperature, cohort.Stage,
@@ -145,6 +151,8 @@ public partial class SimulationEngine
             husbandry.Recipe.PriceFactor);
         // F2-04: a land tank's (or a non-liable offshore unit's) feed stays out of the rent base.
         if (husbandry.Water.Kind != HoldingKind.SeaPen) AttributePopulationCost(population, fed.CostNOK);
+        // F2-12: the land tick runs on the day's feed (its fish's oxygen, CO2 and ammonia).
+        if (husbandry.Water.Kind == HoldingKind.LandTank) NoteLandFeed(population, fed.FeedUsedKg);
         return fed;
     }
 

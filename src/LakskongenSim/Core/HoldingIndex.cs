@@ -84,14 +84,19 @@ internal sealed class HoldingIndex
     /// </summary>
     internal static PopulationHolding HoldingOfUnit(FishPopulation population, in FarmUnit unit, Func<string?, Zone?> zoneOf)
     {
-        if (unit.LandSite != null) return LandTank(unit.LandSite);
+        if (unit.LandSite != null) return LandTank(unit.LandSite, population);
         if (unit.LegacyOffshoreFarm != null) return OffshorePen(unit.LegacyOffshoreFarm, zoneOf(unit.LegacyOffshoreFarm.ZoneId));
         if (unit.Site is { Kind: SiteKind.Offshore } offshore) return OffshoreSitePen(population, offshore, zoneOf(offshore.ZoneId));
         return SeaPen(population, unit.Site, zoneOf(population.ZoneId));
     }
 
-    internal static PopulationHolding LandTank(RASFacility facility)
-        => new(HoldingKind.LandTank, facility.Id ?? "", null, null, facility, null);
+    /// <summary>
+    /// A land site's tank: the site, and (F2-12) the physical tank holding the
+    /// population as its production unit (<see cref="Farm.Land.LandTank.Pen"/>:
+    /// its volume and occupancy), null at a pre-F2 site or for fish in no tank.
+    /// </summary>
+    internal static PopulationHolding LandTank(RASFacility facility, FishPopulation? population = null)
+        => new(HoldingKind.LandTank, facility.Id ?? "", null, null, facility, null, facility.TankOf(population)?.Pen);
 
     internal static PopulationHolding OffshorePen(OffshoreFarm farm, Zone? zone)
         => new(HoldingKind.Offshore, farm.Id ?? "", zone, null, null, farm);

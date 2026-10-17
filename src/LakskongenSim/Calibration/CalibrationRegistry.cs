@@ -39,7 +39,7 @@ namespace LakskongenSim.Calibration
         public const string EmbeddedResourceName = "LakskongenSim.Calibration.calibration.json";
 
         /// <summary>Current schema/balancing version. Bump when reconciled values change.</summary>
-        public const string DefaultVersion = "1.1.1";
+        public const string DefaultVersion = "1.1.2";
 
         /// <summary>Calibration schema/balancing version.</summary>
         [JsonPropertyName("version")]

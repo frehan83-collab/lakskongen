@@ -34,6 +34,96 @@ namespace LakskongenSim.Farm
         /// </summary>
         public string PlotId { get; set; } = "";
 
+        // ─── F2-12: lots, tanks and the water strategy (additive) ───
+        /// <summary>
+        /// The site's lots (roadmap F2-12, docs/FARM_TYPES_SPEC.md §3.2): an HFS
+        /// lot, a pilot lot, a RAS hall or a post-smolt module each, with their
+        /// physical tanks. A site with lots runs the F2 land physics
+        /// (<c>LandSiteTickSystem</c>: water, energy, oxygen per lot); a site
+        /// with none is a pre-F2 facility (a load, the legacy build verb) and runs
+        /// <see cref="TickDay"/>.
+        /// </summary>
+        public List<Land.LandLot> Lots { get; set; } = new();
+
+        /// <summary>
+        /// The Vannstrategi's deep-intake share w (0-1, spec §3.3): read only
+        /// while <see cref="BlendTowardSetpoint"/> is off. Reuse is
+        /// <see cref="RecirculationRate"/> and the setpoint <see cref="TargetWaterTemp"/>.
+        /// </summary>
+        public double DeepIntakeShare { get; set; } = 0.5;
+
+        /// <summary>True: the intakes are blended every day toward the setpoint (Salmon Evolution's practice, [L:R2]).</summary>
+        public bool BlendTowardSetpoint { get; set; } = true;
+
+        /// <summary>True when the site was built with a denitrification stage (F2-14's discharge mitigation).</summary>
+        public bool DenitrificationCommitted { get; set; }
+
+        /// <summary>Liquid oxygen the site bought today (kg; F2-12 land tick).</summary>
+        public double DailyLoxKg { get; set; }
+
+        /// <summary>Upstream energy of today's liquid oxygen (kWh, Scope 3: off the site's meter).</summary>
+        public double DailyLoxUpstreamKWh { get; set; }
+
+        /// <summary>The stockings of the last 365 days (the nameplate check, F2-12 acceptance 6).</summary>
+        public List<Core.LandStockingRecord> StockingLog { get; set; } = new();
+
+        /// <summary>True for an F2 land site (it has lots).</summary>
+        [System.Text.Json.Serialization.JsonIgnore]
+        public bool HasLots => Lots.Count > 0;
+
+        /// <summary>The site's Vannstrategi (spec §3.4 <c>SetVannstrategi</c>).</summary>
+        [System.Text.Json.Serialization.JsonIgnore]
+        public Land.LandWaterStrategy WaterStrategy
+            => new(RecirculationRate, DeepIntakeShare, TargetWaterTemp, BlendTowardSetpoint);
+
+        /// <summary>Every tank of the site, lot by lot.</summary>
+        public IEnumerable<Land.LandTank> AllTanks()
+        {
+            foreach (var lot in Lots)
+                foreach (var tank in lot.Tanks)
+                    yield return tank;
+        }
+
+        /// <summary>The tank with <paramref name="tankId"/> ("ras_1/t07") or its number ("7", "t07"), or null.</summary>
+        public Land.LandTank? FindTank(string? tankId)
+        {
+            if (string.IsNullOrWhiteSpace(tankId)) return null;
+            foreach (var tank in AllTanks())
+                if (tank.Id == tankId) return tank;
+            string number = tankId.Trim().TrimStart('t', 'T');
+            if (int.TryParse(number, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int n))
+                foreach (var tank in AllTanks())
+                    if (tank.Pen.Number == n) return tank;
+            return null;
+        }
+
+        /// <summary>The tank that holds <paramref name="population"/>, or null (a pre-F2 site, or fish in no tank).</summary>
+        public Land.LandTank? TankOf(Biology.FishPopulation? population)
+        {
+            if (population == null || string.IsNullOrEmpty(population.Id)) return null;
+            foreach (var lot in Lots)
+                foreach (var tank in lot.Tanks)
+                    if (tank.Pen.PopulationId == population.Id) return tank;
+            return null;
+        }
+
+        /// <summary>The lot that holds <paramref name="tank"/>, or null.</summary>
+        public Land.LandLot? LotOf(Land.LandTank tank)
+        {
+            foreach (var lot in Lots)
+                if (lot.Tanks.Contains(tank)) return lot;
+            return null;
+        }
+
+        /// <summary>The population in <paramref name="tank"/>, or null when it is empty.</summary>
+        public Biology.FishPopulation? PopulationIn(Land.LandTank tank)
+        {
+            if (tank == null || tank.Pen.IsEmpty) return null;
+            foreach (var population in Tanks)
+                if (population.Id == tank.Pen.PopulationId) return population;
+            return null;
+        }
+
         // ─── Capacity & Production ───
         /// <summary>Maximum annual production capacity in tonnes.</summary>
         public double CapacityTonnesPerYear { get; set; } = 8_000; // Medium-scale (Salmon Evolution = 7,900t)

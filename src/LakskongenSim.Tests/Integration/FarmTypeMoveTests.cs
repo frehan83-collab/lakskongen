@@ -141,7 +141,54 @@ public class FarmTypeMoveTests
         ["contained/events"] = "fef57de957a6a41d",
     };
 
+    /// <summary>
+    /// The same continuations on F2-12's wired engine (wave4/sim-land-1), the
+    /// whole save included: every land site gains F2-12's additive fields (its
+    /// lots, the Vannstrategi's deep share and blend flag, the denitrification
+    /// commitment, the day's liquid oxygen and its upstream energy, the
+    /// stocking log), and the save's pre-F2 RAS facility and post-smolt site
+    /// have no lots, so they keep the pre-F2 tick: hashed with those fields
+    /// left out (each at its default, asserted), each continuation is
+    /// <see cref="U2_03Recording"/> exactly (RUN_LOG §7, F2-12 wiring).
+    /// </summary>
+    private static readonly IReadOnlyDictionary<string, string> F2_12Recording = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["as-saved/events"] = "37cea6a31ef10952",
+        ["as-saved/no-events"] = "55c862b501e0c292",
+        ["contained/events"] = "92c01fd0345613de",
+    };
+
     public static IEnumerable<object[]> Variants() => F2_05Recording.Keys.Select(k => new object[] { k });
+
+    /// <summary>
+    /// A save as U2-03 wrote it: without F2-12's additive land-site fields
+    /// (each must be there at its default: no lot, the deep share 0.5, the
+    /// intakes blended, no denitrification, no oxygen bought, an empty stocking
+    /// log). The rewrite is exact: the save written back with nothing removed
+    /// is the save itself, byte for byte.
+    /// </summary>
+    internal static string AsU2_03Wrote(string savedJson)
+    {
+        var root = JsonNode.Parse(savedJson)!.AsObject();
+        Assert.Equal(savedJson, root.ToJsonString(SaveJson.Options));
+        var sites = Assert.IsType<JsonArray>(root["RASFacilities"]);
+        Assert.NotEmpty(sites);
+        foreach (var site in sites)
+        {
+            var fields = site!.AsObject();
+            Assert.Empty(Assert.IsType<JsonArray>(fields["Lots"]));
+            Assert.Equal(0.5, fields["DeepIntakeShare"]!.GetValue<double>());
+            Assert.True(fields["BlendTowardSetpoint"]!.GetValue<bool>());
+            Assert.False(fields["DenitrificationCommitted"]!.GetValue<bool>());
+            Assert.Equal(0.0, fields["DailyLoxKg"]!.GetValue<double>());
+            Assert.Equal(0.0, fields["DailyLoxUpstreamKWh"]!.GetValue<double>());
+            Assert.Empty(Assert.IsType<JsonArray>(fields["StockingLog"]));
+            foreach (var key in new[] { "Lots", "DeepIntakeShare", "BlendTowardSetpoint", "DenitrificationCommitted",
+                         "DailyLoxKg", "DailyLoxUpstreamKWh", "StockingLog" })
+                Assert.True(fields.Remove(key), key);
+        }
+        return root.ToJsonString(SaveJson.Options);
+    }
 
     /// <summary>
     /// A save as U2-04 wrote it: without U2-03's liquidity ladder and P&amp;L
@@ -255,10 +302,11 @@ public class FarmTypeMoveTests
     /// (<see cref="AsF2_05Wrote"/> of that) and <c>F2_04Hash</c> as F2-04
     /// wrote it (<see cref="AsF2_04Wrote"/> of that).
     /// </summary>
-    private static (string Hash, string U2_04Hash, string F2_05Hash, string F2_04Hash, SimulationEngine Engine, int RedCreditDays) RecordContinuation(string variant)
+    private static (string Hash, string U2_03Hash, string U2_04Hash, string F2_05Hash, string F2_04Hash, SimulationEngine Engine, int RedCreditDays) RecordContinuation(string variant)
     {
         var engine = Resume(variant);
         var sb = new StringBuilder();
+        var sbU2_03 = new StringBuilder();
         var sbU2_04 = new StringBuilder();
         var sbF2_05 = new StringBuilder();
         var sbF2_04 = new StringBuilder();
@@ -268,6 +316,7 @@ public class FarmTypeMoveTests
             engine.Advance(1);
             string dayHash = GoldenTraceState.Capture(engine).DayHash();
             sb.Append(dayHash).Append('\n');
+            sbU2_03.Append(dayHash).Append('\n');
             sbU2_04.Append(dayHash).Append('\n');
             sbF2_05.Append(dayHash).Append('\n');
             sbF2_04.Append(dayHash).Append('\n');
@@ -275,9 +324,11 @@ public class FarmTypeMoveTests
             if (day % SnapshotEveryDays == 0 || day == ContinuationDays)
             {
                 string save = SaveStateComparer.Normalize(SaveStateComparer.Serialize(engine));
-                string asU2_04 = AsU2_04Wrote(save);
+                string asU2_03 = AsU2_03Wrote(save);
+                string asU2_04 = AsU2_04Wrote(asU2_03);
                 string asF2_05 = AsF2_05Wrote(asU2_04);
                 sb.Append(GoldenTraceState.Hex(save, 8)).Append('\n');
+                sbU2_03.Append(GoldenTraceState.Hex(asU2_03, 8)).Append('\n');
                 sbU2_04.Append(GoldenTraceState.Hex(asU2_04, 8)).Append('\n');
                 sbF2_05.Append(GoldenTraceState.Hex(asF2_05, 8)).Append('\n');
                 sbF2_04.Append(GoldenTraceState.Hex(AsF2_04Wrote(asF2_05), 8)).Append('\n');
@@ -285,7 +336,7 @@ public class FarmTypeMoveTests
         }
         static string Hash(StringBuilder text) =>
             Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text.ToString())), 0, 8).ToLowerInvariant();
-        return (Hash(sb), Hash(sbU2_04), Hash(sbF2_05), Hash(sbF2_04), engine, redCreditDays);
+        return (Hash(sb), Hash(sbU2_03), Hash(sbU2_04), Hash(sbF2_05), Hash(sbF2_04), engine, redCreditDays);
     }
 
     /// <summary>
@@ -307,11 +358,11 @@ public class FarmTypeMoveTests
     [MemberData(nameof(Variants))]
     public void PreF2FacilitiesSave_Runs365Days_ExactlyAsBeforeTheMove(string variant)
     {
-        var (hash, u2_04Hash, f2_05Hash, f2_04Hash, engine, redCreditDays) = RecordContinuation(variant);
+        var (hash, u2_03Hash, u2_04Hash, f2_05Hash, f2_04Hash, engine, redCreditDays) = RecordContinuation(variant);
         var ras = engine.RASFacilities.Single(f => f.Kind == LandSiteKind.GrowOut);
         var postSmolt = engine.RASFacilities.Single(f => f.Kind == LandSiteKind.PostSmolt);
         var unit = engine.OffshoreUnits.Single();
-        _output.WriteLine($"{variant}: continuation {hash} (as U2-04 wrote the saves {u2_04Hash}, as F2-05 {f2_05Hash}, as F2-04 {f2_04Hash}); red-credit days {redCreditDays}; " +
+        _output.WriteLine($"{variant}: continuation {hash} (as U2-03 wrote the saves {u2_03Hash}, as U2-04 {u2_04Hash}, as F2-05 {f2_05Hash}, as F2-04 {f2_04Hash}); red-credit days {redCreditDays}; " +
             $"cash {engine.FinanceManager.Balance:N0}; fish {engine.State.Populations.Sum(p => (long)p.TotalCount):N0}; " +
             $"RAS kg {ras.GetTotalBiomassKg():N0}; post-smolt kg {postSmolt.GetTotalBiomassKg():N0}; " +
             $"offshore kg {unit.Pens.Sum(p => p.GetTotalBiomassKg()):N0}");
@@ -345,7 +396,9 @@ public class FarmTypeMoveTests
             _output.WriteLine("not enforced here: this platform's math library differs from the recording's");
             return;
         }
-        Assert.Equal(U2_03Recording[variant], hash);
+        Assert.Equal(F2_12Recording[variant], hash);
+        Assert.Equal(U2_03Recording[variant], u2_03Hash);   // F2-12 changes no pre-F2 facility day: only the land sites' new fields
+        Assert.NotEqual(U2_03Recording[variant], hash);     // ... which the whole save does carry
         Assert.Equal(U2_04Recording[variant], u2_04Hash);   // U2-03 changes no facility day: only the save's ladder and story
         Assert.NotEqual(U2_04Recording[variant], hash);     // ... which the whole save does carry
         Assert.Equal(F2_05Recording[variant], f2_05Hash);   // U2-04 changes no facility day: only the sea sites' (null) feeding plans
