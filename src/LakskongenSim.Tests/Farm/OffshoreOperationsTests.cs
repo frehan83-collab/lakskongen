@@ -8,6 +8,7 @@ using LakskongenSim.Farm;
 using LakskongenSim.Farm.Offshore;
 using LakskongenSim.Tests.Integration;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace LakskongenSim.Tests.Farm;
 
@@ -21,6 +22,8 @@ namespace LakskongenSim.Tests.Farm;
 public class OffshoreOperationsTests
 {
     private static readonly OffshoreCalibration Cal = OffshoreCalibration.Default;
+    private readonly ITestOutputHelper _out;
+    public OffshoreOperationsTests(ITestOutputHelper output) => _out = output;
 
     /// <summary>
     /// Acceptance 1: on a 6 m day the fish eat at appetite 0.7 of a calm day's
@@ -110,19 +113,30 @@ public class OffshoreOperationsTests
         Assert.Equal(4 * Cal.Costs.WellboatNokPerDay, booking.ChargedNok);
         Assert.True(site.Pens.Sum(p => p.TotalCount) < fish, "the treatment never ran");
 
-        // The S2-04 harvest order: batches only on a day within 2.5 m.
-        engine.SeaOverrideForTests = (s, d) => d % 3 == 0 ? 3.5 : 1.2;
+        // The S2-04 harvest order: batches only on a day within 2.5 m. The sea stays at
+        // 3.5 m through the order's slot and 3 days past it, then is rough every third day:
+        // the order waits out the slot, and every batch's day (the sea the unit stood in
+        // that day, read right after it) is within the offshore wellboat's limit.
         var order = engine.OrderHarvest(site.Id);
         Assert.True(order.Ok, order.Message);
-        int reportsBefore = engine.HarvestReports.Count;
+        int slot = engine.HarvestOrders.Single().SlotDay;
+        int calmFrom = slot + 4;
+        engine.SeaOverrideForTests = (s, d) => d < calmFrom || d % 3 == 0 ? 3.5 : 1.2;
+        int reportsBefore = engine.HarvestReports.Count, seen = reportsBefore, firstBatchDay = -1;
         for (int d = 0; d < 60 && engine.HarvestOrders.Count > 0; d++)
         {
             engine.Advance(1);
-            foreach (var report in engine.HarvestReports.Skip(reportsBefore))
-                Assert.True(report.Day % 3 != 0, $"a batch was slaughtered on day {report.Day} at 3.5 m");
+            if (engine.HarvestReports.Count > seen)
+            {
+                Assert.True(unit.CurrentWaveHeight <= Cal.Operability.FishHandlingOffshoreWellboatHsM,
+                    $"a batch was slaughtered on day {engine.State.Day} at {unit.CurrentWaveHeight} m");
+                if (firstBatchDay < 0) firstBatchDay = engine.State.Day;
+                seen = engine.HarvestReports.Count;
+            }
         }
         Assert.Empty(engine.HarvestOrders);
         Assert.True(engine.HarvestReports.Count > reportsBefore);
+        Assert.True(firstBatchDay > slot + 3, $"the order slaughtered on day {firstBatchDay}, in the rough days after its slot {slot}");
     }
 
     /// <summary>
@@ -187,6 +201,7 @@ public class OffshoreOperationsTests
             if (unit.TeethingDefects.Any(d => d.IsRevealed)) revealed++;
             Assert.All(unit.TeethingDefects, d => Assert.Equal(-1, d.FiredDay)); // no fish, nothing fires
         }
+        _out.WriteLine($"{revealed} of {Seeds} 90-day shakedowns revealed a defect");
         Assert.True(revealed >= 0.7 * Seeds, $"{revealed} of {Seeds} shakedowns revealed a defect");
 
         // Fixed before stocking: never fires. Left unfixed: fires with the fish.

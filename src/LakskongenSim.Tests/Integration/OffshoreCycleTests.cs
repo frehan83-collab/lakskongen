@@ -134,10 +134,12 @@ public class OffshoreCycleTests
     /// ratio over 10 seeds of the same company played by the same rules
     /// ([O:R37]: offshore pilots at 56 NOK/kg against conventional production,
     /// +30 %). Skipped with the finding of docs/RUN_LOG.md §8 (F2-07): the
-    /// game's open pen books no "other operating costs" (Fiskeridir's 2022
-    /// profitability survey: 11.56 NOK/kg round of its 19.98 ex feed, smolts,
-    /// depreciation and finance), so the in-game ratio stands at 1.89 with the
-    /// offshore unit at its sourced costs; the band is kept, never loosened.
+    /// in-game ratio stands at 1.89 with the offshore unit at its sourced
+    /// costs, and the owner decides between its two readings: the game's open
+    /// pen books no "other operating costs" (Fiskeridir's 2022 profitability
+    /// survey: 11.56 NOK/kg round of its 19.98 ex feed, smolts, depreciation
+    /// and finance), and the band applies an all-in +30 % to a ratio ex feed.
+    /// The band is kept, never loosened.
     /// </summary>
     [Fact(Skip = "F2-07 acceptance 7 waits for the open pen's missing operating costs: docs/RUN_LOG.md §8 (F2-07 finding); measured median ratio 1.89")]
     public void TheUnitsOpexPerKg_IsOneFifteenToOneFortyFiveTimesAnOpenPensInTheSamePo()
