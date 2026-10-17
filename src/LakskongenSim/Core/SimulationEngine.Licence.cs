@@ -45,28 +45,19 @@ public partial class SimulationEngine
     /// </summary>
     public CommandResult ApplyForGrowthLicence(string zoneId)
     {
-        if (State?.Zones == null || LicenseAuctionSystem == null || TrafficLightSystem == null)
-            return CommandResult.Fail("engine_not_ready", "Engine not initialized");
-
-        var zone = State.Zones.FirstOrDefault(z => z.Id == zoneId);
-        if (zone == null)
-            return CommandResult.Fail("zone_not_found", $"Zone '{zoneId}' not found");
-
-        if (TrafficLightSystem.GetZoneColor(zoneId) == ZoneColor.Red)
-            return CommandResult.Fail("zone_red",
-                $"Zone '{zoneId}' is in the red — no new growth licences are auctioned there");
-
-        if (State.SeaSites.Any(s => s.ZoneId == zoneId))
-            return CommandResult.Fail("already_operating",
-                $"You already operate in zone '{zoneId}' — build there directly");
-
-        if (HasGrowthLicence(zoneId))
-            return CommandResult.Fail("licence_held",
-                $"You already hold a growth licence for zone '{zoneId}'");
-
-        if (State.LicenseAuctions.Any(a => a.ZoneId == zoneId && a.Status == "open"))
-            return CommandResult.Fail("auction_open",
-                $"An auction for zone '{zoneId}' is already open");
+        // U2-01: the checks are ApplyVerdictOf's (the map shows the same keys);
+        // a catalogue zone outside the game takes its area's traffic light.
+        var verdict = ApplyVerdictOf(zoneId);
+        if (!verdict.Allowed)
+            return CommandResult.Fail(verdict.ReasonKey, verdict.ReasonKey switch
+            {
+                ExpansionReasons.EngineNotReady => "Engine not initialized",
+                ExpansionReasons.ZoneNotFound => $"Zone '{zoneId}' not found",
+                ExpansionReasons.ZoneRed => $"Zone '{zoneId}' is in the red — no new growth licences are auctioned there",
+                ExpansionReasons.AlreadyOperating => $"You already operate in zone '{zoneId}' — build there directly",
+                ExpansionReasons.LicenceHeld => $"You already hold a growth licence for zone '{zoneId}'",
+                _ => $"An auction for zone '{zoneId}' is already open"
+            });
 
         var auction = Finance.LicenseAuctionSystem.Start(
             NewAuctionId(zoneId), zoneId, State.Day, LicenseReservePriceNOK, playerEntered: true);
@@ -78,9 +69,10 @@ public partial class SimulationEngine
             Name = "Growth Licence Auction",
             Category = EventCategory.Regulation,
             Description = SimText.Nb(
-                $"Auksjon åpnet for {ZoneLabel(zoneId)} — stenger dag {auction.ClosesDay}, minstepris {auction.ReservePriceNOK:N0} kr")
+                $"Auksjon åpnet for {ZoneLabelOf(zoneId)} — stenger dag {auction.ClosesDay}, minstepris {auction.ReservePriceNOK:N0} kr")
         });
         State.TrimEventLog();
+        WatchOpenedAuction(auction);   // U2-01: the clock slows while it runs
 
         return CommandResult.Success(
             $"Auction opened for zone '{zoneId}' (closes day {auction.ClosesDay})",
@@ -112,6 +104,8 @@ public partial class SimulationEngine
                 out var errorKey, out var message))
             return CommandResult.Fail(errorKey, message);
 
+        // U2-01: the company leads; its "overbudt" deadlines are answered.
+        ResolveAuctionDeadlines(auction);
         return CommandResult.Success(message, id: auction.Id);
     }
 
@@ -127,22 +121,15 @@ public partial class SimulationEngine
     /// </summary>
     public bool CanBuildSeaSite(string zoneId, out string reason)
     {
-        reason = "";
-        if (State?.Zones == null || State.SeaSites == null)
+        // U2-01: the gate is BuildGateKey's (a catalogue zone counts as a zone).
+        reason = BuildGateKey(zoneId) switch
         {
-            reason = "engine_not_ready";
-            return false;
-        }
-        if (!State.Zones.Any(z => z.Id == zoneId))
-        {
-            reason = $"Zone '{zoneId}' not found";
-            return false;
-        }
-        if (!FjordSites().Any()) return true;                    // development right (F2-03: fjord localities)
-        if (State.SeaSites.Any(s => s.ZoneId == zoneId)) return true; // organic growth
-        if (HasGrowthLicence(zoneId)) return true;               // won at auction
-        reason = $"Zone '{zoneId}' requires a growth licence — win the auction first";
-        return false;
+            ExpansionReasons.None => "",
+            ExpansionReasons.EngineNotReady => "engine_not_ready",
+            ExpansionReasons.ZoneNotFound => $"Zone '{zoneId}' not found",
+            _ => $"Zone '{zoneId}' requires a growth licence — win the auction first"
+        };
+        return reason.Length == 0;
     }
 
     /// <summary>
@@ -161,7 +148,7 @@ public partial class SimulationEngine
             return CommandResult.Fail("engine_not_ready", "Engine not initialized");
 
         if (!CanBuildSeaSite(zoneId, out var gateReason))
-            return CommandResult.Fail("growth_licence_required", gateReason);
+            return CommandResult.Fail(BuildGateKey(zoneId), gateReason);   // U2-01: the gate's own key
 
         decimal cost = SiteBuildCostNOK;
         if (FinanceManager.Balance < cost)
@@ -171,6 +158,7 @@ public partial class SimulationEngine
         var siteId = string.IsNullOrWhiteSpace(name)
             ? $"site_{FjordSites().Count() + 1}" // F2-03: offshore units are numbered apart
             : name;
+        AdmitCatalogueZone(zoneId);   // U2-01: a catalogue zone joins the game with its first site
         var site = new SeaSite(siteId, zoneId)
         {
             DisplayName = SiteNames.NextFor(State.SeaSites),
@@ -190,7 +178,7 @@ public partial class SimulationEngine
             Day = State.Day,
             Name = "Nytt sjøanlegg",
             Category = EventCategory.Regulation,
-            Description = SimText.Nb($"Bygde sjøanlegget {site.Label} i {ZoneLabel(zoneId)}: lokaliteten er klarert for {site.MABTonnes:N0} t MTB. Biomassen den kan holde, kommer fra tillatelsene i produksjonsområdet."),
+            Description = SimText.Nb($"Bygde sjøanlegget {site.Label} i {ZoneLabelOf(zoneId)}: lokaliteten er klarert for {site.MABTonnes:N0} t MTB. Biomassen den kan holde, kommer fra tillatelsene i produksjonsområdet."),
             BalanceChange = -cost
         });
         State.TrimEventLog();
@@ -213,8 +201,10 @@ public partial class SimulationEngine
             return;
 
         // 1. Rival raises (only auctions still inside their bidding window).
+        var leadersBefore = AuctionLeadersBeforeRivalRound();
         LicenseAuctionSystem.RivalBids(
             State.LicenseAuctions, CompetitorAI.Competitors, State.Day);
+        ReportAuctionLeadChanges(leadersBefore);   // U2-01: "overbudt" on the bus
 
         // 2. Settle auctions past their close day.
         foreach (var auction in State.LicenseAuctions
@@ -234,6 +224,7 @@ public partial class SimulationEngine
     {
         var settlement = Finance.LicenseAuctionSystem.Settle(
             auction, State.Day, FinanceManager.Balance, CompetitorAI.Competitors);
+        ReportAuctionSettlement(auction, settlement);   // U2-01: won / lost on the bus
 
         switch (settlement.Status)
         {
@@ -252,7 +243,7 @@ public partial class SimulationEngine
                     Name = "Growth Licence Won",
                     Category = EventCategory.Regulation,
                     Description = SimText.Nb(
-                        $"Vant auksjonen om vekstlisens for {ZoneLabel(auction.ZoneId)} for {settlement.AmountNOK:N0} kr"),
+                        $"Vant auksjonen om vekstlisens for {ZoneLabelOf(auction.ZoneId)} for {settlement.AmountNOK:N0} kr"),
                     BalanceChange = -settlement.AmountNOK
                 });
                 _dayNotes.Add(new DayNote
@@ -285,7 +276,7 @@ public partial class SimulationEngine
                     Name = "Konkurrent vant lisensauksjon",
                     Category = EventCategory.Competitor,
                     Description = SimText.Nb(
-                        $"{rival?.Name ?? settlement.WinnerId} vant vekstlisensen for {ZoneLabel(auction.ZoneId)} for {settlement.AmountNOK:N0} kr")
+                        $"{rival?.Name ?? settlement.WinnerId} vant vekstlisensen for {ZoneLabelOf(auction.ZoneId)} for {settlement.AmountNOK:N0} kr")
                 });
                 _dayNotes.Add(new DayNote
                 {
@@ -309,7 +300,7 @@ public partial class SimulationEngine
                     Name = "Lisensauksjon uten vinner",
                     Category = EventCategory.Regulation,
                     Description =
-                        $"Auksjonen for {ZoneLabel(auction.ZoneId)} er stengt — ingen budgiver kunne betale"
+                        $"Auksjonen for {ZoneLabelOf(auction.ZoneId)} er stengt — ingen budgiver kunne betale"
                 });
                 _dayNotes.Add(new DayNote
                 {

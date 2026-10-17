@@ -143,7 +143,7 @@
     "stepNumber": 16,
     "title": "Utvid med ny lokalitet",
     "description": "For å vokse må du utvide. En ekstra lokalitet gir mer produksjonskapasitet, men krever investering, bemanning og logistikk. Spredning av risiko på tvers av lokaliteter er avgjørende for langsiktig suksess.",
-    "hint": "Kjøp en ny lisens og etabler din andre lokalitet på kartet.",
+    "hint": "Åpne Kart, velg produksjonsområdet ditt og trykk «Bygg lokalitet» i din sone. En ny lokalitet gir plass, ikke biomasse: mer MTB krever en vekstlisens fra auksjon.",
     "highlightTarget": "map",
     "completionCondition": "second_site_built"
   },

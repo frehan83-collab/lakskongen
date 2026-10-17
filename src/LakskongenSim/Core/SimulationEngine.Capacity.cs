@@ -278,7 +278,9 @@ public partial class SimulationEngine
         double areaMtb = AreaLicenceMtbTonnes(area);
         if (!CanBuildSeaSite(zoneId, out var reason))
         {
-            string key = State?.Zones?.Any(z => z.Id == zoneId) == true ? "growth_licence_required" : "zone_not_found";
+            // U2-01: the gate's own key (a catalogue zone without a licence
+            // needs one; it is not "not found").
+            string key = BuildGateKey(zoneId);
             return new SiteBuildPreview(false, key, reason, cost, area, BuiltSiteLocalityMtbTonnes, 0.0, areaMtb, BuiltSitePenLayout.Count);
         }
         if (FinanceManager == null || FinanceManager.Balance < cost)

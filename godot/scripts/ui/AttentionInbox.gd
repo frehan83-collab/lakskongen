@@ -167,7 +167,7 @@ func _build_ui() -> void:
 			grouped[cat] = []
 		grouped[cat].append(item)
 
-	var category_order: Array = ["health", "finance", "intervention", "decision", "weather", "market", "contract", "other"]
+	var category_order: Array = ["health", "finance", "intervention", "decision", "expansion", "weather", "market", "contract", "other"]
 
 	for cat in category_order:
 		if not grouped.has(cat):
@@ -183,7 +183,7 @@ func _create_category_header(category: String, count: int) -> HBoxContainer:
 
 	var icons: Dictionary = {
 		"health": "🏥", "finance": "💰", "intervention": "🎯", "decision": "⚠️",
-		"weather": "🌤️", "market": "📈", "contract": "📋", "other": "📌"
+		"weather": "🌤️", "market": "📈", "contract": "📋", "other": "📌", "expansion": ""
 	}
 	var labels: Dictionary = {
 		"health": tr("UI_ATTENTION_CAT_HEALTH"),
@@ -193,6 +193,7 @@ func _create_category_header(category: String, count: int) -> HBoxContainer:
 		"weather": tr("UI_ATTENTION_CAT_WEATHER"),
 		"market": tr("UI_ATTENTION_CAT_MARKET"),
 		"contract": tr("UI_ATTENTION_CAT_CONTRACT"),
+		"expansion": tr("UI_ATTENTION_CAT_EXPANSION"),
 		"other": tr("UI_ATTENTION_CAT_OTHER")
 	}
 
@@ -200,7 +201,7 @@ func _create_category_header(category: String, count: int) -> HBoxContainer:
 	var label_text: String = labels.get(category, tr("UI_ATTENTION_CAT_OTHER"))
 
 	var icon_label := Label.new()
-	icon_label.text = "%s %s (%d)" % [icon, label_text, count]
+	icon_label.text = ("%s %s (%d)" % [icon, label_text, count]) if icon != "" else ("%s (%d)" % [label_text, count])
 	icon_label.theme_type_variation = &"CaptionInfo"
 	header.add_child(icon_label)
 
@@ -219,6 +220,7 @@ func _category_tone(category: String) -> StringName:
 		"health", "decision": return &"Crit"
 		"finance": return &"Warn"
 		"intervention", "weather", "market", "contract": return &"Info"
+		"expansion": return &"Accent"
 		_: return &"Muted"
 
 ## Priority -> theme tone (badge and card edge).
@@ -314,7 +316,7 @@ func _create_attention_item(item: Dictionary) -> PanelContainer:
 		action_btn.custom_minimum_size = Vector2(140, 28)
 		action_btn.theme_type_variation = &"SmallPrimaryButton"
 		action_btn.size_flags_horizontal = Control.SIZE_SHRINK_END
-		action_btn.pressed.connect(_on_item_action.bind(callback, str(item.get("action_id", "")), site_id))
+		action_btn.pressed.connect(_on_item_action.bind(callback, str(item.get("action_id", "")), site_id, str(item.get("zone_id", ""))))
 		vbox.add_child(action_btn)
 
 	panel.add_child(vbox)
@@ -322,7 +324,7 @@ func _create_attention_item(item: Dictionary) -> PanelContainer:
 
 # ── Item actions ──
 
-func _on_item_action(callback: String, action_id: String, _site_id: String) -> void:
+func _on_item_action(callback: String, action_id: String, _site_id: String, zone_id: String = "") -> void:
 	match callback:
 		"open_intervention_detail":
 			# Feed-recipe advice is acted on in AI feeding; delousing and
@@ -338,6 +340,15 @@ func _on_item_action(callback: String, action_id: String, _site_id: String) -> v
 			_show_tab("map")
 		"open_contracts_panel":
 			_show_tab("contracts")
+		"open_licence_auction", "open_build_site":
+			# U2-01: the map, with the zone's auction card or build dialog open.
+			_show_tab("map")
+			var map := _find_game_ui().find_child("Panel_map", true, false) if _find_game_ui() != null else null
+			if map != null:
+				if callback == "open_licence_auction":
+					map.open_auction(zone_id)
+				else:
+					map.open_build(zone_id)
 		_:
 			push_warning("Unknown attention callback: %s" % callback)
 	visible = false

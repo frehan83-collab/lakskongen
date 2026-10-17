@@ -58,6 +58,7 @@
           }
         },
         "variant_of": {"type": "string"},
+        "state": {"type": "string", "description": "A UI shot's game state, named by its capture scene (U2-01: map, build_refused, auction_preview, auction_live, auction_won, build_new_zone, built_view)."},
         "purpose": {"type": "string", "minLength": 10}
       }
     },

@@ -97,3 +97,23 @@ internal sealed class SolvencyTickSystem : ITickSystem
 {
     public void Tick(SimulationEngine engine) => engine.CheckSolvency();
 }
+
+/// <summary>
+/// POST-TICK phase (U2-03): interest on negative cash. After every cash flow
+/// of the day and before the balance mirror, so the mirror and the solvency
+/// check see the day's closing cash with its interest.
+/// </summary>
+internal sealed class OverdraftInterestTickSystem : ITickSystem
+{
+    public void Tick(SimulationEngine engine) => engine.ChargeOverdraftInterest();
+}
+
+/// <summary>
+/// POST-TICK phase (U2-03), last: the P&amp;L story closes the day and the
+/// liquidity ladder reads the closing cash (warning, bank call, rescue offer).
+/// After the solvency check, so a bankrupt company gets no bank call.
+/// </summary>
+internal sealed class LiquidityTickSystem : ITickSystem
+{
+    public void Tick(SimulationEngine engine) => engine.CheckLiquidity();
+}

@@ -198,6 +198,22 @@ public class SiteKindAuditTests
         Assert.Equal(fjord, e.RemoteOpsAttentionUsed(m.Unit.Id, "watch")); // a mode at the unit changes nothing
         Assert.Equal(SimulationEngine.OffshoreWatchMode, m.Unit.WatchMode);
         Assert.Equal(25, Optimization.RemoteOpsCentre.CostFor(m.Unit.WatchMode)); // what it would cost, were it counted
+
+        // U2-01's build gate and build plan keep F2-03's development right
+        // (wave-3 integration): a company whose only sea site is an offshore
+        // unit builds its first fjord locality in any zone without a licence.
+        var g = new SimulationEngine { FinanceManager = new FinanceManager(5_000_000_000m) };
+        g.Initialize(enableEvents: false, seed: 303);
+        Assert.True(g.StartScenario(PlayerScriptProbe.CareerScenarioId).Ok);
+        g.FinanceManager.AddRevenue(4_000_000_000m);
+        Assert.True(g.BuildOffshoreFarm("Hav", OffshoreType.SemiSubmersible).Ok);
+        g.State.SeaSites.RemoveAll(s => s.Kind == SiteKind.Fjord);
+        Assert.Empty(g.FjordSites());
+        Assert.Single(g.OffshoreUnits);
+        string zone = g.State.Zones.First(z => !g.HasGrowthLicence(z.Id)).Id;
+        Assert.True(g.CanBuildSeaSite(zone, out var why), why);
+        Assert.True(g.BuildVerdictOf(zone).Allowed, g.BuildVerdictOf(zone).ReasonKey);
+        Assert.False(g.PlanSiteBuild(zone).NewZone);
     }
 
     // ── fjord-economics ─────────────────────────────────────────────────────

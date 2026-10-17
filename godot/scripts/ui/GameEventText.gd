@@ -18,7 +18,8 @@ const GLYPHS := {"critical": "!!", "warning": "!", "info": "i"}
 const VERBS := ["delouse", "freshwater_bath", "inspect_nets", "check_water", "review_feeding",
 	"raise_capital", "open_sustainability", "inspect_site",
 	"book_operation", "repair_unit", "review_alarms", "fix_defect", "start_tow", "pay_conversion",
-	"resolve_outage", "adjust_water", "order_oxygen", "start_purge", "build_competence", "open_driftsplan"]
+	"resolve_outage", "adjust_water", "order_oxygen", "start_purge", "build_competence", "open_driftsplan",
+	"bid_licence"]
 
 
 static func tone(event: Dictionary) -> StringName:

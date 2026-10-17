@@ -72,6 +72,16 @@ namespace LakskongenSim.Events
         LiceTreatmentOrder,
         BiomassOrder,
 
+        // ── Growth-licence auctions (U2-01) ─────────────────────────────────
+        LicenceOutbid,
+        LicenceAuctionWon,
+        LicenceAuctionLost,
+
+        // ── Liquidity ladder (U2-03) ─────────────────────────────────────────
+        LiquidityWarning,
+        BankCall,
+        RescueLoanTaken,
+
         // ── Farm types (docs/FARM_TYPES_SPEC.md §3.5; declared by F2-05, ──
         // ── published by the lanes; each carries UnitId) ─────────────────
         [FarmTypeEvent] LandPowerOutageUncovered,
@@ -156,6 +166,7 @@ namespace LakskongenSim.Events
         public const string VerbRaiseCapital = "raise_capital";
         public const string VerbOpenSustainability = "open_sustainability";
         public const string VerbInspectSite = "inspect_site";
+        public const string VerbBidLicence = "bid_licence";
 
         // Farm-type verbs (F2-05; spec §3.4-§3.5, §6.6): each names the place
         // the counter lives, the offshore unit's board or the land site's.
@@ -179,7 +190,7 @@ namespace LakskongenSim.Events
             VerbReviewFeeding, VerbRaiseCapital, VerbOpenSustainability, VerbInspectSite,
             VerbBookOperation, VerbRepairUnit, VerbReviewAlarms, VerbFixDefect, VerbStartTow,
             VerbPayConversion, VerbResolveOutage, VerbAdjustWater, VerbOrderOxygen, VerbStartPurge,
-            VerbBuildCompetence, VerbOpenDriftsplan
+            VerbBuildCompetence, VerbOpenDriftsplan, VerbBidLicence
         };
 
         private static readonly GameEventTypeInfo[] Rows =
@@ -218,6 +229,14 @@ namespace LakskongenSim.Events
 
             Row(GameEventType.LiceTreatmentOrder, "lice_treatment_order", "lice_order", GameEventSeverity.Warning, VerbDelouse, GameEventDeadlineRule.SetByPublisher),
             Row(GameEventType.BiomassOrder, "biomass_order", "biomass_order", GameEventSeverity.Warning, VerbInspectSite, GameEventDeadlineRule.SetByPublisher),
+
+            Row(GameEventType.LicenceOutbid, "licence_outbid", "licence_auction", GameEventSeverity.Warning, VerbBidLicence, GameEventDeadlineRule.SetByPublisher),
+            Row(GameEventType.LicenceAuctionWon, "licence_auction_won", "licence_auction", GameEventSeverity.Info, NoCounterVerb),
+            Row(GameEventType.LicenceAuctionLost, "licence_auction_lost", "licence_auction", GameEventSeverity.Info, NoCounterVerb),
+
+            Row(GameEventType.LiquidityWarning, "liquidity_warning", "liquidity", GameEventSeverity.Warning, VerbRaiseCapital, GameEventDeadlineRule.SetByPublisher),
+            Row(GameEventType.BankCall, "bank_call", "liquidity", GameEventSeverity.Critical, VerbRaiseCapital, GameEventDeadlineRule.SetByPublisher),
+            Row(GameEventType.RescueLoanTaken, "rescue_loan_taken", "rescue_loan", GameEventSeverity.Info, NoCounterVerb),
 
             // Farm types (spec §3.5). A deadline the publisher sets is the
             // day the counter stops working: the order's or the appeal's due

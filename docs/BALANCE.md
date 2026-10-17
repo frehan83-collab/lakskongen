@@ -2231,6 +2231,162 @@ unchanged after each day's projections, and the probed game equals its
 never-probed twin after 60 days (`TheProjection_LeavesTheLiveGameAndItsRngUntouched`;
 mutation: one draw from the live `market` stream inside `ProjectHarvest`
 fails it).
+## 1t. U2-01: the expansion flow's numbers (2026-10-15, branch `wave3/ui-b-1`)
+
+The expansion flow (map, BuildSiteDialog, LicenceAuctionCard) shows the
+engine's numbers; nothing in it is a new price. What it quotes, and where the
+numbers come from:
+
+### Growth-licence auctions against the state's auctions
+
+The state sells capacity in simultaneous clock auctions (2018, 2020, 2022,
+2024). Averages per tonne of MTB:
+
+| auction | sold | revenue | NOK per t | source |
+|---|---|---|---|---|
+| 2020 | 27,189 t | ≈ 6.0 bn | ≈ 220,000 | regjeringen.no / iLaks (2020) |
+| 2022 | 24,644 t of 32,887 t | ≈ 3.8 bn | ≈ 154,000 | regjeringen.no / iLaks (Oct 2022) |
+| 2024 | 17,330 t (all) | 5,288,602,600 | ≈ 305,170 (170,000 PO1 to 348,400 PO9 by area); minimum price 170,000 | regjeringen.no, "Resultater fra auksjon av nye oppdrettstillatelser 2024" (25 June 2024), https://www.regjeringen.no/no/aktuelt/resultater-fra-auksjon-av-nye-oppdrettstillatelser-2024/id3046941/ |
+
+The game's reserve is `Licensing.LicenseCostNOK` = 150 M a licence (unchanged):
+192,308 NOK/t for a 780 t licence, 158,730 NOK/t for 945 t in Troms and
+Finnmark. A rival's ceiling is reserve × (1.08 + 0.55 appetite + 0.15 lobbying)
+(`LicenseAuctionSystem.MaxRivalPrice`, unchanged): 201-254 M, 258-326 k/t at
+780 t. Measured clearing prices of rival-won auctions (the company opens the
+auction and does not bid; `ExpansionFlowTests.RivalWonLicences_ClearInsideTheStatesAuctionBand`,
+30 seeds × PO4 and PO12, n = 60):
+
+| min | median | max | band asserted |
+|---|---|---|---|
+| 251,852 NOK/t | 305,128 NOK/t | 325,962 NOK/t | 154,000 (2022 average) to 348,400 (2024 highest area average) |
+
+The median matches the 2024 auction's average (305,170 NOK/t). The card quotes
+the 2022 and 2024 averages (`LicenseAuctionSystem.StateAuction2022AveragePerTonneNok`,
+`StateAuction2024AveragePerTonneNok`).
+
+**Activity rule** (`LicenseAuctionSystem.ClosingRoundExtensionDays` = 1): a bid
+on the closing day keeps the auction open one more day, so the rivals answer
+it. The state's clock auctions close only after a round with no new demand
+(regjeringen.no, "Auksjon av oppdrettstillatelser holdes 24. juni", 2024).
+Before, a bid on the last day won at 5 % over the leading bid with no answer.
+No golden trace holds an auction (no scenario has a zone the company does not
+farm), so the traces are unchanged.
+
+### What a build costs and adds (`SimulationEngine.PlanSiteBuild`)
+
+| line | value | source |
+|---|---|---|
+| investment | 6,000,000 NOK | `Infrastructure.SeaSiteBuildCostNOK` |
+| locality MTB | 3,120 t | `Capacity.BuiltSiteLocalityMtbTonnes` (NFD 20.09.2017) |
+| licence MTB added | 0 t | S2-01a |
+| pens | 8 × 160 m, 40 m net (25 m wall + 15 m cone), 61,116 m³ | `pens` section (S2-01b) |
+| running cost | +354 kNOK a month: 7 crew × 48,000 NOK + 0.01 % of the build cost a day | `Labor.WorkersPerSite`, `Labor.WorkerMonthlySalaryNOK`, `ProcessDailyFinance` |
+
+`TheBuildPlan_IsWhatTheBuildDoes_CostPensMtbAndRunningCost` holds the preview
+to the books: the day's operations cost rises by the plan's running cost per
+day after the build (± 1 NOK a month). In Første sesong the second site adds
+4.25 M a year of crew and upkeep before it holds a fish: the dialog says so
+before the player commits.
+
+### Catalogue zones
+
+One growth zone per production area (`Environment/ExpansionZones.cs`, named
+after a coastal municipality with sea farming in the area, none in a national
+salmon fjord). A catalogue zone joins the game only with its first site, so a
+game that never expands runs as before (golden traces identical). Its traffic
+light is its area's as the game knows it (the worst colour of the area's zones;
+water nobody farms assesses green, `TrafficLightSystem.GreenLiceThreshold`).
+
+## 1u. U2-03: the liquidity ladder, overdraft interest and the rescue loan (2026-10-16, branch `wave3/ui-b-2`)
+
+S1-03 warns by depth (overdraft, half-way, final warning) and ends the game
+below the scenario's floor; it has no sense of time, and negative cash was free
+(RUN_LOG §8 "overdraft is free"). U2-03 adds the bank's reading of the cash and
+a price on the overdraft. Calibration section `liquidity` (v1.0.11,
+`Calibration/LiquidityCalibration.cs`); engine `Core/SimulationEngine.Liquidity.cs`,
+rules `Finance/LiquidityLadder.cs`.
+
+### What negative cash costs now
+
+| knob | value | source |
+|---|---|---|
+| `OverdraftInterestRate` | 12.25 % a year, daily on the closing cash (act/365) | Norway's late-payment interest (forsinkelsesrente) for H2 2025 and again from 1 July 2026: Norges Bank's policy rate + 8 pp (forsinkelsesrenteloven § 3; Finanstilsynet, https://www.finanstilsynet.no/nyhetsarkiv/nyheter/2025/forsinkelsesrente-og-standardkompensasjon-for-inndrivelseskostnader-fra-1.-juli-2025 and .../2026/...-fra-1.-juli-2026) |
+| term loan (unchanged) | 5.5 % a year | `Finance.LoanInterestRate` |
+
+Negative cash is unpaid bills and an overdrawn account, so it pays what an
+unpaid bill costs in Norway, well above the term loan: borrowing now beats
+riding the overdraft (`BorrowingBeatsRidingTheOverdraft`: two identical
+po3_red_sone companies 3 MNOK under, one borrows 5 MNOK at 5.5 %; 60 days later
+the borrower has more equity). Paid by the golden traces' players over 730
+days (docs/run/evidence/U2-03_golden_diff.md): algekatastrofe 0.49-0.77 MNOK,
+isa_utbrudd 0.52-0.60 MNOK (before the restock cascade), krise_manager
+0.22-0.48 MNOK, po3_red_sone 0.33-0.58 MNOK, lofoten_eventyr 34 NOK-3.4 kNOK;
+the 7 traces whose cash never goes below zero pay nothing. The career band
+tests (`PlayerScriptCareerTests`, `FullCycleEconomicTests`) pass unchanged.
+
+### The bank's reading: burn, runway, warning, call
+
+| knob | value | why |
+|---|---|---|
+| `BurnWindowDays` / `BurnStepDays` | 35 / 7 | the burn is the median of the rolling 7-day changes over 35 days, per day: a week holds the running lumps (a storm repair, a monthly bill) that a single-day median skips, and the median of the weeks ignores a one-off harvest payment or purchase (`Burn_IsTheMedianWeek_SoAOneOffNeitherHidesNorFakesIt`) |
+| `MinBurnHistoryDays` | 14 | no forecast in a game's (or a loaded save's) first two weeks |
+| `WarningRunwayDays` | 60 | liquidity warning (typed warning, verb raise_capital, deadline = the projected floor day): twice the roadmap's 30 days, because the burn grows with the fish (feed) |
+| `BankCallRunwayDays` | 28 | bank call (critical card) with the rescue offer: four weeks, so a 14-day offer is answered with two to spare and a last lump still leaves the roadmap's 10 days |
+| `ReArmRunwayDays` | 120 | the episode ends (both rungs re-arm) when the runway is back above this or the cash stops falling |
+
+Measured on the engine (passive companies: no harvest, the bank never answered;
+9 scenarios × seeds 1-6; barekraft_mester never declines, so 48 declines;
+probe in the run's scratch, the acceptance test is
+`LiquidityLadderTests.ScriptedDecline_IsWarned30DaysAndCalled10DaysBeforeBankruptcy`
+over 13 scenario/seed pairs):
+
+| lead before bankruptcy | min | median | max | roadmap |
+|---|---|---|---|---|
+| liquidity warning | 40 days (lofoten_eventyr s2) | 69 days | 176 days | ≥ 30 |
+| bank call | 14 days (krise_manager s3, laksebaronene s3) | 30 days | 113 days | ≥ 10 |
+
+The shortest call leads come from a last lump before the floor (a storm repair
+on a company already at its limit); the warning never came later than 40 days
+out. A straight decline (a fixed cost every day) is warned 60 and called 28
+days out to the day (`LinearDecline_IsWarnedAtTheRunwayThresholds`).
+
+### The rescue loan
+
+| knob | value | source |
+|---|---|---|
+| `RescueLoanInterestRate` | 14 % a year | three-month NIBOR (~4.5 % in 2025) + the 950 bps margin of a senior secured three-year bond a land-based salmon farmer placed in June 2025 (company release 2025-06-11, https://www.placera.se/pressmeddelanden/andfjord-salmon-group-andfjord-salmon-group-as--successful-bond-issue-20250611) |
+| `RescueLoanArrangementFee` | 2 % up front | that bond's 98 % issue price |
+| `RescueLoanTermMonths` | 36 | that bond's tenor; repaid daily like every loan |
+| `RescueLoanAdvanceRate` | half the standing biomass at the norm price, less the drawn facility and the loans | biomass facilities are sized on the insured fish (a 2023 Icelandic sea farmer's EUR 70 M revolver on insured biomass and receivables, Fish Farmer, https://www.fishfarmermagazine.com/?p=145908); no public advance rate exists, so a conservative half (design value) |
+| `RescueLoanCoverDays` / `RescueLoanMinCoverDays` | 120 / 30 | the offer covers 120 days of burn, rounded up to 0.5 MNOK (`RescueLoanRoundingNok`), and is not made when the collateral carries less than 30 days |
+| `RescueOfferValidDays` / `MaxRescueLoans` | 14 / 1 | the offer's deadline (the clock slows and stops before it, U2-07); one rescue a game |
+
+Offers at the bank call in the 48 declines: 40 offered (0.5-33 MNOK: forste_sesong
+1.0-2.5, po3_red_sone 6.0-8.5, algekatastrofe 18.5-29.5, ressursrente
+28.0-33.0); none for krise_manager (its small stock cannot carry its drawn
+facility) or for isa_utbrudd seeds 4 and 6 (an infected stock). Taking the
+offer and still playing passively buys 50-350 days (po3_red_sone: bankrupt on
+days 323-360 without it, 393-451 with it; forste_sesong 366-604 → 534-954);
+algekatastrofe ends lost instead of bankrupt (the survival goal counts the
+loan against equity). `TakingTheRescueLoan_KeepsTheCompanyAlive_DecliningDoesNot`
+is the player-path test; the loan is liquidity and a liability, never revenue,
+and its fee is interest.
+
+### The P&L story and the end report
+
+`Finance/PnlStory.cs` sees every P&L booking under the statements' own
+category (no RNG, no decision reads it). A turning point is one run of one
+ledger line: its income and costs on days at most 3 apart and at most 14 days
+long (a harvest's sales less its wellboat and slaughter cost); a longer run is
+a running cost (feed, wages, interest) and never a turning point. The end
+screen shows the three largest runs and the five largest ledger lines; both
+reconcile to the raw booking stream exactly (`ScenarioReportTests`). A won
+game earns a medal for the campaign: bronze, silver with two of three
+distinctions, gold with all three: no bank call or rescue loan, mortality at
+or under `Health.SeaMortalityPerCycle` (15 %, the calibrated cycle mortality), and no fine or infringement
+fee (D16: medals, never cash). The win the UI tests play:
+ressursrente seed 5 harvesting at 4.5 kg, won after 308 days with bronze (16.3 %
+mortality and 7 kNOK of fines missed the other two).
 
 ## 2. Key economic knobs
 
@@ -2271,6 +2427,10 @@ fails it).
 | `Pens.StandardCircumferenceM` / `StandardNetWallDepthM` / `StandardConeDepthM` | 160 / 25 / 15 m (61,116 m³) | 160 m standard, 40 m net; nets 20-50 m | iLaks 2020; Bergheim 2012 | 120-200 m / 20-50 m |
 | `Pens.BuiltSitePenCount` | 8 | 6-12 pens a locality | game estimate (roadmap S2-01b) | 6-12 |
 | `Labor.WorkerMonthlySalaryNOK` | 48,000 | ~48k (2024) | industry wage stats | 36k-60k |
+| `Liquidity.OverdraftInterestRate` | 0.1225 | 12.25 % forsinkelsesrente (H2 2025, H2 2026) | Finanstilsynet; forsinkelsesrenteloven § 3 | above `Finance.LoanInterestRate` (fixed by law) |
+| `Liquidity.WarningRunwayDays` / `BankCallRunwayDays` | 60 / 28 | warning ≥ 30, call ≥ 10 days before bankruptcy (roadmap U2-03) | measured leads §1n | 45-90 / 21-35 |
+| `Liquidity.RescueLoanInterestRate` / `ArrangementFee` / `TermMonths` | 0.14 / 0.02 / 36 | NIBOR + 950 bps, 98 % issue, 3 years | a June 2025 salmon-farm bond (§1n) | 0.10-0.18 / 0.01-0.03 / 24-60 |
+| `Liquidity.RescueLoanAdvanceRate` | 0.5 | borrowing base on insured biomass | design value (no public advance rate) | 0.3-0.7 |
 
 ## 3. Key biological / environmental knobs
 

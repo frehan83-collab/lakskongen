@@ -1,8 +1,11 @@
 extends Control
 
-## Norwegian coastline region selector for new sea site placement.
-## 13 production zones (PO 1-13) from south to north covering the entire
-## Norwegian coast with licence, temperature, disease risk, and logistics data.
+## The region view (roadmap U2-01): the 13 production areas on the coast,
+## each marked with its traffic light as the sim knows it and a ring where the
+## company farms. Picking an area shows the company's capacity there and its
+## zones with the engine's build and licence verdicts (RegionExpansionSection);
+## "Bygg lokalitet" opens the BuildSiteDialog and "Søk vekstlisens" the
+## LicenceAuctionCard. Every refusal is rendered as text.
 
 signal close_requested
 signal region_selected(region_id: String)
@@ -10,6 +13,11 @@ signal region_selected(region_id: String)
 # Data-overlay legend embedded into the detail panel (see SiteOverlayLegend.gd).
 const SiteOverlayLegend = preload("res://scripts/ui/SiteOverlayLegend.gd")
 const NorwayCoastline = preload("res://scripts/ui/NorwayCoastline.gd")
+const AuctionCardScene := preload("res://scenes/ui/LicenceAuctionCard.tscn")
+const BuildDialogScene := preload("res://scenes/ui/BuildSiteDialog.tscn")
+
+## The sim's traffic light -> the marker dot's tone on the chart.
+const LIGHT_PALETTE_KEYS := {"green": &"ok", "yellow": &"warn", "red": &"crit"}
 
 # ── Colors ────────────────────────────────────────────────────────────────────
 const BG_DEEP        := Color("#F4F1EA")
@@ -301,16 +309,25 @@ var _overlay = null  # SiteOverlayLegend instance (additive; optional)
 @onready var _detail_operators: Label = %DetailOperators
 @onready var _disease_details: Label = %DiseaseDetails
 @onready var _temp_bar_slot: Control = %TempBarSlot
-@onready var _confirm_btn: Button = %ConfirmBtn
 var _temp_bar: Control
 ## The chart under the markers; its city names keep clear of the markers.
 var _coastline: _CoastlineDrawer = null
 
+# ── Expansion (U2-01) ─────────────────────────────────────────────────────────
+var _sim: Node = null
+## The engine's expansion map (SimBridge.get_expansion_overview).
+var _overview: Dictionary = {}
+var _area_picker: OptionButton = null
+var _expansion: RegionExpansionSection = null
+var _auction_card: LicenceAuctionCard = null
+var _build_dialog: BuildSiteDialog = null
+var _map_legend: HBoxContainer = null
+
 # ─────────────────────────────────────────────────────────────────────────────
 func _ready() -> void:
+	_sim = get_node_or_null("/root/SimBridge")
 	_apply_localization()
 	_close_btn.pressed.connect(_on_close_pressed)
-	_confirm_btn.pressed.connect(_on_confirm_pressed)
 	# Decorative coastline backdrop (custom drawing, added behind labels).
 	_coastline = _CoastlineDrawer.new()
 	_coastline.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -321,17 +338,32 @@ func _ready() -> void:
 	_temp_bar.custom_minimum_size = Vector2(0, 28)
 	_temp_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_temp_bar_slot.add_child(_temp_bar)
+	# U2-01: the area picker (a keyboard path to every area) and the expansion
+	# section sit right under the area's name; the dialogs cover the panel.
+	_add_expansion_section()
 	# Live data-overlay legend (lice/oxygen/biomass/gill/containment).
 	_add_overlay_legend()
+	_add_map_legend()
+	_add_dialogs()
 	# Region markers are built deferred so the map container has layout size.
 	call_deferred("_build_region_markers")
 	hide()
+	if _sim != null:
+		_sim.state_updated.connect(_on_sim_changed)
+		_sim.day_advanced.connect(func(_d: int, _s: String) -> void: _on_sim_changed())
+	# Leaving the tab closes a dialog; coming back shows the map, not a stale card.
+	visibility_changed.connect(func() -> void:
+		if not visible:
+			if _auction_card != null:
+				_auction_card.close()
+			if _build_dialog != null:
+				_build_dialog.close())
 
 	var audio := get_node_or_null("/root/AudioController")
 	if audio and audio.has_method("attach_ui_sounds"):
 		audio.attach_ui_sounds(self)
 
-## Embed the SiteOverlayLegend at the top of the detail column and wire it so
+## Embed the SiteOverlayLegend under the expansion section and wire it so
 ## region markers re-tint whenever the overlay metric or live site data changes.
 func _add_overlay_legend() -> void:
 	_overlay = SiteOverlayLegend.new()
@@ -341,7 +373,7 @@ func _add_overlay_legend() -> void:
 		_overlay = null
 		return
 	host.add_child(_overlay)
-	host.move_child(_overlay, 0)
+	host.move_child(_overlay, _expansion.get_index() + 1 if _expansion != null else 0)
 	if _overlay.has_signal("sites_updated"):
 		_overlay.sites_updated.connect(_apply_overlay_to_markers)
 	if _overlay.has_signal("metric_changed"):
@@ -383,18 +415,285 @@ func _apply_localization() -> void:
 		var lbl := find_child(pair[0], true, false) as Label
 		if lbl:
 			lbl.text = tr(pair[1])
-	# Picking a region changes nothing yet (expansion arrives with roadmap
-	# U2-01): no "select region" verb until it does something.
-	_confirm_btn.visible = false
+	# U2-01: the invented "available licences" count gives way to the
+	# company's real licences in the expansion section.
+	for node_name in ["KeyLicences", "DetailLicenses"]:
+		var cell := find_child(node_name, true, false) as Control
+		if cell:
+			cell.visible = false
+
+
+# ── Expansion (U2-01) ─────────────────────────────────────────────────────────
+
+func _add_expansion_section() -> void:
+	var host := find_child("DetailInner", true, false) as VBoxContainer
+	var name_row := find_child("NameRow", true, false) as Control
+	if host == null:
+		return
+	_area_picker = OptionButton.new()
+	_area_picker.name = "AreaPicker"
+	_area_picker.tooltip_text = tr("EXPANSION_AREA_PICKER_TIP")
+	_area_picker.custom_minimum_size = Vector2(0, 40)
+	_area_picker.add_item(tr("EXPANSION_AREA_PICKER_PROMPT"), 0)
+	for i in REGIONS.size():
+		_area_picker.add_item(tr("UI_MAP_ZONE") % [i + 1, REGIONS[i]["name"]], i + 1)
+	_area_picker.item_selected.connect(_on_area_picked)
+	host.add_child(_area_picker)
+	host.move_child(_area_picker, name_row.get_index() + 1 if name_row else 0)
+	_expansion = RegionExpansionSection.new()
+	_expansion.name = "ExpansionSection"
+	_expansion.build_requested.connect(open_build)
+	_expansion.licence_requested.connect(open_auction)
+	host.add_child(_expansion)
+	host.move_child(_expansion, _area_picker.get_index() + 1)
+
+
+func _add_dialogs() -> void:
+	_auction_card = AuctionCardScene.instantiate() as LicenceAuctionCard
+	_auction_card.name = "LicenceAuctionCard"
+	add_child(_auction_card)
+	_auction_card.build_requested.connect(open_build)
+	_auction_card.closed.connect(_refresh_expansion)
+	_build_dialog = BuildDialogScene.instantiate() as BuildSiteDialog
+	_build_dialog.name = "BuildSiteDialog"
+	add_child(_build_dialog)
+	_build_dialog.set_tab_probe(_tab_open)
+	_build_dialog.built.connect(func(_site: String, _zone: String) -> void: _refresh_expansion())
+	_build_dialog.closed.connect(_refresh_expansion)
+	_build_dialog.view_site_requested.connect(_view_site)
+	_build_dialog.tab_requested.connect(_show_tab)
+
+
+## The chart's key: what the dots and the ring mean.
+func _add_map_legend() -> void:
+	_map_legend = HBoxContainer.new()
+	_map_legend.name = "MapLegend"
+	_map_legend.add_theme_constant_override("separation", LakskongenTheme.SPACE_SM)
+	_map_legend.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
+	_map_legend.position = Vector2(12, -40)
+	_map_legend.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	_map_legend.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var card := PanelContainer.new()
+	card.theme_type_variation = &"CardCompact"
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", LakskongenTheme.SPACE_SM + 2)
+	for entry in [["Ok", "EXPANSION_LIGHT_GREEN"], ["Warn", "EXPANSION_LIGHT_YELLOW"], ["Crit", "EXPANSION_LIGHT_RED"]]:
+		var swatch := PanelContainer.new()
+		swatch.theme_type_variation = StringName("Swatch" + str(entry[0]))
+		swatch.custom_minimum_size = Vector2(12, 12)
+		swatch.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		row.add_child(swatch)
+		var l := Label.new()
+		l.text = tr(str(entry[1]))
+		l.theme_type_variation = &"Small"
+		row.add_child(l)
+	var ring := Label.new()
+	ring.text = tr("EXPANSION_LEGEND_YOUR_SITES")
+	ring.theme_type_variation = &"SmallAccent"
+	row.add_child(ring)
+	card.add_child(row)
+	_map_legend.add_child(card)
+	_map_container.add_child(_map_legend)
+
+
+## The tab a family card links to may be opened (the tutorial's gate).
+func _tab_open(tab_id: String) -> bool:
+	var ui := _game_ui()
+	if ui == null or not ui.has_method("_is_tab_unlocked"):
+		return true
+	return bool(ui.call("_is_tab_unlocked", tab_id))
+
+
+func _game_ui() -> Node:
+	var node: Node = self
+	while node != null:
+		if node.has_method("show_tab") and node.has_method("get_active_tab"):
+			return node
+		node = node.get_parent()
+	return null
+
+
+func _show_tab(tab_id: String) -> void:
+	var ui := _game_ui()
+	if ui != null:
+		ui.show_tab(tab_id)
+
+
+## After a build: the fjord tab, with the camera on the new site.
+func _view_site(site_id: String) -> void:
+	var ui := _game_ui()
+	if ui == null:
+		return
+	ui.show_tab("fjord")
+	var scene: Node = ui.owner
+	var vista: Node = scene.get_node_or_null("%FjordVistaBridge") if scene != null else null
+	if vista != null and vista.has_method("select_pen_from_ui"):
+		vista.select_pen_from_ui(site_id)
+		vista.focus_selected_pen()
+
+
+## GameUI calls this whenever the tab is shown: re-read the engine's map and
+## pick the company's home area when nothing is picked yet.
+func on_panel_shown() -> void:
+	# Rebuild only what changed: a reopened map keeps its cards (and focus).
+	_refresh_expansion(false)
+	if _selected_region_id == "":
+		var home := _home_area()
+		if home > 0:
+			select_area(home)
+
+
+func _on_sim_changed() -> void:
+	if is_visible_in_tree():
+		_refresh_expansion(false)
+
+
+func _refresh_expansion(force: bool = true) -> void:
+	if _sim == null:
+		return
+	var fresh: Dictionary = _sim.get_expansion_overview()
+	var changed: bool = force or fresh.get("areas", []) != _overview.get("areas", [])
+	_overview = fresh
+	if not changed:
+		return
+	_apply_expansion_to_markers()
+	if _selected_region_id != "":
+		var a := _area_view(_region_area(_selected_region_id))
+		if not a.is_empty() and _expansion != null:
+			_expansion.show_area(a, _overview)
+			_show_area_climate(a)
+
+
+## The overview's row of a production area (1-13), or {}.
+func _area_view(area: int) -> Dictionary:
+	for a in _overview.get("areas", []):
+		if int(a.get("production_area", 0)) == area:
+			return a
+	return {}
+
+
+## The area where the company has the most sites (0 when it has none).
+func _home_area() -> int:
+	var best := 0
+	var best_sites := 0
+	for a in _overview.get("areas", []):
+		var sites := 0
+		for z in a.get("zones", []):
+			sites += int(z.get("player_sites", 0))
+		if sites > best_sites:
+			best_sites = sites
+			best = int(a.get("production_area", 0))
+	return best
+
+
+func _region_area(region_id: String) -> int:
+	return int(str(_get_region(region_id).get("production_zone", "PO0")).trim_prefix("PO"))
+
+
+func _region_of_area(area: int) -> String:
+	return REGIONS[area - 1]["id"] if area >= 1 and area <= REGIONS.size() else ""
+
+
+## Pick a production area (1-13) as a click on its marker does.
+func select_area(area: int) -> void:
+	var rid := _region_of_area(area)
+	if rid == "":
+		return
+	_selected_region_id = rid
+	_show_region(rid)
+	_refresh_markers()
+
+
+func _on_area_picked(index: int) -> void:
+	var area := _area_picker.get_item_id(index)
+	if area > 0:
+		select_area(area)
+
+
+## Open the licence auction card for a zone (map, inbox, an "overbudt" event).
+func open_auction(zone_id: String) -> void:
+	if _auction_card == null:
+		return
+	_select_area_of_zone(zone_id)
+	_build_dialog.close()
+	_auction_card.open_for_zone(zone_id)
+
+
+## Open the build dialog for a zone.
+func open_build(zone_id: String) -> void:
+	if _build_dialog == null:
+		return
+	_select_area_of_zone(zone_id)
+	_auction_card.close()
+	_build_dialog.open_for_zone(zone_id)
+
+
+func auction_card() -> LicenceAuctionCard:
+	return _auction_card
+
+
+func build_dialog() -> BuildSiteDialog:
+	return _build_dialog
+
+
+func expansion_section() -> RegionExpansionSection:
+	return _expansion
+
+
+func _select_area_of_zone(zone_id: String) -> void:
+	if _overview.is_empty():
+		_refresh_expansion()
+	for a in _overview.get("areas", []):
+		for z in a.get("zones", []):
+			if str(z.get("zone_id", "")) == zone_id:
+				var area := int(a.get("production_area", 0))
+				if _region_area(_selected_region_id) != area:
+					select_area(area)
+				return
+
+
+func _apply_expansion_to_markers() -> void:
+	for rid in _region_nodes:
+		var m = _region_nodes[rid]
+		if m == null or not is_instance_valid(m):
+			continue
+		var a := _area_view(_region_area(rid))
+		var sites := 0
+		for z in a.get("zones", []):
+			sites += int(z.get("player_sites", 0))
+		var light := str(a.get("traffic_light", ""))
+		m.has_light = LIGHT_PALETTE_KEYS.has(light)
+		if m.has_light:
+			m.light_color = LakskongenTheme.palette(self, LIGHT_PALETTE_KEYS[light])
+		m.ring_color = LakskongenTheme.palette(self, &"accent")
+		m.player_sites = sites
+		m.tooltip_text = tr("EXPANSION_MARKER_TIP") % [tr("UI_MAP_ZONE") % [_region_area(rid), str(_get_region(rid).get("name", ""))],
+			tr("EXPANSION_LIGHT_" + light.to_upper()) if light != "" else "", sites]
+		m.queue_redraw()
+
+
+## The area's sea temperature range from the sim's climatology (monthly means at 3 m).
+func _show_area_climate(a: Dictionary) -> void:
+	var tmin := float(a.get("sea_temp_min_c", 0.0))
+	var tmax := float(a.get("sea_temp_max_c", 0.0))
+	_detail_temp.text = "%s – %s °C" % [SimFormatters.num(tmin, 1), SimFormatters.num(tmax, 1)]
+	if _temp_bar is _TempBar:
+		_temp_bar.set_range(tmin, tmax)
 
 func _input(event: InputEvent) -> void:
 	"""Handle keyboard navigation"""
-	if not visible:
+	if not visible or _dialog_open():
 		return
-	
+
 	if event.is_action_pressed("ui_cancel"):
 		hide()
 		get_viewport().set_input_as_handled()
+
+
+## True while the auction card or the build dialog is up (Esc closes it first).
+func _dialog_open() -> bool:
+	return (_auction_card != null and _auction_card.visible) or (_build_dialog != null and _build_dialog.visible)
 
 func show_panel() -> void:
 	show()
@@ -439,8 +738,9 @@ func _build_region_markers() -> void:
 		marker.gui_input.connect(_on_region_input.bind(region["id"]))
 		_map_container.add_child(marker)
 		_region_nodes[region["id"]] = marker
-	# Apply the current overlay (if any) once markers exist.
+	# Apply the current overlay (if any) and the sim's traffic lights once markers exist.
 	_apply_overlay_to_markers()
+	_apply_expansion_to_markers()
 	# U1-05: city names give way to the region markers (Bodø sat on top of
 	# "Helgeland til Bodø", Trondheim on "Nordmøre og Sør-Trøndelag").
 	if _coastline != null:
@@ -504,7 +804,17 @@ func _show_region(region_id: String) -> void:
 	if _temp_bar is _TempBar:
 		_temp_bar.set_range(r["temp_min"], r["temp_max"])
 
-	_confirm_btn.disabled = false
+	# U2-01: the engine's view of the area (capacity, zones, verdicts) and its
+	# sea temperature from the sim's climatology.
+	var area := int(str(r["production_zone"]).trim_prefix("PO"))
+	if _overview.is_empty():
+		_refresh_expansion()
+	var view := _area_view(area)
+	if _expansion != null and not view.is_empty():
+		_expansion.show_area(view, _overview)
+		_show_area_climate(view)
+	if _area_picker != null:
+		_area_picker.select(area)
 
 func _clear_selection() -> void:
 	_selected_region_id = ""
@@ -517,8 +827,11 @@ func _clear_selection() -> void:
 		lbl.text = "—"
 	LakskongenTheme.set_text_color(_detail_risk_label, TEXT_BODY)
 	_detail_risk_indicator.color = TEXT_MUTED
-	_confirm_btn.disabled = true
 	_disease_details.text = ""
+	if _expansion != null:
+		_expansion.show_area({}, _overview)
+	if _area_picker != null:
+		_area_picker.select(0)
 	_refresh_markers()
 
 # ── Marker state refresh ───────────────────────────────────────────────────────
@@ -548,20 +861,14 @@ func _on_region_input(event: InputEvent, region_id: String) -> void:
 		_selected_region_id = region_id
 		_show_region(region_id)
 		_refresh_markers()
-
-func _on_confirm_pressed() -> void:
-	if _selected_region_id.is_empty():
-		return
-	emit_signal("region_selected", _selected_region_id)
-	hide_panel()
-	emit_signal("close_requested")
+		region_selected.emit(region_id)
 
 func _on_close_pressed() -> void:
 	hide_panel()
 	emit_signal("close_requested")
 
 func _unhandled_key_input(event: InputEvent) -> void:
-	if not visible:
+	if not visible or _dialog_open():
 		return
 	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
 		_on_close_pressed()
@@ -754,6 +1061,12 @@ class _RegionMarker extends Control:
 	var state: int = STATE_NORMAL
 	var overlay_active: bool = false
 	var overlay_color: Color = Color("#5A6168")
+	## U2-01: the area's traffic light as the sim knows it (the dot) and the
+	## company's sites there (a ring around the dot).
+	var has_light: bool = false
+	var light_color: Color = Color("#8A5A00")
+	var ring_color: Color = Color("#B5452B")
+	var player_sites: int = 0
 
 	func _ready() -> void:
 		mouse_filter = Control.MOUSE_FILTER_STOP
@@ -786,16 +1099,20 @@ class _RegionMarker extends Control:
 			STATE_SELECTED:
 				bg_color = Color(region_color, 0.40)
 		if bg_color.a > 0:
-			draw_rect(Rect2(0, 0, w, h), bg_color, true, 0.0)
+			draw_rect(Rect2(0, 0, w, h), bg_color, true)
 
-		# Dot
-		var dot_col := _risk_dot_color(risk)
+		# Dot: the traffic light (or the active data overlay); the selection
+		# grows it and the company's sites ring it.
+		var dot_col := light_color if has_light else _risk_dot_color(risk)
 		if overlay_active:
 			dot_col = overlay_color
-		if state == STATE_SELECTED:
-			dot_col = region_color.lightened(0.3)
 		var dot_r := 7.0 if state == STATE_NORMAL else 9.0
-		draw_circle(Vector2(dot_r + 2, h / 2.0), dot_r, dot_col)
+		var center := Vector2(11.0, h / 2.0)
+		if state == STATE_SELECTED:
+			draw_circle(center, dot_r + 5.0, Color(region_color, 0.35))
+		draw_circle(center, dot_r, dot_col)
+		if player_sites > 0:
+			draw_arc(center, dot_r + 3.0, 0.0, TAU, 32, ring_color, 2.5, true)
 
 	func _risk_dot_color(risk: String) -> Color:
 		if risk.begins_with("Low"):

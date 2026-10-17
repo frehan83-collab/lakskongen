@@ -32,6 +32,7 @@ const TAB_VERBS := {
 	# A standing order that failed: the pen view with its site selected, where
 	# the site's Driftsplan card is.
 	"open_driftsplan": "pens",
+	"bid_licence": "map",
 }
 const SITE_VERBS := ["delouse", "freshwater_bath", "inspect_nets"]
 
@@ -54,6 +55,12 @@ static func perform(event: Dictionary, scene: Node) -> bool:
 			var unit := str(event.get("unit_id", ""))
 			if pens != null and unit != "" and pens.has_method("select_pen"):
 				pens.select_pen(unit)
+		# U2-01: an "overbudt" event opens the zone's auction card on the map.
+		if verb == "bid_licence":
+			var map: Node = ui.find_child("Panel_map", true, false)
+			var zone := str(event.get("zone_id", ""))
+			if map != null and zone != "" and map.has_method("open_auction"):
+				map.open_auction(zone)
 		return true
 	var site := target_site(event, sim)
 	if SITE_VERBS.has(verb):

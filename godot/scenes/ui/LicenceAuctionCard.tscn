@@ -1,0 +1,334 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/expansion/LicenceAuctionCard.gd" id="1_card"]
+
+[node name="LicenceAuctionCard" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_card")
+
+[node name="Dim" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.027451, 0.121569, 0.168627, 0.55)
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Dialog" type="PanelContainer" parent="Center"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(680, 0)
+layout_mode = 2
+theme_type_variation = &"Dialog"
+
+[node name="Body" type="VBoxContainer" parent="Center/Dialog"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="HeaderRow" type="HBoxContainer" parent="Center/Dialog/Body"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="HeaderCol" type="VBoxContainer" parent="Center/Dialog/Body/HeaderRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="Overline" type="Label" parent="Center/Dialog/Body/HeaderRow/HeaderCol"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"OverlineAccent"
+text = "–"
+uppercase = true
+
+[node name="TitleLabel" type="Label" parent="Center/Dialog/Body/HeaderRow/HeaderCol"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"Title"
+text = "–"
+autowrap_mode = 3
+
+[node name="SubtitleLabel" type="Label" parent="Center/Dialog/Body/HeaderRow/HeaderCol"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"BodySmallMuted"
+text = "–"
+autowrap_mode = 3
+
+[node name="CloseBtn" type="Button" parent="Center/Dialog/Body/HeaderRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(44, 44)
+layout_mode = 2
+size_flags_vertical = 0
+theme_type_variation = &"GhostButton"
+text = "✕"
+
+[node name="HeaderSep" type="HSeparator" parent="Center/Dialog/Body"]
+layout_mode = 2
+
+[node name="PreviewBox" type="VBoxContainer" parent="Center/Dialog/Body"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="ReserveRow" type="HBoxContainer" parent="Center/Dialog/Body/PreviewBox"]
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="ReserveCol" type="VBoxContainer" parent="Center/Dialog/Body/PreviewBox/ReserveRow"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="ReserveOverline" type="Label" parent="Center/Dialog/Body/PreviewBox/ReserveRow/ReserveCol"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"OverlineMuted"
+text = "–"
+uppercase = true
+
+[node name="ReserveAmount" type="Label" parent="Center/Dialog/Body/PreviewBox/ReserveRow/ReserveCol"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"Kpi"
+text = "–"
+
+[node name="ReservePerTonne" type="Label" parent="Center/Dialog/Body/PreviewBox/ReserveRow/ReserveCol"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"SmallMuted"
+text = "–"
+
+[node name="LengthCol" type="VBoxContainer" parent="Center/Dialog/Body/PreviewBox/ReserveRow"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="LengthOverline" type="Label" parent="Center/Dialog/Body/PreviewBox/ReserveRow/LengthCol"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"OverlineMuted"
+text = "–"
+uppercase = true
+
+[node name="LengthAmount" type="Label" parent="Center/Dialog/Body/PreviewBox/ReserveRow/LengthCol"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"Kpi"
+text = "–"
+
+[node name="LengthNote" type="Label" parent="Center/Dialog/Body/PreviewBox/ReserveRow/LengthCol"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"SmallMuted"
+text = "–"
+
+[node name="PreviewNote" type="Label" parent="Center/Dialog/Body/PreviewBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(600, 0)
+layout_mode = 2
+theme_type_variation = &"BodySmall"
+text = "–"
+autowrap_mode = 3
+
+[node name="LiveBox" type="VBoxContainer" parent="Center/Dialog/Body"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="LeadRow" type="HBoxContainer" parent="Center/Dialog/Body/LiveBox"]
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="LeadCol" type="VBoxContainer" parent="Center/Dialog/Body/LiveBox/LeadRow"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="LeadOverline" type="Label" parent="Center/Dialog/Body/LiveBox/LeadRow/LeadCol"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"OverlineMuted"
+text = "–"
+uppercase = true
+
+[node name="LeadAmount" type="Label" parent="Center/Dialog/Body/LiveBox/LeadRow/LeadCol"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"Kpi"
+text = "–"
+
+[node name="LeadPerTonne" type="Label" parent="Center/Dialog/Body/LiveBox/LeadRow/LeadCol"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"SmallMuted"
+text = "–"
+
+[node name="StatusCol" type="VBoxContainer" parent="Center/Dialog/Body/LiveBox/LeadRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="LeaderLabel" type="Label" parent="Center/Dialog/Body/LiveBox/LeadRow/StatusCol"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"BodyStrong"
+text = "–"
+autowrap_mode = 3
+
+[node name="CountdownLabel" type="Label" parent="Center/Dialog/Body/LiveBox/LeadRow/StatusCol"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"BodySmall"
+text = "–"
+autowrap_mode = 3
+
+[node name="CountdownBar" type="ProgressBar" parent="Center/Dialog/Body/LiveBox/LeadRow/StatusCol"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 8)
+layout_mode = 2
+max_value = 7.0
+show_percentage = false
+
+[node name="HistoryHeader" type="Label" parent="Center/Dialog/Body/LiveBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"OverlineMuted"
+text = "–"
+uppercase = true
+
+[node name="HistoryScroll" type="ScrollContainer" parent="Center/Dialog/Body/LiveBox"]
+custom_minimum_size = Vector2(0, 168)
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="HistoryList" type="VBoxContainer" parent="Center/Dialog/Body/LiveBox/HistoryScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 2
+
+[node name="BidHeader" type="Label" parent="Center/Dialog/Body/LiveBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"OverlineMuted"
+text = "–"
+uppercase = true
+
+[node name="BidRow" type="HBoxContainer" parent="Center/Dialog/Body/LiveBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="BidSpin" type="SpinBox" parent="Center/Dialog/Body/LiveBox/BidRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(180, 40)
+layout_mode = 2
+max_value = 100000.0
+rounded = true
+suffix = "MNOK"
+
+[node name="MinBidBtn" type="Button" parent="Center/Dialog/Body/LiveBox/BidRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+theme_type_variation = &"SmallGhostButton"
+text = "–"
+
+[node name="Plus5Btn" type="Button" parent="Center/Dialog/Body/LiveBox/BidRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+theme_type_variation = &"SmallGhostButton"
+text = "–"
+
+[node name="Plus10Btn" type="Button" parent="Center/Dialog/Body/LiveBox/BidRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+theme_type_variation = &"SmallGhostButton"
+text = "–"
+
+[node name="BidInfo" type="Label" parent="Center/Dialog/Body/LiveBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"SmallMuted"
+text = "–"
+autowrap_mode = 3
+
+[node name="ResultBox" type="VBoxContainer" parent="Center/Dialog/Body"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="ResultTitle" type="Label" parent="Center/Dialog/Body/ResultBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"Heading"
+text = "–"
+autowrap_mode = 3
+
+[node name="ResultBody" type="Label" parent="Center/Dialog/Body/ResultBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"Body"
+text = "–"
+autowrap_mode = 3
+
+[node name="NoticeLabel" type="Label" parent="Center/Dialog/Body"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"BodySmallWarn"
+text = "–"
+autowrap_mode = 3
+
+[node name="ReferenceLabel" type="Label" parent="Center/Dialog/Body"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(600, 0)
+layout_mode = 2
+theme_type_variation = &"SmallMuted"
+text = "–"
+autowrap_mode = 3
+
+[node name="FooterSep" type="HSeparator" parent="Center/Dialog/Body"]
+layout_mode = 2
+
+[node name="Footer" type="HBoxContainer" parent="Center/Dialog/Body"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="HintLabel" type="Label" parent="Center/Dialog/Body/Footer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(260, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"SmallMuted"
+text = "–"
+autowrap_mode = 3
+
+[node name="CancelBtn" type="Button" parent="Center/Dialog/Body/Footer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"GhostButton"
+text = "–"
+
+[node name="PrimaryBtn" type="Button" parent="Center/Dialog/Body/Footer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"PrimaryButton"
+text = "–"

@@ -50,11 +50,16 @@ public partial class SimulationEngine
         return ProductionAreas.IsValid(zone.ProductionArea) ? zone.ProductionArea : HomeProductionArea;
     }
 
-    /// <summary>The production area of a zone id, also for an id with no zone (facilities): the home area.</summary>
+    /// <summary>
+    /// The production area of a zone id: the zone's; a catalogue zone outside
+    /// the game (U2-01, <see cref="ExpansionZones"/>) its catalogue area; an id
+    /// with no zone (facilities) the home area.
+    /// </summary>
     public int ProductionAreaOfZone(string? zoneId)
     {
         var zone = FindZone(zoneId);
-        return zone != null ? ProductionAreaOf(zone) : HomeProductionArea;
+        if (zone != null) return ProductionAreaOf(zone);
+        return ExpansionZones.TryGet(zoneId, out var catalogue) ? catalogue.ProductionArea : HomeProductionArea;
     }
 
     /// <summary>The production area a sea site lies in.</summary>

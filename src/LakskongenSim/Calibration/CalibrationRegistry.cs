@@ -171,6 +171,13 @@ namespace LakskongenSim.Calibration
         public FacilitiesCalibration Facilities { get; init; } = new();
 
         /// <summary>
+        /// Liquidity ladder (U2-03): overdraft interest, the bank's liquidity
+        /// warning and call before the bankruptcy floor, and its rescue loan.
+        /// </summary>
+        [JsonPropertyName("liquidity")]
+        public LiquidityCalibration Liquidity { get; init; } = new();
+
+        /// <summary>
         /// Derived feed cost per kg of fish produced = feed price × base FCR.
         /// This is the reconciled "~25.7 NOK/kg produced" figure in
         /// docs/REALISM_CHECKLIST.md; the old model used a flat 12.5 NOK/kg fish,

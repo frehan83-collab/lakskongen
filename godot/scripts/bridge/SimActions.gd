@@ -361,7 +361,59 @@ func stock_smolts_in_pen(site_id: String, pen_id: String, count: int, strain_id:
 	return result
 
 
+## U2-03: take the bank's open rescue offer (a loan against the fish).
+## Returns {success, error_key, message, amount, loan_id}.
+func accept_rescue_loan() -> Dictionary:
+	if not game_bridge:
+		return {"success": false, "error_key": "engine_not_ready", "message": "Not initialized"}
+	var result: Dictionary = game_bridge.AcceptRescueLoan()
+	if bool(result.get("success", false)):
+		state._refresh_state()
+	return result
+
+
+## U2-03: say no to the bank's open rescue offer. Returns {success, error_key, message}.
+func decline_rescue_loan() -> Dictionary:
+	if not game_bridge:
+		return {"success": false, "error_key": "engine_not_ready", "message": "Not initialized"}
+	var result: Dictionary = game_bridge.DeclineRescueLoan()
+	if bool(result.get("success", false)):
+		state._refresh_state()
+	return result
+
+
 ## S2-01b: delouse chosen pens of a site (pen ids or numbers; empty = the whole site).
+## U2-01: build a sea site in a zone from the map. Returns the bridge's
+## dictionary (success, reason_key, label_key, site_id, site_label).
+func build_expansion_site(zone_id: String) -> Dictionary:
+	if not game_bridge:
+		return {"success": false, "reason_key": "engine_not_ready", "label_key": "EXPANSION_REASON_ENGINE_NOT_READY"}
+	var result: Dictionary = game_bridge.BuildExpansionSite(zone_id)
+	if bool(result.get("success", false)):
+		state._refresh_state()
+	return result
+
+
+## U2-01: open the growth-licence auction for a zone (opening is free).
+func open_licence_auction(zone_id: String) -> Dictionary:
+	if not game_bridge:
+		return {"success": false, "reason_key": "engine_not_ready", "label_key": "EXPANSION_REASON_ENGINE_NOT_READY"}
+	var result: Dictionary = game_bridge.OpenLicenceAuction(zone_id)
+	if bool(result.get("success", false)):
+		state._refresh_state()
+	return result
+
+
+## U2-01: bid in a zone's running licence auction (NOK).
+func bid_on_licence_auction(zone_id: String, amount_nok: float) -> Dictionary:
+	if not game_bridge:
+		return {"success": false, "reason_key": "engine_not_ready", "label_key": "EXPANSION_REASON_ENGINE_NOT_READY"}
+	var result: Dictionary = game_bridge.BidOnLicenceAuction(zone_id, amount_nok)
+	if bool(result.get("success", false)):
+		state._refresh_state()
+	return result
+
+
 func delouse_pens(site_id: String, method: String, pen_ids: Array[String] = []) -> bool:
 	if not game_bridge:
 		return false

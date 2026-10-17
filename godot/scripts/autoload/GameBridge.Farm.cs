@@ -620,6 +620,9 @@ public partial class GameBridge : Node
             }
         }
 
+        // 7. Licence auctions and unused licences (U2-01).
+        AppendExpansionAttentionItems(result);
+
         return result;
     }
 

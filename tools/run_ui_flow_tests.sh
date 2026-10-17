@@ -18,12 +18,14 @@ set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PROJECT="$REPO_ROOT/godot"
-TIMEOUT_SECS=300
+# A hang guard, not a speed gate: the wave-3 integration's suite (1425 checks)
+# runs 4:51 on a loaded M1 Pro (load 6), against 300 s before.
+TIMEOUT_SECS=600
 # The exact number of checks the suite makes: fewer means tests stopped
 # running (an early return, a call dropped from _run()). Raise it with every
 # check you add; lowering it weakens the gate and needs a dispute entry in
 # docs/RUN_LOG.md §8.
-MIN_CHECKS=1276  # wave-3 integration: wave 2's 1167 + sim-core-4's 37 + ui-a-2's 72 (1065 -> 1137); sim-lanes-2 adds none
+MIN_CHECKS=1425  # wave-3 integration: wave 2's 1167 + sim-core-4's 37 + ui-a-2's 72 + ui-b-2's 148 (1065 -> 1213) + 1 (the end screen gives back the toasts and the clock); sim-lanes-2 adds none
 
 find_godot() {
     if [[ -n "${GODOT_BIN:-}" && -x "$GODOT_BIN" ]]; then

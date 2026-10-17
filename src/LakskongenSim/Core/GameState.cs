@@ -279,6 +279,15 @@ namespace LakskongenSim.Core
         /// <summary>Day cash fell below the bankruptcy floor (null while solvent, S1-03).</summary>
         public int? BankruptDay { get; set; }
 
+        /// <summary>
+        /// The liquidity ladder (U2-03): closing-cash history, the bank's
+        /// warning and call, the rescue offer, overdraft interest paid.
+        /// </summary>
+        public Finance.LiquidityState Liquidity { get; set; } = new();
+
+        /// <summary>The P&amp;L story (U2-03): months, turning points and category totals.</summary>
+        public Finance.PnlStoryState PnlStory { get; set; } = new();
+
         /// <summary>Current tutorial step index (0-based).</summary>
         public int TutorialCurrentStepIndex { get; set; }
 

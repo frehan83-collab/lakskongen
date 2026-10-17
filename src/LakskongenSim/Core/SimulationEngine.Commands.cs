@@ -624,6 +624,9 @@ public partial class SimulationEngine
         State.TotalHarvestedLiveKg = snapshot.TotalHarvestedLiveKg;
         State.SolvencyWarningPeak = snapshot.SolvencyWarningPeak;
         State.BankruptDay = snapshot.BankruptDay;
+        // U2-03: additive; a save without them starts an empty ladder and story.
+        State.Liquidity = snapshot.Liquidity ?? new Finance.LiquidityState();
+        State.PnlStory = snapshot.PnlStory ?? new Finance.PnlStoryState();
         if (snapshot.Crew != null)
             foreach (var member in snapshot.Crew)
                 State.Crew.Add(member);

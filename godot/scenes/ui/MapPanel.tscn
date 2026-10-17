@@ -139,7 +139,7 @@ layout_mode = 2
 
 [node name="DetailPanel" type="PanelContainer" parent="Outer/PanelBg/RootVBox/Body"]
 theme_type_variation = &"Surface"
-custom_minimum_size = Vector2(340, 0)
+custom_minimum_size = Vector2(420, 0)
 layout_mode = 2
 
 [node name="DetailScroll" type="ScrollContainer" parent="Outer/PanelBg/RootVBox/Body/DetailPanel"]
@@ -328,16 +328,3 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 autowrap_mode = 3
-
-[node name="Sep5" type="HSeparator" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner"]
-layout_mode = 2
-
-[node name="ConfirmBtn" type="Button" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner"]
-visible = false
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 50)
-layout_mode = 2
-size_flags_horizontal = 3
-tooltip_text = "Velg denne regionen for å plassere et nytt sjøanlegg (Enter)"
-disabled = true
-text = "Velg område"

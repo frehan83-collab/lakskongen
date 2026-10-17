@@ -32,7 +32,11 @@ public partial class SimulationEngine
         if (State.Day == 0)
             OpenBooks();
         else
+        {
             BookCapitalAdjustment(balanceBefore);
+            OpenStory();   // U2-03: the scenario's story starts with it
+            State.Liquidity = new Finance.LiquidityState();   // and the bank reads its cash afresh
+        }
         scenario.ApplyStartingState(State, this);
         ApplyScenarioRules(scenario);
         SyncScenarioToState();
