@@ -691,4 +691,5 @@ func get_land_plots() -> Array[Dictionary]: return _proxies.get_land_plots()
 # ═══ BEGIN sim·sea lane block (F2-03 list verbs; F2-06 … F2-11 append below) ═══
 func get_offshore_units() -> Array[Dictionary]: return _proxies.get_offshore_units()
 func get_offshore_plots() -> Array[Dictionary]: return _proxies.get_offshore_plots()
+func get_sea_state_forecast(site_id: String) -> Dictionary: return _proxies.get_sea_state_forecast(site_id)
 # ═══ END sim·sea lane block ═══

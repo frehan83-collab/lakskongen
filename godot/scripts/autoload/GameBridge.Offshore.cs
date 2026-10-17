@@ -110,5 +110,81 @@ public partial class GameBridge : Node
     };
 
     // ═══ BEGIN sim·sea lane block (F2-06 … F2-11): append offshore verbs below this line ═══
+
+    /// <summary>
+    /// F2-06: the sea at an offshore unit and its honest 10-day forecast (the
+    /// window board, spec §6.5). Keys: "ok" (false for a site that is no
+    /// offshore unit or before the game has an open sea), "site_id",
+    /// "plot_id", "issued_day", "today" { "hs", "tp", "swell_hs",
+    /// "visibility_km", "wind_ms" }, "design_hs", "limits" { row → Hs limit in m,
+    /// -1 when no sea state stops it }, "rows" (the board rows in order),
+    /// "days" [ { "day", "lead", "hs_p10", "hs_p50", "hs_p90",
+    /// "p_ok" { row → probability }, "unresolved" } ], "known_swell" [ {
+    /// "onset_day", "duration_days", "peak_p10", "peak_p50", "peak_p90", "tp",
+    /// "peak_known" } ]. Issued once per plot and day by the engine (cached);
+    /// never draws.
+    /// </summary>
+    public Godot.Collections.Dictionary GetSeaStateForecast(string siteId)
+    {
+        var result = new Godot.Collections.Dictionary { ["ok"] = false, ["site_id"] = siteId ?? "" };
+        var view = SimulationEngine?.State == null ? null : SimulationEngine.GetSeaStateForecastView(siteId ?? "");
+        if (view == null) return result;
+        result["ok"] = true;
+        result["plot_id"] = view.PlotId;
+        result["issued_day"] = view.IssuedDay;
+        result["today"] = new Godot.Collections.Dictionary
+        {
+            ["hs"] = view.HsTodayM,
+            ["tp"] = view.TpTodayS,
+            ["swell_hs"] = view.SwellHsTodayM,
+            ["visibility_km"] = view.VisibilityKm,
+            ["wind_ms"] = view.WindMs,
+        };
+        result["design_hs"] = view.DesignHsM;
+        var limits = new Godot.Collections.Dictionary();
+        var rows = new Godot.Collections.Array();
+        foreach (var (row, limit) in view.RowLimitsM)
+        {
+            limits[row] = double.IsInfinity(limit) ? -1.0 : limit;
+            rows.Add(row);
+        }
+        result["limits"] = limits;
+        result["rows"] = rows;
+        var days = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        foreach (var day in view.Days)
+        {
+            var ok = new Godot.Collections.Dictionary();
+            foreach (var (row, p) in day.RowProbabilities)
+                ok[row] = p;
+            days.Add(new Godot.Collections.Dictionary
+            {
+                ["day"] = day.Day,
+                ["lead"] = day.LeadDays,
+                ["hs_p10"] = day.HsP10M,
+                ["hs_p50"] = day.HsP50M,
+                ["hs_p90"] = day.HsP90M,
+                ["p_ok"] = ok,
+                ["unresolved"] = day.UnresolvedProbability,
+            });
+        }
+        result["days"] = days;
+        var swell = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        foreach (var s in view.KnownSwell)
+        {
+            swell.Add(new Godot.Collections.Dictionary
+            {
+                ["onset_day"] = s.OnsetDay,
+                ["duration_days"] = s.DurationDays,
+                ["peak_p10"] = s.PeakP10M,
+                ["peak_p50"] = s.PeakP50M,
+                ["peak_p90"] = s.PeakP90M,
+                ["tp"] = s.PeakTpS,
+                ["peak_known"] = s.PeakKnown,
+            });
+        }
+        result["known_swell"] = swell;
+        return result;
+    }
+
     // ═══ END sim·sea lane block ═══
 }

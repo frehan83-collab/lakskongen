@@ -655,4 +655,7 @@ func get_offshore_units() -> Array[Dictionary]:
 ## The offshore slots, free or held.
 func get_offshore_plots() -> Array[Dictionary]:
 	return _arr(game_bridge.GetOffshorePlots()) if game_bridge else []
+## F2-06: today's sea at an offshore unit and its 10-day forecast (the window board).
+func get_sea_state_forecast(site_id: String) -> Dictionary:
+	return game_bridge.GetSeaStateForecast(site_id) if game_bridge else {"ok": false}
 # ═══ END sim·sea lane block ═══

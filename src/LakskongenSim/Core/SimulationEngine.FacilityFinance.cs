@@ -86,6 +86,7 @@ public partial class SimulationEngine
         if (State == null || amount <= 0m) return;
         if (!IsResourceRentLiable(unitId ?? "", kind))
             State.RentRingFencedCostsThisTaxYear += amount;
+        NotePartnerShareOfUnitCost(unitId ?? "", kind, amount); // F2-07: a consortium partner's share
     }
 
     /// <summary>

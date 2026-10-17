@@ -145,6 +145,8 @@ public partial class SimulationEngine
             husbandry.Recipe.PriceFactor);
         // F2-04: a land tank's (or a non-liable offshore unit's) feed stays out of the rent base.
         if (husbandry.Water.Kind != HoldingKind.SeaPen) AttributePopulationCost(population, fed.CostNOK);
+        // F2-07: an offshore unit's fish eat from its silo.
+        if (husbandry.Water.Kind == HoldingKind.Offshore) TakeOffshoreFeed(population, fed.FeedUsedKg);
         return fed;
     }
 

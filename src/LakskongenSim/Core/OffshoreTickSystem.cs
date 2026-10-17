@@ -7,26 +7,42 @@ namespace LakskongenSim.Core;
 /// <summary>
 /// The offshore units' daily tick (docs/FARM_TYPES_SPEC.md §3.3; F2-02 moved it
 /// out of <c>FarmOpexTickSystem</c> and <c>ProcessCarbonLedger</c>, F2-03 runs
-/// it on the offshore sea sites): every offshore unit runs its day
-/// (<see cref="Farm.Offshore.OffshoreUnit.TickDay"/>: construction, storm
-/// lockdown, structure, crew rotation), adds its opex to the day's facility
-/// opex and books its carbon on its sea site's tracker. The sea lane (F2-06
-/// metocean, F2-07 operations and logistics, F2-08 incidents) grows it here.
-/// FarmOpex runs it between the land sites and the (empty) legacy post-smolt
-/// list (<see cref="LandSiteTickSystem"/>: the opex sum's order).
+/// it on the offshore sea sites): the open sea's phase right after the
+/// weather (F2-06), and every offshore unit's day in FarmOpex (F2-07,
+/// <see cref="SimulationEngine.RunOffshoreUnitDay"/>: construction and the tow,
+/// crew, bookings and charter, silo and silage, structure and nets, the
+/// teething deck, sensors, the alarm load, its own lines at its equity share,
+/// the partner's settlement), then its carbon on its sea site's tracker.
+/// F2-08 adds the incidents here. FarmOpex runs the units between the land
+/// sites and the (empty) legacy post-smolt list (<see cref="LandSiteTickSystem"/>).
 /// </summary>
 internal static class OffshoreTickSystem
 {
-    /// <summary>Each offshore unit's day (in the site list's order) and its opex. Draws no random number.</summary>
+    /// <summary>
+    /// The Metocean phase (F2-06, right after the weather): the game's open sea
+    /// advances to the weather's day (8 uniforms from <c>offshore_metocean</c>)
+    /// and every offshore unit takes its plot's Hs, which the biology's
+    /// appetite, the hazards and the unit's own day read. Nothing happens in a
+    /// game that never had an offshore unit.
+    /// </summary>
+    public static void AdvanceSea(SimulationEngine engine)
+    {
+        engine.AdvanceOffshoreSea();
+        engine.CommissionReadyLegacyUnits(); // a legacy or migrated unit fills its silo before its fish eat
+    }
+
+    /// <summary>
+    /// Each offshore unit's day (in the site list's order, F2-07): 8 uniforms
+    /// from <c>offshore_farm/&lt;unit&gt;</c> every day, whatever happens, then
+    /// its construction, logistics and lines (booked through the ledger with
+    /// their own categories, not the day's facility opex sum).
+    /// </summary>
     public static void Tick(SimulationEngine engine)
     {
-        bool storm = engine.Weather.CurrentState == WeatherState.Storm;
-        foreach (var site in engine.State.SeaSites)
+        foreach (var site in engine.State.SeaSites.ToList())
         {
             if (site.Kind != SiteKind.Offshore || site.Offshore == null) continue;
-            var result = site.Offshore.TickDay(engine.State.Day, engine.Weather.CurrentWaveHeight, storm, site.MABTonnes);
-            engine._dailyFarmSystemsOpex += result.TotalDailyOPEX;
-            engine.AttributeUnitCost(site.Id, HoldingKind.Offshore, result.TotalDailyOPEX); // F2-04 ring-fence (liable units keep it)
+            engine.RunOffshoreUnitDay(site);
         }
     }
 
@@ -47,8 +63,8 @@ internal static class OffshoreTickSystem
             if (site.Kind != SiteKind.Offshore || off == null || !off.IsOperational) continue;
             double biomassTonnes = site.Pens.Sum(p => p.GetTotalBiomassKg()) / 1000.0;
 
-            // Scope 1: Generator fuel (higher than fjord sites)
-            double fuelL = 200.0 + biomassTonnes * 1.0; // base + per tonne
+            // Scope 1: generator fuel, the litres the unit's energy line pays for (F2-07)
+            double fuelL = engine.OffshoreFuelLitresToday(site);
             double fuelCO2e = fuelL * Farm.CarbonLedger.DieselKgCO2ePerLiter * energyEmissionFactor;
             site.CarbonTracker.AddEmission("Scope1_Fuel", site.Id, fuelCO2e, day);
 

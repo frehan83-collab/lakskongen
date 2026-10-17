@@ -1,4 +1,38 @@
 {
+  "alarmLoad": {
+    "base": 0.15,
+    "crewOverdueCapDays": 10,
+    "perCrewOverdueDay": 0.02,
+    "perSensorPastService": 0.1,
+    "perUnfixedRevealedDefect": 0.15
+  },
+  "costs": {
+    "anchorTugNokPerDay": 480000,
+    "buyoutMultiple": 1.2,
+    "crewBoatNokPerDay": 50000,
+    "crewSalaryNokPerYear": 900000,
+    "dieselNokPerLitre": 7.5,
+    "dpVesselNokPerDay": 290000,
+    "fuelLitresPerDay": 1100,
+    "fuelLitresPerTonnePerDay": 0.1,
+    "helicopterNokPerChange": 150000,
+    "insuranceShareOfCapexPerYear": 0.008,
+    "maintenanceShareOfCapexPerYear": 0.025,
+    "offshoreWellboatPremium": 1.5,
+    "rovInspectionNok": 75000,
+    "serviceVesselNokPerDay": 143000,
+    "towShelterDaysMax": 15,
+    "towShelterDaysMin": 5,
+    "towTugs": 3,
+    "wellboatNokPerDay": 150000
+  },
+  "logistics": {
+    "crewChangeIntervalDays": 7,
+    "feedAverageDays": 7,
+    "helicopterFallbackOverdueDays": 2,
+    "silagePerDeadTonne": 1,
+    "siloLowWarningDays": 5
+  },
   "metocean": {
     "arPhi": 0.75,
     "arSigma": 0.3,
@@ -127,6 +161,83 @@
     "off_2": {
       "hs100M": 6.5,
       "hsScale": 1.376
+    }
+  },
+  "sensors": {
+    "aisBroadband": {
+      "installNok": 1000000,
+      "serviceNok": 50000
+    },
+    "echo": {
+      "installNok": 2000000,
+      "serviceNok": 150000
+    },
+    "mru": {
+      "installNok": 1500000,
+      "serviceNok": 100000
+    },
+    "serviceIntervalDays": 180,
+    "subseaCam": {
+      "installNok": 3000000,
+      "serviceNok": 200000
+    }
+  },
+  "structure": {
+    "fatigueCoeff": 0.0005,
+    "netDecayPctPerDay": 0.04,
+    "netDecayPerMetreOver": 0.2,
+    "netDecayThresholdHsM": 3,
+    "netRepairNokPerPct": 250000,
+    "structureRepairFullNok": 50000000
+  },
+  "teething": {
+    "ballastTiltMultiplier": 3,
+    "biologyPpMax": 8,
+    "biologyPpMin": 4,
+    "cableChainFatigueMultiplier": 2,
+    "cycle1RevealWindowDays": 365,
+    "firstUnitDefectsMax": 4,
+    "firstUnitDefectsMin": 3,
+    "fixDays": 30,
+    "harvestZoneCrushPp": 3,
+    "laterUnitDefectsMax": 2,
+    "laterUnitDefectsMin": 1,
+    "netSystemWearMultiplier": 2,
+    "shakedownLongDays": 120,
+    "shakedownMediumDays": 90,
+    "shakedownRevealPer30Days": 0.5,
+    "shakedownShortDays": 60
+  },
+  "units": {
+    "havfarm": {
+      "commissioningDays": 14,
+      "contractCapexNok": 1000000000,
+      "crewInRotation": 18,
+      "hullDays": 641,
+      "mooringDays": 70,
+      "silageTonnes": 300,
+      "siloTonnes": 1500,
+      "teethingBudgetNok": 218000000,
+      "voyageDays": 60,
+      "yardContractDays": 92
+    },
+    "of1": {
+      "commissioningDays": 14,
+      "contractCapexNok": 720000000,
+      "crewInRotation": 12,
+      "hullDays": 456,
+      "mooringDays": 28,
+      "silageTonnes": 120,
+      "siloTonnes": 700,
+      "teethingBudgetNok": 157000000,
+      "voyageDays": 77,
+      "yardContractDays": 92
+    },
+    "payments": {
+      "contractShare": 0.2,
+      "deliveryShare": 0.2,
+      "hullShare": 0.5,
+      "mooringShare": 0.1
     }
   }
 }

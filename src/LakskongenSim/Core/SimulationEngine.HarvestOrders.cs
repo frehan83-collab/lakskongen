@@ -229,7 +229,8 @@ public partial class SimulationEngine
                 continue;
             }
             var owing = ResolveOwingPens(order, holding);
-            if (owing.Count > 0 && State.Day >= order.SlotDay)
+            // F2-07: at an offshore unit the wellboat pumps only on a day its sea allows fish handling.
+            if (owing.Count > 0 && State.Day >= order.SlotDay && SeaAllowsHarvestToday(holding.Id, holding.Kind))
             {
                 var route = holding.Route;
                 double left = capacityLeft.TryGetValue(route.CapacityPool, out var l) ? l : route.DailyCapacityTonnesHog;
