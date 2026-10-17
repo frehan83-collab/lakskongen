@@ -2290,6 +2290,17 @@ func _press_key(keycode: Key, unicode: int = 0) -> void:
 		get_viewport().push_input(ev)
 	await get_tree().process_frame
 
+## A real key press and release handled now, without waiting for a frame
+## (so the clock cannot tick between two presses).
+func _tap_key_now(keycode: Key, unicode: int = 0) -> void:
+	for pressed in [true, false]:
+		var ev := InputEventKey.new()
+		ev.keycode = keycode
+		ev.physical_keycode = keycode
+		ev.unicode = unicode if pressed else 0
+		ev.pressed = pressed
+		get_viewport().push_input(ev)
+
 ## A real Cmd+key (macOS) / Ctrl+key (elsewhere) press and release.
 func _press_command_key(keycode: Key) -> void:
 	for pressed in [true, false]:
@@ -5744,10 +5755,15 @@ func _test_next_event_runs_to_the_next_warning() -> void:
 		"next event: a warning stops it, paused, at the player's 3× (%s×)" % str(_sim.get_time_speed()))
 	_check(hud.pacing_label.text == "Stoppet · " + tr("GAME_EVENT_OXYGEN_LOW") and not hud.next_event_btn.button_pressed,
 		"next event: the chip names what stopped it ('%s')" % hud.pacing_label.text)
-	await _press_key(KEY_N, 110)
-	await _press_key(KEY_N, 110)
-	_check(not _sim.is_running_to_next_event() and not _sim.is_paused() and int(_sim.get_time_speed()) == 3,
-		"next event: N during a run ends it and the clock keeps its 3× (%s×)" % str(_sim.get_time_speed()))
+	# N starts a run and a second N ends it, with no clock tick between the two
+	# presses: on a slow runner a single frame at 30× can reach a real warning
+	# that ends the run by itself, and the second N would then start a new one.
+	_tap_key_now(KEY_N, 110)
+	var started: bool = _sim.is_running_to_next_event() and int(_sim.get_time_speed()) == 30
+	_tap_key_now(KEY_N, 110)
+	_check(started and not _sim.is_running_to_next_event() and not _sim.is_paused() and int(_sim.get_time_speed()) == 3,
+		"next event: N during a run ends it and the clock keeps its 3× (%s×, run started: %s)" % [str(_sim.get_time_speed()), str(started)])
+	await get_tree().process_frame
 	_sim.set_paused(true)
 	scene.queue_free()
 	await get_tree().process_frame
