@@ -3232,8 +3232,9 @@ func _finish() -> void:
 ## Golden heightfield hash of the game's fjord (seed 42, 512², 4 km): the
 ## same value TerrainGeneratorTests.GoldenHashSeed42 pins in xUnit, so the
 ## headless path, the windowed path (FjordTerrain logs it) and the .NET test
-## process all build one heightfield.
-const TERRAIN_GOLDEN_HASH := "5a84dfe1202f180d"
+## process all build one heightfield. Re-promoted by F2-19 (the land pads are
+## carved; was 5a84dfe1202f180d).
+const TERRAIN_GOLDEN_HASH := "a7b58a2c48dd4a8f"
 
 ## G1-01: the fjord is one heightfield, wound so every triangle faces up,
 ## with a HeightMapShape3D collider, uploaded without a long main-thread frame.

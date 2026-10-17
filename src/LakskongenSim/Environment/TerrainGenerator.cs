@@ -126,7 +126,11 @@ namespace LakskongenSim.Environment
             _centreX = new float[CentreBaseX.Length];
             for (int k = 0; k < _centreX.Length; k++)
                 _centreX[k] = CentreBaseX[k] + CentreJitterM * HashToSigned(Settings.Seed + SeedCentre, k);
+            // F2-19: each land pad's quay side, from the uncarved ground (the carve reads it).
+            _padQuaySides = QuaySides();
         }
+
+        private readonly int[] _padQuaySides;
 
         public TerrainGenerator(int seed) : this(new FjordTerrainSettings { Seed = seed }) { }
 
@@ -183,11 +187,16 @@ namespace LakskongenSim.Environment
             return 0.5f * (2f * p1 + (p2 - p0) * f + (2f * p0 - 5f * p1 + 4f * p2 - p3) * f2 + (3f * p1 - p0 - 3f * p2 + p3) * f3);
         }
 
-        /// <summary>Terrain height in metres at world (x, z); sea level is 0.</summary>
+        /// <summary>
+        /// Terrain height in metres at world (x, z); sea level is 0. The land
+        /// pads are carved into it (F2-19, <see cref="CarvePads"/>), so the
+        /// heightfield, the far field's seam and every placement query see
+        /// the same flat pads.
+        /// </summary>
         public float HeightAt(float x, float z)
         {
             var s = Sample(x, z);
-            return s.Height;
+            return CarvePads(s.Height, x, z);
         }
 
         /// <summary>

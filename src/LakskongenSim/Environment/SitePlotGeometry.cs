@@ -26,6 +26,29 @@ namespace LakskongenSim.Environment
     }
 
     /// <summary>
+    /// An axis-aligned rectangle of ground in world metres (F2-19): a pad with
+    /// its rim, which trees and shore buildings keep off.
+    /// </summary>
+    public readonly record struct GroundRect(float MinX, float MinZ, float MaxX, float MaxZ)
+    {
+        /// <summary>True when (x, z) lies in the rectangle (edges included).</summary>
+        public bool Contains(float x, float z) => x >= MinX && x <= MaxX && z >= MinZ && z <= MaxZ;
+
+        /// <summary>True when (x, z) lies in any of <paramref name="rects"/> (none: false).</summary>
+        public static bool AnyContains(IReadOnlyList<GroundRect>? rects, float x, float z)
+        {
+            if (rects == null)
+                return false;
+            foreach (var r in rects)
+            {
+                if (r.Contains(x, z))
+                    return true;
+            }
+            return false;
+        }
+    }
+
+    /// <summary>
     /// An open-sea slot reserved for an offshore unit (farm-types spec §4),
     /// outside the play area's water bake: <see cref="Exposure"/> is the
     /// open-sea exposure there (1, the bake's "open ocean"), and

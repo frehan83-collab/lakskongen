@@ -103,6 +103,12 @@ var _material: ShaderMaterial
 var _gen_thread: Thread = null
 var _water_bake_image: Image = null
 var _requested: Array[String] = []
+## F2-19: pad id -> state (0 heath, 1 blasted granite) for the shader's pad
+## splat; pads never set stay heath.
+var _pad_states: Dictionary = {}
+var _pad_cache: Array = []
+## Most pads the terrain shader paints (its pad_rects[] size).
+const MAX_SHADER_PADS := 4
 
 
 func _ready() -> void:
@@ -121,6 +127,7 @@ func generate_terrain() -> void:
 	_finish_thread()
 	if not _ensure_generator():
 		return
+	_pad_cache = []
 	_request_resources()
 	_gen_thread = Thread.new()
 	var err := _gen_thread.start(_thread_build)
@@ -403,7 +410,51 @@ func _create_terrain_material() -> Material:
 	else:
 		push_warning("[FjordTerrain] Missing terrain textures: %s — palette only" % ", ".join(missing))
 		_material.set_shader_parameter("use_textures", 0.0)
+	_apply_pads()
 	return _material
+
+
+## F2-19: the land pads' rectangles and states into the terrain shader (the
+## generator carves the same pads into the heightfield).
+func _apply_pads() -> void:
+	if _material == null:
+		return
+	# The pads are fixed for the generator's settings (and computing their
+	# intake reach walks the grid): read them once.
+	if _pad_cache.is_empty():
+		_pad_cache = land_pad_slots()
+	var pads := _pad_cache
+	var rects := PackedVector4Array()
+	var states := PackedFloat32Array()
+	var rim := 30.0
+	for pad: Dictionary in pads.slice(0, MAX_SHADER_PADS):
+		var c: Vector3 = pad["centre"]
+		var size: Vector2 = pad["size"]
+		rects.append(Vector4(c.x, c.z, size.x * 0.5, size.y * 0.5))
+		states.append(float(_pad_states.get(str(pad["id"]), 0.0)))
+		rim = float(pad.get("rim_m", rim))
+	while rects.size() < MAX_SHADER_PADS:
+		rects.append(Vector4.ZERO)
+		states.append(0.0)
+	_material.set_shader_parameter("pad_rects", rects)
+	_material.set_shader_parameter("pad_state", states)
+	_material.set_shader_parameter("pad_count", mini(pads.size(), MAX_SHADER_PADS))
+	_material.set_shader_parameter("pad_rim_m", rim)
+
+
+## F2-19: paint a land pad as heath (0, unbuilt), blasted granite (1) or the
+## blast spreading across it (between). The heightfield never changes.
+func set_pad_state(pad_id: String, state: float) -> void:
+	var s := clampf(state, 0.0, 1.0)
+	if is_equal_approx(float(_pad_states.get(pad_id, 0.0)), s) and _pad_states.has(pad_id):
+		return
+	_pad_states[pad_id] = s
+	_apply_pads()
+
+
+## The state a pad is painted with (0 heath .. 1 blasted granite).
+func get_pad_state(pad_id: String) -> float:
+	return float(_pad_states.get(pad_id, 0.0))
 
 
 ## Queue the shader and detail textures on the loader threads while the

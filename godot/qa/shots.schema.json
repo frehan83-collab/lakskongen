@@ -58,6 +58,12 @@
           }
         },
         "variant_of": {"type": "string"},
+        "pad_state": {
+          "type": "object",
+          "description": "F2-19: land pad id -> terrain pad_state (0 heath, 1 blasted granite); pads left out stay heath.",
+          "additionalProperties": {"type": "number", "minimum": 0, "maximum": 1}
+        },
+        "measure_pads": {"type": "boolean", "description": "F2-19: record each pad's mean CIE Lab in the frame."},
         "state": {"type": "string", "description": "A UI shot's game state, named by its capture scene (U2-01: map, build_refused, auction_preview, auction_live, auction_won, build_new_zone, built_view)."},
         "purpose": {"type": "string", "minLength": 10}
       }
