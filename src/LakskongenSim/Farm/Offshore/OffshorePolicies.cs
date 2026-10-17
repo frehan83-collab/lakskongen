@@ -115,7 +115,7 @@ namespace LakskongenSim.Farm.Offshore
             Kind = DriftsplanSettingKind.Choice,
             Choices = new[] { "standard", "dp_walk_to_work" },
             DefaultChoice = VesselStandard,
-            Source = "GB: the standard service vessel (Seabrokers 2024 PSV rate); DP reaches 3.0 m at about twice the price (spec §3.3)",
+            Source = "GB: the standard service vessel at its calibrated day rate; DP reaches 3.0 m at about twice the price (spec §3.3)",
         };
 
         internal static DriftsplanJob BookGreenWindow(string policy, string unitId, int day, OffshoreOp op, VesselClass vessel, double minProbability)
@@ -282,7 +282,7 @@ namespace LakskongenSim.Farm.Offshore
             Default = 30,
             WholeNumber = true,
             Unit = "days",
-            Source = "O:R37 (Menon 131/2023 §2.5.4): nets are cleaned and inspected by ROV weekly to monthly; monthly here",
+            Source = "O:R37 §2.5.4: nets are cleaned and inspected by ROV weekly to monthly; monthly here",
         };
 
         private static readonly IReadOnlyList<DriftsplanSetting> AllSettings =
