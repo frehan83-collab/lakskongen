@@ -330,6 +330,20 @@ GIS package).
   build dialog), keyed by `id`, with `score`, `components` and `binding` as the
   dialog's "why here" explanation. Land pads have no geo candidates yet (a
   follow-up: flat shore land near deep water from N250 + DTM 50).
+  Status (geo B, 2026-10-20, `geo/sea-candidates`): the build dialog's Sjø
+  step lists the area's 12 open-pen candidates by rank
+  (`SimulationEngine.GetSeaCandidates`, bridge `get_sea_candidates`) with
+  the first free one preselected, so tutorial step 16 is unchanged; the
+  'why here' leads with the binding term, then each weighted term's weight,
+  points and measurement, the river factor, the zone whose licence and water
+  the build uses, and the note that the score explains and changes no
+  farming (OD3). A build at a candidate is U2-01's build plus an optional
+  `SeaSite.CandidateId` (written only when set); a candidate carries one
+  locality; `GetPlayerSiteLocations` places built sites at their candidate
+  and other sites at their zone's anchor ('approximate'). hav_1's Hav lens
+  names its Havbruk til havs area, stage, real distance and depth. The
+  anchor and hav_1 binding read track A's interfaces (stand-ins until A2/A3
+  merge).
 - **Rival farms**: `localities.geojson` sea and land salmonid sites, with
   `mtb_t` and `po`, give the real distribution of competitors per area; give
   them generated parody company names (D17: the data has none, by design).

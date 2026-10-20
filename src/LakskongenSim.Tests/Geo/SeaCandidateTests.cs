@@ -202,6 +202,44 @@ public class SeaCandidateTests
         Assert.True(views.Single(v => v.Id == "PO03-02").Verdict.Allowed);
     }
 
+    /// <summary>
+    /// Tutorial step 16 on the dialog's route (the home zone's «Bygg lokalitet»,
+    /// then the confirm): the dialog preselects the first free place, the
+    /// build there completes the step as U2-01's build did, and the new site
+    /// lies at PO03-01. The minimal first-season player gets there; the same
+    /// route by input alone is FirstSeasonFlowChecks'.
+    /// </summary>
+    [Fact]
+    public void TutorialStep16_BuildsTheSecondSiteAtThePreselectedFirstPlace()
+    {
+        var engine = Tutorial.TutorialPlayer.Start("forste_sesong", 4, events: false);
+        var player = new Tutorial.TutorialPlayer();
+        for (int day = 0; day < 1500 && engine.Tutorial.CurrentStep?.Id != "build_site"; day++)
+        {
+            for (int guard = 0; guard < 32 && engine.Tutorial.IsActive && engine.Tutorial.CurrentStep?.Id != "build_site"; guard++)
+            {
+                int before = engine.Tutorial.CurrentStepNumber;
+                player.DoOne(engine);
+                if (engine.Tutorial.CurrentStepNumber == before) break;
+            }
+            if (engine.Tutorial.CurrentStep?.Id != "build_site") engine.Advance(1);
+        }
+        Assert.Equal("build_site", engine.Tutorial.CurrentStep?.Id);
+        var home = engine.State.SeaSites.Single();
+        for (int day = 0; day < 365 && !engine.BuildVerdictOf(home.ZoneId).Allowed; day++)
+            engine.Advance(1);   // as the player: the build waits for its cash
+
+        var suggested = Assert.Single(engine.GetSeaCandidates(engine.ProductionAreaOfZone(home.ZoneId)), v => v.Suggested);
+        Assert.Equal(("PO03-01", home.ZoneId), (suggested.Id, suggested.BuildZoneId));
+        Assert.True(suggested.Verdict.Allowed, suggested.Verdict.ReasonKey);
+        var built = engine.BuildSeaSiteAt(home.ZoneId, suggested.Id);
+        Assert.True(built.Ok, built.Message);
+        engine.Tutorial.CheckProgress();
+        Assert.Equal("stock_new_site", engine.Tutorial.CurrentStep?.Id);
+        var at = engine.GetPlayerSiteLocations().Last();
+        Assert.Equal((built.Id, PlayerSiteLocation.CandidateSource, "PO03-01"), (at.SiteId, at.Source, at.CandidateId));
+    }
+
     // ── The refusals, in order ───────────────────────────────────────────
 
     [Fact]
