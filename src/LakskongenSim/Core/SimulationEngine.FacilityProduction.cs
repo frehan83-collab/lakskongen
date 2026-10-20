@@ -102,8 +102,10 @@ public partial class SimulationEngine
         if (site.Offshore.ShakedownEndDay > Weather.SimulationDay) // F2-07: the shakedown delays the first stocking (the sea day: in-day bookings too)
             return CommandResult.Fail(OffshoreReasons.ShakedownActive, $"'{site.Label}' runs its shakedown until day {site.Offshore.ShakedownEndDay}");
 
+        var held = OffshoreStockingRefusal(site); // F2-08/F2-09: a withdrawn approval, licences that do not cover it
+        if (held != null) return held;
         var strain = SmoltStrainRegistry.Get(strainId);
-        var refused = CheckFacilityCapacity(site.CurrentBiomassTonnes * 1000.0, count, strain, site.MABTonnes, site.Label);
+        var refused = CheckFacilityCapacity(site.CurrentBiomassTonnes * 1000.0, count, strain, UnitMtbTonnes(site), site.Label);
         if (refused != null) return refused;
         var zone = site.PhysicalPens.OrderBy(p => p.Number).FirstOrDefault(site.IsPenFree);
         if (zone == null)

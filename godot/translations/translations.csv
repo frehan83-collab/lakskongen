@@ -2135,6 +2135,31 @@ BUILD_VARIANT_STAGE3,Later stage,Senere trinn
 BUILD_VARIANT_UPGRADE_ON_PEN,"Upgraded on the pen card, not here","Oppgraderes på merdkortet, ikke her"
 BUILD_WATCH_HAV,"What to watch: weather windows, silo days, the crew clock and the alarm load.","Dette må du følge med på: værvinduer, silodager, mannskapsklokken og alarmlasten."
 BUILD_WATCH_LAND,"What to watch: oxygen and CO₂ in the tanks, power per kg, growth against the plan and the harvest against the price.","Dette må du følge med på: oksygen og CO₂ i karene, strøm per kg, vekst mot plan og slakting mot prisen."
+CMD_ERROR_ALREADY_APPLIED,An application is already being decided.,En søknad er allerede til behandling.
+CMD_ERROR_ALREADY_RUNNING,That work is already under way.,Det arbeidet er allerede i gang.
+CMD_ERROR_APPROVAL_WITHDRAWN,The site approval has been withdrawn.,Lokalitetsgodkjenningen er trukket tilbake.
+CMD_ERROR_CRITERIA_UNMET,Not every criterion is met.,Ikke alle kriteriene er oppfylt.
+CMD_ERROR_GATE_UNMET,The company does not meet the requirements for the round today.,Selskapet oppfyller ikke kravene for søknadsrunden i dag.
+CMD_ERROR_INVALID_CONCEPT,That concept cannot be applied for.,Det konseptet kan det ikke søkes om.
+CMD_ERROR_LICENCES_UNPLACED,The converted licences must be placed in a production area first.,De konverterte tillatelsene må plasseres i et produksjonsområde først.
+CMD_ERROR_LICENCE_EXPIRED,The unit has no licence in force.,Anlegget har ingen gyldig tillatelse.
+CMD_ERROR_LICENCE_MISSING,No development licence for this site and concept.,Ingen utviklingstillatelse for denne lokaliteten og dette konseptet.
+CMD_ERROR_MAX_LEVEL,Already at the highest level.,Allerede på høyeste nivå.
+CMD_ERROR_NOTHING_DUE,Nothing to pay.,Ingenting å betale.
+CMD_ERROR_NOT_APPEALABLE,There is nothing to appeal.,Det er ingenting å klage på.
+CMD_ERROR_NOT_PENDING,The case is no longer being decided.,Saken er ikke lenger til behandling.
+CMD_ERROR_PAYMENT_LAPSED,The payment deadline has passed.,Betalingsfristen har gått ut.
+CMD_ERROR_ROUND_CLOSED,No application round is open.,Ingen søknadsrunde er åpen.
+CMD_ERROR_ZONE_FULL,The zone is red and takes no new capacity.,Sonen er rød og tar ikke imot ny kapasitet.
+DRIFTSPLAN_CHOICE_OFFSHORE_WELLBOAT,Offshore wellboat,Havgående brønnbåt
+DRIFTSPLAN_POLICY_OFFSHORE_HANDLING,Handle when required,Behandle ved krav
+DRIFTSPLAN_SETTING_HANDLING_VESSEL,Fish-handling vessel,Fartøy for fiskehåndtering
+DRIFTSPLAN_SETTING_TIP_OFFSHORE_HANDLING_HANDLING_VESSEL,"An offshore wellboat handles fish in rougher sea than a standard one, at a higher day rate.","En havgående brønnbåt håndterer fisk i grovere sjø enn en vanlig, til høyere dagrate."
+DRIFTSPLAN_SETTING_TIP_OFFSHORE_HANDLING_MIN_PROBABILITY,The default books only a solid green window; lower books sooner and waits more often.,Standardverdien bestiller bare et sikkert grønt vindu; lavere bestiller tidligere og venter oftere.
+DRIFTSPLAN_TIP_OFFSHORE_HANDLING,"When the unit must be handled (lice over the limit, biomass near its MTB, a harvest order, overdue nets), books the job into the first workable window. Off by default: you decide when to hand this over.","Når anlegget må behandles (lus over grensen, biomasse nær MTB, slakteordre, nøter på overtid), bestiller oppdraget i første arbeidsvindu. Av som standard: du bestemmer når du gir dette fra deg."
+DRIFTSPLAN_WAIT_HARVEST_ORDERED,waits for the ordered harvest's wellboat,venter på brønnbåten til den bestilte slaktingen
+DRIFTSPLAN_WAIT_REQUIREMENT_OPEN,waits for a handling requirement,venter på et behandlingskrav
+DRIFTSPLAN_WAIT_WATER_TOO_COLD,waits for water warm enough to delouse,venter på varmt nok vann til avlusing
 EXPANSION_AREA_PICKER_PROMPT,Choose a production area,Velg produksjonsområde
 EXPANSION_AREA_PICKER_TIP,Pick an area here or on the map,Velg et område her eller på kartet
 EXPANSION_AUCTION_AGAIN_BUTTON,Apply again,Søk på nytt
@@ -2437,11 +2462,15 @@ LAND_SHORTFALL_TEMPERATURE,Water temperature,Vanntemperaturen
 LAND_TIER_LARGE,Large smolt,Storsmolt
 LAND_TIER_STANDARD,Standard smolt,Standard smolt
 LAND_TIER_SUPER_SMOLT,SuperSmolt,Supersmolt
+LEDGER_ESCAPE_MEASURES,Escape recapture and river monitoring,Gjenfangst og elveovervåking etter rømming
 LEDGER_HARVEST_COST,Harvest and transport,Slakting og transport
 LEDGER_LAND_COMPETENCE,Land farm competence,Kompetanse på landanlegg
 LEDGER_LAND_INSURANCE,Land farm insurance,Forsikring på landanlegg
 LEDGER_LAND_MAINTENANCE,Land farm maintenance,Vedlikehold på landanlegg
 LEDGER_LAND_OTHER,Land farm other costs,Andre kostnader på landanlegg
+LEDGER_LICENCE_CONVERSION,Licence conversion,Konvertering av tillatelser
+LEDGER_OFFSHORE_ALARM_REVIEW,Offshore alarm review,Alarmgjennomgang på havmerd
+LEDGER_OFFSHORE_PROCEDURES,Offshore procedure upgrades,Prosedyreoppgradering på havmerd
 LEDGER_OVERDRAFT_INTEREST,Overdraft interest,Renter på overtrekk
 LEDGER_POST_SMOLT_SALES,Post-smolt sales,Salg av postsmolt
 LEDGER_RESCUE_LOAN_FEE,Rescue loan fee,Gebyr for redningslån

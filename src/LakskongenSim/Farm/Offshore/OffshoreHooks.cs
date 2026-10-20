@@ -45,7 +45,19 @@ internal static class OffshoreHooks
     {
         if (site?.Kind == SiteKind.Offshore) return default;
         int fish = population.Cohorts.Sum(c => c.Count);
-        return new ZoneLiceShare(fish * population.SeaLiceLoad, fish);
+        var own = new ZoneLiceShare(fish * population.SeaLiceLoad, fish);
+        // F2-08/F2-09: the zone's first population carries its production area's
+        // offshore units: their larval output without their fish (a unit can
+        // never dilute the mean, so building one never makes a neighbour look
+        // better), or, once a unit's licences are placed in this zone, its fish
+        // and lice as the zone's own (spec §2C: placed licences fall under the
+        // traffic light). A game with no offshore unit adds nothing.
+        if (engine.State == null || !engine.HasOffshoreUnits()) return own;
+        if (!engine.IsFirstPopulationOfItsZone(population)) return own;
+        var extra = engine.OffshoreZoneLiceShare(population.ZoneId);
+        return extra.Fish == 0 && extra.LiceWeightedFish == 0.0
+            ? own
+            : new ZoneLiceShare(own.LiceWeightedFish + extra.LiceWeightedFish, own.Fish + extra.Fish);
     }
 
     /// <summary>
@@ -105,7 +117,7 @@ internal static class OffshoreHooks
     /// locality MTB, <see cref="SeaSite.MABTonnes"/>).
     /// </summary>
     internal static bool CountsTowardAreaLicencePool(SimulationEngine engine, SeaSite site)
-        => site.Kind != SiteKind.Offshore;
+        => site.Kind != SiteKind.Offshore || engine.UnitCountsInItsAreaPool(site);
 
     // ── Offshore holdings ──────────────────────────────────────────────────
 
@@ -164,9 +176,12 @@ internal static class OffshoreHooks
     }
 
     /// <summary>
-    /// Whether a sea pen's or an offshore farm's harvest counts toward the
-    /// resource-rent tax: always before F2-04 (base) and F2-09 (licence kind).
+    /// Whether a sea pen's or an offshore unit's harvest counts toward the
+    /// resource-rent tax (spec §3.6, keyed on the licence, not the location):
+    /// a sea pen always; an offshore unit on development licences never (V:3),
+    /// once converted and placed yes; a unit with no licences behind it (the
+    /// legacy and scenario path, a migrated save) as before F2-09.
     /// </summary>
     internal static bool IsResourceRentLiable(SimulationEngine engine, string unitId, HoldingKind holding)
-        => true;
+        => holding != HoldingKind.Offshore || engine.OffshoreUnitRentLiable(unitId);
 }

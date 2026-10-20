@@ -50,7 +50,7 @@ namespace LakskongenSim.Calibration
     /// (their records in <c>OffshoreUnitCalibration.cs</c>); the incident,
     /// licence and area sections of the spec's draft belong to F2-08..F2-11.
     /// </summary>
-    public sealed record OffshoreCalibration
+    public sealed partial record OffshoreCalibration
     {
         /// <summary>The base sea, the storm swell, the forecast and visibility.</summary>
         public OffshoreMetoceanCalibration Metocean { get; init; } = new();

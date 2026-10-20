@@ -15,6 +15,21 @@ namespace LakskongenSim.Farm.Offshore
         Harvest = 2,
         /// <summary>The standing biomass must come down under the MTB.</summary>
         MtbRelief = 3,
+        /// <summary>The nets' inspection is overdue (F2-08: the regulator's 90 days plus 30).</summary>
+        NetInspection = 4,
+    }
+
+    /// <summary>How far the regulator's escalation of an open handling requirement has gone (F2-08, spec §3.3).</summary>
+    public enum HandlingStage
+    {
+        /// <summary>No requirement, or one inside its first 21 days.</summary>
+        None = 0,
+        /// <summary>The warning (HandlingOverdue) is out.</summary>
+        Warned = 1,
+        /// <summary>Mattilsynet has ordered the handling done (MattilsynetOrder).</summary>
+        Ordered = 2,
+        /// <summary>A site-withdrawal case is open (SiteApprovalWithdrawn).</summary>
+        Withdrawal = 3,
     }
 
     /// <summary>
@@ -329,6 +344,77 @@ namespace LakskongenSim.Farm.Offshore
 
         /// <summary>True when the unit stands commissioned (its logistics run).</summary>
         [JsonIgnore] public bool IsCommissioned => CommissionedDay >= 0;
+
+        // ── F2-08: handling, the regulator, incidents, the counter-verbs ────
+
+        /// <summary>The sea day the open requirement was raised (-1 when none is open).</summary>
+        public int RequirementSinceDay { get; set; } = -1;
+
+        /// <summary>The day the overdue clock counts from: the requirement's day, or the last completed handling of its kind after it (-1 when none is open).</summary>
+        public int HandlingAnchorDay { get; set; } = -1;
+
+        /// <summary>The last day the open requirement's handling was completed at the unit (-1 never).</summary>
+        public int LastHandlingDoneDay { get; set; } = -1;
+
+        /// <summary>Days since the overdue clock started on which the sea allowed no fish handling with a standard vessel.</summary>
+        public int DaysWithoutHandlingWindow { get; set; }
+
+        /// <summary>How far the escalation has gone.</summary>
+        public HandlingStage HandlingStage { get; set; } = HandlingStage.None;
+
+        /// <summary>The day Mattilsynet's order fell (-1 when none stands).</summary>
+        public int OrderDay { get; set; } = -1;
+
+        /// <summary>The open or effective site-withdrawal case ("" when none).</summary>
+        public string WithdrawalCaseId { get; set; } = "";
+
+        /// <summary>The day the last alarm review started (-1 never).</summary>
+        public int AlarmReviewStartedDay { get; set; } = -1;
+
+        /// <summary>The day the last hatch procedure upgrade completes (-1 none started).</summary>
+        public int ProcedureUpgradeDoneDay { get; set; } = -1;
+
+        /// <summary>The hatch procedure level the running upgrade brings (applied on <see cref="ProcedureUpgradeDoneDay"/>).</summary>
+        public double ProcedureUpgradeTarget { get; set; }
+
+        /// <summary>The day the reinforcement ("Forsterkning") is in place (-1 none ordered).</summary>
+        public int ReinforcementDoneDay { get; set; } = -1;
+
+        /// <summary>The unit's incident under investigation ("" when none; the incidents live in GameState.OffshoreIncidents).</summary>
+        public string ActiveIncidentId { get; set; } = "";
+
+        /// <summary>Number of the unit's next incident ("&lt;unit&gt;/inc_N").</summary>
+        public int NextIncidentNumber { get; set; } = 1;
+
+        /// <summary>Days with stinging jellyfish at the unit.</summary>
+        public int JellyDays { get; set; }
+
+        /// <summary>The last day stinging jellyfish hit the unit (-1 never).</summary>
+        public int LastJellyDay { get; set; } = -1;
+
+        /// <summary>The sea day the unit's current production cycle began (fish into an empty unit; -1 while empty).</summary>
+        public int CycleStartDay { get; set; } = -1;
+
+        // ── F2-09: the licences behind the unit ─────────────────────────────
+
+        /// <summary>
+        /// True for a unit built on a development-licence award (its capacity is
+        /// its bound licences', converted ones once placed); false for a legacy,
+        /// scenario or migrated unit, which keeps its locality MTB as before F2-09.
+        /// </summary>
+        public bool HoldsLicences { get; set; }
+
+        /// <summary>The award the unit was built on ("" for a legacy unit).</summary>
+        public string AwardId { get; set; } = "";
+
+        /// <summary>The conversion case of the unit's licences ("" before one is filed).</summary>
+        public string ConversionCaseId { get; set; } = "";
+
+        /// <summary>The last day the conversion fee may be paid (-1 when no approved conversion awaits payment).</summary>
+        public int ConversionPaymentDueDay { get; set; } = -1;
+
+        /// <summary>The fee the approved conversion asks (NOK, indexed on the decision day; 0 when none awaits payment).</summary>
+        public decimal ConversionFeeDueNok { get; set; }
 
         // ── The legacy build path (spec §3.1 decision 5) ─────────────────────
 

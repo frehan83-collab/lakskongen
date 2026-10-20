@@ -850,4 +850,46 @@ func repair_offshore_unit(site_id: String, scope: String) -> Dictionary:
 ## F2-07: buy the consortium partner out.
 func buy_out_offshore_partner(site_id: String) -> Dictionary:
 	return game_bridge.BuyOutOffshorePartner(site_id) if game_bridge else {"success": false, "error": "engine_not_ready", "message": "Not initialized"}
+## F2-08: the unit's handling clock (days without a window against 21/45/75), MTB headroom, tilt drivers, incident and counter-verb state.
+func get_offshore_handling_state(site_id: String) -> Dictionary:
+	return game_bridge.GetOffshoreHandlingState(site_id) if game_bridge else {"ok": false}
+## F2-08: the unit's incident reports with their driver chains.
+func get_offshore_incident_reports(site_id: String) -> Dictionary:
+	return game_bridge.GetOffshoreIncidentReports(site_id) if game_bridge else {"ok": false}
+## F2-08: start an alarm review.
+func start_offshore_alarm_review(site_id: String) -> Dictionary:
+	return game_bridge.StartOffshoreAlarmReview(site_id) if game_bridge else {"success": false, "error": "engine_not_ready", "message": "Not initialized"}
+## F2-08: upgrade a procedure (hatch).
+func start_offshore_procedure_upgrade(site_id: String, kind: String) -> Dictionary:
+	return game_bridge.StartOffshoreProcedureUpgrade(site_id, kind) if game_bridge else {"success": false, "error": "engine_not_ready", "message": "Not initialized"}
+## F2-08: reinforce the unit (design Hs up after the yard work).
+func install_offshore_reinforcement(site_id: String) -> Dictionary:
+	return game_bridge.InstallOffshoreReinforcement(site_id) if game_bridge else {"success": false, "error": "engine_not_ready", "message": "Not initialized"}
+## F2-08: appeal a decided site withdrawal.
+func appeal_site_withdrawal(site_id: String) -> Dictionary:
+	return game_bridge.AppealSiteWithdrawal(site_id) if game_bridge else {"success": false, "error": "engine_not_ready", "message": "Not initialized"}
+## F2-09: the development-licence round, the gate, the rival band, applications and awards.
+func get_development_round() -> Dictionary:
+	return game_bridge.GetDevelopmentRound() if game_bridge else {"ok": false}
+## F2-09: the score breakdown a dossier would get today against the rival band.
+func preview_development_application(concept: String, plot_id: String) -> Dictionary:
+	return game_bridge.PreviewDevelopmentApplication(concept, plot_id) if game_bridge else {"ok": false}
+## F2-09: file a development-licence application.
+func apply_development_licence(concept: String, plot_id: String) -> Dictionary:
+	return game_bridge.ApplyDevelopmentLicence(concept, plot_id) if game_bridge else {"success": false, "error": "engine_not_ready", "message": "Not initialized"}
+## F2-09: a unit's licences, conversion checklist, case and fee.
+func get_offshore_licences(site_id: String) -> Dictionary:
+	return game_bridge.GetOffshoreLicences(site_id) if game_bridge else {"ok": false}
+## F2-09: file the conversion of a unit's development licences.
+func request_licence_conversion(site_id: String) -> Dictionary:
+	return game_bridge.RequestLicenceConversion(site_id) if game_bridge else {"success": false, "error": "engine_not_ready", "message": "Not initialized"}
+## F2-09: appeal a refused conversion.
+func appeal_licence_conversion(site_id: String) -> Dictionary:
+	return game_bridge.AppealLicenceConversion(site_id) if game_bridge else {"success": false, "error": "engine_not_ready", "message": "Not initialized"}
+## F2-09: pay an approved conversion.
+func pay_licence_conversion(site_id: String) -> Dictionary:
+	return game_bridge.PayLicenceConversion(site_id) if game_bridge else {"success": false, "error": "engine_not_ready", "message": "Not initialized"}
+## F2-09: place converted licences in a zone's production area.
+func place_converted_licences(holding_ids: Array, zone_id: String) -> Dictionary:
+	return game_bridge.PlaceConvertedLicences(holding_ids, zone_id) if game_bridge else {"success": false, "error": "engine_not_ready", "message": "Not initialized"}
 # ═══ END sim·sea lane block ═══

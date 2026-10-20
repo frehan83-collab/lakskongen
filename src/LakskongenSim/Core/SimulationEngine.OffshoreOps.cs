@@ -74,6 +74,8 @@ public partial class SimulationEngine
         if (op == OffshoreOp.Stocking)
         {
             if (count <= 0) return CommandResult.Fail("invalid_count", $"A stocking needs smolts (got {count})");
+            var held = OffshoreStockingRefusal(site); // F2-08/F2-09
+            if (held != null) return held;
             if (unit.ShakedownEndDay > day)
                 return CommandResult.Fail(OffshoreReasons.ShakedownActive, $"{site.Label} runs its shakedown until day {unit.ShakedownEndDay}");
             if (detail.Length == 0) detail = "standard";
@@ -282,19 +284,30 @@ public partial class SimulationEngine
                 SensorCalibration(k).ServiceNok * (decimal)unit.EquityShare)).ToList());
     }
 
-    /// <summary>The alarm load's terms on <paramref name="day"/> (spec §3.3; F2-08 adds the review's cut).</summary>
+    /// <summary>
+    /// The alarm load's terms on <paramref name="day"/> (spec §3.3,
+    /// <see cref="AlarmLoadModel"/>): base, defects, sensors, crew and, once the
+    /// unit has had an alarm review, the review's cut (F2-08), never taking the
+    /// sum below zero, so the terms add up to the load the gauges show.
+    /// </summary>
     internal IReadOnlyList<(string Driver, double Value)> AlarmLoadDrivers(OffshoreUnit unit, int day)
     {
-        var a = OffshoreCal.AlarmLoad;
-        int defects = unit.TeethingDefects.Count(d => d.IsRevealed && !d.IsFixedBy(day));
-        int sensors = unit.Sensors.Count(s => s.IsPastService(day, OffshoreCal.Sensors.ServiceIntervalDays));
-        return new[]
+        var drivers = AlarmLoadModel.Drivers(unit, day, OffshoreCal.AlarmLoad, OffshoreCal.AlarmReview, OffshoreCal.Sensors.ServiceIntervalDays);
+        var terms = new List<(string, double)>(drivers.Count);
+        double others = 0.0;
+        foreach (var d in drivers)
         {
-            ("base", a.Base),
-            ("defects", a.PerUnfixedRevealedDefect * defects),
-            ("sensors", a.PerSensorPastService * sensors),
-            ("crew", a.PerCrewOverdueDay * Math.Min(unit.CrewOverdueDays, a.CrewOverdueCapDays)),
-        };
+            if (d.Name != "review")
+            {
+                terms.Add((d.Name, d.Value));
+                others += d.Value;
+            }
+            else if (unit.AlarmReviewStartedDay >= 0)
+            {
+                terms.Add((d.Name, -Math.Min(-d.Value, Math.Max(0.0, others))));
+            }
+        }
+        return terms;
     }
 
     // ─── The day (OffshoreTickSystem) ─────────────────────────────────────
@@ -360,12 +373,16 @@ public partial class SimulationEngine
 
         bool hasFish = site.Pens.Any(p => p.TotalCount > 0);
         if (hasFish && unit.FirstStockedDay < 0) unit.FirstStockedDay = seaDay;
+        TrackProductionCycle(site, unit, seaDay, hasFish);                  // F2-08/F2-09: completed cycles
         TrackFeeding(unit, seaDay, hasFish);
         CollectSilage(site, unit);
         WearStructureAndNets(site, unit, seaDay, hasFish);
         AdvanceTeething(site, unit, seaDay, hasFish, u);
         UpdateKnownState(site, unit, seaDay);
+        CompleteOffshoreUpgrades(site, unit, seaDay);                       // F2-08: procedure, reinforcement
         unit.AlarmLoad = Math.Clamp(AlarmLoadDrivers(unit, seaDay).Sum(d => d.Value), 0.0, 1.0);
+        RunOffshoreIncidentDay(site, unit, seaDay, hasFish, u);             // F2-08: u5-u7
+        RunOffshoreHandlingDay(site, unit, seaDay);                         // F2-08: requirement, escalation, withdrawal
         BookOffshoreUnitLines(site, unit);
         PublishOffshoreWarnings(site, unit, seaDay, hasFish);
         SettlePartner(site, seaDay);
@@ -470,6 +487,11 @@ public partial class SimulationEngine
                 continue;
             }
             var outcome = ExecuteOffshoreBooking(site, booking, seaDay);
+            if (outcome.Ok && booking.Op == OffshoreOp.Delousing && outcome.Value2 > 0)
+            {
+                booking.Status = OffshoreBookingStatus.InProgress; // zones left for the next window day (F2-08)
+                continue;
+            }
             booking.CompletedDay = seaDay;
             if (!outcome.Ok)
             {
@@ -521,10 +543,60 @@ public partial class SimulationEngine
                     return CommandResult.Fail(OffshoreReasons.ShakedownActive, "shakedown");
                 return StockOffshoreFarm(site.Id, booking.Count, booking.Detail);
             case OffshoreOp.Delousing:
-                return DelouseSite(site.Id, booking.Detail);
+                return DelouseUnitZones(site, booking);
             default:
                 return CommandResult.Fail("not_bookable", booking.Op.ToString());
         }
+    }
+
+    /// <summary>
+    /// A production cycle runs from the day fish come into an empty unit until
+    /// it is empty again; it is completed when fish were harvested from it in
+    /// that time (the development-licence round's and the conversion's
+    /// "completed cycle", the Havfarm-class gate).
+    /// </summary>
+    private void TrackProductionCycle(SeaSite site, OffshoreUnit unit, int seaDay, bool hasFish)
+    {
+        if (hasFish)
+        {
+            if (unit.CycleStartDay < 0) unit.CycleStartDay = seaDay;
+            return;
+        }
+        if (unit.CycleStartDay < 0) return;
+        int start = unit.CycleStartDay;
+        if (HarvestReports.Any(r => r.HoldingId == site.Id && r.Day >= start)) unit.CompletedCycles++;
+        unit.CycleStartDay = -1;
+    }
+
+    /// <summary>
+    /// A window day of a booked delousing (F2-08): the wellboat treats the
+    /// zones not yet treated, in zone order, up to the day's capacity of fish
+    /// (at least one zone); the result's second value is the zones still to
+    /// treat (0 when the unit is done).
+    /// </summary>
+    private CommandResult DelouseUnitZones(SeaSite site, OffshoreBooking booking)
+    {
+        double capacityKg = OffshoreCal.Handling.DelousingTonnesPerHandlingDay * 1000.0;
+        var left = site.PhysicalPens.OrderBy(p => p.Number)
+            .Select(p => (Pen: p, Pop: site.PopulationIn(p)))
+            .Where(z => z.Pop != null && z.Pop.TotalCount > 0 && !booking.TreatedZones.Contains(z.Pen.Id))
+            .ToList();
+        if (left.Count == 0)
+            return booking.TreatedZones.Count > 0 ? CommandResult.Success("deloused", 0, 0) : DelouseSite(site.Id, booking.Detail);
+        var today = new List<string>();
+        double kg = 0.0;
+        foreach (var (pen, pop) in left)
+        {
+            double zoneKg = pop!.GetTotalBiomassKg();
+            if (today.Count > 0 && kg + zoneKg > capacityKg) break;
+            today.Add(pen.Id);
+            kg += zoneKg;
+        }
+        var result = DelousePens(site.Id, booking.Detail, today);
+        if (!result.Ok) return result;
+        booking.TreatedZones.AddRange(today);
+        int remaining = left.Count - today.Count;
+        return CommandResult.Success($"{today.Count} zone(s) deloused, {remaining} left", today.Count, remaining, site.Id);
     }
 
     // ─── Feed, ring-fence and the partner ─────────────────────────────────

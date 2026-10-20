@@ -23,6 +23,8 @@ namespace LakskongenSim.Farm.Offshore
         Failed = 5,
         /// <summary>Cancelled by the player before it was done (charter already paid stays paid).</summary>
         Cancelled = 6,
+        /// <summary>A delousing that treated some zones on a window day and goes on with the rest on the next (F2-08: a large unit takes several days).</summary>
+        InProgress = 7,
     }
 
     /// <summary>
@@ -71,9 +73,12 @@ namespace LakskongenSim.Farm.Offshore
         /// <summary>Why a failed operation could not do its work ("" otherwise).</summary>
         public string FailureKey { get; set; } = "";
 
+        /// <summary>A delousing's zones (pen ids) treated so far (F2-08: a wellboat treats a day's capacity of fish on each window day).</summary>
+        public List<string> TreatedZones { get; set; } = new();
+
         /// <summary>True while the booking still charters or waits for its day.</summary>
         [JsonIgnore] public bool IsOpen => Status is OffshoreBookingStatus.Booked or OffshoreBookingStatus.Waiting
-            or OffshoreBookingStatus.Paused or OffshoreBookingStatus.Sheltering;
+            or OffshoreBookingStatus.Paused or OffshoreBookingStatus.Sheltering or OffshoreBookingStatus.InProgress;
     }
 
     /// <summary>The kinds of teething defect of the OF1-class deck (spec §3.3 "Teething deck").</summary>

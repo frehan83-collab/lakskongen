@@ -2733,6 +2733,73 @@ plan's survival): engine **6.44 kWh/kg** LW growth and **0.476 kg O2/kg** (bands
 the standalone projection on the engine's pad, intake lines and year of water 6.51 and 0.475 (−1 %, was −4 %
 on the dossier's pad lines); growth 6,240 t a year (was 6,617 at the faster plan).
 
+## 1z. F2-08 and F2-09: incidents, handling overdue, lice coupling; development licences (2026-10-20, branch `wave4/sim-sea-2`)
+
+`facilities.offshore` gains seven sections (`Calibration/OffshoreIncidentCalibration.cs`,
+`Calibration/OffshoreLicenceCalibration.cs`, `godot/data/calibration/facilities_offshore.json`);
+every leaf carries one [Range] and one [Source] or [GameBalance]. Conversion fee, licence size
+and licences per award stay in the farm-type catalogue (`facilities.common.catalog`, F2-04).
+
+### Incidents (one open incident a unit; the unit day's u5 picks it, u6/u7 decide its branches)
+
+| knob | value | source |
+|---|---|---|
+| tilt hazard | 1/9,000 a day (semi-submersible) × (2.0 − hatch procedure level) × (1 + 2 × alarm load) × (1 + 0.05 per overdue crew day) × the ballast-leak multiplier while a revealed leak is unfixed and the unit holds fish | GB (spec §3.3) |
+| tilt | lasts 1-24 h; 1.5 % of the fish escape, all of it after 12 h; caught in time (procedure ≥ 0.8, crew aboard, no crew overdue, p = 1 − alarm load) the hatches close within 1 h | [O:R10], [FFE 2019]; GB |
+| net tear | below 70 % integrity, up to 0.05 a day at 0 %; 0.5-3 % escape, then 0.2 % a day until the net is mended | GB |
+| mooring failure | 0.02 a day per metre of Hs above design; up to 10 % escape | GB |
+| jellyfish | November-December, 5 % of days, 0.3 % of the fish die (booked as jellyfish) | GB |
+| escape fee | 221 NOK per escaped fish, at most 15 G an incident (`Capacity.InfringementFeeCeilingNok`) | [iLaks 2026-07-09] |
+| recapture and river monitoring | 1,190 NOK per escaped fish (`escape_measures`) | [iLaks 2026-07-09] |
+| investigation | closes on the next net inspection after the start, at most 30 days | GB |
+| alarm review | 4 M NOK, 30 days, −0.30 alarm load for 365 days | GB (spec §3.3) |
+| hatch procedure upgrade | +0.2 level, 2 M NOK, 60 days | GB |
+| reinforcement | +1.0 m design Hs, 60 M NOK capex, 90 days | GB |
+
+### Handling overdue
+
+| knob | value | source |
+|---|---|---|
+| requirement | delouse (two counts over the limit in a row), MTB relief (the 14-day projection above 97 % of the unit's MTB), an S2-04 harvest order, the nets (inspection overdue 30 days past 90) | GB (spec §3.3) |
+| escalation | warning on overdue day 21, Mattilsynet's order on day 45, the withdrawal case on day 75 (effective 120 days on, appealable; the order's 30 days to act) | GB (spec §3.3) |
+| delousing a large unit | 2,000 t of fish a handling day, zone by zone | GB |
+
+### Lice coupling
+
+| knob | value | source |
+|---|---|---|
+| a unit's own vs outside pressure | split; the plot's external multiplier scales the outside part only | spec §3.3 |
+| unit to unit, same area | 0.08 × 0.02 × each other unit's adult females, capped at 0.05 a day | code |
+| a fjord zone's mean | + 0.08 × the area's units' fish × lice per fish, no fish (the unit's fish once its converted licences are placed in the zone) | code |
+
+### Development licences and conversion
+
+| knob | value | source |
+|---|---|---|
+| the round | opens on the research, a harvest sold and 365 escape-free days; open 730 days; one round in stage 2 | spec §6.1; GB |
+| rival field | none in 10 % of seeds, else 1-3 rivals; concept OF1 or Havfarm class; filed in the round's first 365 days; scores 0.35-0.85 | GB |
+| score | novelty 0.3 (first of its class) + 0.2 × min(1, escape-free months / 24) + 0.2 × the share of stocked fjord sites under the lice limit + 0.3 × min(1, cash / (30 % of the equity share of OF1 capex)) | spec §6.1; GB |
+| award | after 180 days when the score reaches the bar (the field's median, not below 0.45); 8 licences × 780 t, free, never pooled, no resource rent; construction starts within 365 days or the award lapses | [O:R4]; [V:3]; GB |
+| expiry | 15 years unconverted | [O:R40], [V:2] |
+| conversion | 13,804,348 NOK a licence at January 2026, × 1.02 a year by the month (14,080,435 at January 2027); growth above 780 t at 170,000 NOK/t; decided in 60-120 days on the checklist; appeal 180 days; paid within 90 days or it lapses | [V:2]; Pengepolitikkforskriften 2018 |
+| checklist mortality | the unit's lifetime deaths over the fish that passed through it ≤ the same share over the company's fjord sites in the area (live); 14.2 % when the company has none there | [O:R55], [V:14] |
+
+### Acceptance, measured
+
+| item | reading | bar | measured |
+|---|---|---|---|
+| F2-08 1 | a year in a 4.0-5.4 m sea, hazards held; three seeds × 730 days of the model's own sea | no escape from Hs; every escape an incident's | none; the ledger's escapes, the incidents' fish and the site's cumulative count are one number on each seed, each record one incident's |
+| F2-08 2 | the tilt hazard's drivers | the §3.3 terms; the bridge list equals them | `TiltHazardModel` terms; `OffshoreBridgeChecks` multiplies the bridge's list to the hazard |
+| F2-08 3 | 2,000 forced tilts at alarm load 0.35 | 0.65 ± 0.03 auto-closed | 0.6438 |
+| F2-08 4 | forced series | 21/45/75; withdrawal frees the plot, keeps the licences | as required (`OffshoreHandlingTests`) |
+| F2-08 5 | PO6 off_1, 20 seeds × 10 winters, "handle when required" | warning in 10-30 % of winters (standard), ≤ 10 % (offshore wellboat) | 0 of 200 with either vessel: days to the first handling median 1 (p90 4, max 15) standard, median 1 (p90 2, max 8) offshore wellboat; longest overdue 14 and 7 days. Out of band: RUN_LOG §8 |
+| F2-08 6 | 20 seeds × 365 days, a unit beside fjord sites | never improves a fjord site's lice | 14,600 of 14,600 site-days at or above the game without the unit |
+| F2-08 7 | the external multiplier; two units in one area | external only; they infect each other | as required (`OffshoreLiceCouplingTests`) |
+| F2-08 8, 9 | reports; save and twin mid-tilt, mid-tear | ≥ 3 steps reconciling to records; identical | as required |
+| F2-09 1 | 200 seeds of the round's own draw | ≥ 1 rival in ≥ 80 % | 179 of 200 (scores 0.35-0.85, mean 0.61); with `rivalOffshore` the strongest takes off_2, without it none |
+| F2-09 2 | preview vs the case | equal | equal part by part (a typical rich, escape-free company: 0.900 against a bar of 0.45, "strong") |
+| F2-09 4 | a unit that lost 39.85 % against area 3's live 18.02 % | refused on mortality alone | refused |
+
 ## 2. Key economic knobs
 
 | Knob | Current | Real reference | Source | Recommended playtest band |
