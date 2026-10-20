@@ -1,11 +1,11 @@
 # F2-06/F2-07 golden traces (`wave4/sim-sea-1`)
 
-Recorded with `tools/record_golden_traces.sh --commit HEAD --against src/LakskongenSim.Tests/Fixtures/golden_traces` at `110fe2e` (the code of this branch's final commit; later commits change documents only). Every game is identical on every day (every traced group and every stream); the only drift is the save's shape: `/Runtime` (the in-day phase clocks gain `OffshoreSeaTickSystem`'s entry) and `/Metocean` (null: no shipped scenario has an offshore unit, so the open sea is never created). The fixtures are not re-recorded.
+Recorded with `tools/record_golden_traces.sh --commit HEAD --against src/LakskongenSim.Tests/Fixtures/golden_traces` at `34b4b7a` (the branch's last code change: a unit contracted between days takes the day's sea at once; first recorded at `110fe2e` with the same verdict). Every game is identical on every day (every traced group and every stream); the only drift is the save's shape: `/Runtime` (the in-day phase clocks gain `OffshoreSeaTickSystem`'s entry) and `/Metocean` (null: no shipped scenario has an offshore unit, so the open sea is never created). The fixtures are not re-recorded.
 
 # Golden-trace diff report
 
-- expected: `/Users/fredrik.j.hansen/lakskongen/.claude/worktrees/wf_a570e149-b3a-2/src/LakskongenSim.Tests/Fixtures/golden_traces` (commit 27b0af604a52, rid osx-arm64, runtime .NET 10.0.12, math 8481617aed3cdd1d)
-- actual: `/private/tmp/claude-501/-Users-fredrik-j-hansen-lakskongen/1a7df52a-cf33-40ac-aaf8-eaf13ebf76df/scratchpad/simsea/golden2/run` (commit 110fe2edcd1d, rid osx-arm64, runtime .NET 10.0.12, math 8481617aed3cdd1d)
+- expected: `src/LakskongenSim.Tests/Fixtures/golden_traces` (commit 27b0af604a52, rid osx-arm64, runtime .NET 10.0.12, math 8481617aed3cdd1d)
+- actual: `<temporary recording of 34b4b7a>` (commit 34b4b7a78a5b, rid osx-arm64, runtime .NET 10.0.12, math 8481617aed3cdd1d)
 - math fingerprints are equal: the traces are comparable bit for bit
 
 | scenario | seed | verdict | first divergence (day: group › field) | days differing | final cash NOK (expected → actual) | final live biomass kg (expected → actual) |
