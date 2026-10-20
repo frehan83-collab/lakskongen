@@ -150,13 +150,13 @@ The stage branches' finished heads above exist only in this checkout's local bra
 **Found and fixed at integration:** F2-09 builds an offshore unit only on a development-licence award, which F2-31's dialog predated. The Hav confirm now files the application while a round is open (as Land files its permits), then contracts the unit once the award comes (RUN_LOG §7, "F2-31 meets F2-09").
 
 **Still deferred (they need windows, so they wait for the owner's OK):**
-- `wave4/gfx-farm-1` (F2-19 carved shore pads, F2-20 facility presenter): finished and verified windowed on `wave4b/gfx-farm-1` (2026-10-20; `docs/run/evidence/f2_19_pads.md`, `f2_20_presenter.md`; remainder in RUN_LOG §8), waiting for the wave-4b merge.
+- `wave4/gfx-farm-1` (F2-19 carved shore pads, F2-20 facility presenter): finished on `wave4b/gfx-farm-1` and merged into `wave4b/int` (`5d7f18a`, 2026-10-21) with its review handled there (pad_b's layout, Esc and the hidden card, the build stall, the land card's waiting line; `docs/run/evidence/wave4b_int_gfx_farm_1.md`, `f2_19_pads.md`, `f2_20_presenter.md`; remainder in RUN_LOG §8).
 - `wave4/gfx-polish-1` (the §5.3 polish list, idle-machine perf, chip clipping, whitecaps inside pens): WIP, unverified, not merged.
 - `wave4/gfx-farm-2` (F2-21 camera bookmarks and offshore swell, F2-23 first-sight sequence and showcase shots): not started.
 - Deferred visual checks of the merged stages (no frame was rendered or looked at on any of them):
   - F2-31: the build dialog in each state (family cards, catalogue bars, locked gates, Land preview with permits and runway, Hav preview with licence line and consortium, the new Hav licence step and its filed-case result), the ghost in 3D on `pad_a` and `off_1`, and the runway chart, at 1280x720 at 100 % and 125 % against the owner refs (RUN_LOG §8, "Remainder (F2-31)").
   - U2-02: the ten `43_first_season_*` shots in `godot/qa/shots.json`, played by `qa/scenes/FirstSeasonCapture.tscn` (input season seed 7, skip seed 23).
-  - F2-07/F2-08/F2-14: none rendered; the land campus and the OF1 unit are not placed in the world until gfx-farm-1.
+  - F2-07/F2-08/F2-14: the land campus and the OF1 unit are placed and drawn phase by phase since gfx-farm-1 (`46_facilities_*`, `32_land_construction_*`); the build dialog's ghost does not yet use the presenter's layout.
 - The full `CI_REQUIRE_ALL=1 tools/ci.sh` was not run locally (its shader check and perf steps open windows); GitHub CI runs the full suite on the PR.
 
 **Owner and economy decisions waiting:**
