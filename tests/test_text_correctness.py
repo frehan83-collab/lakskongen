@@ -379,7 +379,7 @@ BRANDS = [
     "Eidsfjord", "AquaBounty", "AquAdvantage", "AquaGen", "SalmoBreed", "Benchmark Genetics",
     "Greenpeace", "WWF", "Bellona", "REMA 1000", "Coop Mega", "Skretting", "BioMar", "EWOS",
     "Cargill", "Nasdaq", "NASDAQ", "Fish Pool", "Euronext", "Oslo Børs", "Oslo Stock Exchange",
-    "Stingray", "AquaCloud", "Nordlaks",
+    "Stingray", "AquaCloud", "Nordlaks", "NordLaks",
 ]
 BRAND_RE = re.compile(r"(?<![\w-])(" + "|".join(re.escape(b) for b in BRANDS) + r")(?![\w-])")
 

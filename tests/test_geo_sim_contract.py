@@ -207,10 +207,12 @@ def test_competitor_companies_keep_their_keys_and_add_home_po_sites_in_the_layou
 NORDLAKS = re.compile(r"Nord[Ll]aks")
 
 
-def test_no_nordlaks_literal_remains_outside_the_map_panel():
+def test_no_nordlaks_literal_remains_in_the_sim_the_scripts_or_the_data():
     """D17 (ruling OD8): the renamed rival, producer and label leave no
-    'Nordlaks'/'NordLaks' string in the sim, the autoloads or the game data.
-    MapPanel.gd's REGIONS is the one exception until track C retires it."""
+    'Nordlaks'/'NordLaks' string in the sim, the autoloads, the game's
+    scripts or the game data. Track C's merge retired MapPanel.gd's REGIONS,
+    the last exception, so every GDScript under godot/scripts is scanned too
+    (the captain's C2 merge; this replaces '..._outside_the_map_panel')."""
     from test_text_correctness import cs_scan
 
     hits = []
@@ -223,7 +225,7 @@ def test_no_nordlaks_literal_remains_outside_the_map_panel():
         for ln, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
             if NORDLAKS.search(line) and "geo/manifest.json" not in path.as_posix():
                 hits.append(f"{path.relative_to(REPO)}:{ln}")
-    for path in sorted(AUTOLOAD.glob("*.gd")):
+    for path in sorted(AUTOLOAD.glob("*.gd")) + sorted((REPO / "godot" / "scripts").rglob("*.gd")):
         if NORDLAKS.search(path.read_text(encoding="utf-8")):
             hits.append(str(path.relative_to(REPO)))
     assert not hits, hits
