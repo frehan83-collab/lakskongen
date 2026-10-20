@@ -66,7 +66,7 @@ func _row(o: Dictionary) -> Control:
 		tr("MAP_SITE_BAND_MAJOR") if major else tr("MAP_SITE_BAND_INDEPENDENT")]
 	var swatch := ColorRect.new()
 	swatch.name = "Band"
-	swatch.color = CompetitorFarmVisualManager.band_color_for(id) if major else GeoRegionView.INDEPENDENT
+	swatch.color = CompetitorFarmVisualManager.band_color_for(id) if major else GeoRegionIcons.INDEPENDENT
 	swatch.custom_minimum_size = Vector2(10, 10)
 	swatch.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	swatch.mouse_filter = Control.MOUSE_FILTER_IGNORE

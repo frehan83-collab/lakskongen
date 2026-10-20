@@ -441,7 +441,7 @@ class _CropMap extends Control:
 	func _draw() -> void:
 		redraw_count += 1
 		# Beyond the area's base map lies open sea (an offshore site often does).
-		draw_rect(Rect2(Vector2.ZERO, size), GeoRegionView.OPEN_SEA)
+		draw_rect(Rect2(Vector2.ZERO, size), GeoRegionIcons.OPEN_SEA)
 		if view == null or view.area() == 0:
 			return
 		var po := view.area()
@@ -458,21 +458,21 @@ class _CropMap extends Control:
 		for icon: Dictionary in (view.rival_layer() as Object).get("icons"):
 			var at := to_crop(icon["px"])
 			if Rect2(Vector2.ZERO, size).has_point(at):
-				draw_circle(at, 7.0, GeoRegionView.HALO)
+				draw_circle(at, 7.0, GeoRegionIcons.HALO)
 				draw_arc(at, 5.0, 0.0, TAU, 20, icon["color"], 2.5, true)
 		var c := to_crop(centre)
 		match card.kind():
 			"candidate":
-				GeoRegionView.draw_star(self, c, 15.0, view.state_of(card.row()))
+				GeoRegionIcons.draw_star(self, c, 15.0, view.state_of(card.row()))
 			"offshore":
-				GeoRegionView.draw_hexagon(self, c, 14.0, String(card.row().get("bound_plot_id", "")) != "")
+				GeoRegionIcons.draw_hexagon(self, c, 14.0, String(card.row().get("bound_plot_id", "")) != "")
 			"site":
-				draw_circle(c, 11.0, GeoRegionView.HALO)
-				draw_circle(c, 7.0, GeoRegionView.SALMON)
-				draw_arc(c, 9.0, 0.0, TAU, 32, GeoRegionView.SNOW, 2.0, true)
+				draw_circle(c, 11.0, GeoRegionIcons.HALO)
+				draw_circle(c, 7.0, GeoRegionIcons.SALMON)
+				draw_arc(c, 9.0, 0.0, TAU, 32, GeoRegionIcons.SNOW, 2.0, true)
 			"rival":
-				draw_circle(c, 11.0, GeoRegionView.HALO)
-				draw_arc(c, 8.0, 0.0, TAU, 32, card.row().get("color", GeoRegionView.INDEPENDENT), 3.0, true)
+				draw_circle(c, 11.0, GeoRegionIcons.HALO)
+				draw_arc(c, 8.0, 0.0, TAU, 32, card.row().get("color", GeoRegionIcons.INDEPENDENT), 3.0, true)
 
 	func _draw_heat(po: int, t: Dictionary, src: Rect2, s: float) -> void:
 		var grid := GeoData.suitability_grid(po)
@@ -520,7 +520,7 @@ class _CropMap extends Control:
 		if card.kind() != "rival":
 			var farm_m := GeoSiteCard.farm_ring_m()
 			if farm_m > 0.0:
-				draw_arc(to_crop(centre), farm_m / res * s, 0.0, TAU, 96, Color(GeoRegionView.SNOW, 0.85), 1.5, true)
+				draw_arc(to_crop(centre), farm_m / res * s, 0.0, TAU, 96, Color(GeoRegionIcons.SNOW, 0.85), 1.5, true)
 		var data := GeoRegionData.area(po)
 		if data.is_empty():
 			return

@@ -136,7 +136,8 @@ MAP_PANEL = REPO / "godot" / "scripts" / "ui" / "MapPanel.gd"
 TRANSLATIONS = REPO / "godot" / "translations" / "translations.csv"
 TRACK_D_SCRIPTS = [MAP_SCRIPTS / f"{n}.gd" for n in (
     "GeoRegionMath", "GeoRegionData", "GeoRegionBridge", "GeoRegionOverlay", "GeoRegionView",
-    "GeoSiteCard", "MapBreadcrumbs", "RivalPresenceList", "GeoRegionDetail", "GeoDrillStack")]
+    "GeoSiteCard", "MapBreadcrumbs", "RivalPresenceList", "GeoRegionDetail", "GeoDrillStack",
+    "GeoRegionIcons", "GeoRegionRivals")]
 ## Keys built at run time (a prefix plus an id), listed so each one is pinned.
 DYNAMIC_KEYS = (
     [f"MAP_REGION_REASON_{c}" for c in [*range(0, 14), *range(16, 25)]]

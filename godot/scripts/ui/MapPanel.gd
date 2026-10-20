@@ -1240,7 +1240,7 @@ var _geo_explore_btn: Button = null
 ## Drill into a production area (1-13): the region level, the area also
 ## selected in the detail column. False for an area that does not exist.
 func drill_into(area: int) -> bool:
-	if area < 1 or area > REGIONS.size():
+	if area < 1 or area > GeoRegionMath.AREA_COUNT:
 		return false
 	if _region_area(_selected_region_id) != area:
 		select_area(area)

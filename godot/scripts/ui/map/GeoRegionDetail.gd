@@ -111,4 +111,4 @@ class _CandidateButton extends Button:
 		draw_rect(bar, LakskongenTheme.palette(self, &"sunken"))
 		draw_rect(Rect2(bar.position, Vector2(bar.size.x * clampf(score, 0.0, 1.0), bar.size.y)), GeoRegionMath.ramp(score))
 		if state == "yours" or state == "suggested":
-			draw_rect(Rect2(Vector2(0, 4), Vector2(3, size.y - 8)), GeoRegionView.SALMON)
+			draw_rect(Rect2(Vector2(0, 4), Vector2(3, size.y - 8)), GeoRegionIcons.SALMON)

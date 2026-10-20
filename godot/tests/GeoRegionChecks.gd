@@ -289,7 +289,7 @@ func _rivals(map: Control) -> void:
 	for i in ids.size():
 		if int(sites["po"][i]) == AREA and int(sites["owner"][i]) >= 0:
 			var o: Dictionary = owners[sites["owner"][i]]
-			expected[ids[i]] = CompetitorFarmVisualManager.band_color_for(String(o["id"])) if bool(o.get("is_major", false)) else GeoRegionView.INDEPENDENT
+			expected[ids[i]] = CompetitorFarmVisualManager.band_color_for(String(o["id"])) if bool(o.get("is_major", false)) else GeoRegionIcons.INDEPENDENT
 	var drawn := {}
 	for icon: Dictionary in (view.rival_layer() as Object).get("icons"):
 		drawn[icon["id"]] = icon["color"]
