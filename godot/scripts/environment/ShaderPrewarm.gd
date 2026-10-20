@@ -15,7 +15,10 @@ extends Node3D
 ## frees itself after `frames` drawn frames.
 
 ## Vertex arrays every warmed mesh carries, as FjordTerrain's chunks do.
-const TERRAIN_FORMAT := [Mesh.ARRAY_VERTEX, Mesh.ARRAY_NORMAL, Mesh.ARRAY_TANGENT, Mesh.ARRAY_TEX_UV, Mesh.ARRAY_COLOR, Mesh.ARRAY_INDEX]
+## CUSTOM0 carries the ground's slope and cavity without the wall ledges and
+## the ledges' strength, four floats (FjordTerrain.MACRO_FORMAT_FLAGS,
+## gfx-polish-1).
+const TERRAIN_FORMAT := [Mesh.ARRAY_VERTEX, Mesh.ARRAY_NORMAL, Mesh.ARRAY_TANGENT, Mesh.ARRAY_TEX_UV, Mesh.ARRAY_COLOR, Mesh.ARRAY_CUSTOM0, Mesh.ARRAY_INDEX]
 ## Size of the warm-up triangle (m) and its distance from the camera.
 const SIZE_M := 0.001
 const DISTANCE_M := 2.0
@@ -62,14 +65,19 @@ static func triangle_mesh(arrays_format: Array) -> ArrayMesh:
 				arrays[slot] = PackedVector3Array([Vector3.BACK, Vector3.BACK, Vector3.BACK])
 			Mesh.ARRAY_TANGENT:
 				arrays[slot] = PackedFloat32Array([1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0])
-			Mesh.ARRAY_TEX_UV:
+			Mesh.ARRAY_TEX_UV, Mesh.ARRAY_TEX_UV2:
 				arrays[slot] = PackedVector2Array([Vector2.ZERO, Vector2.RIGHT, Vector2.DOWN])
+			Mesh.ARRAY_CUSTOM0:
+				var custom := PackedFloat32Array()
+				custom.resize(12)
+				arrays[slot] = custom
 			Mesh.ARRAY_COLOR:
 				arrays[slot] = PackedColorArray([Color.WHITE, Color.WHITE, Color.WHITE])
 			Mesh.ARRAY_INDEX:
 				arrays[slot] = PackedInt32Array([0, 1, 2])
+	var flags := FjordTerrain.MACRO_FORMAT_FLAGS if Mesh.ARRAY_CUSTOM0 in arrays_format else 0
 	var mesh := ArrayMesh.new()
-	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays, [], {}, flags)
 	return mesh
 
 

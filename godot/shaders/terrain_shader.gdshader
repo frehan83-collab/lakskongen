@@ -70,6 +70,31 @@ const float FAR_WARP_M = 22.0;
 // rock. Their fetches are skipped there.
 const float WALL_FADE_START_M = 2500.0;
 const float WALL_FADE_END_M = 5000.0;
+// gfx-polish-1: the cliff bands' mean height (m), the swells that vary it
+// (amplitude and length, m: slopes 9/37 + 5/17 = 0.54 < 1, no fold), and the
+// band's height on screen (px) below which the bands fade (full above
+// BAND_FADE_FULL_PX, gone at BAND_FADE_GONE_PX).
+const float BAND_M = 24.0;
+const float BAND_SWELL_A_M = 9.0;
+const float BAND_SWELL_A_LEN_M = 37.0;
+const float BAND_SWELL_B_M = 5.0;
+const float BAND_SWELL_B_LEN_M = 17.0;
+const float BAND_FADE_FULL_PX = 26.0;
+const float BAND_FADE_GONE_PX = 10.0;
+// Snow-season rock (at and above the snow line) is damp: its albedo falls by
+// this share (wet rock 0.55 of dry under rain here, lk_ground_wetness; a
+// thinner film of meltwater and rime a little less).
+const float ROCK_WINTER_DAMP = 0.38;
+// The heightfield's wall ledges (TerrainGenerator.LedgeStepM, m of height)
+// and the size on screen (px) from which their flats and risers decide the
+// masks (full above TERRACE_FULL_PX, the averaged slope below
+// TERRACE_GONE_PX).
+const float LEDGE_STEP_M = 48.0;
+const float TERRACE_FULL_PX = 64.0;
+const float TERRACE_GONE_PX = 28.0;
+// Under this ledge strength the masks read one slope (the flats' and the
+// risers' are the same to a few per cent).
+const float TERRACE_SPREAD_MIN = 0.01;
 
 uniform sampler2DArray albedo_height : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2DArray normal_rough_ao : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
@@ -136,12 +161,23 @@ uniform vec3 shingle_base_color : source_color = vec3(0.502, 0.478, 0.439); // #
 varying vec3 world_pos;
 varying vec3 world_normal;
 varying vec4 masks;
+// The slope (rise over run) and the cavity of the ground without the wall
+// ledges' terraces, and the ledges' strength (how far they flatten and
+// steepen the slope there) (CUSTOM0, TerrainMesh.Chunk.Macro).
+varying vec4 macro_terrain;
 
 void vertex() {
 	VERTEX = lk_mirror_vertex(VERTEX, MODEL_MATRIX, CAMERA_VISIBLE_LAYERS, CAMERA_POSITION_WORLD);
 	world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	world_normal = (MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz;
 	masks = COLOR;
+	macro_terrain = CUSTOM0;
+}
+
+// The slope snow and soil feel: a cliff ledge or a gully holds them as a
+// gentler slope would.
+float snow_slope(float slope_tan, float ledge, float gully) {
+	return mix(mix(slope_tan, 0.6, smoothstep(0.5, 0.9, ledge)), 0.7, gully * 0.8);
 }
 
 // ── Macro variation: noise read from the noise slices, not computed ─────────
@@ -388,6 +424,29 @@ void fragment() {
 	// and ~85 m (n_mid, A ~43 m).
 	vec2 skew = vec2(p.x + 0.61 * p.y, p.z - 0.79 * p.y);
 	float footprint = max(length(dpdx), length(dpdy));
+	// gfx-polish-1: the walls' ledges (TerrainGenerator WallRelief: a soft
+	// terrace every LEDGE_STEP_M of height) hold snow and soil on their
+	// flats and shed them off their risers. Seen from 1-2 km a terrace is a
+	// few tens of pixels and the walls drew as regular snow stripes
+	// (venetian blinds, harness 18). Where a terrace is small on screen the
+	// masks (bare rock, soil, snow, cliff) read the slope of the ground
+	// without its terraces, as does the cavity (soil, gullies, snow and
+	// occlusion read it): the snow then lies by the walls' buttresses and
+	// gullies, as sharp as before; the light keeps the geometry's own
+	// normal. Near, the snowy benches stay.
+	float terrace_near = smoothstep(TERRACE_GONE_PX, TERRACE_FULL_PX, LEDGE_STEP_M / max(footprint, 1e-3));
+	slope_tan = mix(macro_terrain.x, slope_tan, terrace_near);
+	cavity = mix(macro_terrain.y, cavity, terrace_near);
+	hollow = cavity - 0.5;
+	// A pixel that covers several terraces covers their flats and risers
+	// alike: half of a terrace's height is flat (the slope times 1 - k, k
+	// the ledges' strength), half riser (times 1 + k on average). The snow
+	// takes the mean of what the two hold, the rock's texture deciding where
+	// it lies, and the bare rock half of each, so a wall seen from afar
+	// keeps about as much snow as it shows close up. (Averaging the snow's
+	// cover instead, the flats' full and the risers' none, greyed the walls
+	// into an even speckle: the menu and 18 compared.)
+	float terrace_spread = macro_terrain.z * (1.0 - terrace_near);
 	vec4 n_big = noise_at(skew, 2000.0, footprint);
 	vec4 n_mid = noise_at(skew + 517.0, 520.0, footprint);
 	float macro = n_big.r;
@@ -450,8 +509,20 @@ void fragment() {
 	// just under a ledge lies in shadow. A ledge runs for a stretch and
 	// breaks off; its width varies.
 	float cliff = smoothstep(0.9, 1.7, slope_tan);
-	float cliff_near = cliff * wall_near;
-	float band_t = (p.y + dot(p.xz, vec2(0.09, -0.05))) / 24.0 + n_band.g * 2.2 + n_band.a * 0.6;
+	// gfx-polish-1: the bands fade by their size on screen as well as by
+	// distance. A band under BAND_FADE_FULL_PX pixels tall starts to read as
+	// a stripe and is gone below BAND_FADE_GONE_PX: at 1-2 km a regular run
+	// of snow ledges and dark faces every 24 m drew the walls as venetian
+	// blinds (harness 18). Closer, the bands keep their structure.
+	float band_px = BAND_M / max(footprint, 1e-3);
+	float cliff_near = cliff * wall_near * smoothstep(BAND_FADE_GONE_PX, BAND_FADE_FULL_PX, band_px);
+	// Band heights vary from about 11 to 37 m up a wall (sheeting joints are
+	// not evenly spaced): two incommensurate swells in height whose slopes
+	// sum to under 1, so the warp never folds a band, their phases drifting
+	// slowly along the walls with the ground-plane noise.
+	float band_y = p.y + BAND_SWELL_A_M * sin(p.y / BAND_SWELL_A_LEN_M + n_band.b * 6.2832)
+		+ BAND_SWELL_B_M * sin(p.y / BAND_SWELL_B_LEN_M + n_band.r * 6.2832);
+	float band_t = (band_y + dot(p.xz, vec2(0.09, -0.05))) / BAND_M + n_band.g * 2.2 + n_band.a * 0.6;
 	float band_f = fract(band_t);
 	float band_id = floor(band_t);
 	float band_tone = hash12(vec2(band_id, 7.3));
@@ -473,14 +544,19 @@ void fragment() {
 	// Gullies cut down the walls: snow and soil gather in them too.
 	float gully = smoothstep(0.06, 0.25, hollow) * cliff;
 	// Ledges and gullies are flat or sheltered enough to hold snow and soil.
-	float slope_eff = mix(mix(slope_tan, 0.6, smoothstep(0.5, 0.9, ledge)), 0.7, gully * 0.8);
+	float slope_eff = snow_slope(slope_tan, ledge, gully);
 
 	// ── Masks ──
 	// Bare rock where it is steep (gullies and ledges hold soil a little
 	// steeper), on the high plateau's outcrops, and on the shore below the
 	// shingle's reach. Woods override it: birch clings to the wall ledges.
 	float soil_limit = soil_slope_tan + hollow * 0.9 + (mottle - 0.5) * 0.25;
-	float bare = smoothstep(soil_limit, soil_limit + (bare_slope_tan - soil_slope_tan), slope_tan);
+	float bare_span = bare_slope_tan - soil_slope_tan;
+	float bare = smoothstep(soil_limit, soil_limit + bare_span, slope_tan);
+	if (terrace_spread > TERRACE_SPREAD_MIN) {
+		bare = 0.5 * (smoothstep(soil_limit, soil_limit + bare_span, slope_tan * (1.0 - terrace_spread))
+			+ smoothstep(soil_limit, soil_limit + bare_span, slope_tan * (1.0 + terrace_spread)));
+	}
 	// Shingle only lies where the shore is gentle; a cliff drops straight in.
 	float gentle_shore = 1.0 - smoothstep(0.5, 1.0, slope_tan);
 	// Glacier-scoured outcrops: ridges and knolls of the upland stay bare.
@@ -526,6 +602,10 @@ void fragment() {
 
 	float north = clamp(g.x * 2.0, 0.0, 1.0);
 	float snow_amount = ground_snow(h, slope_eff, north, hollow, macro);
+	if (terrace_spread > TERRACE_SPREAD_MIN) {
+		snow_amount = 0.5 * (ground_snow(h, snow_slope(slope_tan * (1.0 - terrace_spread), ledge, gully), north, hollow, macro)
+			+ ground_snow(h, snow_slope(slope_tan * (1.0 + terrace_spread), ledge, gully), north, hollow, macro));
+	}
 
 	// ── Biplanar projections ──
 	int major = aw.x > aw.y && aw.x > aw.z ? 0 : (aw.y > aw.z ? 1 : 2);
@@ -642,8 +722,13 @@ void fragment() {
 	rock *= mix(0.62, 1.12, smoothstep(0.22, 0.78, tone_field));
 	// Gullies on the walls stay damp and dark.
 	rock *= 1.0 - 0.28 * smoothstep(0.04, 0.22, hollow) * cliff;
-	// Above the snow line bare rock is damp and frosted: darker.
-	rock *= 1.0 - 0.15 * (1.0 - smoothstep(0.0, 400.0, lk_snow_line - h));
+	// Above the snow line bare rock is damp and frosted: darker. A film of
+	// meltwater or verglas darkens rock the way rain does (light trapped in
+	// the film, Lekner and Dorf 1988), so the snow-season walls stand dark
+	// against their snow, as in the owner's winter reference (gfx-polish-1:
+	// the grey winter day's land read a flat mid-grey).
+	float rock_damp = 1.0 - smoothstep(0.0, 400.0, lk_snow_line - h);
+	rock *= 1.0 - ROCK_WINTER_DAMP * rock_damp;
 	// Streaks run down the face: noise stretched along Y, read in the two
 	// vertical planes and blended like the textures (a coordinate taken
 	// along the face's own tangent would swing with the normal and draw

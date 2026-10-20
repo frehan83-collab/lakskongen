@@ -56,6 +56,9 @@ extends Node
 ## Cloud shadows on the land (G3-05) and the pens' submerged lamps.
 @export var cloud_shadows: CloudShadows
 @export var pen_lamps: PenLamps
+## The pens' spray (G2-03), which also lists every pen's collar: the water
+## draws no whitecaps inside a collar (gfx-polish-1).
+@export var pen_spray: PenSpray
 
 # ── Atmosphere (mirrors sky_shader.gdshader) ──────────────────────────────────
 const R_EARTH := 6360.0
@@ -82,6 +85,8 @@ const CLOUD_HEIGHT_KM := 1.6
 const SUN_ENERGY := 2.4
 ## White balance: sunlight at this elevation renders neutral white.
 const WHITE_BALANCE_ELEVATION := 60.0
+## Floor of the sun colour's luminance the light's energy is divided by.
+const SUN_COLOR_MIN_LUMINANCE := 0.05
 ## Clouds dim the sun to this fraction at full cover (roadmap: lerp(1, 0.15, c)).
 const OVERCAST_SUN_FRACTION := 0.15
 const MOON_COLOR := Color("#C7D7E8")
@@ -173,6 +178,14 @@ const WAVE_FOLD_LIMIT := 0.75
 const RIPPLE_PER_MS := 0.06
 const RIPPLE_MIN := 0.12
 const RIPPLE_MAX := 0.75
+## Beaufort 0 (under 0.5 m/s, WMO: "sea like a mirror"): no wind ripples,
+## only a residual stir (RIPPLE_GLASS), growing to the force-1 ripples
+## ("ripples with the appearance of scales") by GLASS_TO_MS (gfx-polish-1:
+## a dead calm was drawn with the same ripples as 1.5 m/s and never held a
+## mirror image, harness 18).
+const RIPPLE_GLASS := 0.03
+const GLASS_FROM_MS := 0.5
+const GLASS_TO_MS := 1.5
 ## The shader's whitecap field (a peak-band crest gate plus breaker noise,
 ## a wave-group field and foam lace) is not a standard normal: its threshold
 ## is mapped from the normal quantile of Monahan's share so that the drawn
@@ -180,6 +193,9 @@ const RIPPLE_MAX := 0.75
 ## (W 0.7 %, 3.1 %, 10.5 %; G2-03, the cores brighter than luminance 0.45
 ## under an overcast sky): the cover hits W at thresholds 3.46, 2.72 and
 ## 1.96; a least-squares line through them.
+## The share of whitecaps under which the water draws none (the water
+## shader's own gate, `whitecaps > 0.0008`).
+const WHITECAP_MIN_SHARE := 0.0008
 const WHITECAP_Z_SCALE := 1.25
 const WHITECAP_Z_OFFSET := 0.39
 ## Whitecaps break on the components round the spectral peak (peak_weight).
@@ -319,6 +335,8 @@ var wave_field := WaveField.new()
 ## Quality tier (P0-04, G5-01 groundwork): the knobs this director composes
 ## with, and the global render settings it applies through RenderQuality.
 var quality := RenderQuality.new()
+## The menu's hero view draws its clouds one pass finer (set_hero_sky).
+var hero_sky := false
 ## Sky uniform writes made so far (tests read it: none while the world is
 ## hidden, so the sky's radiance map is not re-rendered behind a panel).
 var sky_updates := 0
@@ -401,6 +419,23 @@ func set_render_scale_cap(cap: float) -> void:
 		quality.apply_scale(get_viewport())
 
 
+## The main menu's hero view (MenuBackdrop): its low camera looks along the
+## horizon, where the clouds' half-resolution pass shows its texels most, so
+## the clouds are drawn one pass finer than the tier's (High per pixel,
+## Medium and Low in the half pass). Holds across tier changes.
+func set_hero_sky(on: bool) -> void:
+	hero_sky = on
+
+
+## The cloud pass the sky draws now: per pixel underwater, one finer than the
+## tier's in the hero view, else the tier's (RenderQuality cloud_pass).
+func cloud_pass_now(underwater: bool) -> int:
+	if underwater:
+		return 0
+	var tier_pass := int(quality.knobs["cloud_pass"])
+	return maxi(tier_pass - 1, 0) if hero_sky else tier_pass
+
+
 func get_quality_knobs() -> Dictionary:
 	return quality.knobs.duplicate()
 
@@ -471,6 +506,19 @@ func set_water_state(temperature_c: float, algae01: float) -> void:
 ## not depend on how long the run has played.
 func stage_cloud_drift(offset_km: Vector2) -> void:
 	_cloud_offset = offset_km
+
+
+## Staging (the harness's aurora shot): put the sky's animation clock (the
+## aurora's curtains, sky_time, s) at a fixed point, as stage_cloud_drift
+## does for the clouds (gfx-polish-1).
+func stage_sky_time(seconds: float) -> void:
+	_sky_time = seconds
+
+
+## The sky's animation clock (s) and the clouds' drift (km) now (the
+## harness logs them where it stages a shot).
+func get_sky_clock() -> Dictionary:
+	return {"sky_time": _sky_time, "cloud_drift": _cloud_offset}
 
 
 ## The values composed last frame (tests and the harness read them).
@@ -548,13 +596,21 @@ func _apply_sun(sun_dir: Vector3, cloud: float, c: Dictionary) -> void:
 	var clouds := lerpf(1.0, OVERCAST_SUN_FRACTION, cloud)
 	var clear_energy := _clear_sun_energy(sun_dir)
 	var energy := clear_energy * clouds
-	var tint := Color(balanced.x / peak, balanced.y / peak, balanced.z / peak) if peak > 0.0 else Color.BLACK
+	# The transmittance's tint is linear; Light3D colours are sRGB-encoded
+	# (as the mood's sun tint is), so it is encoded before the two blend.
+	var tint := Color(balanced.x / peak, balanced.y / peak, balanced.z / peak).linear_to_srgb() if peak > 0.0 else Color.BLACK
 	# The mood's sunlight (G3-05): Midnattssol's gold, Høst's low amber.
 	tint = tint.lerp(_mood_sun_tint(), clampf(float(mood.get("sun_grade", 0.0)), 0.0, 1.0))
 	# Through a closed deck the light arrives diffused and near-neutral.
 	var neutral := tint.get_luminance()
 	sun_light.light_color = tint.lerp(Color(neutral, neutral, neutral), 0.9 * smoothstep(0.8, 0.97, cloud))
-	sun_light.light_energy = energy
+	# `energy` is the sun's luminance (the transmittance's, against the white
+	# balance's): the colour carries the hue only, so the light is scaled by
+	# its colour's luminance (gfx-polish-1: the peak-normalised linear tint,
+	# read as sRGB, left a 3-degree sun 0.60 of its light, a 10-degree one
+	# 0.74 and a 52-degree one 0.94, with the moods' grades: low-sun walls
+	# lay flat).
+	sun_light.light_energy = energy / sun_color_luminance(sun_light.light_color)
 	sun_light.shadow_enabled = energy > 0.002
 	sun_light.shadow_opacity = lerpf(1.0, 0.25, smoothstep(0.35, 1.0, cloud))
 	sun_light.light_angular_distance = lerpf(SUN_ANGLE_CLEAR, SUN_ANGLE_OVERCAST, smoothstep(0.3, 1.0, cloud))
@@ -566,6 +622,14 @@ func _apply_sun(sun_dir: Vector3, cloud: float, c: Dictionary) -> void:
 	c["sun_clear_energy"] = clear_energy
 	c["sun_color"] = sun_light.light_color
 	c["sun_direction"] = sun_dir
+
+
+## The linear luminance of an sRGB-encoded light colour (Light3D), at least
+## SUN_COLOR_MIN_LUMINANCE (a colour that dark is the sun under the horizon,
+## whose energy is already near zero).
+static func sun_color_luminance(srgb: Color) -> float:
+	var lin := srgb.srgb_to_linear()
+	return maxf(_luminance(Vector3(lin.r, lin.g, lin.b)), SUN_COLOR_MIN_LUMINANCE)
 
 
 func _apply_moon(sun_elev: float, cloud: float, c: Dictionary) -> void:
@@ -640,7 +704,7 @@ func _apply_sky(delta: float, sun_elev: float, cloud: float, density: float, vis
 		mat.set_shader_parameter("grade_deck_amount", float(mood.get("deck_grade", 0.0)))
 		mat.set_shader_parameter("grade_deck_value", float(mood.get("deck_value", 1.0)))
 		mat.set_shader_parameter("grade_horizon_lift", float(mood.get("horizon_lift", 0.0)))
-		mat.set_shader_parameter("cloud_pass", 0 if underwater else int(quality.knobs["cloud_pass"]))
+		mat.set_shader_parameter("cloud_pass", cloud_pass_now(underwater))
 		mat.set_shader_parameter("cloud_steps", int(quality.knobs["cloud_steps"]))
 		mat.set_shader_parameter("cloud_octaves", int(quality.knobs["cloud_octaves"]))
 		mat.set_shader_parameter("cloud_search", int(quality.knobs["cloud_search"]))
@@ -1018,7 +1082,8 @@ func _apply_water(delta: float, c: Dictionary) -> void:
 	mat.set_shader_parameter("planar_distort", lerpf(MIRROR_DISTORT_CALM, MIRROR_DISTORT_BREEZE, smoothstep(1.0, 6.0, wind)))
 	mat.set_shader_parameter("whitecaps", sea_state["whitecaps"])
 	mat.set_shader_parameter("whitecap_threshold", whitecap_threshold(float(sea_state["whitecaps"])))
-	mat.set_shader_parameter("ripple_strength", clampf(RIPPLE_MIN + RIPPLE_PER_MS * wind, RIPPLE_MIN, RIPPLE_MAX))
+	_apply_pen_calm(mat, float(sea_state["whitecaps"]), c)
+	mat.set_shader_parameter("ripple_strength", ripple_strength_for(wind))
 	mat.set_shader_parameter("sea_height", Vector2(sea_state["sheltered_hs"], sea_state["exposed_hs"]))
 	mat.set_shader_parameter("sea_peak", Vector2(sea_state["sheltered_peak_m"], sea_state["exposed_peak_m"]))
 	mat.set_shader_parameter("sea_direction", sea_state["direction"])
@@ -1031,6 +1096,29 @@ func _apply_water(delta: float, c: Dictionary) -> void:
 	mat.set_shader_parameter("underside_light", Vector3(horizon.r, horizon.g, horizon.b) * lerpf(0.05, 0.9, day))
 	c["sea_hs_sheltered"] = sea_state["sheltered_hs"]
 	c["sea_hs_exposed"] = sea_state["exposed_hs"]
+
+
+## A pen's collar and net damp the sea inside it: the water breaks no
+## whitecap there (gfx-polish-1; spray still flies off the collar, PenSpray).
+## The collars come from PenSpray (collars), nearest the camera first; nothing is
+## sent while no whitecap breaks anywhere.
+func _apply_pen_calm(mat: ShaderMaterial, whitecaps: float, c: Dictionary) -> void:
+	var entries := PackedVector4Array()
+	if pen_spray != null and whitecaps > WHITECAP_MIN_SHARE:
+		entries = pen_spray.collars
+	var padded := PackedVector4Array(entries)
+	padded.resize(PenSpray.MAX_CALM_PENS)
+	mat.set_shader_parameter("pen_calm", padded)
+	mat.set_shader_parameter("pen_calm_count", entries.size())
+	c["pen_calm_count"] = entries.size()
+
+
+## The wind's ripples on the water (normal-map strength) at `wind_ms`: a
+## mirror in a Beaufort-0 calm, then RIPPLE_MIN + RIPPLE_PER_MS per m/s
+## (unchanged from GLASS_TO_MS up).
+static func ripple_strength_for(wind_ms: float) -> float:
+	var breeze := clampf(RIPPLE_MIN + RIPPLE_PER_MS * wind_ms, RIPPLE_MIN, RIPPLE_MAX)
+	return lerpf(RIPPLE_GLASS, breeze, smoothstep(GLASS_FROM_MS, GLASS_TO_MS, wind_ms))
 
 
 ## The water material (null without a water surface).

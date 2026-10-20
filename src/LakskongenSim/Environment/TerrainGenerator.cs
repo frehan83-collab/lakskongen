@@ -151,7 +151,26 @@ namespace LakskongenSim.Environment
             return heights;
         }
 
-        /// <summary>Single-threaded twin of <see cref="GenerateHeightmap"/> (for tests).</summary>
+        /// <summary>
+        /// <see cref="GenerateHeightmap()"/>, and in <paramref name="ledges"/> the wall ledges'
+        /// terraces on the same grid: the heights minus their offsets are the walls without the
+        /// terraces, whose slope and cavity the terrain shader's masks read where a terrace is too
+        /// small on screen to draw, with the strength telling it how far the terraces spread the
+        /// slope there (<see cref="TerrainMesh.Chunk.Macro"/>, gfx-polish-1). The heights are
+        /// bit-identical to <see cref="GenerateHeightmap()"/>'s.
+        /// </summary>
+        public float[] GenerateHeightmap(out WallLedges ledges)
+        {
+            int n = Settings.Resolution;
+            var heights = new float[n * n];
+            var offsets = new float[n * n];
+            var strength = new float[n * n];
+            Parallel.For(0, n, row => FillRow(heights, row, offsets, strength));
+            ledges = new WallLedges(offsets, strength);
+            return heights;
+        }
+
+        /// <summary>Single-threaded twin of <see cref="GenerateHeightmap()"/> (for tests).</summary>
         public float[] GenerateHeightmapSequential()
         {
             int n = Settings.Resolution;
@@ -161,14 +180,21 @@ namespace LakskongenSim.Environment
             return heights;
         }
 
-        private void FillRow(float[] heights, int row)
+        private void FillRow(float[] heights, int row, float[]? ledgeOffsets = null, float[]? ledgeStrength = null)
         {
             int n = Settings.Resolution;
             float half = Settings.WorldSizeM * 0.5f;
             float spacing = Settings.SpacingM;
             float z = -half + row * spacing;
             for (int col = 0; col < n; col++)
-                heights[row * n + col] = HeightAt(-half + col * spacing, z);
+            {
+                var point = Sample(-half + col * spacing, z);
+                heights[row * n + col] = point.Height;
+                if (ledgeOffsets != null)
+                    ledgeOffsets[row * n + col] = point.Ledge;
+                if (ledgeStrength != null)
+                    ledgeStrength[row * n + col] = point.LedgeStrength;
+            }
         }
 
         /// <summary>World X of the channel centreline at world Z.</summary>
@@ -238,7 +264,17 @@ namespace LakskongenSim.Environment
         {
             public readonly float Height;
             public readonly float WallU;
-            public Point(float height, float wallU) { Height = height; WallU = wallU; }
+            /// <summary>The part of <see cref="Height"/> the wall ledges' terraces add (m).</summary>
+            public readonly float Ledge;
+            /// <summary>How far the terraces flatten and steepen the slope here (a share of it).</summary>
+            public readonly float LedgeStrength;
+            public Point(float height, float wallU, float ledge, float ledgeStrength)
+            {
+                Height = height;
+                WallU = wallU;
+                Ledge = ledge;
+                LedgeStrength = ledgeStrength;
+            }
         }
 
         private Point Sample(float x, float z) => Sample(x, z, PlayAreaDetail);
@@ -289,10 +325,11 @@ namespace LakskongenSim.Environment
 
             h = DeltaAtHead(h, d, w, z);
             h = BlendStrandflat(h, x, z, cx, detail, out float coast);
+            float ledge = 0f, ledgeStrength = 0f;
             if (detail.Relief)
-                h = WallRelief(h, x, z, d, u, coast);
+                h = WallRelief(h, x, z, d, u, coast, out ledge, out ledgeStrength);
             h += Detail(x, z, h, u, Coastal(z), detail);
-            return new Point(h, u);
+            return new Point(h, u, ledge, ledgeStrength);
         }
 
         /// <summary>
@@ -300,8 +337,10 @@ namespace LakskongenSim.Environment
         /// ledges between cliff bands, faded out at the waterline and the
         /// shoulder so the floor and the upland stay smooth.
         /// </summary>
-        private float WallRelief(float h, float x, float z, float d, float u, float coast)
+        private float WallRelief(float h, float x, float z, float d, float u, float coast, out float ledge, out float ledgeStrength)
         {
+            ledge = 0f;
+            ledgeStrength = 0f;
             float mask = SmoothStep(-0.05f, 0.2f, u) * SmoothStep(1.15f, 0.85f, u) * SmoothStep(8f, 60f, h);
             if (mask <= 0f)
                 return h;
@@ -322,7 +361,9 @@ namespace LakskongenSim.Environment
             float t = h / LedgeStepM + 0.6f * FractalNoise.Fbm(seed + SeedLedge, x / 300f, z / 300f, 2);
             float step = MathF.Floor(t);
             float terraced = step + SmoothStep(0.25f, 0.75f, t - step);
-            return h + (terraced - t) * LedgeStepM * LedgeStrength * mask;
+            ledge = (terraced - t) * LedgeStepM * LedgeStrength * mask;
+            ledgeStrength = LedgeStrength * mask;
+            return h + ledge;
         }
 
         /// <summary>Monotone cubic Hermite from (0, 0) to (1, 1) with end slopes m0, m1.</summary>

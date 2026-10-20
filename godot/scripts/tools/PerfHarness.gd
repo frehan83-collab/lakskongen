@@ -484,20 +484,35 @@ func _apply_variant(v: Dictionary) -> void:
 ## Raw overrides, for profiling only: "env.ssao_enabled=false" (the
 ## Environment), "vp.msaa_3d=0" (the root viewport), "sun.shadow_enabled=false",
 ## "camattr.dof_blur_far_enabled=false", "sky.<uniform>" (the sky material),
-## "water.<uniform>" (the water material), "hide.<path under the
+## "water.<uniform>" (the water material), "shoal.<uniform>" (the schools
+## seen through the surface, one shared material), "hide.<path under the
 ## FjordEnvironment>=true" (visible = false), "mirrorenv.<property>",
 ## "mirrorcam.<property>" and "mirrorvp.<property>" (the planar mirror's
-## environment, camera and viewport). They are set right before every draw,
-## after the director composed the frame, so they win.
+## environment, camera and viewport), and "hideall.<name prefix>=true" (every
+## GeometryInstance3D under the FjordEnvironment whose name begins with the
+## prefix: "Shoal", "FishSchool", "Net"... to split a node's cost by part), and
+## "eachgeom.<name glob>/<property>=value" (that property on every
+## GeometryInstance3D whose name matches, e.g. the trees' far LOD's
+## "eachgeom.Spruce_*_LOD1/visibility_range_end=4000").
+## They are set right before every draw, after the director composed the
+## frame, so they win.
 var _raw := {}
 ## Values the raw overrides replaced: [object, property, value, is_uniform].
 var _raw_saved := {}
+## hideall: the nodes each prefix matched (found once per variant).
+var _hideall_nodes := {}
 
 
 func _apply_raw_overrides() -> void:
 	if _raw.is_empty() or _env == null:
 		return
 	for key: String in _raw:
+		if scope_of(key) == "hideall":
+			_hide_all(key.substr(key.find(".") + 1), bool(_raw[key]))
+			continue
+		if scope_of(key) == "eachgeom":
+			_set_each(key.substr(key.find(".") + 1), _raw[key])
+			continue
 		var target := _raw_target(key)
 		if target.is_empty():
 			continue
@@ -515,7 +530,57 @@ func _apply_raw_overrides() -> void:
 			obj.set(prop, value)
 
 
+## Hide (or show) every GeometryInstance3D under the environment whose name
+## begins with `prefix`, remembering each one's visibility for the restore.
+## The nodes are found once per variant (the walk would cost script time
+## every frame).
+func _hide_all(prefix: String, hidden: bool) -> void:
+	if not _hideall_nodes.has(prefix):
+		var found: Array[Node3D] = []
+		var stack: Array[Node] = [_env]
+		while not stack.is_empty():
+			var node: Node = stack.pop_back()
+			for child in node.get_children():
+				stack.append(child)
+			if node is GeometryInstance3D and String(node.name).begins_with(prefix):
+				found.append(node as Node3D)
+				_raw_saved["hideall:%d" % node.get_instance_id()] = [node, "visible", (node as Node3D).visible, false]
+		_hideall_nodes[prefix] = found
+		print("PERF_HIDEALL prefix=%s nodes=%d" % [prefix, found.size()])
+	for node: Node3D in _hideall_nodes[prefix]:
+		if is_instance_valid(node):
+			node.visible = not hidden
+
+
+## Set a property on every GeometryInstance3D under the environment whose
+## name matches a glob ("eachgeom.Spruce_*_LOD1/visibility_range_end=4000":
+## pattern, slash, property), remembering each one's value for the restore.
+## The nodes are found once per variant.
+func _set_each(spec: String, value: Variant) -> void:
+	var slash := spec.rfind("/")
+	if slash <= 0:
+		return
+	var pattern := spec.substr(0, slash)
+	var prop := spec.substr(slash + 1)
+	if not _hideall_nodes.has(spec):
+		var found: Array[Node3D] = []
+		var stack: Array[Node] = [_env]
+		while not stack.is_empty():
+			var node: Node = stack.pop_back()
+			for child in node.get_children():
+				stack.append(child)
+			if node is GeometryInstance3D and String(node.name).match(pattern):
+				found.append(node as Node3D)
+				_raw_saved["eachgeom:%d:%s" % [node.get_instance_id(), prop]] = [node, prop, node.get(prop), false]
+		_hideall_nodes[spec] = found
+		print("PERF_EACHGEOM pattern=%s property=%s nodes=%d" % [pattern, prop, found.size()])
+	for node: Node3D in _hideall_nodes[spec]:
+		if is_instance_valid(node):
+			node.set(prop, value)
+
+
 func _restore_raw() -> void:
+	_hideall_nodes = {}
 	for key in _raw_saved:
 		var saved: Array = _raw_saved[key]
 		if not is_instance_valid(saved[0]):
@@ -556,6 +621,11 @@ func _raw_target(key: String) -> Array:
 			var grid := _env.get_node_or_null("WaterGrid")
 			if grid and grid.get("material"):
 				return [grid.get("material"), prop, true]
+		"shoal":
+			# The salmon schools seen through the surface (G3-01): one shared
+			# material, so "shoal.fish_range=0" splits the fish from the pens'
+			# water column (gfx-polish-1).
+			return [FishSchool.SHOAL_MATERIAL, prop, true]
 		"terrain":
 			var terrain := _env.get_node_or_null("Terrain")
 			var chunks: Array = terrain.call("get_chunk_meshes") if terrain else []

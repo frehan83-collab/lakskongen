@@ -37,6 +37,17 @@ namespace LakskongenSim.Environment
             public float[] Uvs { get; init; } = Array.Empty<float>();
             /// <summary>r, g, b, a per vertex: r = cavity, g = wood density, b = birch share, a = meadow.</summary>
             public float[] Colors { get; init; } = Array.Empty<float>();
+            /// <summary>
+            /// Four values per vertex: the slope (rise over run) and the cavity of the ground
+            /// without the wall ledges' terraces (the heights minus <see cref="WallLedges.Offsets"/>,
+            /// read with the same stencils as <see cref="Normals"/> and the cavity in
+            /// <see cref="Colors"/>), the ledges' <see cref="WallLedges.Strength"/>, and 0. The
+            /// terrain shader's masks use them where a terrace is too small on screen to draw: the
+            /// walls' snow and soil follow their buttresses and gullies, with as much snow as the
+            /// terraces' flats and risers would hold between them, instead of striping every 48 m
+            /// of height (gfx-polish-1). Without ledges, the vertex's own slope and cavity, 0, 0.
+            /// </summary>
+            public float[] Macro { get; init; } = Array.Empty<float>();
             /// <summary>Three vertex indices per triangle (chunk-local).</summary>
             public int[] Indices { get; init; } = Array.Empty<int>();
             public int FirstColumn { get; init; }
@@ -49,6 +60,8 @@ namespace LakskongenSim.Environment
         private const float CavityGain = 3f;
         /// <summary>Laplacian stencil stride in grid cells (smooths out single-cell noise).</summary>
         private const int CavityStride = 2;
+        /// <summary>Values per vertex in <see cref="Chunk.Macro"/> (the shader's CUSTOM0, RGBA float).</summary>
+        public const int MacroStride = 4;
 
         public IReadOnlyList<Chunk> Chunks { get; }
         public int Resolution { get; }
@@ -63,17 +76,30 @@ namespace LakskongenSim.Environment
         /// Build chunked arrays for an n×n grid of <paramref name="heights"/>
         /// (row-major by Z) spanning <paramref name="worldSize"/> metres,
         /// centred on the origin, with chunks of up to
-        /// <paramref name="chunkQuads"/>² quads.
+        /// <paramref name="chunkQuads"/>² quads. <paramref name="ledges"/>
+        /// (the same grid, <see cref="TerrainGenerator.GenerateHeightmap(out WallLedges)"/>)
+        /// gives <see cref="Chunk.Macro"/> the ground without its terraces.
         /// </summary>
         public static TerrainMesh Build(float[] heights, int n, float worldSize, int chunkQuads = 64, VegetationMasks? masks = null,
-            Func<float, float, float>? outsideHeight = null)
+            Func<float, float, float>? outsideHeight = null, WallLedges? ledges = null)
         {
             if (masks != null && masks.Size != n)
                 throw new ArgumentException($"masks are {masks.Size}² for a {n}² grid", nameof(masks));
             if (heights.Length != n * n)
                 throw new ArgumentException($"expected {n * n} heights, got {heights.Length}", nameof(heights));
+            if (ledges is { } l && (l.Offsets.Length != n * n || l.Strength.Length != n * n))
+                throw new ArgumentException($"expected {n * n} ledge values, got {l.Offsets.Length} and {l.Strength.Length}", nameof(ledges));
             if (chunkQuads < 1)
                 throw new ArgumentOutOfRangeException(nameof(chunkQuads));
+            float[] ground = heights;
+            float[]? strength = null;
+            if (ledges is { } wall)
+            {
+                ground = new float[heights.Length];
+                for (int i = 0; i < ground.Length; i++)
+                    ground[i] = heights[i] - wall.Offsets[i];
+                strength = wall.Strength;
+            }
             int perSide = (n - 1 + chunkQuads - 1) / chunkQuads;
             var chunks = new Chunk[perSide * perSide];
             Parallel.For(0, chunks.Length, c =>
@@ -82,13 +108,13 @@ namespace LakskongenSim.Environment
                 int col0 = cx * chunkQuads, row0 = cz * chunkQuads;
                 int cols = Math.Min(chunkQuads, n - 1 - col0) + 1;
                 int rows = Math.Min(chunkQuads, n - 1 - row0) + 1;
-                chunks[c] = BuildChunk(heights, n, worldSize, col0, row0, cols, rows, masks, outsideHeight);
+                chunks[c] = BuildChunk(heights, ground, strength, n, worldSize, col0, row0, cols, rows, masks, outsideHeight);
             });
             return new TerrainMesh(chunks, n);
         }
 
-        private static Chunk BuildChunk(float[] heights, int n, float worldSize, int col0, int row0, int cols, int rows, VegetationMasks? masks,
-            Func<float, float, float>? outsideHeight)
+        private static Chunk BuildChunk(float[] heights, float[] ground, float[]? ledgeStrength, int n, float worldSize, int col0, int row0,
+            int cols, int rows, VegetationMasks? masks, Func<float, float, float>? outsideHeight)
         {
             float spacing = worldSize / (n - 1);
             float half = worldSize * 0.5f;
@@ -98,6 +124,7 @@ namespace LakskongenSim.Environment
             var tangents = new float[count * 4];
             var uvs = new float[count * 2];
             var colors = new float[count * 4];
+            var macro = new float[count * MacroStride];
             for (int r = 0; r < rows; r++)
             {
                 int row = row0 + r;
@@ -129,6 +156,21 @@ namespace LakskongenSim.Environment
                     colors[v * 4 + 1] = masks != null ? masks.Forest[g] : 0f;
                     colors[v * 4 + 2] = masks != null ? masks.Birch[g] : 1f;
                     colors[v * 4 + 3] = masks != null ? masks.Meadow[g] : 0f;
+                    // The ground without its terraces, read as the vertex's own slope and
+                    // cavity are (the far field beyond the border carries no ledges).
+                    int m = v * MacroStride;
+                    if (ReferenceEquals(ground, heights))
+                    {
+                        macro[m] = MathF.Sqrt(nx * nx + nz * nz) / ny;
+                        macro[m + 1] = colors[v * 4];
+                    }
+                    else
+                    {
+                        var (mx, my, mz) = GridNormal(ground, n, worldSize, col, row, outsideHeight);
+                        macro[m] = MathF.Sqrt(mx * mx + mz * mz) / my;
+                        macro[m + 1] = Cavity(ground, n, spacing, col, row);
+                    }
+                    macro[m + 2] = ledgeStrength != null ? ledgeStrength[g] : 0f;
                 }
             }
 
@@ -154,6 +196,7 @@ namespace LakskongenSim.Environment
                 Tangents = tangents,
                 Uvs = uvs,
                 Colors = colors,
+                Macro = macro,
                 Indices = indices,
                 FirstColumn = col0,
                 FirstRow = row0,

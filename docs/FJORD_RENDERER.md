@@ -182,7 +182,19 @@ from the far field (`far_field_height_at`), so the camera's terrain avoidance,
 pick and sight line see it. The terrain shader fades its wall structure (cliff
 bands, ledges, tone, seepage, buttresses) from 2.5 to 5 km from the camera:
 out there a band is a few pixels tall and the same bands ran across whole
-mountainsides like a venetian blind.
+mountainsides like a venetian blind. Nearer (1-2 km, shot 18) two more
+stripe sources are handled (gfx-polish-1): the cliff bands also fade by
+their height on screen (gone under 10 px, full from 26 px) and vary from
+about 11 to 37 m up a wall; and the heightfield's own ledges (a soft
+terrace every 48 m of height, `WallRelief`) no longer decide the masks where
+a terrace is small on screen (under 28-64 px): the generator returns each
+height's terrace offset and strength (`WallLedges`, the heights unchanged),
+the chunks carry the slope and cavity of the ground without the terraces
+and the strength in CUSTOM0 (`TerrainMesh.Chunk.Macro`), and the snow takes
+the mean of what the terraces' flats (slope × (1 − k)) and risers (× (1 + k))
+hold, bare rock half of each. On the old 18 staging the head walls' stripe
+energy at 8-40 px periods fell from 0.236 to 0.117 of the AC power, their
+RMS contrast unchanged (0.110 → 0.109).
 
 | Measure | Value (seed 42) |
 |---|---|
@@ -305,7 +317,7 @@ axes: north +X, up +Y, east +Z; the fjord opens west (−Z).
 | Composed | Rule |
 |---|---|
 | Fog | `fog_density = 3.912 / visibility` (Koschmieder), drawn at no less than a smooth 2.5 km (G3-05, below); aerial perspective 0.6, sky affect 0.15, sun scatter 0.25; height fog for a sea-fog layer, or mist above a mood's low cloud base; underwater 30 m visibility; the colour (the mood-graded sky) written sRGB-encoded |
-| Sun | direction from `SolarGeometry`; colour and energy from the same Chapman-function transmittance the sky draws, white-balanced at 60°; clouds dim it (× lerp(1, 0.15, c)), soften its shadow and take its specular glint off the water |
+| Sun | direction from `SolarGeometry`; colour and energy from the same Chapman-function transmittance the sky draws, white-balanced at 60°; the colour (sRGB-encoded, as Light3D colours are) sets the hue only and the light is divided by its luminance, so it carries the energy at every elevation (gfx-polish-1: a 3° sun had kept 0.60 of it, a 10° one 0.74); clouds dim it (× lerp(1, 0.15, c)), soften its shadow and take its specular glint off the water |
 | Moon | #C7D7E8, energy 0.04 × phase × elevation × (1 − 0.85 c), shadows only when the sun's are off |
 | Exposure | 1 with the sun above 12°; below that the eye adapts as (key_ref / key)^0.72 up to 16×, where the key is the zenith and horizon luminance of the same sky model plus the direct light; under a deck it adapts only part of the way, so storms stay dark |
 | Tonemap, glow | AgX, white 6, contrast 1.3, adjustments off; Screen glow, intensity 0.25, threshold 1, levels 3-5 |
@@ -316,7 +328,7 @@ axes: north +X, up +Y, east +Z; the fjord opens west (−Z).
 header): single scattering through a spherical atmosphere (Rayleigh, Mie,
 ozone) with Schüler's Chapman approximation for the sun ray, a twilight
 term and a night floor; the sun disc is `LIGHT0` (`LIGHT0_DIRECTION`,
-`_COLOR`, `_ENERGY`); a cumulus slab (1.2-2.4 km: a search, a bisected edge and 3 steps in, G3-05) and
+`_COLOR`, `_ENERGY`); a cumulus slab (1.2-2.4 km: an eye-anchored search, a refined edge, a march into the cloud and a second cloud behind a thin one, G3-05, gfx-polish-1) and
 cirrus at 8 km lit by the sun at cloud height (pink clouds after sunset),
 scud under storms; stars; a phased moon disc; aurora curtains as vertical
 sheets 100-300 km up crossed analytically per ray (557.7 nm green, a 630 nm
@@ -327,8 +339,11 @@ twice or turn green.
 
 The three cloud layers can be marched in the sky's half- or quarter-
 resolution pass instead of per pixel (`cloud_pass`, from the quality tier:
-High uses the half pass, Medium and Low the quarter pass, which turns the
-dark cumulus against an aurora blocky). The pass writes them premultiplied
+High uses the half pass, Medium and Low the quarter pass; the main menu's
+hero view, which looks along the horizon, draws them one pass finer,
+`EnvironmentDirector.set_hero_sky`). The low layer is band-limited to the
+pass's own pixel (below), so the reduced passes have no edge sharper than
+their texels for the upsample to step. The pass writes them premultiplied
 and the full-resolution pass composites them over the sky. The engine
 blends the environment's fog into every sky pass, the reduced ones too
 (Godot `sky.glsl`: rgb' = rgb (1 − k) + k fog colour + s sun light ·
@@ -441,15 +456,32 @@ emitter sits upwind.
 **World UI at night**: a vessel's status chip divides its text and pill
 by the exposure (`VesselChip.set_exposure`, `world_chip.gdshader`
 `exposure_comp`); site labels and signal rings do the same through
-`SiteLights` on the art-site track (`integration/wave2`).
+`SiteLights` on the art-site track (`integration/wave2`). At a screen edge
+the chip slides in to stay whole, 8 px inside the view, while any of its boat
+shows (the anchor up to half the boat's projected length past the edge),
+and hides once the whole boat has left (gfx-polish-1; the text takes the
+pill's cull margin, or it is culled with the off-screen anchor).
 
-**The clouds' march** (`cloud_layer_low`): the low slab's noise is 2D, so
-samples at fixed distances along a ray stack each cloud into horizontal
-slices. The march searches a finer grid on screen (≤ 0.6 km, up to
-`cloud_search` × the tier's steps, two octaves fewer plus a margin), bisects
-to the first cloud's edge (4 steps) and integrates 3 steps into it (0.4 km,
-longer far off), lit by one look toward the sun at its edge: edges and
-shading are continuous. The radiance map and the planar mirror's sky (blurred
+**The clouds' march** (`cloud_layer_low`, `find_cloud_edge`): the low
+slab's noise is 2D, so samples at fixed distances along a ray stack each
+cloud into horizontal slices. The march searches a grid anchored to the eye
+(points at multiples of a step ≤ 0.6 km, up to `cloud_search` × the tier's
+steps; a grid that started at the slab's entry moved with every pixel row
+and flipped thin clouds on and off row by row), tests each point's interval
+(two octaves fewer plus a margin for the noise's rise over half a step,
+then three full tests across it), bisects to the edge (4 steps) and puts it
+where the edge margin crosses (a secant step), then marches into the cloud
+(3 steps of 0.4 km, longer far off, on to 8 while it lets light through) and
+looks for a second cloud behind a thin one (`CLOUD_HITS` 2), lit by one look
+toward the sun at each edge (gfx-polish-1: three steps into the first cloud
+only cut bright holes where a wisp stood in front of a thick cloud). The
+noise is band-limited to the pixel (`cloud_lod`): the octave count whose
+finest octave spans two footprints (fractional, `fbm_lod`, a fading octave
+weighed in the sum and the normalisation) and the edge widened by the
+noise's change across the footprint (0.11-0.16 per km, measured on a
+replica); the footprint is the geometric mean of a pixel's stretch along the
+view and its width across it. The harness pins 01's and 09's cloud drift and
+09's sky clock, so those stills show the same clouds and curtains every run. The radiance map and the planar mirror's sky (blurred
 into ambient light and a wave-distorted reflection) keep the plain march
 (`cloud_layer_low_simple`), and the water draws its lamp glow and frost smoke
 per vertex: in the fragment stage their code (off on most days) cost ~1 ms at
@@ -558,6 +590,20 @@ COAST 15.31 ms on High (`docs/run/evidence/g2_03_water.md`).
 No mirror underwater, behind an opaque panel, or above 11 m/s of wind
 (`MIRROR_MAX_WIND_MS`: no water anywhere is calm enough), so a storm costs
 nothing extra; it fades in and out over 0.6 s.
+
+**Pens damp the sea** (gfx-polish-1): no whitecap breaks inside a pen's
+collar. `PenSpray` lists every visible cage's collar (centre and radius,
+nearest the camera first, at most 32) and the director hands them to the
+water (`pen_calm`, `pen_calm_count`) while any cap breaks; the shader fades
+the caps out over 2.5 m inside the collar (spray still flies off it).
+
+**Calm**: under 0.5 m/s (Beaufort 0, "sea like a mirror") the wind draws no
+ripples (`RIPPLE_GLASS` 0.03), growing to force 1's by 1.5 m/s; the breeze's
+curve is unchanged above. The planar mirror covers the screen exactly (its
+view is the camera's, mirrored): a lookup a ripple pushes past a screen edge
+reads the edge's texels, and the mirror fades out only beyond the edge (it
+faded inside it, and calm water drew a strip of sky reflection down both
+sides of the screen).
 
 **Whitecaps** are calibrated top-down against Monahan's share (the director's
 `WHITECAP_Z_SCALE`/`OFFSET`, 1.25 and 0.39): drawn cover 0.75 / 3.88 / 11.9 %

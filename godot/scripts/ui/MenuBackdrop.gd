@@ -109,6 +109,8 @@ func _ready() -> void:
 	add_child(environment)
 	if environment.director != null:
 		environment.director.set_render_scale_cap(RENDER_SCALE)
+		# The hero view looks along the horizon: its clouds one pass finer.
+		environment.director.set_hero_sky(true)
 	camera = environment.camera
 	terrain = environment.terrain
 	for manager in SIM_MANAGERS:
