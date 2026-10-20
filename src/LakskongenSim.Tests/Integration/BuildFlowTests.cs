@@ -119,9 +119,17 @@ public class BuildFlowTests
         Assert.True(land.CanStartFarmType(FarmTypeIds.Hfs));
         Assert.True(land.ApplyLandPermits("pad_a", LandTemplate.HfsPilotLot).Ok);
 
-        // OF1 with every gate but the development licence F2-09 brings.
-        var sea = OffshoreTestUnits.UnlockedForOf1(41);
+        // OF1 with every gate but the development licence F2-09 brings: the card
+        // is startable, and the build verb refuses it for the licence, never as
+        // locked (wave4/int: F2-09 builds a unit on an award for its plot); with
+        // the award the catalogue says unlocked and the same build goes through.
+        var sea = OffshoreTestUnits.UnlockedForOf1(41, award: false);
         Assert.False(sea.FarmTypeStatus(FarmTypeIds.Of1)!.Unlocked);
+        Assert.True(sea.CanStartFarmType(FarmTypeIds.Of1));
+        Assert.Equal(SimulationEngine.OffshoreReasons.LicenceMissing,
+            sea.BuildOffshoreUnit("off_1", OffshoreType.SemiSubmersible, ContractForm.Managed).ErrorKey);
+        sea.AwardDevelopmentLicencesForTests("off_1");
+        Assert.True(sea.FarmTypeStatus(FarmTypeIds.Of1)!.Unlocked);
         Assert.True(sea.CanStartFarmType(FarmTypeIds.Of1));
         Assert.True(sea.BuildOffshoreUnit("off_1", OffshoreType.SemiSubmersible, ContractForm.Managed).Ok);
         Assert.Equal(new[] { FarmTypeGateKind.ZonedPad, FarmTypeGateKind.Funds }, SimulationEngine.StartWaivedGates(FarmTypeIds.Land));

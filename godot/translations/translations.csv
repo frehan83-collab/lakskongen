@@ -1962,6 +1962,7 @@ BUILD_COMPARE_HEADER,Compare,Sammenlign
 BUILD_COMPARE_NOTE,Industry figures from the sources (hover a number). In brackets: the bad case. The game's own figures arrive once the farms run.,Bransjetall fra kildene (hold musen over et tall). I parentes: dårlig tilfelle. Spillets egne tall kommer når anleggene går.
 BUILD_COMPARE_REFERENCE,(for comparison),(til sammenligning)
 BUILD_CONFIRM_APPLY,Apply for permits (%d cases),Søk tillatelser (%d saker)
+BUILD_CONFIRM_APPLY_LICENCE,Apply for development licences,Søk utviklingstillatelser
 BUILD_CONFIRM_BUILD_LAND,Start construction (%s),Start byggingen (%s)
 BUILD_CONFIRM_BUILD_SEA,Sign the contract (first payment %s),Kontraher (første betaling %s)
 BUILD_CONFIRM_GENERIC,Confirm,Bekreft
@@ -1985,6 +1986,8 @@ BUILD_DIAG_THEN,Then: %s,Deretter: %s
 BUILD_DIAG_UNKNOWN,no clear bottleneck,ingen klar flaskehals
 BUILD_DONE_LAND_BODY,The first tanks take fish %s.,De første karene tar fisk %s.
 BUILD_DONE_LAND_TITLE,Construction on %s has started,Byggingen på %s har startet
+BUILD_DONE_LICENCE_BODY,Score %s against the bar %s. The decision falls %s.,Poeng %s mot terskelen %s. Vedtaket kommer %s.
+BUILD_DONE_LICENCE_TITLE,The development-licence application for %s is filed,Søknaden om utviklingstillatelser for %s er sendt
 BUILD_DONE_PERMITS_BODY,%d cases are being decided; risk of at least one refusal %s. The last is decided %s.,%d saker er til behandling; risiko for minst ett avslag %s. Den siste avgjøres %s.
 BUILD_DONE_PERMITS_TITLE,The applications for %s are filed,Søknadene for %s er sendt
 BUILD_DONE_SEA_BODY,First stocking at the earliest %s. Start the tow when the weather window holds.,Første utsett tidligst %s. Start slepet når værvinduet holder.
@@ -2104,15 +2107,21 @@ BUILD_SEA_PHASE_TOW,Tow to the site,Slep til lokaliteten
 BUILD_SEA_PHASE_VOYAGE,Voyage,Overfart
 BUILD_SEA_PHASE_YARD_CONTRACT,Yard contract,Verftskontrakt
 BUILD_SEA_PICK_ZONE,Choose a zone on the map and press “Build locality”.,Velg en sone på kartet og trykk «Bygg lokalitet».
+BUILD_SEA_REASON_ALREADY_APPLIED,An application is already being decided,En søknad er allerede til behandling
 BUILD_SEA_REASON_ENGINE_NOT_READY,The game is not ready,Spillet er ikke klart
 BUILD_SEA_REASON_EXPOSURE_EXCEEDS_DESIGN,The waves here are bigger than the unit is built for,Bølgene her er større enn enheten er bygget for
+BUILD_SEA_REASON_GATE_UNMET,The company does not meet the round's requirements today,Selskapet oppfyller ikke kravene i runden i dag
 BUILD_SEA_REASON_INSUFFICIENT_FUNDS,Not enough cash,Ikke nok penger
+BUILD_SEA_REASON_INVALID_CONCEPT,Development licences are given to the OF1 class only,Utviklingstillatelser gis bare til OF1-klassen
 BUILD_SEA_REASON_INVALID_TYPE,Unknown unit type,Ukjent enhetstype
+BUILD_SEA_REASON_LICENCE_MISSING,"No development licence for this site, and no application round is open","Ingen utviklingstillatelse for lokaliteten, og ingen søknadsrunde er åpen"
+BUILD_SEA_REASON_LICENCE_PENDING,The development-licence application is decided %s,Søknaden om utviklingstillatelser avgjøres %s
 BUILD_SEA_REASON_NOT_AN_OFFSHORE_SLOT,This is no offshore site,Dette er ingen havlokalitet
 BUILD_SEA_REASON_NOT_UNLOCKED,This farm type is still locked,Denne anleggstypen er fortsatt låst
 BUILD_SEA_REASON_OUT_OF_RANGE,A value is out of range,En verdi er utenfor gyldig område
 BUILD_SEA_REASON_PLOT_NOT_FOUND,The site does not exist,Lokaliteten finnes ikke
 BUILD_SEA_REASON_PLOT_TAKEN,The site is taken,Lokaliteten er tatt
+BUILD_SEA_REASON_ROUND_CLOSED,No development-licence round is open,Ingen søknadsrunde for utviklingstillatelser er åpen
 BUILD_SEA_TEETHING_LINE,"Teething: %d–%d unknown defects, budget %s; a shakedown of up to %d days reveals them.","Barnesykdommer: %d–%d ukjente feil, budsjett %s; prøvedrift inntil %d dager avslører dem."
 BUILD_SEA_TOW_LINE,First stocking at the earliest %s. You start the tow yourself when the weather window holds.,Første utsett tidligst %s. Slepet starter du selv når værvinduet holder.
 BUILD_SOURCES,Source: %s,Kilde: %s

@@ -654,7 +654,8 @@ func _update_farm_footer(startable: bool) -> void:
 
 
 ## What the confirm does now: {"verb": "apply_permits" | "build_land" |
-## "build_offshore", "text", "blocker" (why it cannot, "" when it can)}.
+## "build_offshore" | "apply_licence", "text", "blocker" (why it cannot, ""
+## when it can)}.
 func _farm_action() -> Dictionary:
 	if _family == "land":
 		var land: Dictionary = _farm_preview.get("land", {})
@@ -670,12 +671,30 @@ func _farm_action() -> Dictionary:
 		return {"verb": "build_land", "text": tr("BUILD_CONFIRM_BUILD_LAND") % SimFormatters.format_nok(float(land.get("budget_nok", 0.0))), "blocker": blocker}
 	var sea: Dictionary = _farm_preview.get("offshore", {})
 	var refusal := str(sea.get("refusal_key", ""))
+	if refusal == "licence_missing":
+		return _licence_action()
 	var blocker := ""
 	if refusal == "insufficient_funds":
 		blocker = UIPolish.funds_blocker(float(sea.get("first_payment_nok", 0.0)), float(_sim.balance))
 	elif refusal != "":
 		blocker = tr("BUILD_SEA_REASON_" + refusal.to_upper())
 	return {"verb": "build_offshore", "text": tr("BUILD_CONFIRM_BUILD_SEA") % SimFormatters.format_nok(float(sea.get("first_payment_nok", 0.0))), "blocker": blocker}
+
+
+## F2-09 (merged on wave4/int): an offshore unit is built on a
+## development-licence award for its plot. Without one the confirm files the
+## application while a round is open, as the Land path files its permits; a
+## pending application or a closed round says why it cannot.
+func _licence_action() -> Dictionary:
+	var text := tr("BUILD_CONFIRM_APPLY_LICENCE")
+	var dev: Dictionary = _sim.get_development_round()
+	for a in dev.get("applications", []):
+		if str(a.get("plot_id", "")) == _plot and str(a.get("status", "")) in ["Submitted", "Appealed"]:
+			return {"verb": "apply_licence", "text": text,
+				"blocker": tr("BUILD_SEA_REASON_LICENCE_PENDING") % SimFormatters.format_day(int(a.get("decision_day", 0)))}
+	if not bool(dev.get("open", false)):
+		return {"verb": "apply_licence", "text": text, "blocker": tr("BUILD_SEA_REASON_LICENCE_MISSING")}
+	return {"verb": "apply_licence", "text": text, "blocker": ""}
 
 
 func _place_ghost() -> void:
@@ -799,6 +818,8 @@ func _confirm_farm() -> void:
 		"build_offshore":
 			var equity := float((_farm_preview.get("economics", {}) as Dictionary).get("equity_share", 1.0))
 			result = _sim.build_offshore_unit(_plot, str(_farm_preview.get("offshore_type", "")), _contract, equity)
+		"apply_licence":
+			result = _sim.apply_development_licence(_variant, _plot)
 	if not bool(result.get("success", false)):
 		_refresh()
 		var key := str(result.get("label_key", ""))
@@ -822,6 +843,11 @@ func _confirm_farm() -> void:
 		"build_land":
 			_result_title.text = tr("BUILD_DONE_LAND_TITLE") % plot_name
 			_result_body.text = tr("BUILD_DONE_LAND_BODY") % SimFormatters.format_day(int(result.get("value2", 0)))
+		"apply_licence":
+			_result_title.text = tr("BUILD_DONE_LICENCE_TITLE") % plot_name
+			_result_body.text = tr("BUILD_DONE_LICENCE_BODY") % ["%.2f" % float(result.get("value", 0.0)),
+				"%.2f" % float((_sim.get_development_round() as Dictionary).get("award_bar", 0.0)),
+				SimFormatters.format_day(int(result.get("value2", 0)))]
 		"build_offshore":
 			_result_title.text = tr("BUILD_DONE_SEA_TITLE") % plot_name
 			_result_body.text = tr("BUILD_DONE_SEA_BODY") % SimFormatters.format_day(int(

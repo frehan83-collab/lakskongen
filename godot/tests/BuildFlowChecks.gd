@@ -16,6 +16,8 @@ extends RefCounted
 ##    it when the engine's data change (with the money there, the next one binds).
 ## 6. The Hav preview shows the licence-value line and the consortium option;
 ##    choosing the consortium previews the 35 % share; confirm contracts a unit.
+##    With no development-licence award (F2-09) the confirm files the
+##    application instead, and the award on its decision day opens the build.
 ## 7. Contrast, text and overlap lints are clean at 1280x720 at 100 % and 125 %,
 ##    and a keyboard path (arrows and Enter) runs the whole Land flow.
 ## 8. (tests/test_bridge_contract.py) no GDScript outside QA calls the legacy builds.
@@ -363,6 +365,7 @@ func _hav_preview_and_consortium() -> void:
 	sim.advance_days(ESCAPE_FREE_YEAR)
 	_check(bool((sim.get_farm_type_starts().get("of1", {}) as Dictionary).get("startable", false)),
 		"hav: setup: a year without an escape opens the offshore unit")
+	await _hav_licence_by_the_dialog()
 	var scene: Node = await t._spawn_scene_over_current_game()
 	var dialog := await _open_dialog(scene)
 	if dialog == null:
@@ -401,3 +404,46 @@ func _hav_preview_and_consortium() -> void:
 	dialog.close()
 	scene.queue_free()
 	await t.get_tree().process_frame
+
+
+## F2-09 (merged on wave4/int): an offshore unit is built on a
+## development-licence award for its plot. With none, the Hav confirm files
+## the application in the open round (as the Land confirm files its permits)
+## and contracts nothing; the award comes on the decision day, and only then
+## does the confirm contract the unit (above).
+func _hav_licence_by_the_dialog() -> void:
+	var dev: Dictionary = sim.get_development_round()
+	_check(bool(dev.get("open", false)) and (dev.get("awards", []) as Array).is_empty(),
+		"hav: setup: the escape-free year opens the development-licence round, no award yet")
+	var scene: Node = await t._spawn_scene_over_current_game()
+	var dialog := await _open_dialog(scene)
+	if dialog == null:
+		scene.queue_free()
+		return
+	await t._click_control(dialog.family_card("hav"))
+	var slot := dialog.plot_lens().plot_button(SEA_PLOT)
+	await _scroll_to(dialog, slot)
+	await t._click_control(slot)
+	var confirm: Button = dialog.get_node("%ConfirmBtn")
+	_check(str((dialog.farm_preview().get("offshore", {}) as Dictionary).get("refusal_key", "")) == "licence_missing"
+			and not confirm.disabled and confirm.text == tr("BUILD_CONFIRM_APPLY_LICENCE"),
+		"hav: with no award the confirm applies for development licences ('%s')" % confirm.text)
+	await _lint_dialog(dialog, "hav licence")
+	var before: int = sim.get_offshore_units().size()
+	await t._click_control(confirm)
+	var filed: Array = (sim.get_development_round().get("applications", []) as Array).filter(
+		func(a: Dictionary) -> bool: return str(a.get("plot_id", "")) == SEA_PLOT and str(a.get("status", "")) == "Submitted")
+	var plot_name := str(dialog.plot_lens().plot_by_id(SEA_PLOT).get("name", SEA_PLOT))
+	var title := (dialog.get_node("%ResultTitle") as Label).text
+	_check(filed.size() == 1 and sim.get_offshore_units().size() == before and title == tr("BUILD_DONE_LICENCE_TITLE") % plot_name,
+		"hav: confirm files the application for %s and contracts nothing ('%s')" % [SEA_PLOT, title])
+	dialog.close()
+	scene.queue_free()
+	await t.get_tree().process_frame
+	if filed.is_empty():
+		return
+	sim.advance_days(int(filed[0].get("decision_day", 0)) - sim.get_current_day() + 1)
+	var awards: Array = (sim.get_development_round().get("awards", []) as Array).filter(
+		func(a: Dictionary) -> bool: return bool(a.get("company", false)) and str(a.get("plot_id", "")) == SEA_PLOT)
+	_check(awards.size() == 1 and int(awards[0].get("licences", 0)) > 0,
+		"hav: the decision day brings the award for %s (score %.2f against %.2f)" % [SEA_PLOT, float(filed[0].get("score", 0.0)), float(filed[0].get("bar", 0.0))])
