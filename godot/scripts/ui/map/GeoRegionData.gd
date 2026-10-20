@@ -178,31 +178,48 @@ static func _boxes(layer: String, features: Array) -> PackedFloat64Array:
 	var out := PackedFloat64Array()
 	out.resize(features.size() * 4)
 	for i in features.size():
-		var b := [INF, INF, -INF, -INF]
-		_extend(b, (features[i] as Dictionary).get("geometry", {}).get("coordinates", []))
-		out[i * 4] = b[0]
-		out[i * 4 + 1] = b[1]
-		out[i * 4 + 2] = b[2]
-		out[i * 4 + 3] = b[3]
+		var geometry: Variant = (features[i] as Dictionary).get("geometry")
+		var rings := _outer_rings(geometry if geometry is Dictionary else {})
+		var x0 := INF
+		var y0 := INF
+		var x1 := -INF
+		var y1 := -INF
+		for ring: Array in rings:
+			for p: Array in ring:
+				var lon: float = p[0]
+				var lat: float = p[1]
+				x0 = minf(x0, lon)
+				y0 = minf(y0, lat)
+				x1 = maxf(x1, lon)
+				y1 = maxf(y1, lat)
+		out[i * 4] = x0
+		out[i * 4 + 1] = y0
+		out[i * 4 + 2] = x1
+		out[i * 4 + 3] = y1
 	_ll_boxes[layer] = out
 	return out
 
 
-## Grows b by every [lon, lat] pair nested anywhere in coords.
-static func _extend(b: Array, coords: Variant) -> void:
+## The point lists that bound a geometry: a polygon's outer ring (its holes
+## lie inside it), every part's outer ring, a line, or the one point.
+static func _outer_rings(geometry: Dictionary) -> Array:
+	var coords: Variant = geometry.get("coordinates", [])
 	if not coords is Array or (coords as Array).is_empty():
-		return
-	var first: Variant = coords[0]
-	if first is float or first is int:
-		var lon := float(coords[0])
-		var lat := float(coords[1])
-		b[0] = minf(b[0], lon)
-		b[1] = minf(b[1], lat)
-		b[2] = maxf(b[2], lon)
-		b[3] = maxf(b[3], lat)
-		return
-	for c: Variant in coords:
-		_extend(b, c)
+		return []
+	match String(geometry.get("type", "")):
+		"Point":
+			return [[coords]]
+		"LineString":
+			return [coords]
+		"Polygon":
+			return [coords[0]]
+		"MultiPolygon":
+			var out: Array = []
+			for poly: Variant in coords:
+				if poly is Array and not (poly as Array).is_empty():
+					out.append(poly[0])
+			return out
+	return []
 
 
 ## The base map's bounds as a lon/lat box, padded.
