@@ -19,7 +19,7 @@ namespace LakskongenSim.Farm
     /// <para>
     /// Geometry seam: the positions in the file are the procedural fallback. A
     /// baked region (G2-01 <c>meta.json</c>) or the terrain itself is an
-    /// <see cref="ISitePlotGeometry"/>; <see cref="WithGeometry"/> takes the
+    /// <see cref="ISitePlotGeometry"/>; <see cref="WithGeometry(ISitePlotGeometry)"/> takes the
     /// positions, pad sizes, water depths and the computed deep-water intake
     /// from it, joined by plot id. Pure and immutable: no engine state, no RNG.
     /// </para>
@@ -153,6 +153,40 @@ namespace LakskongenSim.Farm
                     joined.Add(plot);
             }
             return new SitePlotCatalog(Version, joined, _overflowLand, _overflowOffshore);
+        }
+
+        /// <summary>
+        /// <see cref="WithGeometry(ISitePlotGeometry)"/>, and with
+        /// <paramref name="strict"/> on, a geometry that names a plot the
+        /// catalogue does not hold (or holds as the other kind) is refused
+        /// instead of silently dropped: <see cref="InvalidDataException"/>
+        /// names the slot or pad id. The geo join (STAGE23_PLAN A2) is strict,
+        /// so a renamed plot can never leave the open-sea binding unapplied.
+        /// </summary>
+        public SitePlotCatalog WithGeometry(ISitePlotGeometry geometry, bool strict)
+        {
+            if (geometry == null) throw new ArgumentNullException(nameof(geometry));
+            if (strict)
+            {
+                var seen = new HashSet<string>(StringComparer.Ordinal);
+                foreach (var pad in geometry.LandPadSlots())
+                {
+                    if (!_byId.TryGetValue(pad.Id, out var plot) || plot.Kind != PlotKind.LandPad)
+                        throw new InvalidDataException(
+                            $"site plot geometry: land pad '{pad.Id}' is not a land pad of site_plots.json");
+                    if (!seen.Add(pad.Id))
+                        throw new InvalidDataException($"site plot geometry: land pad '{pad.Id}' appears twice");
+                }
+                foreach (var slot in geometry.OffshoreSlots())
+                {
+                    if (!_byId.TryGetValue(slot.Id, out var plot) || plot.Kind != PlotKind.OffshoreSlot)
+                        throw new InvalidDataException(
+                            $"site plot geometry: offshore slot '{slot.Id}' is not an offshore slot of site_plots.json");
+                    if (!seen.Add(slot.Id))
+                        throw new InvalidDataException($"site plot geometry: offshore slot '{slot.Id}' appears twice");
+                }
+            }
+            return WithGeometry(geometry);
         }
 
         // ── Loading ─────────────────────────────────────────────────────────

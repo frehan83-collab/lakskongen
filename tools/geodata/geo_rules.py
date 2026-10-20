@@ -242,7 +242,7 @@ D17_BRANDS = (
     "Eidsfjord", "AquaBounty", "AquAdvantage", "AquaGen", "SalmoBreed", "Benchmark Genetics",
     "Greenpeace", "WWF", "Bellona", "REMA 1000", "Coop Mega", "Skretting", "BioMar", "EWOS",
     "Cargill", "Nasdaq", "NASDAQ", "Fish Pool", "Euronext", "Oslo Børs", "Oslo Stock Exchange",
-    "Stingray", "AquaCloud",
+    "Stingray", "AquaCloud", "Nordlaks",
 )
 
 

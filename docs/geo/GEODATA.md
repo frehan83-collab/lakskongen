@@ -349,12 +349,36 @@ GIS package).
   build dialog), keyed by `id`, with `score`, `components` and `binding` as the
   dialog's "why here" explanation. Land pads have no geo candidates yet (a
   follow-up: flat shore land near deep water from N250 + DTM 50).
+  Status (geo A2, 2026-10-20, rulings OD1 and OD2): `GeoSitePlotGeometry`
+  binds hav_1 only, to the HTH candidate nearest the home area's label
+  (integer squared distance; ties score, rank, id), at Z = -clamp(5200 ×
+  km / 83, 4600, 9000) with the candidate's depth; off_1, off_2 and the pads
+  keep the file's values, and hav_1 keeps its id, Hs calibration and lice
+  band. `GeoPlotCatalogs.ForHomeArea` joins it strictly
+  (`SitePlotCatalog.WithGeometry(geometry, strict: true)`), and the engine
+  selects it at StartScenario and on load from the saved home area (nothing
+  saved). Bridge: `GetGeoProductionAreas`, `GetGeoPlotBinding`,
+  `GetGeoOffshoreCandidates`, `GeoAreaAt` (GameBridge.Geo.cs, the sim·geo
+  lane block). The per-area table is in BALANCE §1ab.
 - **Rival farms**: `localities.geojson` sea and land salmonid sites, with
   `mtb_t` and `po`, give the real distribution of competitors per area; give
   them generated parody company names (D17: the data has none, by design).
   Status (geo A1, 2026-10-20): `GeoLocalities` reads all 1,781 sites;
   `SeaGrowoutProducing` (sea salmonid grow-out without harvest pens) is 994
   sites holding 3,722,295 t. The rival layout and the parody names are A3.
+  Status (geo A3, 2026-10-20, rulings OD4, OD8-OD10): `RivalLayout` gives
+  every one of the 1,304 pool sites (994 sea grow-out, 309 land salmonid,
+  offshore 45196) one owner: the six roster majors their MTB share (557 sea
+  sites, home areas first), 162 generated independents the rest
+  (`ParodyNames`: 112 coast × 10 trade words + AS, no place token, 0
+  matches against the raw registry's holder names offline).
+  `ScenarioGeoAnchors` puts the 16 shipped starting sites and the 13
+  catalogue zones on real producing grow-out localities (display only).
+  Pure and cached by roster signature; no RNG stream, no GameState field, no
+  tick reads it. Bridge: `GetGeoSites` (packed arrays), `GetGeoSitesSignature`,
+  `GetRivalSummary`, `GetZoneAnchors`; `GetCompetitorCompanies` orders the 3D
+  rivals by their sites in the home area. Rules, counts and word lists in
+  BALANCE §1ab.
 - **Determinism**: the files are inputs; their sha256 is in `manifest.json`.
   Golden traces are unaffected until the sim reads them; the first change that
   does must re-record them with a diff report (HANDOFF §7).

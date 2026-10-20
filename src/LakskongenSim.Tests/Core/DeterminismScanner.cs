@@ -42,6 +42,8 @@ public static class DeterminismScanner
         "godot/scripts/autoload/GameBridge.Driftsplan.cs",
         // F2-31: the build flow's previews, plots and diagnosis (reads the build dialog and its ghost call).
         "godot/scripts/autoload/GameBridge.BuildFlow.cs",
+        // Geo stages 2-3 track A: the geo lane's reads of the real coast and the rival layout.
+        "godot/scripts/autoload/GameBridge.Geo.cs",
     };
 
     /// <summary>
