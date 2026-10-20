@@ -148,6 +148,10 @@ func _spawn_barge(site_id: String, site_data: Dictionary, on_station: bool = fal
 	parts.boat.add_child(chip)
 	chip.position = parts.boat.get_chip_anchor() if parts.boat.has_method("get_chip_anchor") else Vector3(0, 16, 0)
 	_add_tender(parts.boat)
+	# Au2-01: the barge's generator set, blower and pellets, on the barge.
+	var audio := get_node_or_null("/root/AudioController")
+	if audio != null and audio.has_method("attach_loop"):
+		audio.attach_loop(parts.boat, "feed_barge")
 	_active_barges[site_id] = {
 		"boat": parts.boat,
 		"path": parts.path,
