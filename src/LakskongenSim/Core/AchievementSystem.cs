@@ -2,33 +2,46 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.IO;
 
 namespace LakskongenSim.Core
 {
     /// <summary>
     /// Achievement/milestone tracking system for player progression.
-    /// 50+ achievements spanning beginner to mastery tiers.
-    /// Achievements unlock notifications, badges, and bonuses.
+    /// Achievements unlock notifications and award a medal (bronze to
+    /// platinum), never cash: owner decision D16 (S1-03). The old NOK rewards
+    /// topped the income statement of every career (7-10M NOK in a three-year
+    /// ressursrente career) and paid out before the first harvest.
     /// NOTE: Uses GameState.Balance for checks (to be migrated to FinanceManager in future)
     /// </summary>
     #pragma warning disable CS0618 // Type or member is obsolete
     public class AchievementSystem
     {
         private readonly GameState _state;
-        private readonly Finance.FinanceManager? _financeManager;
         private readonly Dictionary<string, Achievement> _achievements = new();
         private readonly List<Achievement> _lockedAchievements = new();
 
         public event Action<Achievement>? OnAchievementUnlocked;
 
-        public AchievementSystem(GameState state, Finance.FinanceManager? financeManager = null)
+        public AchievementSystem(GameState state)
         {
             _state = state ?? throw new ArgumentNullException(nameof(state));
-            _financeManager = financeManager;
             RegisterAllAchievements();
             
             _lockedAchievements.AddRange(_achievements.Values.Where(a => !_state.UnlockedAchievementIds.Contains(a.Id)));
+        }
+
+        /// <summary>
+        /// Drop already-unlocked achievements from the locked list after
+        /// AdoptSavedState copied the saved progress. The constructor builds
+        /// the list from a fresh state; without this, CheckAchievements
+        /// re-unlocks finished achievements and RE-PAYS their rewards on the
+        /// first post-load tick (Phase 1 wave 6).
+        /// </summary>
+        internal void ResyncFromState()
+        {
+            _lockedAchievements.RemoveAll(a => _state.UnlockedAchievementIds.Contains(a.Id));
         }
 
         /// <summary>Check all achievements and unlock any that meet conditions.</summary>
@@ -50,18 +63,13 @@ namespace LakskongenSim.Core
         private void UnlockAchievement(Achievement achievement)
         {
             _state.UnlockedAchievementIds.Add(achievement.Id);
-            Console.WriteLine($"🏆 Achievement Unlocked: {achievement.Name}");
-            Console.WriteLine($"    {achievement.Description}");
-            if (achievement.RewardNOK > 0)
-            {
-                if (_financeManager != null)
-                    _financeManager.AddRevenue(achievement.RewardNOK);
-                else
-                    _state.Balance += achievement.RewardNOK; // Legacy fallback
-                Console.WriteLine($"    Reward: {achievement.RewardNOK:N0} NOK");
-            }
+            SimLog.Info($"🏆 Achievement Unlocked: {achievement.Name} — {achievement.Description} ({achievement.Medal} medal)");
             OnAchievementUnlocked?.Invoke(achievement);
         }
+
+        /// <summary>The medal an achievement awards (null for an unknown id).</summary>
+        public AchievementMedal? MedalOf(string achievementId)
+            => _achievements.TryGetValue(achievementId, out var a) ? a.Medal : null;
 
         public bool IsUnlocked(string achievementId) => _state.UnlockedAchievementIds.Contains(achievementId);
         public int UnlockedCount => _state.UnlockedAchievementIds.Count;
@@ -84,18 +92,13 @@ namespace LakskongenSim.Core
 
         private void RegisterAllAchievements()
         {
-            var jsonPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "game", "data", "achievements_config.json");
-            if (!File.Exists(jsonPath))
+            string? dir = SimulationEngine.ResolveDataDirectory("achievements_config.json");
+            if (dir == null)
             {
-                // Fallback for development environment if running directly from project root.
-                // Adjust this path based on your exact project structure.
-                jsonPath = "salmon-sim/game/data/achievements_config.json";
-                if (!File.Exists(jsonPath))
-                {
-                    Console.Error.WriteLine($"ERROR: achievements_config.json not found at {jsonPath}");
-                    return;
-                }
+                Console.Error.WriteLine("ERROR: achievements_config.json not found (searched godot/data candidates)");
+                return;
             }
+            var jsonPath = Path.Combine(dir, "achievements_config.json");
 
             var jsonString = File.ReadAllText(jsonPath);
             var achievementDefinitions = JsonSerializer.Deserialize<List<AchievementDefinition>>(jsonString, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
@@ -116,7 +119,10 @@ namespace LakskongenSim.Core
 
                 if (!Enum.TryParse<AchievementTier>(def.Tier, true, out var tierEnum))
                 {
-                    Console.Error.WriteLine($"WARNING: Invalid tier '{def.Tier}' for achievement '{def.Id}'. Defaulting to Beginner.");
+                    // Config carries no tier field — default silently; warn
+                    // only for genuinely unrecognized tier strings.
+                    if (!string.IsNullOrWhiteSpace(def.Tier))
+                        Console.Error.WriteLine($"WARNING: Invalid tier '{def.Tier}' for achievement '{def.Id}'. Defaulting to Beginner.");
                     tierEnum = AchievementTier.Beginner;
                 }
 
@@ -126,7 +132,7 @@ namespace LakskongenSim.Core
                     Name = def.Name,
                     Description = def.Description,
                     Tier = tierEnum,
-                    RewardNOK = def.RewardNOK,
+                    Medal = ParseMedal(def),
                     Icon = def.Icon,
                     Category = def.Category,
                     Hidden = def.Hidden,
@@ -136,6 +142,27 @@ namespace LakskongenSim.Core
         }
 
         private void Register(Achievement achievement) => _achievements[achievement.Id] = achievement;
+
+        private static AchievementMedal ParseMedal(AchievementDefinition def)
+        {
+            if (Enum.TryParse<AchievementMedal>(def.Medal, true, out var medal))
+                return medal;
+            Console.Error.WriteLine($"WARNING: Invalid medal '{def.Medal}' for achievement '{def.Id}'. Defaulting to Bronze.");
+            return AchievementMedal.Bronze;
+        }
+    }
+
+    /// <summary>
+    /// What an achievement awards (D16): a medal, not cash. Bronze for early
+    /// milestones, silver for an established farm, gold for mastery, platinum
+    /// for the rare top feats.
+    /// </summary>
+    public enum AchievementMedal
+    {
+        Bronze,
+        Silver,
+        Gold,
+        Platinum
     }
 
     public enum AchievementTier
@@ -158,7 +185,13 @@ namespace LakskongenSim.Core
         public string Category { get; set; } = ""; // New
         public bool Hidden { get; set; } = false; // New
         public string Tier { get; set; } = ""; // As string for deserialization
-        public decimal RewardNOK { get; set; }
+        /// <summary>"bronze" | "silver" | "gold" | "platinum" (D16: medals, never cash).</summary>
+        [JsonPropertyName("medal")]
+        public string Medal { get; set; } = "";
+        // Config file uses snake_case "condition_key" — map explicitly
+        // (case-insensitive matching alone does not bridge underscores,
+        // which left every ConditionKey empty and all lookups failing).
+        [JsonPropertyName("condition_key")]
         public string ConditionKey { get; set; } = ""; // Key to lookup Func<GameState, bool>
     }
 
@@ -171,20 +204,30 @@ namespace LakskongenSim.Core
         public string Category { get; set; } = ""; // New
         public bool Hidden { get; set; } = false; // New
         public AchievementTier Tier { get; set; }
-        public decimal RewardNOK { get; set; }
+        /// <summary>The medal this achievement awards (D16: no cash reward).</summary>
+        public AchievementMedal Medal { get; set; }
         public Func<GameState, bool>? Condition { get; set; }
     }
 
     // Static class to map condition keys to actual Func<GameState, bool> delegates
     public static class AchievementConditionMap
     {
+        /// <summary>Cash minus outstanding loan principal (a loan is not wealth).</summary>
+        private static decimal NetWorth(GameState gs)
+            => gs.Balance - gs.ActiveLoans.Sum(l => System.Math.Max(0m, l.Principal));
+
         public static readonly Dictionary<string, Func<GameState, bool>> Conditions = new()
         {
             {"HasAnyPopulations", gs => gs.Populations.Any()},
             {"SurvivedYearOne", gs => gs.Day >= 365 && gs.Balance > 0},
             {"HasHarvestedCohort", gs => gs.Populations.Any(p => p.Cohorts.Any(c => c.Stage == Data.LifeStage.Harvest))},
-            {"ProfitableQuarter", gs => gs.Balance > 1_000_000m && gs.Day >= 90},
-            {"MillionRevenue", gs => gs.Balance >= 2_000_000m}, // Assuming Balance is cumulative revenue here
+            // Positive cash flow over the last quarter (90 daily snapshots).
+            {"ProfitableQuarter", gs =>
+                gs.Day >= 90 && gs.DailySnapshots.Count > 90 &&
+                gs.DailySnapshots[^1].BalanceNok > gs.DailySnapshots[^91].BalanceNok},
+            // Revenue achievements measure cumulative SALES, not cash: cash
+            // includes the starting capital, so they all fired on day 1 (F1006).
+            {"MillionRevenue", gs => gs.TotalSalesRevenueNok >= 1_000_000m},
             {"Harvested100KFish", gs => gs.Populations.Sum(p => p.Cohorts.Where(c => c.Stage == Data.LifeStage.Harvest).Sum(c => c.Count)) >= 100_000},
             {"FCRExcellence", gs =>
                 {
@@ -215,7 +258,7 @@ namespace LakskongenSim.Core
                 }
             },
             {"ASCCertified", gs => gs.HasASCCertification},
-            {"FiveMillionRevenue", gs => gs.Balance >= 6_000_000m},
+            {"FiveMillionRevenue", gs => gs.TotalSalesRevenueNok >= 5_000_000m},
             {"GeneticSuperiority", gs => gs.BestGrowthBreedingValue >= 2.0},
             {"CrisisSurvivor", gs => 
                 {
@@ -235,7 +278,7 @@ namespace LakskongenSim.Core
                     return latest.SustainabilityScore >= 95;
                 }
             },
-            {"TenMillionRevenue", gs => gs.Balance >= 11_000_000m},
+            {"TenMillionRevenue", gs => gs.TotalSalesRevenueNok >= 10_000_000m},
             {"VerticalIntegration", gs => gs.OwnsFeedMill && gs.OwnsHatchery && gs.OwnsProcessingPlant && gs.SeaSites.Count > 0},
             {"AcquisitionSpree", gs => gs.AcquisitionCount >= 3},
             {"GlobalExporter", gs => gs.ExportMarkets.Contains("EU") &&
@@ -245,7 +288,7 @@ namespace LakskongenSim.Core
                                   gs.ExportMarkets.Contains("UK") &&
                                   gs.ExportMarkets.Contains("MiddleEast")
             },
-            {"HundredMillionNetWorth", gs => gs.Balance >= 105_000_000m},
+            {"HundredMillionNetWorth", gs => NetWorth(gs) >= 100_000_000m},
             {"PerfectFCR", gs => gs.BestFCR > 0 && gs.BestFCR <= 1.05},
             {"ZeroEscapes", gs => 
                 {
@@ -281,8 +324,62 @@ namespace LakskongenSim.Core
                     return false;
                 }
             },
-            {"SpeedrunMillionaire", gs => gs.Balance >= 2_000_000m && gs.Day < 500},
-            {"BankruptcyRecovery", gs => gs.MinimumBalanceEver < 0 && gs.Balance >= 1_000_000m}
+            // 1M NOK profit = net worth (cash minus loan principal) up 1M on the opening balance.
+            {"SpeedrunMillionaire", gs => NetWorth(gs) - gs.OpeningBalanceNok >= 1_000_000m && gs.Day < 500},
+            {"BankruptcyRecovery", gs => gs.MinimumBalanceEver < 0 && gs.Balance >= 1_000_000m},
+
+            // ── Wave 7 depth-system achievements ──────────────────────────────
+            // Self-insured: all four catastrophe perils have paid out at least
+            // once, which implies full cover was carried across mortality,
+            // bloom, storm and ISA risk. GameState does not expose live policy
+            // state, so the payout ledger is the observable proxy.
+            {"AllCatastrophePoliciesActive", gs =>
+                {
+                    string[] kinds = { "mortality", "bloom", "storm", "isa" };
+                    foreach (var kind in kinds)
+                    {
+                        bool covered = false;
+                        for (int i = gs.EventLog.Count - 1; i >= 0; i--)
+                        {
+                            if (gs.EventLog[i].Id == $"insurance-{kind}") { covered = true; break; }
+                        }
+                        if (!covered) return false;
+                    }
+                    return true;
+                }
+            },
+            // Closed loop: a site was upgraded into closed containment from a
+            // red traffic-light zone and claimed the environmental-flexibility
+            // biomass credit.
+            {"ClosedLoopUpgrade", gs =>
+                gs.SeaSites.Any(s => s.IsClosedContainment && s.RedZoneCreditApplied)
+            },
+            // Genomicist: broodstock has advanced at least two generations,
+            // i.e. genomic selection has been applied across breeding cycles.
+            {"GenomicSelectionCompleted", gs => gs.Broodstock.Any(g => g.Generation >= 2)},
+            // Weatherproof: mitigated bloom event survived while solvent.
+            {"WeatherproofBloom", gs =>
+                gs.SeaSites.Any(s => s.HasBubbleCurtain || s.HasO2Diffuser) &&
+                gs.EventLog.Any(e => e.Id == "algal-bloom-toxic" || e.Id == "weather-algal-bloom" || e.Id == "algal-bloom") &&
+                gs.DailySnapshots.Count > 0 && gs.DailySnapshots.Last().BalanceNok > 0.0
+            },
+            // Tax planner: profitable under the resource-rent transition campaign.
+            {"ResourceRentProfitable", gs =>
+                gs.ActiveScenarioId != null &&
+                gs.ActiveScenarioId.ToLowerInvariant().Contains("ressursrente") &&
+                gs.DailySnapshots.Count > 0 && gs.DailySnapshots.Last().BalanceNok > 0.0
+            },
+            // Precision: world-class feed conversion (P6).
+            {"PrecisionFCR", gs => gs.BestFCR > 0.0 && gs.BestFCR <= 1.12},
+            // SuperSmolt: the company has a post-smolt site (F2-03: a post-smolt
+            // land site; the pre-F2 list only holds a save's facilities until
+            // the load migrates them).
+            {"SuperSmoltStocked", gs => gs.RASFacilities.Any(f => f.Kind == Farm.LandSiteKind.PostSmolt)
+                || gs.PostSmoltFacilities.Count > 0},
+            // Bloom Ready: at least one site has bloom countermeasures installed.
+            {"BloomMitigationInstalled", gs =>
+                gs.SeaSites.Any(s => s.HasBubbleCurtain || s.HasO2Diffuser)
+            }
         };
     }
     #pragma warning restore CS0618

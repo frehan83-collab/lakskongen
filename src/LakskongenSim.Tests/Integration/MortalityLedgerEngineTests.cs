@@ -1,0 +1,421 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using LakskongenSim.Biology;
+using LakskongenSim.Calibration;
+using LakskongenSim.Core;
+using LakskongenSim.Environment;
+using LakskongenSim.Farm;
+using LakskongenSim.Finance;
+using Xunit;
+using Xunit.Abstractions;
+
+namespace LakskongenSim.Tests.Integration;
+
+/// <summary>
+/// S2-05 (roadmap D4) on the engine path: every death is booked to one cause,
+/// per cohort per day, exactly; the career probe prints the breakdown in the
+/// NVI categories; hazards read the cohort's own environment, so a land-based
+/// tank and an offshore structure take their own water.
+/// </summary>
+public class MortalityLedgerEngineTests
+{
+    private readonly ITestOutputHelper _output;
+
+    public MortalityLedgerEngineTests(ITestOutputHelper output) => _output = output;
+
+    /// <summary>po3_red_sone's stocked sea sites plus a land-based RAS tank and an offshore structure, events on.</summary>
+    private static SimulationEngine MixedFarm(int seed)
+    {
+        var engine = new SimulationEngine();
+        engine.FinanceManager = new FinanceManager(5_000_000_000m);
+        engine.Initialize(enableEvents: true, seed: seed);
+        var scenario = engine.Scenario.GetScenario(PlayerScriptProbe.CareerScenarioId);
+        Assert.NotNull(scenario);
+        scenario.ApplyStartingState(engine.State, engine);
+        Assert.True(engine.StockSmolts("po3_nord", 12_000, "robust").Ok);
+        Assert.True(engine.StockSmolts("po3_sor", 10_000, "standard").Ok);
+
+        Assert.True(engine.BuildRASFacility("Landtank", RASScale.Small).Ok);
+        Assert.True(engine.BuildOffshoreFarm("Havfarm", OffshoreType.SemiSubmersible).Ok);
+        var ras = engine.RASFacilities.Single();
+        var unit = engine.OffshoreUnits.Single(); // F2-03: the offshore structure is an offshore sea site
+        ras.ConstructionDays = 1;
+        unit.Offshore!.ConstructionDays = 1;
+        engine.Advance(2);
+        Assert.True(engine.StockRASFacility(ras.Id, 40_000).Ok);
+        Assert.True(engine.StockOffshoreFarm(unit.Id, 40_000).Ok);
+        Assert.True(engine.RequestWellboat("po3_sor", "delouse", "hydrolicer").Ok);
+        return engine;
+    }
+
+    private static Dictionary<FishPopulation.Cohort, int> CountCohorts(SimulationEngine engine)
+    {
+        var counts = new Dictionary<FishPopulation.Cohort, int>(ReferenceEqualityComparer.Instance);
+        IEnumerable<FishPopulation> pops = engine.State.Populations
+            .Concat(engine.State.SeaSites.SelectMany(s => s.Pens))
+            .Concat(engine.RASFacilities.SelectMany(r => r.Tanks))
+            .Concat(engine.OffshoreFarms.SelectMany(f => f.Pens));
+        foreach (var pop in pops)
+            foreach (var cohort in pop.Cohorts)
+                counts[cohort] = cohort.Count;
+        return counts;
+    }
+
+    /// <summary>
+    /// Acceptance 1: for every cohort on every day, the fish it lost equal its
+    /// deaths booked by cause plus the fish that left it alive, exactly; and
+    /// each day's deaths by cause sum to the day's deaths. Eight seeds, 450
+    /// days (two winters' cold, a summer's heat, storms, blooms, delousing).
+    /// </summary>
+    [Fact]
+    public void EveryCohortEveryDay_FishLostEqualDeathsByCausePlusRemovals_Exactly()
+    {
+        const int days = 450;
+        var causesSeen = new HashSet<MortalityCause>();
+        var removalsSeen = new HashSet<FishRemoval>();
+        var holdingsWithDeaths = new HashSet<string>();
+        long cohortDaysChecked = 0;
+
+        for (int seed = 1; seed <= 8; seed++)
+        {
+            var engine = MixedFarm(seed);
+            var ledger = engine.MortalityLedger;
+            long deathsBefore = ledger.Cumulative().Total.Fish;
+            long deathsSummedDaily = 0;
+
+            for (int d = 0; d < days; d++)
+            {
+                var before = CountCohorts(engine);
+                engine.Advance(1);
+                int day = engine.State.Day;
+                Assert.Equal(day, ledger.Day);
+
+                long dayDeaths = 0;
+                foreach (var (cohort, countBefore) in before)
+                {
+                    ledger.TodayByCohort.TryGetValue(cohort, out var rec);
+                    int booked = (rec?.TotalDeaths ?? 0) + (rec?.TotalRemoved ?? 0);
+                    int lost = countBefore - cohort.Count;
+                    if (lost != booked)
+                        Assert.Fail($"seed {seed} day {day}: a cohort lost {lost} fish but {booked} were booked " +
+                            $"(deaths {string.Join(", ", MortalityCauses.All.Where(c => (rec?.DeathsByCause[(int)c] ?? 0) > 0).Select(c => $"{c}={rec.DeathsByCause[(int)c]}"))})");
+                    cohortDaysChecked++;
+                }
+                foreach (var (cohort, rec) in ledger.TodayByCohort)
+                {
+                    if (!before.ContainsKey(cohort))
+                        Assert.Fail($"seed {seed} day {day}: a booking for a cohort that did not exist at the start of the day");
+                    dayDeaths += rec.TotalDeaths;
+                    foreach (var cause in MortalityCauses.All)
+                        if (rec.DeathsByCause[(int)cause] > 0)
+                        {
+                            causesSeen.Add(cause);
+                            holdingsWithDeaths.Add(rec.Population.SiteId);
+                        }
+                    foreach (var removal in MortalityCauses.AllRemovals)
+                        if (rec.RemovedByKind[(int)removal] > 0) removalsSeen.Add(removal);
+                }
+
+                var today = ledger.ForDays(day, day);
+                if (today.Total.Fish != dayDeaths)
+                    Assert.Fail($"seed {seed} day {day}: day total {today.Total.Fish} != cohort bookings {dayDeaths}");
+                if (MortalityCauses.All.Sum(c => today.Deaths(c).Fish) != today.Total.Fish
+                    || MortalityCauses.AllCategories.Sum(c => today.Deaths(c).Fish) != today.Total.Fish)
+                    Assert.Fail($"seed {seed} day {day}: causes or categories do not sum to the day's deaths");
+                deathsSummedDaily += dayDeaths;
+            }
+
+            var cumulative = ledger.Cumulative();
+            Assert.Equal(cumulative.Total.Fish - deathsBefore, deathsSummedDaily);
+            Assert.Equal(cumulative.Total.Fish, MortalityCauses.AllCategories.Sum(c => cumulative.Deaths(c).Fish));
+            Assert.Equal(cumulative.Total.Fish, ledger.SiteIds.Sum(id => ledger.ForSite(id).Total.Fish));
+        }
+
+        _output.WriteLine($"cohort-days checked: {cohortDaysChecked:N0}; causes: {string.Join(", ", causesSeen.OrderBy(c => c))}; " +
+            $"left alive: {string.Join(", ", removalsSeen.OrderBy(r => r))}; holdings with deaths: {string.Join(", ", holdingsWithDeaths.OrderBy(h => h))}");
+        // The run must exercise the hazards it claims to check (no vacuous pass).
+        foreach (var cause in new[] { MortalityCause.BaselineAnchor, MortalityCause.Disease, MortalityCause.Delousing,
+                     MortalityCause.Temperature, MortalityCause.Storm })
+            Assert.Contains(cause, causesSeen);
+        Assert.True(cohortDaysChecked > 8 * days * 3, $"only {cohortDaysChecked} cohort-days checked");
+    }
+
+    /// <summary>
+    /// Acceptance 2-3: the career probe accounts for every fish and prints the
+    /// breakdown in the NVI categories (seed 13 is the input to S4-03, D4).
+    /// The fish at the start equal the deaths by cause plus the fish that left
+    /// alive plus the fish still there; the harvest removal equals the fish
+    /// counted at harvest.
+    /// </summary>
+    [Theory]
+    [InlineData(7)]
+    [InlineData(13)]
+    public void CareerProbe_AccountsForEveryFish_AndPrintsTheBreakdownInNviCategories(int seed)
+    {
+        var r = PlayerScriptProbe.RunCareer(seed);
+        var m = r.Mortality;
+        string table = PlayerScriptProbe.FormatMortality(seed, r);
+        _output.WriteLine(table);
+
+        long leftAlive = MortalityCauses.AllRemovals.Sum(k => m.Removed(k).Fish);
+        Assert.Equal((long)r.FishBeforeGrowOut, m.Total.Fish + leftAlive + (long)r.FishLeftAtEnd);
+        Assert.Equal((long)r.FishAtHarvest, m.Removed(FishRemoval.Harvest).Fish);
+        // The probe's sea loss is exactly the ledger's deaths plus escapes and forced harvest.
+        double ledgerLossPct = 100.0 * (m.Total.Fish + m.Removed(FishRemoval.Escape).Fish
+            + m.Removed(FishRemoval.ForcedHarvest).Fish + m.Removed(FishRemoval.TransferOut).Fish) / r.FishBeforeGrowOut;
+        Assert.Equal(r.SeaMortalityPct, ledgerLossPct, 9);
+        foreach (var category in MortalityCauses.AllCategories)
+        {
+            Assert.Contains(MortalityCauses.Id(category), table);
+            string code = MortalityCauses.NviCode(category);
+            if (code.Length > 0) Assert.Contains($" {code} ", table);
+        }
+        Assert.True(m.Total.Fish > 0, "a career with no deaths booked");
+    }
+
+    /// <summary>
+    /// The farm-type seam: the temperature hazard reads the water the fish sit
+    /// in. A land-based tank whose chiller fails (water at 0 °C) loses fish
+    /// to temperature while the sea at 10 °C spares the sea pen, and the
+    /// reverse when the sea is cold and the tank holds 12 °C.
+    /// </summary>
+    [Fact]
+    public void TemperatureStress_ReadsTheHoldingsOwnWater_SoALandTankFailureKillsAndAColdSeaDoesNot()
+    {
+        var engine = new SimulationEngine();
+        engine.FinanceManager = new FinanceManager(5_000_000_000m);
+        engine.Initialize(enableEvents: false, seed: 71);
+        Assert.True(engine.BuildRASFacility("Landtank", RASScale.Small).Ok);
+        var ras = engine.RASFacilities.Single();
+        ras.ConstructionDays = 1;
+        engine.Advance(2);
+        Assert.True(engine.StockRASFacility(ras.Id, 100_000).Ok);
+        var site = new SeaSite("sea-pen", "zone-sea") { MABTonnes = 780 };
+        engine.State.Zones.Add(new Zone("zone-sea"));
+        engine.State.SeaSites.Add(site);
+        Assert.True(engine.StockSmolts(site.Id, 100_000).Ok);
+        var ledger = engine.MortalityLedger;
+        double rate = CalibrationRegistry.Default.Mortality.TemperatureStressDailyFractionPerDegreeC;
+
+        Assert.Equal(FishHolding.LandBasedTank, engine.ResolveCohortEnvironment(ras.Tanks[0]).Holding);
+        Assert.Equal(FishHolding.SeaPen, engine.ResolveCohortEnvironment(site.Pens[0]).Holding);
+
+        ras.CurrentWaterTemp = 0.0; // chiller failure: 4 °C below the band
+        engine.ApplySeaTemperatureStress(10.0);
+        Assert.Equal((long)(100_000 * (4.0 * rate)), ledger.ForSite(ras.Id).Deaths(MortalityCause.Temperature).Fish);
+        Assert.Equal(0, ledger.ForSite(site.Id).Total.Fish);
+
+        ras.CurrentWaterTemp = 12.0;
+        long tankDeaths = ledger.ForSite(ras.Id).Total.Fish;
+        engine.ApplySeaTemperatureStress(0.0);
+        Assert.Equal(tankDeaths, ledger.ForSite(ras.Id).Total.Fish);
+        Assert.Equal((long)(100_000 * (4.0 * rate)), ledger.ForSite(site.Id).Deaths(MortalityCause.Temperature).Fish);
+    }
+
+    /// <summary>
+    /// The seam for oxygen: a plankton crash collapses the fjord's oxygen and
+    /// kills in the sea pens, but a land-based tank in the same zone keeps its
+    /// controlled oxygen. Before S2-05 the crash killed a quarter of the tank.
+    /// </summary>
+    [Fact]
+    public void PlanktonCrash_KillsSeaPens_ButNotALandTankInTheSameZone()
+    {
+        var engine = new SimulationEngine();
+        engine.FinanceManager = new FinanceManager(5_000_000_000m);
+        engine.Initialize(enableEvents: true, seed: 72);
+        var zone = new Zone("zone-crash");
+        engine.State.Zones.Add(zone);
+        var site = new SeaSite("crash-pen", zone.Id) { MABTonnes = 780 };
+        engine.State.SeaSites.Add(site);
+        Assert.True(engine.StockSmolts(site.Id, 50_000).Ok);
+        Assert.True(engine.BuildRASFacility("Landtank", RASScale.Small).Ok);
+        var ras = engine.RASFacilities.Single();
+        ras.ZoneId = zone.Id;
+        ras.ConstructionDays = 1;
+        engine.Advance(2);
+        Assert.True(engine.StockRASFacility(ras.Id, 50_000).Ok);
+        Assert.Equal(zone.Id, ras.Tanks[0].ZoneId);
+
+        zone.WaterChemistry.OxygenO2 = 1.5;
+        var crash = engine.Storyteller.GetEventDefinitions().Single(e => e.Id == "plankton-crash");
+        int tankBefore = ras.Tanks.Sum(p => p.TotalCount);
+        int penBefore = site.Pens.Sum(p => p.TotalCount);
+        engine.Storyteller.Fire(crash, engine.State.Day);
+
+        Assert.Equal(tankBefore, ras.Tanks.Sum(p => p.TotalCount));
+        int penLost = penBefore - site.Pens.Sum(p => p.TotalCount);
+        Assert.Equal((int)(penBefore * 0.25), penLost);
+        Assert.Equal(penLost, engine.MortalityLedger.ForSite(site.Id).Deaths(MortalityCause.LowOxygen).Fish);
+    }
+
+    /// <summary>
+    /// Roadmap D4: S2-05 attributes the disaster careers. On the pre-wave-1
+    /// base (4a5290d) the po3 probe lost 19-63 % (median 28.5 %, 20 seeds) and
+    /// the worst seeds were plankton-crash hypoxia (seed 16: 63,814 of 83,949
+    /// deaths; seed 13: 21,374 of 46,545), the O2 square wave S1-01 removed.
+    /// On the wave-1 water chemistry seeds 7 and 13 lose 18.2 % and 12.5 % and
+    /// end solvent by the game's own floor, so D4's cycle-mortality band
+    /// (at most 35 %) and the -1M bound hold for both; the -15M guard in
+    /// PlayerScriptCareerTests stays untouched until the owner retires it.
+    /// </summary>
+    [Theory]
+    [InlineData(7)]
+    [InlineData(13)]
+    public void D4_Po3Career_LosesAtMost35Percent_AndEndsAboveTheDefaultBankruptcyFloor(int seed)
+    {
+        var r = PlayerScriptProbe.RunCareer(seed);
+        Assert.InRange(r.SeaMortalityPct, 0.0, 35.0);
+        Assert.True(r.EndingBalance > -1_000_000m, $"seed {seed} ends at {r.EndingBalance:N0} NOK");
+        // No plankton-crash hypoxia in a career on the corrected water chemistry.
+        Assert.True(r.Mortality.Deaths(MortalityCause.LowOxygen).Fish < r.Mortality.Total.Fish / 10,
+            $"seed {seed}: {r.Mortality.Deaths(MortalityCause.LowOxygen).Fish} of {r.Mortality.Total.Fish} deaths from low oxygen");
+    }
+
+    /// <summary>
+    /// F2-03: a post-smolt batch is a population in its land site's tanks, so
+    /// its deaths are booked by cause, cohort for cohort, under the site (the
+    /// pre-F2 facility booked a top-down survival rate as unexplained anchor
+    /// deaths per facility). The company total still holds every death, the
+    /// anchor is among the causes, and every death is a post-smolt's weight.
+    /// </summary>
+    [Fact]
+    public void PostSmoltFacilityDeaths_AreBookedUnderTheFacility()
+    {
+        var engine = new SimulationEngine();
+        engine.FinanceManager = new FinanceManager(5_000_000_000m);
+        engine.Initialize(enableEvents: false, seed: 75);
+        Assert.True(engine.BuildPostSmoltFacility("Post-smolt").Ok);
+        var facility = engine.PostSmoltSites.Single();
+        facility.ConstructionDays = 1;
+        engine.Advance(2);
+        Assert.True(engine.StartPostSmoltBatch(facility.Id, 200_000).Ok);
+        var batch = facility.Tanks.Single();
+        var cohort = batch.Cohorts.Single();
+        int before = batch.TotalCount;
+        long companyBefore = engine.MortalityLedger.Cumulative().Total.Fish;
+
+        long bookedDaily = 0;
+        for (int d = 0; d < 30; d++)
+        {
+            int countBefore = cohort.Count;
+            engine.Advance(1);
+            engine.MortalityLedger.TodayByCohort.TryGetValue(cohort, out var rec);
+            Assert.Equal(countBefore - cohort.Count, (rec?.TotalDeaths ?? 0) + (rec?.TotalRemoved ?? 0));
+            bookedDaily += rec?.TotalDeaths ?? 0;
+        }
+
+        int died = before - batch.TotalCount;
+        Assert.True(died > 0, "no post-smolt deaths in 30 days");
+        var booked = engine.MortalityLedger.ForSite(facility.Id);
+        Assert.True(booked.Deaths(MortalityCause.BaselineAnchor).Fish > 0, "the anchor kills post-smolts too");
+        Assert.Equal(died, MortalityCauses.All.Sum(c => booked.Deaths(c).Fish));
+        Assert.Equal(died, booked.Total.Fish);
+        Assert.Equal(died, bookedDaily);
+        Assert.Equal(died, engine.MortalityLedger.Cumulative().Total.Fish - companyBefore);
+        Assert.InRange(booked.Total.Kg, died * 0.08, died * 0.4);
+        Assert.Equal(facility.Id, batch.SiteId);
+    }
+
+    /// <summary>
+    /// The slice the bridge projects (GameBridge.GetMortalityBreakdown): a
+    /// site since the start, the company over the last N days (clamped to the
+    /// history), or the company since the start; its rows list every category
+    /// and cause with translation keys and shares that sum to one.
+    /// </summary>
+    [Fact]
+    public void BridgeBreakdown_SelectsSiteWindowOrCompany_AndItsRowsCoverEveryCategory()
+    {
+        var engine = MixedFarm(3);
+        engine.Advance(150);
+        var ledger = engine.MortalityLedger;
+        int day = engine.State.Day;
+
+        var company = engine.GetMortalityBreakdown();
+        Assert.Equal(ledger.Cumulative().Total.Fish, company.Total.Fish);
+        Assert.True(company.Total.Fish > 0);
+        Assert.Equal(ledger.ForSite("po3_nord").Total.Fish, engine.GetMortalityBreakdown("po3_nord").Total.Fish);
+        Assert.Equal(ledger.ForDays(day - 29, day).Total.Fish, engine.GetMortalityBreakdown(null, 30).Total.Fish);
+        Assert.Equal(engine.GetMortalityBreakdown(null, MortalityLedger.HistoryDays).Total.Fish,
+            engine.GetMortalityBreakdown(null, 10_000).Total.Fish);
+
+        var categories = company.CategoryRows();
+        var causes = company.CauseRows();
+        Assert.Equal(MortalityCauses.AllCategories.Length, categories.Count);
+        Assert.Equal(MortalityCauses.All.Length, causes.Count);
+        Assert.Equal(1.0, categories.Sum(r => r.Share), 9);
+        Assert.Equal(1.0, causes.Sum(r => r.Share), 9);
+        Assert.Equal(company.Total.Fish, categories.Sum(r => r.Fish));
+        Assert.All(causes, r => Assert.StartsWith("MORTALITY_CAUSE_", r.LabelKey));
+        Assert.All(categories, r => Assert.StartsWith("MORTALITY_CATEGORY_", r.LabelKey));
+        Assert.Equal(new[] { "escape", "harvest", "forced_harvest", "transfer_out" },
+            company.RemovalRows().Select(r => r.Id).ToArray());
+    }
+
+    /// <summary>
+    /// A transfer books its handling deaths (injury and treatment) and the
+    /// fish that move (alive); a slice whose fish all die leaves the source
+    /// pen instead of being reported lost while it stayed there.
+    /// </summary>
+    [Fact]
+    public void Transfer_BooksHandlingDeathsAndTheMovedFish_AndAWipedSliceLeavesTheSource()
+    {
+        var engine = new SimulationEngine();
+        engine.FinanceManager = new FinanceManager(5_000_000_000m);
+        engine.Initialize(enableEvents: false, seed: 74);
+        var zone = new Zone("zone-t");
+        engine.State.Zones.Add(zone);
+        var from = new SeaSite("from", zone.Id) { MABTonnes = 780 };
+        var to = new SeaSite("to", zone.Id) { MABTonnes = 780 };
+        engine.State.SeaSites.Add(from);
+        engine.State.SeaSites.Add(to);
+        Assert.True(engine.StockSmolts(from.Id, 100_000).Ok);
+        var ledger = engine.MortalityLedger;
+        double w = from.Pens[0].Cohorts[0].MeanWeightKg;
+
+        var plan = CohortTransferSystem.PlanTransfer(from.Id, to.Id, 40_000, w,
+            CohortTransferSystem.TransferReason.Grading, engine.State, hasVeterinarian: false);
+        var result = CohortTransferSystem.ExecuteTransfer(plan, engine.State, _ => { }, new Random(1),
+            engine.Growth, engine.Mortality);
+        Assert.True(result.Success, result.Message);
+        Assert.Equal(result.FishLost, ledger.ForSite(from.Id).Deaths(MortalityCause.Handling).Fish);
+        Assert.Equal(result.FishTransferred, ledger.ForSite(from.Id).Removed(FishRemoval.TransferOut).Fish);
+        Assert.Equal(40_000, result.FishLost + result.FishTransferred);
+        Assert.Equal(60_000, from.Pens.Sum(p => p.TotalCount));
+
+        var wiped = plan with { FishCount = 1_000, EstimatedMortalityPct = 100.0 };
+        var lost = CohortTransferSystem.ExecuteTransfer(wiped, engine.State, _ => { }, new Random(1),
+            engine.Growth, engine.Mortality);
+        Assert.Equal(1_000, lost.FishLost);
+        Assert.Equal(59_000, from.Pens.Sum(p => p.TotalCount));
+        Assert.Equal(result.FishLost + 1_000, ledger.ForSite(from.Id).Deaths(MortalityCategory.InjuryAndTreatment).Fish);
+    }
+
+    /// <summary>A harvest leaves alive (not a death); an ISA cull order destroys the pen (an infectious death).</summary>
+    [Fact]
+    public void HarvestAndIsaCull_AreBookedAsALiveRemovalAndAnInfectiousDeath()
+    {
+        var engine = new SimulationEngine();
+        engine.FinanceManager = new FinanceManager(5_000_000_000m);
+        engine.Initialize(enableEvents: true, seed: 73);
+        var zone = new Zone("zone-h");
+        engine.State.Zones.Add(zone);
+        var culled = new SeaSite("isa-pen", zone.Id) { MABTonnes = 780 };
+        var harvested = new SeaSite("harvest-pen", zone.Id) { MABTonnes = 780 };
+        engine.State.SeaSites.Add(culled);
+        engine.State.SeaSites.Add(harvested);
+        Assert.True(engine.StockSmolts(culled.Id, 20_000).Ok);
+        Assert.True(engine.StockSmolts(harvested.Id, 30_000).Ok);
+        var ledger = engine.MortalityLedger;
+
+        var isa = engine.Storyteller.GetEventDefinitions().Single(e => e.Id == "isa-outbreak");
+        engine.Storyteller.Fire(isa, engine.State.Day);
+        Assert.Equal(0, culled.Pens.Sum(p => p.TotalCount));
+        Assert.Equal(20_000, ledger.ForSite(culled.Id).Deaths(MortalityCause.DiseaseCull).Fish);
+        Assert.Equal(20_000, ledger.ForSite(culled.Id).Deaths(MortalityCategory.Infectious).Fish);
+
+        Assert.True(engine.HarvestSite(harvested.Id).Ok);
+        Assert.Equal(30_000, ledger.ForSite(harvested.Id).Removed(FishRemoval.Harvest).Fish);
+        Assert.Equal(0, ledger.ForSite(harvested.Id).Total.Fish);
+    }
+}

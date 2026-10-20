@@ -20,7 +20,7 @@ func _ready() -> void:
 		refresh_button.pressed.connect(_on_refresh_pressed)
 	
 	if game_bridge:
-		game_bridge.game_state_updated.connect(_on_game_state_updated)
+		game_bridge.GameStateUpdated.connect(_on_game_state_updated)
 	
 	_refresh_data()
 
@@ -57,7 +57,7 @@ func _update_display() -> void:
 	
 	if current_price_label:
 		current_price_label.text = "Current Price: %.2f NOK/kg" % current_price
-		current_price_label.add_theme_color_override("font_color", _get_price_color(current_price))
+		LakskongenTheme.set_text_color(current_price_label, _get_price_color(current_price))
 	
 	if weekly_avg_label:
 		weekly_avg_label.text = "Weekly Average: %.2f NOK/kg" % weekly_avg
@@ -69,7 +69,7 @@ func _update_display() -> void:
 	if price_trend_label and price_history.size() >= 7:
 		var trend: String = _calculate_trend()
 		price_trend_label.text = "7-Day Trend: %s" % trend
-		price_trend_label.add_theme_color_override("font_color", _get_trend_color(trend))
+		LakskongenTheme.set_text_color(price_trend_label, _get_trend_color(trend))
 
 func _calculate_trend() -> String:
 	if price_history.size() < 7:
@@ -145,22 +145,22 @@ func _draw() -> void:
 	if price_history.size() > 0:
 		var weekly_avg: float = price_history[price_history.size() - 1].get("weekly_avg", 70.0)
 		var avg_y: float = chart_size.y - ((weekly_avg - min_price) / price_range) * chart_size.y
-		chart_display.draw_line(Vector2(0, avg_y), Vector2(chart_size.x, avg_y), Color(0.8, 0.4, 0.2), 1.5, true)
+		chart_display.draw_line(Vector2(0, avg_y), Vector2(chart_size.x, avg_y), LakskongenTheme.CHART_WARN, 1.5, true)
 
 func _get_price_color(price: float) -> Color:
 	if price > 75.0:
-		return Color(0.2, 0.8, 0.2) # High price (good)
+		return LakskongenTheme.CHART_OK # High price (good)
 	elif price > 70.0:
-		return Color(0.6, 0.8, 0.4) # Above average
+		return LakskongenTheme.CHART_OK # Above average
 	elif price > 65.0:
-		return Color(0.8, 0.8, 0.2) # Average
+		return LakskongenTheme.CHART_WARN # Average
 	else:
-		return Color(0.8, 0.2, 0.2) # Low price (bad)
+		return LakskongenTheme.CHART_CRIT # Low price (bad)
 
 func _get_trend_color(trend: String) -> Color:
 	if "Uptrend" in trend or "Strong Uptrend" in trend:
-		return Color(0.2, 0.8, 0.2)
+		return LakskongenTheme.CHART_OK
 	elif "Downtrend" in trend or "Strong Downtrend" in trend:
-		return Color(0.8, 0.2, 0.2)
+		return LakskongenTheme.CHART_CRIT
 	else:
-		return Color(0.8, 0.8, 0.2)
+		return LakskongenTheme.CHART_WARN

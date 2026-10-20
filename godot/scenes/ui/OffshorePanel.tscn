@@ -1,0 +1,244 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/OffshorePanel.gd" id="1_offshore"]
+[ext_resource type="Theme" path="res://theme/lakskongen_chart_theme.tres" id="theme_chart"]
+
+[node name="OffshorePanel" type="PanelContainer"]
+theme = ExtResource("theme_chart")
+theme_type_variation = &"Card"
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_offshore")
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="MainScroll" type="ScrollContainer" parent="Margin"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="RootVBox" type="VBoxContainer" parent="Margin/MainScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="OffshoreTitle" type="Label" parent="Margin/MainScroll/RootVBox"]
+theme_type_variation = &"Heading"
+unique_name_in_owner = true
+layout_mode = 2
+text = "Offshore Merd Anlegg Oversikt"
+
+[node name="FarmCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
+theme_type_variation = &"Card"
+layout_mode = 2
+
+[node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/FarmCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/FarmCard/Outer"]
+theme_type_variation = &"CardHeader"
+layout_mode = 2
+
+[node name="FarmHeader" type="Label" parent="Margin/MainScroll/RootVBox/FarmCard/Outer/Header"]
+theme_type_variation = &"BodyInfo"
+unique_name_in_owner = true
+layout_mode = 2
+text = "Merd Anlegg"
+
+[node name="FarmBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/FarmCard/Outer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="FarmList" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/FarmCard/Outer/FarmBody"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="WeatherWavesLabel" type="Label" parent="Margin/MainScroll/RootVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Vær & Bølger: --"
+
+[node name="CrewRotationLabel" type="Label" parent="Margin/MainScroll/RootVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Mannskapsrotasjon: --"
+
+[node name="BtnBuildOffshore" type="Button" parent="Margin/MainScroll/RootVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Bygg nytt offshoreanlegg"
+
+[node name="ContainCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
+theme_type_variation = &"Card"
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ContainOuter" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/ContainCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="ContainHeader" type="PanelContainer" parent="Margin/MainScroll/RootVBox/ContainCard/ContainOuter"]
+theme_type_variation = &"CardHeader"
+layout_mode = 2
+
+[node name="ContainTitle" type="Label" parent="Margin/MainScroll/RootVBox/ContainCard/ContainOuter/ContainHeader"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "🛡️ Inneslutting per lokalitet"
+
+[node name="ContainBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/ContainCard/ContainOuter"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="ContainList" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/ContainCard/ContainOuter/ContainBody"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="SludgeCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
+theme_type_variation = &"Card"
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SludgeOuter" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/SludgeCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="SludgeHeader" type="PanelContainer" parent="Margin/MainScroll/RootVBox/SludgeCard/SludgeOuter"]
+theme_type_variation = &"CardHeader"
+layout_mode = 2
+
+[node name="SludgeTitle" type="Label" parent="Margin/MainScroll/RootVBox/SludgeCard/SludgeOuter/SludgeHeader"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "♻️ Slam-valorisering"
+
+[node name="SludgeBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/SludgeCard/SludgeOuter"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="SludgeList" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/SludgeCard/SludgeOuter/SludgeBody"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="TransferCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
+theme_type_variation = &"Card"
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TransferOuter" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/TransferCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="TransferHeader" type="PanelContainer" parent="Margin/MainScroll/RootVBox/TransferCard/TransferOuter"]
+theme_type_variation = &"CardHeader"
+layout_mode = 2
+
+[node name="TransferTitle" type="Label" parent="Margin/MainScroll/RootVBox/TransferCard/TransferOuter/TransferHeader"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "🐟 Kohort-overføringer"
+
+[node name="TransferBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/TransferCard/TransferOuter"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="TransferSection" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/TransferCard/TransferOuter/TransferBody"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TransferRow1" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/TransferCard/TransferOuter/TransferBody/TransferSection"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TransferSourceSelect" type="OptionButton" parent="Margin/MainScroll/RootVBox/TransferCard/TransferOuter/TransferBody/TransferSection/TransferRow1"]
+theme_type_variation = &"SmallOptionButton"
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Kilde-lokalitet for overføring"
+
+[node name="TransferDestSelect" type="OptionButton" parent="Margin/MainScroll/RootVBox/TransferCard/TransferOuter/TransferBody/TransferSection/TransferRow1"]
+theme_type_variation = &"SmallOptionButton"
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Destinasjon for overføring"
+
+[node name="TransferRow2" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/TransferCard/TransferOuter/TransferBody/TransferSection"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TransferFishCount" type="SpinBox" parent="Margin/MainScroll/RootVBox/TransferCard/TransferOuter/TransferBody/TransferSection/TransferRow2"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 1
+max_value = 1000000
+step = 1000
+value = 10000
+suffix = " fisk"
+
+[node name="TransferMeanWeight" type="SpinBox" parent="Margin/MainScroll/RootVBox/TransferCard/TransferOuter/TransferBody/TransferSection/TransferRow2"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 0.1
+max_value = 10.0
+step = 0.1
+value = 1.0
+suffix = " kg"
+editable = true
+
+[node name="TransferRow3" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/TransferCard/TransferOuter/TransferBody/TransferSection"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TransferReasonSelect" type="OptionButton" parent="Margin/MainScroll/RootVBox/TransferCard/TransferOuter/TransferBody/TransferSection/TransferRow3"]
+theme_type_variation = &"SmallOptionButton"
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Årsak til overføring"
+
+[node name="TransferRow4" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/TransferCard/TransferOuter/TransferBody/TransferSection"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TransferPlanBtn" type="Button" parent="Margin/MainScroll/RootVBox/TransferCard/TransferOuter/TransferBody/TransferSection/TransferRow4"]
+theme_type_variation = &"SmallButton"
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 1
+text = "Planlegg overføring"
+
+[node name="TransferExecuteBtn" type="Button" parent="Margin/MainScroll/RootVBox/TransferCard/TransferOuter/TransferBody/TransferSection/TransferRow4"]
+theme_type_variation = &"SmallButton"
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 1
+text = "Utfør overføring"
+disabled = true
+
+[node name="TransferInfoLabel" type="Label" parent="Margin/MainScroll/RootVBox/TransferCard/TransferOuter/TransferBody/TransferSection"]
+theme_type_variation = &"Small"
+unique_name_in_owner = true
+layout_mode = 2
+autowrap_mode = 1

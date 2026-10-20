@@ -372,4 +372,3 @@ func _color_to_hex(c: Color) -> String:
 		"%02x" % int(c.g * 255),
 		"%02x" % int(c.b * 255),
 	]
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

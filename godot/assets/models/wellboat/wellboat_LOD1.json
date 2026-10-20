@@ -1,0 +1,39 @@
+{
+  "asset": "wellboat",
+  "bbox_size": [
+    18.504,
+    24.32,
+    76.96
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "air_draught_m": 19.72,
+    "beam_m": 17.8,
+    "bow_y_m": 38.48,
+    "draught_m": 4.6,
+    "length_m": 76.96,
+    "stern_y_m": -38.48
+  },
+  "file": "wellboat_LOD1.glb",
+  "lod": "LOD1",
+  "material_count": 7,
+  "materials": [
+    "LK_VCrane",
+    "LK_VDark",
+    "LK_VDeck",
+    "LK_VGlass",
+    "LK_VHullRed",
+    "LK_VSteel",
+    "LK_VWhite"
+  ],
+  "parts": {
+    "Crane": 224,
+    "Deck": 538,
+    "Hull": 1029,
+    "Machinery": 288,
+    "Rubber": 230,
+    "Superstructure": 1774,
+    "Windows": 34
+  },
+  "tri_count": 4117
+}

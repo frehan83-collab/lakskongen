@@ -1,0 +1,33 @@
+{
+  "asset": "rov",
+  "bbox_size": [
+    1.624,
+    1.4901,
+    2.7602
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "air_draught_m": 0.74,
+    "beam_m": 1.6,
+    "bow_y_m": 1.3,
+    "draught_m": 0.75,
+    "length_m": 2.6,
+    "stern_y_m": -1.3
+  },
+  "file": "rov_LOD0.glb",
+  "lod": "LOD0",
+  "material_count": 4,
+  "materials": [
+    "LK_VDark",
+    "LK_VGlass",
+    "LK_VSteel",
+    "LK_VSubseaYellow"
+  ],
+  "parts": {
+    "Hull": 20,
+    "Machinery": 336,
+    "Rubber": 622,
+    "Windows": 116
+  },
+  "tri_count": 1094
+}

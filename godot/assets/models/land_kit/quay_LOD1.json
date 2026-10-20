@@ -1,0 +1,51 @@
+{
+  "asset": "quay",
+  "atlas": "godot/assets/models/facility_kit/textures/facility_atlas.png",
+  "bbox_size": [
+    120.0,
+    19.35,
+    25.7
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "deck_height_m": 3.0,
+    "length_m": 120.0,
+    "width_m": 25.0
+  },
+  "file": "quay_LOD1.glb",
+  "lod": "LOD1",
+  "material_count": 1,
+  "materials": [
+    "LK_FacilityKit"
+  ],
+  "part_strips": {
+    "Bollards": "steel",
+    "Deck": "concrete",
+    "Fenders": "fender",
+    "Kerb": "safety",
+    "Lamps": "lamp",
+    "Lights": "steel"
+  },
+  "parts": {
+    "Bollards": 48,
+    "Deck": 24,
+    "Fenders": 180,
+    "Kerb": 10,
+    "Lamps": 48,
+    "Lights": 32
+  },
+  "surfaces": 1,
+  "swatches": {
+    "Deck": {
+      "hex": "#9EA3A6",
+      "spec": "#9EA3A6",
+      "strip": "concrete"
+    },
+    "Fenders": {
+      "hex": "#1C1E20",
+      "spec": "#1C1E20",
+      "strip": "fender"
+    }
+  },
+  "tri_count": 342
+}

@@ -1,0 +1,66 @@
+[gd_scene load_steps=2 format=3 uid="uid://d7decision01"]
+
+[ext_resource type="Script" path="res://scripts/ui/DecisionPanel.gd" id="1_decision"]
+
+[node name="DecisionPanel" type="CanvasLayer"]
+script = ExtResource("1_decision")
+
+[node name="Overlay" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0, 0, 0, 0.8)
+
+[node name="DialogCenter" type="CenterContainer" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="DialogPanel" type="PanelContainer" parent="./DialogCenter"]
+theme_type_variation = &"Dialog"
+unique_name_in_owner = true
+custom_minimum_size = Vector2(700, 500)
+layout_mode = 2
+
+[node name="DialogVBox" type="VBoxContainer" parent="./DialogCenter/DialogPanel"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Header" type="Label" parent="./DialogCenter/DialogPanel/DialogVBox"]
+theme_type_variation = &"KpiSmallInfo"
+unique_name_in_owner = true
+layout_mode = 2
+text = "KRITISK BESLUTNING"
+horizontal_alignment = 1
+
+[node name="TimerLabel" type="Label" parent="./DialogCenter/DialogPanel/DialogVBox"]
+theme_type_variation = &"BodyWarn"
+unique_name_in_owner = true
+layout_mode = 2
+horizontal_alignment = 1
+
+[node name="Divider" type="HSeparator" parent="./DialogCenter/DialogPanel/DialogVBox"]
+layout_mode = 2
+
+[node name="Description" type="Label" parent="./DialogCenter/DialogPanel/DialogVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+autowrap_mode = 2
+
+[node name="Spacer" type="Control" parent="./DialogCenter/DialogPanel/DialogVBox"]
+custom_minimum_size = Vector2(0, 16)
+layout_mode = 2
+
+[node name="ChoicesBox" type="VBoxContainer" parent="./DialogCenter/DialogPanel/DialogVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="SpacerBottom" type="Control" parent="./DialogCenter/DialogPanel/DialogVBox"]
+layout_mode = 2
+size_flags_vertical = 3

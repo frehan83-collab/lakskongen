@@ -1,0 +1,9 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3 uid="uid://pen_collar_mat_001"]
+
+[ext_resource type="Shader" path="res://shaders/pen_collar_shader.gdshader" id="1_shader"]
+
+[resource]
+shader = ExtResource("1_shader")
+shader_parameter/albedo_color = Color(0.109804, 0.117647, 0.12549, 1)
+shader_parameter/metallic = 0.0
+shader_parameter/roughness = 0.6

@@ -1,0 +1,258 @@
+{
+  "version": 1,
+  "generated_by": "blender_asset_pipeline",
+  "assets": {
+    "salmon_LOD0": {
+      "path": "/Users/fredrik.j.hansen/lakskongen/.claude/skills/godot/assets/models/fish/salmon_LOD0.glb",
+      "sha256": "",
+      "size": 0,
+      "tri_count": 0,
+      "material_count": 0,
+      "bbox_size": [
+        0,
+        0,
+        0
+      ]
+    },
+    "salmon_LOD1": {
+      "path": "/Users/fredrik.j.hansen/lakskongen/.claude/skills/godot/assets/models/fish/salmon_LOD1.glb",
+      "sha256": "",
+      "size": 0,
+      "tri_count": 0,
+      "material_count": 0,
+      "bbox_size": [
+        0,
+        0,
+        0
+      ]
+    },
+    "salmon_LOD2": {
+      "path": "/Users/fredrik.j.hansen/lakskongen/.claude/skills/godot/assets/models/fish/salmon_LOD2.glb",
+      "sha256": "",
+      "size": 0,
+      "tri_count": 0,
+      "material_count": 0,
+      "bbox_size": [
+        0,
+        0,
+        0
+      ]
+    },
+    "feed_barge_LOD0": {
+      "path": "/Users/fredrik.j.hansen/lakskongen/.claude/skills/godot/assets/models/boat/feed_barge_LOD0.glb",
+      "sha256": "",
+      "size": 0,
+      "tri_count": 0,
+      "material_count": 0,
+      "bbox_size": [
+        0,
+        0,
+        0
+      ]
+    },
+    "feed_barge_LOD1": {
+      "path": "/Users/fredrik.j.hansen/lakskongen/.claude/skills/godot/assets/models/boat/feed_barge_LOD1.glb",
+      "sha256": "",
+      "size": 0,
+      "tri_count": 0,
+      "material_count": 0,
+      "bbox_size": [
+        0,
+        0,
+        0
+      ]
+    },
+    "feed_barge_LOD2": {
+      "path": "/Users/fredrik.j.hansen/lakskongen/.claude/skills/godot/assets/models/boat/feed_barge_LOD2.glb",
+      "sha256": "",
+      "size": 0,
+      "tri_count": 0,
+      "material_count": 0,
+      "bbox_size": [
+        0,
+        0,
+        0
+      ]
+    },
+    "wellboat_LOD0": {
+      "path": "/Users/fredrik.j.hansen/lakskongen/.claude/skills/godot/assets/models/boat/wellboat_LOD0.glb",
+      "sha256": "",
+      "size": 0,
+      "tri_count": 0,
+      "material_count": 0,
+      "bbox_size": [
+        0,
+        0,
+        0
+      ]
+    },
+    "wellboat_LOD1": {
+      "path": "/Users/fredrik.j.hansen/lakskongen/.claude/skills/godot/assets/models/boat/wellboat_LOD1.glb",
+      "sha256": "",
+      "size": 0,
+      "tri_count": 0,
+      "material_count": 0,
+      "bbox_size": [
+        0,
+        0,
+        0
+      ]
+    },
+    "wellboat_LOD2": {
+      "path": "/Users/fredrik.j.hansen/lakskongen/.claude/skills/godot/assets/models/boat/wellboat_LOD2.glb",
+      "sha256": "",
+      "size": 0,
+      "tri_count": 0,
+      "material_count": 0,
+      "bbox_size": [
+        0,
+        0,
+        0
+      ]
+    },
+    "pen_rails_LOD0": {
+      "path": "/Users/fredrik.j.hansen/lakskongen/.claude/skills/godot/assets/models/pen_cage/pen_rails_LOD0.glb",
+      "sha256": "",
+      "size": 0,
+      "tri_count": 0,
+      "material_count": 0,
+      "bbox_size": [
+        0,
+        0,
+        0
+      ]
+    },
+    "pen_rails_LOD1": {
+      "path": "/Users/fredrik.j.hansen/lakskongen/.claude/skills/godot/assets/models/pen_cage/pen_rails_LOD1.glb",
+      "sha256": "",
+      "size": 0,
+      "tri_count": 0,
+      "material_count": 0,
+      "bbox_size": [
+        0,
+        0,
+        0
+      ]
+    },
+    "pen_rails_LOD2": {
+      "path": "/Users/fredrik.j.hansen/lakskongen/.claude/skills/godot/assets/models/pen_cage/pen_rails_LOD2.glb",
+      "sha256": "",
+      "size": 0,
+      "tri_count": 0,
+      "material_count": 0,
+      "bbox_size": [
+        0,
+        0,
+        0
+      ]
+    },
+    "net_variants_clean_LOD0": {
+      "path": "/Users/fredrik.j.hansen/lakskongen/.claude/skills/godot/assets/models/pen_cage/net_clean_LOD0.glb",
+      "sha256": "",
+      "size": 0,
+      "tri_count": 0,
+      "material_count": 0,
+      "bbox_size": [
+        0,
+        0,
+        0
+      ]
+    },
+    "net_variants_fouled_LOD0": {
+      "path": "/Users/fredrik.j.hansen/lakskongen/.claude/skills/godot/assets/models/pen_cage/net_fouled_LOD0.glb",
+      "sha256": "",
+      "size": 0,
+      "tri_count": 0,
+      "material_count": 0,
+      "bbox_size": [
+        0,
+        0,
+        0
+      ]
+    },
+    "net_variants_damaged_LOD0": {
+      "path": "/Users/fredrik.j.hansen/lakskongen/.claude/skills/godot/assets/models/pen_cage/net_damaged_LOD0.glb",
+      "sha256": "",
+      "size": 0,
+      "tri_count": 0,
+      "material_count": 0,
+      "bbox_size": [
+        0,
+        0,
+        0
+      ]
+    },
+    "net_variants_clean_LOD1": {
+      "path": "/Users/fredrik.j.hansen/lakskongen/.claude/skills/godot/assets/models/pen_cage/net_clean_LOD1.glb",
+      "sha256": "",
+      "size": 0,
+      "tri_count": 0,
+      "material_count": 0,
+      "bbox_size": [
+        0,
+        0,
+        0
+      ]
+    },
+    "net_variants_fouled_LOD1": {
+      "path": "/Users/fredrik.j.hansen/lakskongen/.claude/skills/godot/assets/models/pen_cage/net_fouled_LOD1.glb",
+      "sha256": "",
+      "size": 0,
+      "tri_count": 0,
+      "material_count": 0,
+      "bbox_size": [
+        0,
+        0,
+        0
+      ]
+    },
+    "net_variants_damaged_LOD1": {
+      "path": "/Users/fredrik.j.hansen/lakskongen/.claude/skills/godot/assets/models/pen_cage/net_damaged_LOD1.glb",
+      "sha256": "",
+      "size": 0,
+      "tri_count": 0,
+      "material_count": 0,
+      "bbox_size": [
+        0,
+        0,
+        0
+      ]
+    },
+    "net_variants_clean_LOD2": {
+      "path": "/Users/fredrik.j.hansen/lakskongen/.claude/skills/godot/assets/models/pen_cage/net_clean_LOD2.glb",
+      "sha256": "",
+      "size": 0,
+      "tri_count": 0,
+      "material_count": 0,
+      "bbox_size": [
+        0,
+        0,
+        0
+      ]
+    },
+    "net_variants_fouled_LOD2": {
+      "path": "/Users/fredrik.j.hansen/lakskongen/.claude/skills/godot/assets/models/pen_cage/net_fouled_LOD2.glb",
+      "sha256": "",
+      "size": 0,
+      "tri_count": 0,
+      "material_count": 0,
+      "bbox_size": [
+        0,
+        0,
+        0
+      ]
+    },
+    "net_variants_damaged_LOD2": {
+      "path": "/Users/fredrik.j.hansen/lakskongen/.claude/skills/godot/assets/models/pen_cage/net_damaged_LOD2.glb",
+      "sha256": "",
+      "size": 0,
+      "tri_count": 0,
+      "material_count": 0,
+      "bbox_size": [
+        0,
+        0,
+        0
+      ]
+    }
+  }
+}

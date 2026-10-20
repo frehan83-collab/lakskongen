@@ -1,365 +1,193 @@
+using Lakskongen.Data.RealData.Cache;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Text.Json;
 using System.Threading.Tasks;
-using Lakskongen.Data.RealData.Cache;
 using Lakskongen.Data.RealData.Layers;
-using Lakskongen.Data.RealData.Loaders;
+using Lakskongen.Data.RealData.Models;
 
 namespace Lakskongen.Data.RealData
 {
-    /// <summary>
-    /// Main orchestrator for real-world data integration.
-    /// Singleton that manages all data loaders and provides unified access.
-    /// </summary>
-    public class RealDataOrchestrator
+    public class RealDataOrchestrator : IRealDataProvider
     {
-        // Singleton instance
-        private static RealDataOrchestrator? _instance;
-        public static RealDataOrchestrator Instance
+        private readonly DataCache _cache;
+        private readonly List<IDataLoader> _dataLoaders;
+        private readonly Dictionary<string, ITemporalDataLayer> _layers;
+        private readonly RealDataConfig _config;
+
+        public RealDataOrchestrator(RealDataConfig config)
         {
-            get
-            {
-                if (_instance == null)
-                {
-                    throw new InvalidOperationException("RealDataOrchestrator not initialized. Call Initialize() first.");
-                }
-                return _instance;
-            }
-        }
-
-        // Configuration
-        private RealDataConfig _config = null!;
-        private DataCache _cache = null!;
-        
-        // Data loaders (in priority order)
-        private List<IDataLoader> _dataLoaders = null!;
-        
-        // Data layers
-        public TemperatureLayer TemperatureLayer { get; private set; } = null!;
-        public BathymetryLayer BathymetryLayer { get; private set; } = null!;
-        public LakskongenSim.Data.RealData.Layers.SalinityLayer SalinityLayer { get; private set; } = null!;
-        public LakskongenSim.Data.RealData.Layers.OxygenLayer OxygenLayer { get; private set; } = null!;
-        public LakskongenSim.Data.RealData.Layers.CurrentLayer CurrentLayer { get; private set; } = null!;
-
-        // Status
-        public bool IsInitialized { get; private set; }
-        public Dictionary<string, DataSourceStatus> SourceStatuses { get; private set; } = new();
-
-        /// <summary>
-        /// Initialize the orchestrator with configuration.
-        /// </summary>
-        public static async Task<RealDataOrchestrator> InitializeAsync(string configPath = "")
-        {
-            if (_instance != null) return _instance;
+            _config = config ?? throw new ArgumentNullException(nameof(config));
             
-            _instance = new RealDataOrchestrator();
-            await _instance.InitializeInternalAsync(configPath);
-            return _instance;
-        }
-
-        private async Task InitializeInternalAsync(string configPath)
-        {
-            if (IsInitialized) return;
-
-            try
-            {
-                // Load configuration
-                _config = await LoadConfigAsync(configPath);
-                
-                // Initialize cache
-                string cacheDir = _config.CacheDirectory ?? Path.Combine(Path.GetTempPath(), "Lakskongen", "RealDataCache");
-                Directory.CreateDirectory(cacheDir);
-                _cache = new DataCache(cacheDir, TimeSpan.FromDays(_config.CacheExpirationDays));
-                
-                // Initialize data loaders
-                _dataLoaders = new List<IDataLoader>();
-                
-                // EMODnet (primary source for most data)
-                var emodnet = new EmodnetDataLoader(_cache);
-                await emodnet.InitializeAsync(_config.ApiEndpoints);
-                _dataLoaders.Add(emodnet);
-                
-                // TODO: Add Mareano loader for high-res bathymetry
-                // TODO: Add NMDC loader for historical CTD data
-                // TODO: Add Copernicus loader for satellite/reanalysis data
-                
-                // Initialize data layers
-                TemperatureLayer = new TemperatureLayer(_cache, _dataLoaders);
-                BathymetryLayer = new BathymetryLayer(_cache, _dataLoaders);
-                SalinityLayer = new LakskongenSim.Data.RealData.Layers.SalinityLayer();
-                OxygenLayer = new LakskongenSim.Data.RealData.Layers.OxygenLayer();
-                CurrentLayer = new LakskongenSim.Data.RealData.Layers.CurrentLayer();
-                
-                // Run health checks
-                await UpdateSourceStatusesAsync();
-                
-                IsInitialized = true;
-                Console.WriteLine($"RealDataOrchestrator initialized. Cache: {cacheDir}");
-                Console.WriteLine($"Data sources: {string.Join(", ", _dataLoaders.Select(l => $"{l.SourceId}({(l.IsAvailable ? "up" : "down")})"))}");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Failed to initialize RealDataOrchestrator: {ex.Message}");
-                // Initialize with fallback mode
-                InitializeFallback();
-            }
-        }
-
-        /// <summary>
-        /// Initialize in fallback mode with no external data sources.
-        /// </summary>
-        private void InitializeFallback()
-        {
-            _config = new RealDataConfig
-            {
-                CacheDirectory = Path.Combine(Path.GetTempPath(), "Lakskongen", "RealDataCache"),
-                CacheExpirationDays = 7,
-                UseRealData = false,
-                FallbackToSynthetic = true
-            };
-            
-            _cache = new DataCache(_config.CacheDirectory);
+            _cache = new DataCache(config.CacheDirectory, TimeSpan.FromDays(config.CacheExpirationDays));
             _dataLoaders = new List<IDataLoader>();
+            _layers = new Dictionary<string, ITemporalDataLayer>();
+
+            InitializeLayers();
+        }
+
+        private void InitializeLayers()
+        {
+            _layers["sst"] = new Layers.SstLayer(_cache, _dataLoaders, _config.SnapshotDate);
+            _layers["chl"] = new Layers.ChlorophyllLayer(_cache, _dataLoaders, _config.SnapshotDate);
+            _layers["waves"] = new Layers.WavesLayer(_cache, _dataLoaders, _config.SnapshotDate);
+            _layers["wind"] = new Layers.WindLayer(_cache, _dataLoaders, _config.SnapshotDate);
+            _layers["currents"] = new Layers.CurrentLayer(_cache, _dataLoaders, _config.SnapshotDate);
             
-            TemperatureLayer = new TemperatureLayer(_cache, _dataLoaders);
-            BathymetryLayer = new BathymetryLayer(_cache, _dataLoaders);
-            SalinityLayer = new LakskongenSim.Data.RealData.Layers.SalinityLayer();
-            OxygenLayer = new LakskongenSim.Data.RealData.Layers.OxygenLayer();
-            
-            IsInitialized = true;
-            Console.WriteLine("RealDataOrchestrator initialized in FALLBACK mode (no external sources)");
+            _layers["biomass"] = new Layers.BiomassLayer(_cache, _dataLoaders, _config.SnapshotDate);
+            _layers["lice"] = new Layers.SeaLiceLayer(_cache, _dataLoaders, _config.SnapshotDate);
         }
 
-        /// <summary>
-        /// Get sea temperature at a location.
-        /// </summary>
-        public async Task<float> GetTemperatureAsync(float latitude, float longitude, DateTime? date = null, float? depth = null)
+        public ITemporalDataLayer GetLayer(string layerName)
         {
-            EnsureInitialized();
-            
-            var timestamp = date ?? DateTime.UtcNow;
-            var point = await TemperatureLayer.GetValueAsync(latitude, longitude, timestamp, depth);
-            return point?.Value ?? GetFallbackTemperature(latitude, timestamp, depth);
+            if (_layers.TryGetValue(layerName, out var layer))
+                return layer;
+            throw new ArgumentException($"Layer '{layerName}' not found. Available: {string.Join(", ", _layers.Keys)}");
         }
 
-        /// <summary>
-        /// Get sea temperature (synchronous, uses cached data).
-        /// </summary>
-        public float GetTemperature(float latitude, float longitude, DateTime? date = null, float? depth = null)
+        public async Task<float> GetSstAsync(float latitude, float longitude, DateTime timestamp, float? depth = null)
         {
-            EnsureInitialized();
-            
-            var timestamp = date ?? DateTime.UtcNow;
-            return TemperatureLayer.GetValue(latitude, longitude, timestamp, depth);
+            if (!_layers.TryGetValue("sst", out var layer))
+                return 8.0f;
+            return layer.GetValue(latitude, longitude, timestamp, depth);
         }
 
-        /// <summary>
-        /// Get bathymetry (seabed depth) at a location.
-        /// </summary>
-        public float GetBathymetry(float latitude, float longitude)
+        public async Task<float> GetChlorophyllAsync(float latitude, float longitude, DateTime timestamp, float? depth = null)
         {
-            EnsureInitialized();
-            return BathymetryLayer.GetDepthAt(latitude, longitude);
+            if (!_layers.TryGetValue("chl", out var layer))
+                return 0.5f;
+            return layer.GetValue(latitude, longitude, timestamp, depth);
         }
 
-        /// <summary>
-        /// Check if a location is suitable for aquaculture.
-        /// </summary>
-        public bool IsSuitableForAquaculture(float latitude, float longitude, float minDepth = 50f)
+        public async Task<float> GetWaveHeightAsync(float latitude, float longitude, DateTime timestamp)
         {
-            EnsureInitialized();
-            return BathymetryLayer.IsSuitableForAquaculture(latitude, longitude, minDepth);
+            if (!_layers.TryGetValue("waves", out var layer))
+                return 1.5f;
+            return layer.GetValue(latitude, longitude, timestamp, null);
         }
 
-        /// <summary>
-        /// Get data availability for a region.
-        /// </summary>
-        public async Task<DataAvailability> GetAvailabilityAsync(BoundingBox bbox)
+        public async Task<float> GetWindSpeedAsync(float latitude, float longitude, DateTime timestamp)
         {
-            EnsureInitialized();
-            return await TemperatureLayer.GetAvailabilityAsync(bbox);
+            if (!_layers.TryGetValue("wind", out var layer))
+                return 8.0f;
+            return layer.GetValue(latitude, longitude, timestamp, null);
         }
 
-        /// <summary>
-        /// Get a temperature grid for visualization.
-        /// </summary>
-        public async Task<DataGrid> GetTemperatureGridAsync(BoundingBox bbox, DateTime? date = null, float resolutionKm = 10f)
+        public async Task<float> GetCurrentSpeedAsync(float latitude, float longitude, DateTime timestamp, float? depth = null)
         {
-            EnsureInitialized();
-            return await TemperatureLayer.GetGridAsync(bbox, date ?? DateTime.UtcNow, resolutionKm);
+            if (!_layers.TryGetValue("currents", out var layer))
+                return 0.3f;
+            return layer.GetValue(latitude, longitude, timestamp, depth);
         }
 
-        /// <summary>
-        /// Get a bathymetry grid for visualization.
-        /// </summary>
-        public async Task<DataGrid> GetBathymetryGridAsync(BoundingBox bbox, float resolutionKm = 10f)
+        public async Task<float> GetBiomassAsync(float latitude, float longitude, DateTime timestamp)
         {
-            EnsureInitialized();
-            return await BathymetryLayer.GetGridAsync(bbox, DateTime.UtcNow, resolutionKm);
+            if (!_layers.TryGetValue("biomass", out var layer))
+                return 3.0f;
+            return layer.GetValue(latitude, longitude, timestamp, null);
         }
 
-        /// <summary>
-        /// Run health checks on all data sources.
-        /// </summary>
-        public async Task UpdateSourceStatusesAsync()
+        public async Task<float> GetLiceAsync(float latitude, float longitude, DateTime timestamp)
         {
-            SourceStatuses.Clear();
-            
-            foreach (var loader in _dataLoaders)
+            if (!_layers.TryGetValue("lice", out var layer))
+                return 0.2f;
+            return layer.GetValue(latitude, longitude, timestamp, null);
+        }
+
+        public async Task<EnvironmentalSnapshot> GetSnapshotAsync(float latitude, float longitude, DateTime timestamp)
+        {
+            return new EnvironmentalSnapshot
             {
-                try
-                {
-                    var health = await loader.HealthCheckAsync();
-                    SourceStatuses[loader.SourceId] = new DataSourceStatus
-                    {
-                        SourceId = loader.SourceId,
-                        SourceName = loader.SourceName,
-                        IsAvailable = loader.IsAvailable,
-                        IsHealthy = health.IsHealthy,
-                        LastCheck = DateTime.UtcNow,
-                        ResponseTime = health.ResponseTime,
-                        StatusMessage = health.StatusMessage
-                    };
-                }
-                catch (Exception ex)
-                {
-                    SourceStatuses[loader.SourceId] = new DataSourceStatus
-                    {
-                        SourceId = loader.SourceId,
-                        SourceName = loader.SourceName,
-                        IsAvailable = false,
-                        IsHealthy = false,
-                        LastCheck = DateTime.UtcNow,
-                        StatusMessage = ex.Message
-                    };
-                }
-            }
-        }
-
-        /// <summary>
-        /// Clear all cached data.
-        /// </summary>
-        public void ClearCache()
-        {
-            _cache?.Clear();
-            Console.WriteLine("RealDataOrchestrator: Cache cleared");
-        }
-
-        /// <summary>
-        /// Preload data for a region (background warming).
-        /// </summary>
-        public async Task PreloadRegionAsync(BoundingBox bbox, DateTime start, DateTime end)
-        {
-            Console.WriteLine($"Preloading data for {bbox}...");
-            
-            // Preload temperature
-            _ = TemperatureLayer.GetGridAsync(bbox, start, 20f);
-            _ = BathymetryLayer.GetGridAsync(bbox, start, 10f);
-            
-            await Task.CompletedTask;
-        }
-
-        private async Task<RealDataConfig> LoadConfigAsync(string configPath)
-        {
-            var defaultConfig = new RealDataConfig
-            {
-                CacheDirectory = Path.Combine(Path.GetTempPath(), "Lakskongen", "RealDataCache"),
-                CacheExpirationDays = 7,
-                UseRealData = true,
-                FallbackToSynthetic = true,
-                ApiEndpoints = new Dictionary<string, string>
-                {
-                    { "emodnet_base_url", "https://ec.oceanbrowser.net/emodnet/physics" },
-                    { "geonorge_api_url", "https://kartkatalog.geonorge.no/api" },
-                    { "mareano_wms_url", "https://maps.imr.no/geoserver/mareano/wms" }
-                }
+                Latitude = latitude,
+                Longitude = longitude,
+                Timestamp = timestamp,
+                SeaSurfaceTemperature = await GetSstAsync(latitude, longitude, timestamp),
+                ChlorophyllA = await GetChlorophyllAsync(latitude, longitude, timestamp),
+                WaveHeight = await GetWaveHeightAsync(latitude, longitude, timestamp),
+                WindSpeed = await GetWindSpeedAsync(latitude, longitude, timestamp),
+                CurrentSpeed = await GetCurrentSpeedAsync(latitude, longitude, timestamp),
+                Biomass = await GetBiomassAsync(latitude, longitude, timestamp),
+                LicePerFish = await GetLiceAsync(latitude, longitude, timestamp)
             };
-
-            if (string.IsNullOrEmpty(configPath))
-            {
-                // Try default location
-                configPath = Path.Combine(AppContext.BaseDirectory, "Data", "Config", "RealDataConfig.json");
-            }
-
-            if (File.Exists(configPath))
-            {
-                try
-                {
-                    string json = await File.ReadAllTextAsync(configPath);
-                    var config = JsonSerializer.Deserialize<RealDataConfig>(json);
-                    if (config != null) return config;
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Failed to load config from {configPath}: {ex.Message}");
-                }
-            }
-
-            return defaultConfig;
         }
 
-        /// <summary>
-        /// Get salinity at a zone.
-        /// </summary>
-        public double GetSalinity(string zoneId, DateTime? date = null, double depthM = 10.0)
+        public DataProvenance GetProvenance(string layerName)
         {
-            EnsureInitialized();
-            return SalinityLayer.GetSalinity(zoneId, date ?? DateTime.UtcNow, depthM);
-        }
+            if (!_layers.TryGetValue(layerName, out var layer))
+                return new DataProvenance { LayerName = layerName, Available = false };
 
-        /// <summary>
-        /// Get dissolved oxygen at a zone.
-        /// </summary>
-        public double GetOxygen(string zoneId, DateTime? date = null, double depthM = 10.0)
-        {
-            EnsureInitialized();
-            return OxygenLayer.GetOxygen(zoneId, date ?? DateTime.UtcNow, depthM);
-        }
-
-        private void EnsureInitialized()
-        {
-            if (!IsInitialized)
+            return new DataProvenance
             {
-                throw new InvalidOperationException("RealDataOrchestrator not initialized. Call InitializeAsync() first.");
+                LayerName = layerName,
+                VariableName = layer.VariableName,
+                Unit = layer.Unit,
+                Available = true,
+                License = GetLayerLicense(layerName),
+                SourceDescription = GetSourceDescription(layerName),
+                RetrievalDate = _config.SnapshotDate,
+                TemporalCoverage = GetTemporalCoverage(layerName),
+                SpatialResolutionKm = GetSpatialResolution(layerName)
+            };
+        }
+
+        private string GetLayerLicense(string layerName)
+        {
+            switch (layerName)
+            {
+                case "sst": return "CMEMS: Free for commercial use with DOI citation (DOI: 10.48670/moi-00021). Perpetual license until 2028.";
+                case "chl": return "CMEMS: Free for commercial use with DOI citation. Attribution required.";
+                case "waves": return "CMEMS WAVERYS: Free for commercial use with DOI citation (DOI: 10.48670/moi-00022).";
+                case "wind": return "ERA5 / MET Norway: CC-BY 4.0 (since 2025-07-02). Attribution required.";
+                case "currents": return "CMEMS / MET Norway: NLOD 2.0 + CC-BY 4.0. Attribution required.";
+                case "biomass": return "Fiskeridirektoratet: NLOD 1.0. Attribution 'Kilde: Fiskeridirektoratet'.";
+                case "lice": return "BarentsWatch: NLOD. Attribution 'Data delivered by BarentsWatch' + Mattilsynet credit for lice data.";
+                default: return "Unknown";
             }
         }
 
-        private float GetFallbackTemperature(float latitude, DateTime date, float? depth)
+        private string GetSourceDescription(string layerName)
         {
-            // Simplified fallback if everything else fails
-            float baseTemp = 8f;
-            float seasonal = (float)Math.Sin((date.DayOfYear - 15) * 2 * Math.PI / 365) * 4f;
-            return baseTemp + seasonal;
+            switch (layerName)
+            {
+                case "sst": return "CMEMS GLORYS12v1 reanalysis (1993-present, 1/12° daily)";
+                case "chl": return "CMEMS Ocean Colour (Sentinel-3 OLCI, MODIS, VIIRS, 1-4 km daily)";
+                case "waves": return "CMEMS WAVERYS reanalysis (1980-present, 1/5° 3-hourly)";
+                case "wind": return "ERA5 reanalysis (1979-present, 0.25° hourly) + MET Norway Locationforecast";
+                case "currents": return "CMEMS GLOBAL_MULTIYEAR_PHY (1/12° daily) + MET Norway NorKyst";
+                case "biomass": return "Fiskeridirektoratet statistics (2005-2024 monthly, NLOD) + BarentsWatch site data";
+                case "lice": return "BarentsWatch FishHealth API (Mattilsynet weekly lice counts, NLOD)";
+                default: return "Unknown";
+            }
         }
-    }
 
-    /// <summary>
-    /// Configuration for real data integration.
-    /// </summary>
-    public class RealDataConfig
-    {
-        public string CacheDirectory { get; set; } = "";
-        public int CacheExpirationDays { get; set; } = 7;
-        public bool UseRealData { get; set; } = true;
-        public bool FallbackToSynthetic { get; set; } = true;
-        public Dictionary<string, string> ApiEndpoints { get; set; } = new();
-        public Dictionary<string, string> ApiKeys { get; set; } = new();
-    }
+        private string GetTemporalCoverage(string layerName)
+        {
+            switch (layerName)
+            {
+                case "sst": return "1993-present (daily)";
+                case "chl": return "1997-present (daily)";
+                case "waves": return "1980-present (3-hourly)";
+                case "wind": return "1979-present (hourly)";
+                case "currents": return "1993-present (daily)";
+                case "biomass": return "2005-present (monthly)";
+                case "lice": return "2012-present (weekly)";
+                default: return "Unknown";
+            }
+        }
 
-    /// <summary>
-    /// Status of a data source.
-    /// </summary>
-    public class DataSourceStatus
-    {
-        public string SourceId { get; set; } = "";
-        public string SourceName { get; set; } = "";
-        public bool IsAvailable { get; set; }
-        public bool IsHealthy { get; set; }
-        public DateTime LastCheck { get; set; }
-        public TimeSpan ResponseTime { get; set; }
-        public string StatusMessage { get; set; } = "";
+        private float GetSpatialResolution(string layerName)
+        {
+            switch (layerName)
+            {
+                case "sst": return 8f;
+                case "chl": return 4f;
+                case "waves": return 22f;
+                case "wind": return 30f;
+                case "currents": return 8f;
+                case "biomass": return 1f;
+                case "lice": return 1f;
+                default: return 0f;
+            }
+        }
     }
 }

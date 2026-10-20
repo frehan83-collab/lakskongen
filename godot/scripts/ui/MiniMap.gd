@@ -5,52 +5,48 @@ signal region_selected(region_name: String)
 
 # class_name LakskongenTheme # LakskongenTheme is already a global class_name, no need to preload
 
-var coast_points = [
-    Vector2(0.55, 0.95),  # Kristiansand
-    Vector2(0.35, 0.75),  # Stavanger
-    Vector2(0.30, 0.60),  # Bergen
-    Vector2(0.25, 0.45),  # Ålesund
-    Vector2(0.30, 0.35),  # Trondheim
-    Vector2(0.35, 0.25),  # Brønnøysund
-    Vector2(0.40, 0.18),  # Bodø
-    Vector2(0.50, 0.10),  # Tromsø
-    Vector2(0.65, 0.05),  # Hammerfest
-    Vector2(0.70, 0.02),  # Nordkapp
-]
+const LAND_DARK := Color(0.13, 0.20, 0.24)
+const COAST_LIGHT := Color(0.75, 0.85, 0.90, 0.9)
 
 var region_data = {
-    "Rogaland": {"pos": Vector2(0.38, 0.78), "color_name": "green"},
-    "Hordaland": {"pos": Vector2(0.32, 0.63), "color_name": "green"},
-    "Sogn og Fjordane": {"pos": Vector2(0.28, 0.52), "color_name": "yellow"},
-    "Møre og Romsdal": {"pos": Vector2(0.27, 0.43), "color_name": "yellow"},
-    "Trøndelag": {"pos": Vector2(0.32, 0.33), "color_name": "green"},
-    "Nordland": {"pos": Vector2(0.38, 0.22), "color_name": "red"},
-    "Troms": {"pos": Vector2(0.48, 0.12), "color_name": "yellow"},
-    "Finnmark": {"pos": Vector2(0.65, 0.05), "color_name": "red"},
+    "Rogaland": {"pos": Vector2(0.028, 0.829), "color_name": "green"},
+    "Hordaland": {"pos": Vector2(0.014, 0.734), "color_name": "green"},
+    "Sogn og Fjordane": {"pos": Vector2(0.003, 0.652), "color_name": "yellow"},
+    "Møre og Romsdal": {"pos": Vector2(0.044, 0.592), "color_name": "yellow"},
+    "Trøndelag": {"pos": Vector2(0.195, 0.527), "color_name": "green"},
+    "Nordland": {"pos": Vector2(0.337, 0.264), "color_name": "red"},
+    "Troms": {"pos": Vector2(0.5, 0.102), "color_name": "yellow"},
+    "Finnmark": {"pos": Vector2(0.668, 0.033), "color_name": "red"},
 }
 
 var player_regions: Array = []
-var font_sm: Font = ThemeDB.fallback_font
+var font_sm: Font = null  # the theme's UI face, set in _ready
 var text_color: Color = Color.WHITE
 
 func _ready():
     custom_minimum_size = Vector2(250, 400)
+    font_sm = get_theme_default_font()
     text_color = LakskongenTheme.TEXT
 
 func _draw():
     var size = get_size()
-    
+
     # 1. Background: Dark blue sea
     draw_rect(Rect2(Vector2.ZERO, size), Color(0.05, 0.1, 0.2), true)
 
-    # Scale coast points
-    var scaled_coast_points = []
-    for p in coast_points:
-        scaled_coast_points.append(p * size)
-    
-    # 2. Draw coastline
-    if scaled_coast_points.size() > 1:
-        draw_polyline(scaled_coast_points, Color.WHITE, 2.0)
+    # 2. Real coastline (shared loader): land fill + crisp edge.
+    NorwayCoastline.draw_landmass(self, size, LAND_DARK)
+    for ring in NorwayCoastline.rings():
+        var poly := PackedVector2Array()
+        for p in ring:
+            var a: Array = p
+            poly.append(Vector2(float(a[0]) * size.x, float(a[1]) * size.y))
+        if poly.size() < 2:
+            continue
+        if NorwayCoastline.is_open_ring(ring):
+            draw_polyline(poly, COAST_LIGHT, 1.5)
+        else:
+            draw_polyline(poly + PackedVector2Array([poly[0]]), COAST_LIGHT, 1.5)
 
     # 3. Draw region points and names
     for region_name in region_data:
@@ -104,4 +100,3 @@ func get_traffic_light_color(color_name: String) -> Color:
             return LakskongenTheme.DANGER
         _:
             return Color.WHITE
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

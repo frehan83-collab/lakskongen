@@ -1,7 +1,13 @@
-## CrewPanel v2.0 — Nordic Minimalist
-## Crew roster: KPIs, employee cards with XP/moral/role,
-## skill overview, payroll summary.
-## Matches crew-prototype.html.
+## CrewPanel v2.1 — Nordic Minimalist (scene-based).
+## Layout lives in scenes/ui/CrewPanel.tscn; script is wiring only:
+## @onready % refs, signal hookups, refresh, localization, theme fonts.
+## Dynamic content (crew rows, role tiles) is still built in code.
+##
+## U1-05: the right card used to show six invented skill percentages and the
+## fourth KPI an "efficiency" formula no system reads. The sim's crew is three
+## roles with concrete effects (CrewEffects): the card shows each role, whether
+## it is on staff and what it does, from GameBridge.GetCrewRoleEffects, and the
+## KPI counts the roles covered.
 
 extends Control
 
@@ -11,117 +17,91 @@ signal worker_fired(worker_id: String)
 var _sim: Node = null
 var _theme: Node = null
 
-# UI refs
-var _kpi_count: Label
-var _kpi_payroll: Label
-var _kpi_morale: Label
-var _kpi_efficiency: Label
-var _crew_list: VBoxContainer
-var _skills_grid: GridContainer
+# UI refs (scene-declared)
+@onready var _title_label: Label = %TitleLabel
+@onready var _hire_button: Button = %HireButton
+@onready var _kpi_count: Label = %KpiCountValue
+@onready var _kpi_payroll: Label = %KpiPayrollValue
+@onready var _kpi_morale: Label = %KpiMoraleValue
+@onready var _kpi_efficiency: Label = %KpiEfficiencyValue
+@onready var _crew_list: VBoxContainer = %CrewList
+@onready var _skills_grid: GridContainer = %SkillsGrid
 
 # Colors
-const C_BG       := Color("#ECEFF4")
-const C_SURFACE  := Color("#FFFFFF")
-const C_ELEVATED := Color("#F8F9FB")
-const C_TEXT     := Color("#2E3440")
-const C_TEXT2    := Color("#4C566A")
-const C_MUTED    := Color("#7B8794")
-const C_BORDER   := Color("#E5E9F0")
-const C_PRIMARY  := Color("#0A4D68")
-const C_SECONDARY := Color("#88C0D0")
-const C_SUCCESS  := Color("#A3BE8C")
-const C_SUCCESS_D := Color("#8FAD78")
-const C_WARNING  := Color("#EBCB8B")
-const C_WARNING_D := Color("#D4B06A")
-const C_DANGER   := Color("#BF616A")
-const C_ACCENT   := Color("#5E81AC")
+const C_BG := Color("#F4F1EA")
+const C_SURFACE := Color("#FFFFFF")
+const C_ELEVATED := Color("#EDE9E0")
+const C_TEXT := Color("#1C1E20")
+const C_TEXT2 := Color("#5A6168")
+const C_MUTED := Color("#5A6168")
+const C_BORDER := Color("#E7E2D7")
+const C_PRIMARY := Color("#1F5E73")
+const C_SECONDARY := Color("#1F5E73")
+const C_SUCCESS := Color("#2E6B45")
+const C_SUCCESS_D := Color("#2E6B45")
+const C_WARNING := Color("#8A5A00")
+const C_WARNING_D := Color("#8A5A00")
+const C_DANGER := Color("#B3172F")
+const C_ACCENT := Color("#1F5E73")
 
 func _ready() -> void:
 	_sim = get_node_or_null("/root/SimBridge")
 	_theme = get_node_or_null("/root/LakskongenTheme")
 	if _sim and _sim.has_signal("state_updated"):
 		_sim.state_updated.connect(_refresh)
-	_build_ui()
+	_apply_localization()
+	_apply_heading_fonts()
+	_hire_button.pressed.connect(_on_hire_pressed)
+
+	# UIPolish: keyboard navigation for crew list
+	UIPolish.link_vertical_focus(_crew_list)
+
 	_refresh()
-	print("CrewPanel v2.0: ready")
 
 func _input(event: InputEvent) -> void:
 	if visible and event.is_action_pressed("ui_cancel"):
 		hide()
 		get_viewport().set_input_as_handled()
 
-func _build_ui() -> void:
-	for child in get_children():
-		child.queue_free()
+func _apply_localization() -> void:
+	_title_label.text = "👷 " + tr("UI_CREW_TITLE")
+	_hire_button.text = "+ " + tr("UI_CREW_HIRE")
 
-	var bg := Panel.new()
-	var bg_sb := StyleBoxFlat.new()
-	bg_sb.bg_color = C_BG
-	bg.add_theme_stylebox_override("panel", bg_sb)
-	bg.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
-	add_child(bg)
+func _role_name(role: String) -> String:
+	match role:
+		"roekter": return tr("UI_CREW_ROLE_ROEKTER")
+		"veterinaer": return tr("UI_CREW_ROLE_VETERINAER")
+		"skipper": return tr("UI_CREW_ROLE_SKIPPER")
+		_: return SimLabels.humanize(role)
 
-	var scroll := ScrollContainer.new()
-	scroll.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
-	scroll.offset_left = 16; scroll.offset_top = 16
-	scroll.offset_right = -16; scroll.offset_bottom = -16
-	add_child(scroll)
+func _on_hire_pressed() -> void:
+	if not _sim or not _sim.has_method("hire_worker"):
+		return
+	# Hire the first candidate role not yet on staff (one specialist each).
+	var roster: Array = _sim.get_crew_list() if _sim.has_method("get_crew_list") else []
+	var have := {}
+	for w in roster:
+		have[str(w.get("role", ""))] = true
+	var order := ["roekter", "veterinaer", "skipper"]
+	for role in order:
+		if not have.get(role, false):
+			if _sim.hire_worker(role):
+				worker_hired.emit(role)
+			_refresh()
+			return
+	_toast(tr("UI_CREW_ALL_FILLED"))
 
-	var root := VBoxContainer.new()
-	root.size_flags_horizontal = SIZE_EXPAND_FILL
-	root.add_theme_constant_override("separation", 20)
-	scroll.add_child(root)
+func _toast(message: String) -> void:
+	var mgr := get_node_or_null("/root/ToastNotification")
+	if mgr and mgr.has_method("show_toast"):
+		mgr.show_toast(message, "INFO", 3.0)
 
-	# Title + hire button
-	var header := HBoxContainer.new()
-	root.add_child(header)
-	var title := Label.new()
-	title.text = tr("👷 Mannskap")
-	title.add_theme_font_size_override("font_size", 24)
-	title.add_theme_color_override("font_color", C_TEXT)
-	if _theme and _theme.font_heading_bold:
-		title.add_theme_font_override("font", _theme.font_heading_bold)
-	title.size_flags_horizontal = SIZE_EXPAND_FILL
-	header.add_child(title)
-
-	var hire_btn := _make_btn("+ Ansett ny", C_PRIMARY)
-	hire_btn.pressed.connect(func(): worker_hired.emit("general"))
-	header.add_child(hire_btn)
-
-	# KPI strip
-	var kpi := HBoxContainer.new()
-	kpi.add_theme_constant_override("separation", 16)
-	root.add_child(kpi)
-
-	var k1 := _kpi_card("ANSATTE", "--", C_PRIMARY)
-	_kpi_count = k1.value; kpi.add_child(k1.card)
-	var k2 := _kpi_card("LØNNSKOSTNAD/MND", "--", C_DANGER)
-	_kpi_payroll = k2.value; kpi.add_child(k2.card)
-	var k3 := _kpi_card("SNITT MORAL", "--", C_SUCCESS)
-	_kpi_morale = k3.value; kpi.add_child(k3.card)
-	var k4 := _kpi_card("EFFEKTIVITET", "--", C_ACCENT)
-	_kpi_efficiency = k4.value; kpi.add_child(k4.card)
-
-	# Main: Crew list + Skills
-	var mid := HBoxContainer.new()
-	mid.add_theme_constant_override("separation", 16)
-	root.add_child(mid)
-
-	var list_card := _make_card("📋 Ansattliste")
-	list_card.size_flags_horizontal = SIZE_EXPAND_FILL
-	list_card.size_flags_stretch_ratio = 2.0
-	mid.add_child(list_card)
-	_crew_list = _card_body(list_card)
-
-	var skills_card := _make_card("🎯 Ferdigheter")
-	skills_card.size_flags_horizontal = SIZE_EXPAND_FILL
-	mid.add_child(skills_card)
-	var skills_body := _card_body(skills_card)
-	_skills_grid = GridContainer.new()
-	_skills_grid.columns = 2
-	_skills_grid.add_theme_constant_override("h_separation", 12)
-	_skills_grid.add_theme_constant_override("v_separation", 12)
-	skills_body.add_child(_skills_grid)
+func _apply_heading_fonts() -> void:
+	LakskongenTheme.set_strong(_title_label)
+	LakskongenTheme.set_strong(_kpi_count)
+	LakskongenTheme.set_strong(_kpi_payroll)
+	LakskongenTheme.set_strong(_kpi_morale)
+	LakskongenTheme.set_strong(_kpi_efficiency)
 
 func _refresh() -> void:
 	_refresh_kpis()
@@ -133,20 +113,25 @@ func _refresh_kpis() -> void:
 		return
 
 	var crew: Array = []
-	if _sim.has_method("get_crew_roster"):
-		crew = _sim.get_crew_roster()
+	if _sim and _sim.has_method("get_crew_list"):
+		crew = _sim.get_crew_list()
 
 	_kpi_count.text = str(crew.size())
 
 	var total_salary := 0.0
 	var total_morale := 0.0
 	for w in crew:
-		total_salary += w.get("salary", 35000.0)
-		total_morale += w.get("morale", 75.0)
+		total_salary += float(w.get("salary_nok", w.get("salary", 35000.0)))
+		total_morale += float(w.get("morale", 75.0))
 
-	_kpi_payroll.text = tr("%.0f kNOK") % (total_salary / 1000.0) if total_salary > 0 else "--"
-	_kpi_morale.text = tr("%d%%") % int(total_morale / max(crew.size(), 1))
-	_kpi_efficiency.text = "87%"  # Mock
+	_kpi_payroll.text = SimFormatters.format_nok(total_salary) if total_salary > 0 else "–"
+	_kpi_morale.text = SimFormatters.percent(total_morale / max(crew.size(), 1) / 100.0) if not crew.is_empty() else "–"
+	# Roles on staff out of the roles the sim knows (each has its own effect).
+	var effects: Array = _sim.get_crew_role_effects() if _sim.has_method("get_crew_role_effects") else []
+	var covered := 0
+	for e in effects:
+		covered += 1 if bool(e.get("hired", false)) else 0
+	_kpi_efficiency.text = tr("UI_CREW_ROLES_COVERED") % [covered, effects.size()]
 
 func _refresh_crew_list() -> void:
 	if not _crew_list:
@@ -155,240 +140,176 @@ func _refresh_crew_list() -> void:
 		child.queue_free()
 
 	var crew: Array = []
-	if _sim and _sim.has_method("get_crew_roster"):
-		crew = _sim.get_crew_roster()
+	if _sim and _sim.has_method("get_crew_list"):
+		crew = _sim.get_crew_list()
 
-	if crew.is_empty():
-		# Show mock data
+	if crew.is_empty() and _sim == null:
+		# Offline preview only (no bridge): mock data so the layout reads.
 		crew = [
-			{"name": "Erik Nordmann", "role": "Driftsleder", "salary": 52000, "morale": 88, "xp": 4200, "status": "Aktiv"},
-			{"name": "Kari Fjordsen", "role": "Fôrtekniker", "salary": 42000, "morale": 92, "xp": 3100, "status": "Aktiv"},
-			{"name": "Lars Berg", "role": "Røkter", "salary": 38000, "morale": 75, "xp": 1800, "status": "Aktiv"},
-			{"name": "Mona Haugen", "role": "Veterinær", "salary": 58000, "morale": 81, "xp": 5600, "status": "Aktiv"},
-			{"name": "Olav Strand", "role": "Skipper", "salary": 48000, "morale": 70, "xp": 2900, "status": "Permisjon"},
+			{"name": "Erik Nordmann", "role": "Driftsleder", "salary_nok": 52000, "morale": 88, "xp": 4200, "status": "Aktiv"},
+			{"name": "Kari Fjordsen", "role": "Fôrtekniker", "salary_nok": 42000, "morale": 92, "xp": 3100, "status": "Aktiv"},
+			{"name": "Lars Berg", "role": "Røkter", "salary_nok": 38000, "morale": 75, "xp": 1800, "status": "Aktiv"},
 		]
 
+	if crew.is_empty():
+		UIPolish.show_empty_state_localized(_crew_list, tr("UI_CREW_EMPTY"), 13, "", _theme)
+		return
+
 	for w in crew:
-		var row := PanelContainer.new()
-		row.size_flags_horizontal = SIZE_EXPAND_FILL
-		var sb := StyleBoxFlat.new()
-		sb.bg_color = C_ELEVATED
-		sb.border_color = C_BORDER
-		sb.set_border_width_all(1)
-		sb.set_corner_radius_all(6)
-		sb.set_content_margin_all(12)
-		row.add_theme_stylebox_override("panel", sb)
-		_crew_list.add_child(row)
+		_crew_list.add_child(_build_crew_row(w))
 
-		var hbox := HBoxContainer.new()
-		hbox.add_theme_constant_override("separation", 12)
-		row.add_child(hbox)
+	# UIPolish: vertical keyboard navigation for crew rows (re-apply after rebuild)
+	UIPolish.link_vertical_focus(_crew_list)
 
-		# Avatar placeholder
-		var avatar := Label.new()
-		avatar.text = w.name.substr(0, 2).to_upper() if w.has("name") else "??"
-		avatar.add_theme_font_size_override("font_size", 14)
-		avatar.add_theme_color_override("font_color", Color.WHITE)
-		avatar.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		avatar.custom_minimum_size = Vector2(36, 36)
+# Dynamic row builder (content-driven, kept in code by design)
+func _build_crew_row(w: Dictionary) -> PanelContainer:
+	var row := PanelContainer.new()
+	row.size_flags_horizontal = SIZE_EXPAND_FILL
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = C_ELEVATED
+	sb.border_color = C_BORDER
+	sb.set_border_width_all(1)
+	sb.set_corner_radius_all(6)
+	sb.set_content_margin_all(12)
+	row.add_theme_stylebox_override("panel", sb)
 
-		var avatar_bg := PanelContainer.new()
-		var av_sb := StyleBoxFlat.new()
-		av_sb.bg_color = C_PRIMARY
-		av_sb.set_corner_radius_all(18)
-		av_sb.set_content_margin_all(0)
-		avatar_bg.add_theme_stylebox_override("panel", av_sb)
-		avatar_bg.custom_minimum_size = Vector2(36, 36)
-		avatar_bg.add_child(avatar)
-		hbox.add_child(avatar_bg)
+	var hbox := HBoxContainer.new()
+	hbox.add_theme_constant_override("separation", 12)
+	row.add_child(hbox)
 
-		# Name + role
-		var info := VBoxContainer.new()
-		info.size_flags_horizontal = SIZE_EXPAND_FILL
-		hbox.add_child(info)
+	# Avatar placeholder
+	var avatar := Label.new()
+	avatar.text = w.name.substr(0, 2).to_upper() if w.has("name") else "??"
+	LakskongenTheme.set_size(avatar, 14)
+	LakskongenTheme.set_text_color(avatar, Color.WHITE)
+	avatar.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	avatar.custom_minimum_size = Vector2(36, 36)
 
-		var name_lbl := Label.new()
-		name_lbl.text = w.get("name", "Ukjent")
-		name_lbl.add_theme_font_size_override("font_size", 14)
-		name_lbl.add_theme_color_override("font_color", C_TEXT)
-		if _theme and _theme.font_heading_semibold:
-			name_lbl.add_theme_font_override("font", _theme.font_heading_semibold)
-		info.add_child(name_lbl)
+	var avatar_bg := PanelContainer.new()
+	var av_sb := StyleBoxFlat.new()
+	av_sb.bg_color = C_PRIMARY
+	av_sb.set_corner_radius_all(18)
+	av_sb.set_content_margin_all(0)
+	avatar_bg.add_theme_stylebox_override("panel", av_sb)
+	avatar_bg.custom_minimum_size = Vector2(36, 36)
+	avatar_bg.add_child(avatar)
+	hbox.add_child(avatar_bg)
 
-		var role_lbl := Label.new()
-		role_lbl.text = w.get("role", "Generell")
-		role_lbl.add_theme_font_size_override("font_size", 12)
-		role_lbl.add_theme_color_override("font_color", C_MUTED)
-		info.add_child(role_lbl)
+	# Name + role
+	var info := VBoxContainer.new()
+	info.size_flags_horizontal = SIZE_EXPAND_FILL
+	hbox.add_child(info)
 
-		# XP
-		var xp_lbl := Label.new()
-		xp_lbl.text = tr("%d XP") % w.get("xp", 0)
-		xp_lbl.add_theme_font_size_override("font_size", 12)
-		xp_lbl.add_theme_color_override("font_color", C_ACCENT)
-		if _theme and _theme.font_mono:
-			xp_lbl.add_theme_font_override("font", _theme.font_mono)
-		hbox.add_child(xp_lbl)
+	var name_lbl := Label.new()
+	name_lbl.text = w.get("name", "Ukjent")
+	LakskongenTheme.set_size(name_lbl, 14)
+	LakskongenTheme.set_text_color(name_lbl, C_TEXT)
+	LakskongenTheme.set_strong(name_lbl)
+	info.add_child(name_lbl)
 
-		# Morale
-		var morale: int = w.get("morale", 75)
-		var morale_lbl := Label.new()
-		morale_lbl.text = tr("%d%%") % morale
-		morale_lbl.add_theme_font_size_override("font_size", 12)
-		morale_lbl.add_theme_color_override("font_color", C_SUCCESS_D if morale >= 80 else (C_WARNING_D if morale >= 60 else C_DANGER))
-		if _theme and _theme.font_mono:
-			morale_lbl.add_theme_font_override("font", _theme.font_mono)
-		hbox.add_child(morale_lbl)
+	var role_lbl := Label.new()
+	role_lbl.text = _role_name(str(w.get("role", "Generell")))
+	LakskongenTheme.set_size(role_lbl, 12)
+	LakskongenTheme.set_text_color(role_lbl, C_MUTED)
+	info.add_child(role_lbl)
 
-		# Salary
-		var sal_lbl := Label.new()
-		sal_lbl.text = "%dk" % int(w.get("salary", 0) / 1000.0)
-		sal_lbl.add_theme_font_size_override("font_size", 12)
-		sal_lbl.add_theme_color_override("font_color", C_TEXT2)
-		if _theme and _theme.font_mono:
-			sal_lbl.add_theme_font_override("font", _theme.font_mono)
-		hbox.add_child(sal_lbl)
+	# Tenure (real: hired day; mock rows carry xp instead)
+	var xp_lbl := Label.new()
+	if w.has("hired_day"):
+		xp_lbl.text = tr("UI_DAY_N") % int(w.get("hired_day", 0))
+	else:
+		xp_lbl.text = tr("UI_CREW_XP") % int(w.get("xp", 0))
+	LakskongenTheme.set_size(xp_lbl, 12)
+	LakskongenTheme.set_text_color(xp_lbl, C_ACCENT)
+	hbox.add_child(xp_lbl)
 
-		# Status
-		var status: String = w.get("status", "Aktiv")
+	# Morale
+	var morale: int = w.get("morale", 75)
+	var morale_lbl := Label.new()
+	morale_lbl.text = SimFormatters.percent(morale / 100.0)
+	LakskongenTheme.set_size(morale_lbl, 12)
+	LakskongenTheme.set_text_color(morale_lbl, C_SUCCESS_D if morale >= 80 else (C_WARNING_D if morale >= 60 else C_DANGER))
+	hbox.add_child(morale_lbl)
+
+	# Salary
+	var sal_lbl := Label.new()
+	sal_lbl.text = "%dk" % int(float(w.get("salary_nok", w.get("salary", 0))) / 1000.0)
+	LakskongenTheme.set_size(sal_lbl, 12)
+	LakskongenTheme.set_text_color(sal_lbl, C_TEXT2)
+	hbox.add_child(sal_lbl)
+
+	# Status — or fire button for real hires (Phase 3.1).
+	if w.has("id") and _sim and _sim.has_method("fire_worker"):
+		var fire := Button.new()
+		fire.text = "✕"
+		fire.tooltip_text = tr("UI_CREW_FIRE_TIP")
+		var wid := str(w.get("id", ""))
+		fire.pressed.connect(func(): _sim.fire_worker(wid))
+		hbox.add_child(fire)
+	else:
+		var status: String = str(w.get("status", "Aktiv"))
 		var status_lbl := Label.new()
 		status_lbl.text = status
-		status_lbl.add_theme_font_size_override("font_size", 11)
+		LakskongenTheme.set_size(status_lbl, 11)
 		match status:
-			"Aktiv": status_lbl.add_theme_color_override("font_color", C_SUCCESS_D)
-			"Permisjon": status_lbl.add_theme_color_override("font_color", C_WARNING_D)
-			_: status_lbl.add_theme_color_override("font_color", C_MUTED)
+			"Aktiv": LakskongenTheme.set_text_color(status_lbl, C_SUCCESS_D)
+			"Permisjon": LakskongenTheme.set_text_color(status_lbl, C_WARNING_D)
+			_: LakskongenTheme.set_text_color(status_lbl, C_MUTED)
 		hbox.add_child(status_lbl)
 
+	return row
+
 func _refresh_skills() -> void:
-	if not _skills_grid:
+	if not _skills_grid or not _sim:
 		return
 	for child in _skills_grid.get_children():
 		child.queue_free()
+	var effects: Array = _sim.get_crew_role_effects() if _sim.has_method("get_crew_role_effects") else []
+	for e in effects:
+		_skills_grid.add_child(_role_tile(e))
 
-	var skills := [
-		{"name": "Fôring", "level": 85, "color": C_SUCCESS},
-		{"name": "Avlusing", "level": 72, "color": C_SECONDARY},
-		{"name": "Vedlikehold", "level": 68, "color": C_ACCENT},
-		{"name": "Navigasjon", "level": 78, "color": C_PRIMARY},
-		{"name": "Veterinær", "level": 90, "color": C_SUCCESS},
-		{"name": "Ledelse", "level": 65, "color": C_WARNING},
-	]
 
-	for s in skills:
-		var panel := PanelContainer.new()
-		panel.size_flags_horizontal = SIZE_EXPAND_FILL
-		var sb := StyleBoxFlat.new()
-		sb.bg_color = C_ELEVATED
-		sb.set_corner_radius_all(6)
-		sb.set_content_margin_all(12)
-		panel.add_theme_stylebox_override("panel", sb)
-		_skills_grid.add_child(panel)
+## The lines a role's tile states, from the sim's multipliers.
+static func role_effect_lines(e: Dictionary) -> PackedStringArray:
+	var lines := PackedStringArray()
+	var cut := func(m: float) -> String: return SimFormatters.percent(1.0 - m)
+	if float(e.get("storm_loss", 1.0)) < 1.0:
+		lines.append(TranslationServer.translate("UI_CREW_EFFECT_STORM") % cut.call(float(e["storm_loss"])))
+	if float(e.get("net_decay", 1.0)) < 1.0:
+		lines.append(TranslationServer.translate("UI_CREW_EFFECT_NETS") % cut.call(float(e["net_decay"])))
+	if float(e.get("treatment_mortality", 1.0)) < 1.0:
+		lines.append(TranslationServer.translate("UI_CREW_EFFECT_TREATMENT") % cut.call(float(e["treatment_mortality"])))
+	if float(e.get("wellboat_cost", 1.0)) < 1.0:
+		lines.append(TranslationServer.translate("UI_CREW_EFFECT_WELLBOAT_COST") % cut.call(float(e["wellboat_cost"])))
+	if int(e.get("wellboat_days_saved", 0)) > 0:
+		lines.append(TranslationServer.translate("UI_CREW_EFFECT_WELLBOAT_DAYS") % int(e["wellboat_days_saved"]))
+	return lines
 
-		var vbox := VBoxContainer.new()
-		vbox.add_theme_constant_override("separation", 6)
-		panel.add_child(vbox)
 
-		var name_lbl := Label.new()
-		name_lbl.text = s.name
-		name_lbl.add_theme_font_size_override("font_size", 12)
-		name_lbl.add_theme_color_override("font_color", C_TEXT2)
-		vbox.add_child(name_lbl)
-
-		var val := Label.new()
-		val.text = "%d%%" % s.level
-		val.add_theme_font_size_override("font_size", 18)
-		val.add_theme_color_override("font_color", C_TEXT)
-		if _theme and _theme.font_mono:
-			val.add_theme_font_override("font", _theme.font_mono)
-		vbox.add_child(val)
-
-		# Progress bar
-		var bar_bg := ColorRect.new()
-		bar_bg.color = C_BORDER
-		bar_bg.custom_minimum_size = Vector2(0, 4)
-		vbox.add_child(bar_bg)
-		# Note: actual fill requires more complex approach in Godot
-		# For now the percentage label conveys the info
-
-# ── Helpers ───────────────────────────────────────────────────────────────────
-
-func _kpi_card(title: String, initial: String, stripe: Color) -> Dictionary:
-	var card := PanelContainer.new()
-	card.size_flags_horizontal = SIZE_EXPAND_FILL
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = C_SURFACE
-	sb.border_color = stripe
-	sb.set_border_width_all(1)
-	sb.border_width_top = 4
-	sb.set_corner_radius_all(8)
-	sb.set_content_margin_all(16)
-	card.add_theme_stylebox_override("panel", sb)
+func _role_tile(e: Dictionary) -> Control:
+	var hired := bool(e.get("hired", false))
+	var panel := PanelContainer.new()
+	panel.theme_type_variation = &"Tile"
+	panel.size_flags_horizontal = SIZE_EXPAND_FILL
+	panel.set_meta(&"role", str(e.get("role", "")))
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 4)
-	card.add_child(vbox)
-	var lbl := Label.new()
-	lbl.text = title
-	lbl.add_theme_font_size_override("font_size", 11)
-	lbl.add_theme_color_override("font_color", C_MUTED)
-	vbox.add_child(lbl)
-	var val := Label.new()
-	val.text = initial
-	val.add_theme_font_size_override("font_size", 22)
-	val.add_theme_color_override("font_color", C_TEXT)
-	if _theme and _theme.font_heading_bold:
-		val.add_theme_font_override("font", _theme.font_heading_bold)
-	vbox.add_child(val)
-	return {"card": card, "value": val}
-
-func _make_card(title: String) -> PanelContainer:
-	var card := PanelContainer.new()
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = C_SURFACE
-	sb.border_color = C_BORDER
-	sb.set_border_width_all(1)
-	sb.set_corner_radius_all(8)
-	card.add_theme_stylebox_override("panel", sb)
-	var outer := VBoxContainer.new()
-	outer.add_theme_constant_override("separation", 0)
-	card.add_child(outer)
-	var header := PanelContainer.new()
-	var h_sb := StyleBoxFlat.new()
-	h_sb.bg_color = C_SURFACE
-	h_sb.border_color = C_BORDER
-	h_sb.border_width_bottom = 1
-	h_sb.set_content_margin(SIDE_LEFT, 20)
-	h_sb.set_content_margin(SIDE_RIGHT, 20)
-	h_sb.set_content_margin(SIDE_TOP, 14)
-	h_sb.set_content_margin(SIDE_BOTTOM, 14)
-	header.add_theme_stylebox_override("panel", h_sb)
-	outer.add_child(header)
-	var t := Label.new()
-	t.text = title
-	t.add_theme_font_size_override("font_size", 15)
-	t.add_theme_color_override("font_color", C_TEXT)
-	if _theme and _theme.font_heading_semibold:
-		t.add_theme_font_override("font", _theme.font_heading_semibold)
-	header.add_child(t)
-	var body := VBoxContainer.new()
-	body.add_theme_constant_override("separation", 10)
-	outer.add_child(body)
-	return card
-
-func _card_body(card: PanelContainer) -> VBoxContainer:
-	return card.get_child(0).get_child(1) as VBoxContainer
-
-func _make_btn(text: String, color: Color) -> Button:
-	var btn := Button.new()
-	btn.text = text
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = color
-	sb.set_corner_radius_all(4)
-	sb.set_content_margin_all(10)
-	btn.add_theme_stylebox_override("normal", sb)
-	btn.add_theme_color_override("font_color", Color.WHITE)
-	btn.add_theme_font_size_override("font_size", 13)
-	return btn
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
-    if event.is_action_pressed("ui_cancel"):
-        get_tree().call_group_flags(2, "tooltips", "hide")
+	panel.add_child(vbox)
+	var head := HBoxContainer.new()
+	vbox.add_child(head)
+	var name_lbl := Label.new()
+	name_lbl.text = _role_name(str(e.get("role", "")))
+	name_lbl.theme_type_variation = &"BodySmallStrong"
+	name_lbl.size_flags_horizontal = SIZE_EXPAND_FILL
+	head.add_child(name_lbl)
+	var state := Label.new()
+	state.text = tr("UI_CREW_ROLE_HIRED") if hired else tr("UI_CREW_ROLE_VACANT")
+	state.theme_type_variation = &"SmallOk" if hired else &"SmallMuted"
+	head.add_child(state)
+	for line in role_effect_lines(e):
+		var l := Label.new()
+		l.text = line
+		l.theme_type_variation = &"Small" if hired else &"SmallMuted"
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		vbox.add_child(l)
+	return panel

@@ -1,0 +1,58 @@
+{
+  "asset": "pen_cage",
+  "bbox_size": [
+    56.8223,
+    45.5,
+    53.6296
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "bird_net_mast_m": 7.5,
+    "bird_net_rim_pole_m": 6.6,
+    "bracket_spacing_m": 2.6667,
+    "collar_outer_diameter_m": 53.6296,
+    "handrail_diameter_m": 0.14,
+    "handrail_height_above_deck_m": 0.95,
+    "hose_port_m": 30.0,
+    "inner_pipe_circumference_m": 160.0,
+    "lice_skirt_depth_m": 10.0,
+    "net_depth_m": 38.0,
+    "pipe_centre_spacing_m": 1.1,
+    "pipe_diameter_m": 0.5,
+    "upright_diameter_m": 0.16,
+    "walkway_width_m": 1.205
+  },
+  "file": "pen_cage_LOD2.glb",
+  "lod": "LOD2",
+  "material_count": 12,
+  "materials": [
+    "LK_Band",
+    "LK_BirdNet",
+    "LK_BirdNetGreen",
+    "LK_HDPE",
+    "LK_Hose",
+    "LK_Marker",
+    "LK_Net",
+    "LK_NetAbove",
+    "LK_PoleBlue",
+    "LK_Skirt",
+    "LK_Spreader",
+    "LK_Walkway"
+  ],
+  "parts": {
+    "Band": 80,
+    "BirdNet": 96,
+    "BirdNetPoles": 60,
+    "BirdNetRim": 96,
+    "BirdNetRimPoles": 108,
+    "Collar": 640,
+    "FeedPipe": 150,
+    "Handrail": 240,
+    "LiceSkirt": 48,
+    "Net": 240,
+    "SinkerTube": 72,
+    "Walkway": 80
+  },
+  "tri_count": 1910,
+  "tri_count_without_skirt": 1862
+}

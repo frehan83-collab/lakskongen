@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using LakskongenSim.Core;
 
 namespace LakskongenSim.Expansion
 {
@@ -32,17 +33,23 @@ namespace LakskongenSim.Expansion
     public class AcquisitionSystem
     {
         private List<AcquisitionTarget> availableTargets = null!;
-        private Random rng;
+        private readonly SimRngStream rng;
+        internal SimRngStream RngForSnapshot => rng;
         
         // Economic constants based on Norwegian salmon industry
         private const float MAB_VALUE_PER_TONNE = 170300f; // NOK per tonne MAB
         private const float STANDARD_MAB_SIZE = 780f; // Standard MAB license tonnage
         private const float ANTITRUST_THRESHOLD = 0.30f; // 30% market share triggers review
         
-        public AcquisitionSystem()
+        public AcquisitionSystem(SimRngStream stream)
         {
-            rng = new Random();
+            rng = stream ?? throw new ArgumentNullException(nameof(stream));
             LoadAvailableTargets();
+        }
+
+        public AcquisitionSystem(int? seed = null)
+            : this((seed.HasValue ? new SimRng(seed.Value) : SimRng.CreateUnseeded()).Stream(SimRngStreams.Acquisition))
+        {
         }
 
         public List<AcquisitionTarget> GetAvailableTargets()

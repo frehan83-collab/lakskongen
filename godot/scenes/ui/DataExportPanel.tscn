@@ -1,0 +1,154 @@
+[gd_scene load_steps=3 format=3 uid="uid://d4dataexport01"]
+
+[ext_resource type="Script" path="res://scripts/ui/DataExportPanel.gd" id="1_export"]
+[ext_resource type="Theme" path="res://theme/lakskongen_chart_theme.tres" id="theme_chart"]
+
+[node name="DataExportPanel" type="Control"]
+theme = ExtResource("theme_chart")
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_export")
+
+[node name="Background" type="PanelContainer" parent="."]
+theme_type_variation = &"Sheet"
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Root" type="VBoxContainer" parent="./Background"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="TitleBar" type="PanelContainer" parent="./Background/Root"]
+theme_type_variation = &"Surface"
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+
+[node name="TitleMargin" type="MarginContainer" parent="./Background/Root/TitleBar"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_right = 14
+
+[node name="TitleHBox" type="HBoxContainer" parent="./Background/Root/TitleBar/TitleMargin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TitleLabel" type="Label" parent="./Background/Root/TitleBar/TitleMargin/TitleHBox"]
+theme_type_variation = &"Subheading"
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Dataeksport"
+
+[node name="StatusLabel" type="Label" parent="./Background/Root/TitleBar/TitleMargin/TitleHBox"]
+theme_type_variation = &"SmallMuted"
+unique_name_in_owner = true
+layout_mode = 2
+text = "Klar"
+
+[node name="CloseButton" type="Button" parent="./Background/Root/TitleBar/TitleMargin/TitleHBox"]
+theme_type_variation = &"LargeButton"
+unique_name_in_owner = true
+layout_mode = 2
+text = "✕"
+flat = true
+tooltip_text = "Lukk dataeksport-panelet (Esc)"
+
+[node name="BodyMargin" type="MarginContainer" parent="./Background/Root"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 12
+
+[node name="Body" type="VBoxContainer" parent="./Background/Root/BodyMargin"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="PathCard" type="PanelContainer" parent="./Background/Root/BodyMargin/Body"]
+theme_type_variation = &"Sheet"
+layout_mode = 2
+
+[node name="PathMargin" type="MarginContainer" parent="./Background/Root/BodyMargin/Body/PathCard"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 8
+
+[node name="PathVBox" type="VBoxContainer" parent="./Background/Root/BodyMargin/Body/PathCard/PathMargin"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="FolderLabel" type="Label" parent="./Background/Root/BodyMargin/Body/PathCard/PathMargin/PathVBox"]
+theme_type_variation = &"SmallMuted"
+unique_name_in_owner = true
+layout_mode = 2
+text = "Eksportmappe"
+
+[node name="PathHBox" type="HBoxContainer" parent="./Background/Root/BodyMargin/Body/PathCard/PathMargin/PathVBox"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="PathDisplay" type="LineEdit" parent="./Background/Root/BodyMargin/Body/PathCard/PathMargin/PathVBox/PathHBox"]
+theme_type_variation = &"SmallLineEdit"
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "Velg eksportmappe..."
+tooltip_text = "Sti til mappen hvor eksporterte CSV-filer skal lagres."
+
+[node name="BrowseButton" type="Button" parent="./Background/Root/BodyMargin/Body/PathCard/PathMargin/PathVBox/PathHBox"]
+theme_type_variation = &"SmallPrimaryButton"
+unique_name_in_owner = true
+layout_mode = 2
+text = "Bla gjennom"
+
+[node name="CardsGrid" type="GridContainer" parent="./Background/Root/BodyMargin/Body"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/h_separation = 10
+theme_override_constants/v_separation = 10
+columns = 2
+
+[node name="ExportAllButton" type="Button" parent="./Background/Root/BodyMargin/Body"]
+theme_type_variation = &"PrimaryButton"
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+text = "Eksporter alle datasett"
+tooltip_text = "Eksporter alle fire datasett til CSV-filer i ett trykk."
+
+[node name="ProgressBar" type="ProgressBar" parent="./Background/Root/BodyMargin/Body"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 6)
+layout_mode = 2
+visible = false
+max_value = 100.0
+show_percentage = false
+
+[node name="LogLabel" type="Label" parent="./Background/Root/BodyMargin/Body"]
+theme_type_variation = &"SmallMuted"
+unique_name_in_owner = true
+layout_mode = 2
+text = "Eksportlogg"
+
+[node name="LogScroll" type="ScrollContainer" parent="./Background/Root/BodyMargin/Body"]
+custom_minimum_size = Vector2(0, 110)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ExportLog" type="RichTextLabel" parent="./Background/Root/BodyMargin/Body/LogScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"RichTextSmall"
+bbcode_enabled = true

@@ -1,0 +1,37 @@
+{
+  "asset": "rib",
+  "bbox_size": [
+    2.887,
+    3.73,
+    8.7118
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "air_draught_m": 3.01,
+    "beam_m": 2.887,
+    "bow_y_m": 4.237,
+    "draught_m": 0.72,
+    "length_m": 8.49,
+    "stern_y_m": -4.253
+  },
+  "file": "rib_LOD1.glb",
+  "lod": "LOD1",
+  "material_count": 6,
+  "materials": [
+    "LK_VDark",
+    "LK_VDeck",
+    "LK_VGlass",
+    "LK_VSafety",
+    "LK_VSteel",
+    "LK_VWhite"
+  ],
+  "parts": {
+    "Deck": 56,
+    "Hull": 556,
+    "Machinery": 104,
+    "Rubber": 453,
+    "Superstructure": 10,
+    "Windows": 4
+  },
+  "tri_count": 1183
+}

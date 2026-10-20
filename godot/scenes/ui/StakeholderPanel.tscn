@@ -1,0 +1,237 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/StakeholderPanel.gd" id="1_stake"]
+[ext_resource type="Theme" path="res://theme/lakskongen_chart_theme.tres" id="theme_chart"]
+
+[node name="StakeholderPanel" type="PanelContainer"]
+theme = ExtResource("theme_chart")
+theme_type_variation = &"Card"
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_stake")
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="MainScroll" type="ScrollContainer" parent="Margin"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="RootVBox" type="VBoxContainer" parent="Margin/MainScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 20
+
+[node name="TitleLabel" type="Label" parent="Margin/MainScroll/RootVBox"]
+theme_type_variation = &"HeadingInfo"
+unique_name_in_owner = true
+layout_mode = 2
+text = "🤝 Interessenter & Politikk"
+
+[node name="Sep0" type="HSeparator" parent="Margin/MainScroll/RootVBox"]
+layout_mode = 2
+
+[node name="FactionCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
+theme_type_variation = &"Card"
+layout_mode = 2
+
+[node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/FactionCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/FactionCard/Outer"]
+theme_type_variation = &"CardHeader"
+layout_mode = 2
+
+[node name="FactionHeader" type="Label" parent="Margin/MainScroll/RootVBox/FactionCard/Outer/Header"]
+theme_type_variation = &"Subheading"
+unique_name_in_owner = true
+layout_mode = 2
+text = "👥 Interessenter Oversikt"
+
+[node name="FactionBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/FactionCard/Outer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="FactionList" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/FactionCard/Outer/FactionBody"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="DemandsCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
+theme_type_variation = &"Card"
+layout_mode = 2
+
+[node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/DemandsCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/DemandsCard/Outer"]
+theme_type_variation = &"CardHeader"
+layout_mode = 2
+
+[node name="DemandsHeader" type="Label" parent="Margin/MainScroll/RootVBox/DemandsCard/Outer/Header"]
+theme_type_variation = &"Subheading"
+unique_name_in_owner = true
+layout_mode = 2
+text = "📋 Aktive Krav"
+
+[node name="DemandsBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/DemandsCard/Outer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="DemandsList" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/DemandsCard/Outer/DemandsBody"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ReputationCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
+theme_type_variation = &"Card"
+layout_mode = 2
+
+[node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/ReputationCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/ReputationCard/Outer"]
+theme_type_variation = &"CardHeader"
+layout_mode = 2
+
+[node name="ReputationHeader" type="Label" parent="Margin/MainScroll/RootVBox/ReputationCard/Outer/Header"]
+theme_type_variation = &"Subheading"
+unique_name_in_owner = true
+layout_mode = 2
+text = "📊 Omdømmeeffekter"
+
+[node name="ReputationBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/ReputationCard/Outer"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="ReputationList" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/ReputationCard/Outer/ReputationBody"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="ActionsCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
+theme_type_variation = &"Card"
+layout_mode = 2
+
+[node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/ActionsCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/ActionsCard/Outer"]
+theme_type_variation = &"CardHeader"
+layout_mode = 2
+
+[node name="ActionsHeader" type="Label" parent="Margin/MainScroll/RootVBox/ActionsCard/Outer/Header"]
+theme_type_variation = &"Subheading"
+unique_name_in_owner = true
+layout_mode = 2
+text = "🎯 Politiske Handlinger"
+
+[node name="ActionsBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/ActionsCard/Outer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ActionsInfo" type="Label" parent="Margin/MainScroll/RootVBox/ActionsCard/Outer/ActionsBody"]
+theme_type_variation = &"SmallMuted"
+unique_name_in_owner = true
+layout_mode = 2
+text = "Bruk politiske handlinger for å påvirke interessenter og forbedre relasjoner."
+autowrap_mode = 2
+
+[node name="LobbySection" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/ActionsCard/Outer/ActionsBody"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="LobbyHeader" type="Label" parent="Margin/MainScroll/RootVBox/ActionsCard/Outer/ActionsBody/LobbySection"]
+theme_type_variation = &"BodySmall"
+unique_name_in_owner = true
+layout_mode = 2
+text = "🎤 Lobbying"
+
+[node name="LobbyDesc" type="Label" parent="Margin/MainScroll/RootVBox/ActionsCard/Outer/ActionsBody/LobbySection"]
+theme_type_variation = &"SmallMuted"
+unique_name_in_owner = true
+layout_mode = 2
+text = "Påvirk politikere og reguleringsmyndigheter til fordel for din bedrift."
+
+[node name="LobbyButtons" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/ActionsCard/Outer/ActionsBody/LobbySection"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="BtnLobbyRegulators" type="Button" parent="Margin/MainScroll/RootVBox/ActionsCard/Outer/ActionsBody/LobbySection/LobbyButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "⚖️ Reguleringsmyndigheter"
+
+[node name="BtnLobbyIndustry" type="Button" parent="Margin/MainScroll/RootVBox/ActionsCard/Outer/ActionsBody/LobbySection/LobbyButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "🏢 Bransjeorganisasjoner"
+
+[node name="Sep1" type="HSeparator" parent="Margin/MainScroll/RootVBox/ActionsCard/Outer/ActionsBody"]
+layout_mode = 2
+
+[node name="DonateSection" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/ActionsCard/Outer/ActionsBody"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="DonateHeader" type="Label" parent="Margin/MainScroll/RootVBox/ActionsCard/Outer/ActionsBody/DonateSection"]
+theme_type_variation = &"BodySmall"
+unique_name_in_owner = true
+layout_mode = 2
+text = "💰 Donasjoner & Sponsing"
+
+[node name="DonateDesc" type="Label" parent="Margin/MainScroll/RootVBox/ActionsCard/Outer/ActionsBody/DonateSection"]
+theme_type_variation = &"SmallMuted"
+unique_name_in_owner = true
+layout_mode = 2
+text = "Doner til lokalsamfunn eller miljøorganisasjoner for å bygge goodwill."
+
+[node name="DonateButtons" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/ActionsCard/Outer/ActionsBody/DonateSection"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="BtnDonateEnv" type="Button" parent="Margin/MainScroll/RootVBox/ActionsCard/Outer/ActionsBody/DonateSection/DonateButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "🌿 Miljøorganisasjoner"
+
+[node name="BtnDonateLocal" type="Button" parent="Margin/MainScroll/RootVBox/ActionsCard/Outer/ActionsBody/DonateSection/DonateButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "🏘️ Lokalsamfunn"
+
+[node name="Sep2" type="HSeparator" parent="Margin/MainScroll/RootVBox/ActionsCard/Outer/ActionsBody"]
+layout_mode = 2
+
+[node name="MediaSection" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/ActionsCard/Outer/ActionsBody"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="MediaHeader" type="Label" parent="Margin/MainScroll/RootVBox/ActionsCard/Outer/ActionsBody/MediaSection"]
+theme_type_variation = &"BodySmall"
+unique_name_in_owner = true
+layout_mode = 2
+text = "📣 Media Kampanjer"
+
+[node name="MediaDesc" type="Label" parent="Margin/MainScroll/RootVBox/ActionsCard/Outer/ActionsBody/MediaSection"]
+theme_type_variation = &"SmallMuted"
+unique_name_in_owner = true
+layout_mode = 2
+text = "Kjør PR-kampanjer for å forbedre din offentlige image."
+
+[node name="BtnMediaCampaign" type="Button" parent="Margin/MainScroll/RootVBox/ActionsCard/Outer/ActionsBody/MediaSection"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "📰 Start Media Kampanje"

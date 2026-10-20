@@ -1,28 +1,31 @@
 extends CanvasLayer
 
 ## AchievementPopup — celebratory gold banner shown when an achievement unlocks.
-## Auto-dismisses after 5 seconds with a fade-out.
+## Scene-based (scenes/ui/AchievementPopup.tscn declares layout).
+## Script is wiring only: @onready refs, signal hookups, tweens, localization.
 ##
 ## Usage:
-##   1. Add this scene (or script) as a child of your HUD or as an autoload.
-##   2. Connect SimBridge.achievement_unlocked → show_achievement().
+##   1. Instance scenes/ui/AchievementPopup.tscn as a child of your HUD.
+##   2. Connect SimBridge.achievement_unlocked → show_achievement()
+##      (id, name, description, medal, tier: achievements award medals, D16).
 ##   3. The popup appears at top-centre, holds for 5 s, then fades out.
 
 # ── Layout constants ──────────────────────────────────────────────────────────
 
-const DISPLAY_DURATION  := 5.0   # seconds before auto-dismiss
-const FADE_DURATION     := 0.4   # seconds for fade-in / fade-out
-const SLIDE_DISTANCE    := 60.0  # px — banner slides down on entry
+const DISPLAY_DURATION := 5.0   # seconds before auto-dismiss
+const FADE_DURATION := 0.4   # seconds for fade-in / fade-out
+const SLIDE_DISTANCE := 60.0  # px — banner slides down on entry
 
-# ── Node references (built procedurally so no .tscn dependency needed) ────────
+# ── Node references (scene-declared) ──────────────────────────────────────────
 
-var _panel: Panel
-var _trophy_label: Label
-var _name_label: Label
-var _desc_label: Label
-var _reward_label: Label
-var _tier_label: Label
-var _dismiss_btn: Button
+@onready var _panel: PanelContainer = %AchievementBanner
+@onready var _trophy_label: Label = %TrophyLabel
+@onready var _header_label: Label = %HeaderLabel
+@onready var _name_label: Label = %NameLabel
+@onready var _desc_label: Label = %DescLabel
+@onready var _reward_label: Label = %RewardLabel
+@onready var _tier_label: Label = %TierLabel
+@onready var _dismiss_btn: Button = %DismissButton
 
 var _tween: Tween = null
 var _timer: float = 0.0
@@ -30,40 +33,41 @@ var _visible_flag: bool = false
 
 # ── Gold colour palette ───────────────────────────────────────────────────────
 
-const COL_GOLD_DARK   := Color("#D4B06A")
-const COL_GOLD_MID    := Color("#D4B06A")
-const COL_GOLD_LIGHT  := Color(1.00, 0.93, 0.50)
-const COL_TEXT_DARK   := Color("#F8F9FB")
-const COL_TEXT_WHITE  := Color(1.0,  1.0,  1.0)
+const COL_GOLD_DARK := Color("#8A5A00")
+const COL_GOLD_MID := Color("#8A5A00")
+const COL_GOLD_LIGHT := Color("#F2B705")  # Ink warn (tier fallback)
+const COL_TEXT_DARK := Color("#E8EEF0")  # Ink text
+const COL_TEXT_WHITE := Color(1.0, 1.0, 1.0)
 
 # ── Tier colour map ───────────────────────────────────────────────────────────
 
 const TIER_COLORS := {
-	"Beginner":     Color("#A3BE8C"),
-	"Novice":       Color("#88C0D0"),
-	"Intermediate": Color("#5E81AC"),
-	"Advanced":     Color(1.00, 0.55, 0.10),
-	"Master":       Color(1.00, 0.20, 0.20),
-	"Hidden":       Color("#7B8794"),
+	"Beginner": Color("#2E6B45"),
+	"Novice": Color("#1F5E73"),
+	"Intermediate": Color("#1F5E73"),
+	"Advanced": Color(1.00, 0.55, 0.10),
+	"Master": Color(1.00, 0.20, 0.20),
+	"Hidden": Color("#5A6168"),
 }
 
 # ── Godot lifecycle ───────────────────────────────────────────────────────────
 
 func _ready() -> void:
-	_build_ui()
+	_apply_localization()
+	_apply_theme_fonts()
 	_panel.modulate.a = 0.0
 	_panel.visible = false
+	_dismiss_btn.pressed.connect(_dismiss)
 
 	# Auto-connect to SimBridge if available
 	if has_node("/root/SimBridge"):
 		get_node("/root/SimBridge").achievement_unlocked.connect(show_achievement)
-		print("AchievementPopup: connected to SimBridge")
 
 func _input(event: InputEvent) -> void:
 	"""Handle keyboard navigation"""
 	if not visible:
 		return
-	
+
 	if event.is_action_pressed("ui_cancel"):
 		hide()
 		get_viewport().set_input_as_handled()
@@ -79,21 +83,19 @@ func _process(delta: float) -> void:
 
 ## Show a popup for the given achievement data.
 ## Called automatically via SimBridge.achievement_unlocked signal.
-func show_achievement(achievement_name: String, description: String, reward_nok: float, tier: String) -> void:
+func show_achievement(_id: String, achievement_name: String, description: String, medal: String, tier: String) -> void:
 	# Cancel any running dismiss tween so back-to-back unlocks work cleanly
 	if _tween and _tween.is_valid():
 		_tween.kill()
 
-	_name_label.text   = achievement_name
-	_desc_label.text   = description
-	_tier_label.text   = tier.to_upper()
+	_name_label.text = achievement_name
+	_desc_label.text = description
+	_tier_label.text = SimLabels.achievement_tier(tier).to_upper()
 	_tier_label.modulate = TIER_COLORS.get(tier, COL_GOLD_LIGHT)
 
-	if reward_nok > 0.0:
-		_reward_label.text    = tr("UI_ACHIEVEMENT_REWARD_FORMAT") % _format_nok(reward_nok)
-		_reward_label.visible = true
-	else:
-		_reward_label.visible = false
+	# The medal the achievement awards (D16: medals, never cash).
+	_reward_label.text = _tr_or("UI_MEDAL_" + medal.to_upper(), medal.capitalize())
+	_reward_label.visible = medal != ""
 
 	_panel.visible = true
 	_timer = DISPLAY_DURATION
@@ -118,98 +120,13 @@ func _dismiss() -> void:
 	_tween.tween_property(_panel, "modulate:a", 0.0, FADE_DURATION)
 	_tween.tween_callback(func(): _panel.visible = false)
 
-func _build_ui() -> void:
-	layer = 10  # Above HUD, below modal dialogs
+func _apply_localization() -> void:
+	_header_label.text = _tr_or("UI_ACHIEVEMENT_UNLOCKED", "PRESTASJON LÅST OPP")
 
-	_panel = Panel.new()
-	_panel.name = "AchievementBanner"
-	add_child(_panel)
+func _tr_or(key: String, fallback: String) -> String:
+	var t := tr(key)
+	return t if t != key else fallback
 
-	# Anchor the panel at top-centre of the viewport
-	var vp_w := float(ProjectSettings.get_setting("display/window/size/viewport_width", 1920))
-	var panel_w := 560.0
-	var panel_h := 140.0
-	_panel.set_anchors_preset(Control.PRESET_TOP_CENTER)
-	_panel.set_size(Vector2(panel_w, panel_h))
-	_panel.position = Vector2(-panel_w / 2.0, 16.0)
-
-	# Gold gradient StyleBox
-	var style := StyleBoxFlat.new()
-	style.bg_color        = COL_GOLD_MID
-	style.border_color    = COL_GOLD_DARK
-	style.set_border_width_all(3)
-	style.set_corner_radius_all(10)
-	style.shadow_color    = Color(0, 0, 0, 0.45)
-	style.shadow_size     = 8
-	_panel.add_theme_stylebox_override("panel", style)
-
-	# Trophy icon
-	_trophy_label = Label.new()
-	_trophy_label.text = "🏆"
-	_trophy_label.add_theme_font_size_override("font_size", 42)
-	_trophy_label.position = Vector2(12, 10)
-	_trophy_label.set_size(Vector2(56, 56))
-	_panel.add_child(_trophy_label)
-
-	# "ACHIEVEMENT UNLOCKED" header
-	var header := Label.new()
-	header.text = tr("UI_ACHIEVEMENT_UNLOCKED")
-	header.add_theme_font_size_override("font_size", 11)
-	header.add_theme_color_override("font_color", COL_TEXT_DARK)
-	header.position = Vector2(76, 12)
-	_panel.add_child(header)
-
-	# Achievement name (large)
-	_name_label = Label.new()
-	_name_label.add_theme_font_size_override("font_size", 22)
-	_name_label.add_theme_color_override("font_color", COL_TEXT_DARK)
-	_name_label.position = Vector2(76, 28)
-	_name_label.set_size(Vector2(440, 32))
-	_panel.add_child(_name_label)
-
-	# Description
-	_desc_label = Label.new()
-	_desc_label.add_theme_font_size_override("font_size", 12)
-	_desc_label.add_theme_color_override("font_color", COL_TEXT_DARK)
-	_desc_label.position = Vector2(76, 60)
-	_desc_label.set_size(Vector2(390, 24))
-	_desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_panel.add_child(_desc_label)
-
-	# Reward label
-	_reward_label = Label.new()
-	_reward_label.add_theme_font_size_override("font_size", 13)
-	_reward_label.add_theme_color_override("font_color", COL_TEXT_DARK)
-	_reward_label.position = Vector2(76, 86)
-	_panel.add_child(_reward_label)
-
-	# Tier badge (top-right)
-	_tier_label = Label.new()
-	_tier_label.add_theme_font_size_override("font_size", 10)
-	_tier_label.position = Vector2(panel_w - 96, 12)
-	_tier_label.set_size(Vector2(80, 18))
-	_tier_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_panel.add_child(_tier_label)
-
-	# Dismiss button (×)
-	_dismiss_btn = Button.new()
-	_dismiss_btn.text = "×"
-	_dismiss_btn.flat = true
-	_dismiss_btn.add_theme_font_size_override("font_size", 20)
-	_dismiss_btn.add_theme_color_override("font_color", COL_TEXT_DARK)
-	_dismiss_btn.position = Vector2(panel_w - 32, 4)
-	_dismiss_btn.set_size(Vector2(28, 28))
-	_dismiss_btn.pressed.connect(_dismiss)
-	_panel.add_child(_dismiss_btn)
-
-# ── Format helper ─────────────────────────────────────────────────────────────
-
-func _format_nok(amount: float) -> String:
-	if amount >= 1_000_000.0:
-		return "%.2f M" % (amount / 1_000_000.0)
-	elif amount >= 1_000.0:
-		return "%.0f k" % (amount / 1_000.0)
-	return "%.0f" % amount
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
-    if event.is_action_pressed("ui_cancel"):
-        get_tree().call_group_flags(2, "tooltips", "hide")
+func _apply_theme_fonts() -> void:
+	var theme_node = get_node_or_null("/root/LakskongenTheme")
+	LakskongenTheme.set_strong(_name_label)

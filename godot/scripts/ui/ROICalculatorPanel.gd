@@ -22,7 +22,7 @@ func _ready() -> void:
 		refresh_button.pressed.connect(_on_refresh_pressed)
 	
 	if game_bridge:
-		game_bridge.game_state_updated.connect(_on_game_state_updated)
+		game_bridge.GameStateUpdated.connect(_on_game_state_updated)
 	
 	_refresh_data()
 
@@ -59,24 +59,24 @@ func _update_display(roi_data: Dictionary) -> void:
 	
 	if annual_return_label:
 		annual_return_label.text = "Annual Return: %s NOK" % _format_currency(annual_return)
-		annual_return_label.add_theme_color_override("font_color", _get_profit_color(annual_return))
+		LakskongenTheme.set_text_color(annual_return_label, _get_profit_color(annual_return))
 	
 	if roi_label:
 		roi_label.text = "ROI: %.1f%%" % roi_pct
-		roi_label.add_theme_color_override("font_color", _get_roi_color(roi_pct))
+		LakskongenTheme.set_text_color(roi_label, _get_roi_color(roi_pct))
 	
 	if payback_label:
 		var payback_years: float = payback_months / 12.0
 		payback_label.text = "Payback Period: %.1f years" % payback_years
-		payback_label.add_theme_color_override("font_color", _get_payback_color(payback_years))
+		LakskongenTheme.set_text_color(payback_label, _get_payback_color(payback_years))
 	
 	if npv_label:
 		npv_label.text = "NPV (5-year): %s NOK" % _format_currency(npv)
-		npv_label.add_theme_color_override("font_color", _get_profit_color(npv))
+		LakskongenTheme.set_text_color(npv_label, _get_profit_color(npv))
 	
 	if irr_label:
 		irr_label.text = "IRR: %.1f%%" % irr_pct
-		irr_label.add_theme_color_override("font_color", _get_roi_color(irr_pct))
+		LakskongenTheme.set_text_color(irr_label, _get_roi_color(irr_pct))
 	
 	if break_even_label:
 		break_even_label.text = "Break-Even: Month %d" % break_even_month
@@ -107,26 +107,26 @@ func _format_currency(value: float) -> String:
 		return "%.0f" % value
 
 func _get_profit_color(value: float) -> Color:
-	return Color(0.2, 0.8, 0.2) if value > 0 else Color(0.8, 0.2, 0.2)
+	return LakskongenTheme.CHART_OK if value > 0 else LakskongenTheme.CHART_CRIT
 
 func _get_roi_color(roi_pct: float) -> Color:
 	if roi_pct > 20.0:
-		return Color(0.2, 0.8, 0.2) # Excellent
+		return LakskongenTheme.CHART_OK # Excellent
 	elif roi_pct > 15.0:
-		return Color(0.4, 0.8, 0.4) # Good
+		return LakskongenTheme.CHART_OK # Good
 	elif roi_pct > 10.0:
-		return Color(0.8, 0.8, 0.2) # Moderate
+		return LakskongenTheme.CHART_WARN # Moderate
 	elif roi_pct > 5.0:
-		return Color(0.8, 0.6, 0.2) # Weak
+		return LakskongenTheme.CHART_WARN # Weak
 	else:
-		return Color(0.8, 0.2, 0.2) # Poor
+		return LakskongenTheme.CHART_CRIT # Poor
 
 func _get_payback_color(payback_years: float) -> Color:
 	if payback_years < 3.0:
-		return Color(0.2, 0.8, 0.2) # Fast
+		return LakskongenTheme.CHART_OK # Fast
 	elif payback_years < 5.0:
-		return Color(0.6, 0.8, 0.4) # Good
+		return LakskongenTheme.CHART_OK # Good
 	elif payback_years < 7.0:
-		return Color(0.8, 0.8, 0.2) # Moderate
+		return LakskongenTheme.CHART_WARN # Moderate
 	else:
-		return Color(0.8, 0.2, 0.2) # Slow
+		return LakskongenTheme.CHART_CRIT # Slow

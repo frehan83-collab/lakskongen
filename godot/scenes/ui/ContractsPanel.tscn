@@ -1,9 +1,325 @@
-[gd_scene load_steps=2 format=3 uid="uid://"]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/ContractsPanel.gd" id="1_contracts"]
+[ext_resource type="Theme" path="res://theme/lakskongen_chart_theme.tres" id="theme_chart"]
 
-[node name="ContractsPanel" type="PanelContainer"]
-custom_minimum_size = Vector2(600, 700)
-offset_right = 600.0
-offset_bottom = 700.0
+[ext_resource type="Script" path="res://scripts/ui/LineChart.gd" id="3_linechart"]
+[node name="ContractsPanel" type="Control"]
+theme = ExtResource("theme_chart")
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 script = ExtResource("1_contracts")
+
+[node name="Background" type="Panel" parent="."]
+theme_type_variation = &"Sheet"
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="MainScroll" type="ScrollContainer" parent="Margin"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="RootVBox" type="VBoxContainer" parent="Margin/MainScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 20
+
+[node name="HeaderBar" type="HBoxContainer" parent="Margin/MainScroll/RootVBox"]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="Margin/MainScroll/RootVBox/HeaderBar"]
+theme_type_variation = &"KpiSmall"
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "📈 Marked & Handel"
+
+[node name="KpiStrip" type="HBoxContainer" parent="Margin/MainScroll/RootVBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="KpiSpot" type="PanelContainer" parent="Margin/MainScroll/RootVBox/KpiStrip"]
+theme_type_variation = &"KpiCardOk"
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiSpot"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiSpot/VBox"]
+theme_type_variation = &"OverlineMuted"
+layout_mode = 2
+text = "SPOTPRIS"
+
+[node name="KpiSpotValue" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiSpot/VBox"]
+theme_type_variation = &"Heading"
+unique_name_in_owner = true
+layout_mode = 2
+text = "--"
+
+[node name="KpiContract" type="PanelContainer" parent="Margin/MainScroll/RootVBox/KpiStrip"]
+theme_type_variation = &"KpiCardCrit"
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiContract"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiContract/VBox"]
+theme_type_variation = &"OverlineMuted"
+layout_mode = 2
+text = "KONTRAKTSPRIS (SNITT)"
+
+[node name="KpiContractValue" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiContract/VBox"]
+theme_type_variation = &"Heading"
+unique_name_in_owner = true
+layout_mode = 2
+text = "--"
+
+[node name="KpiVolume" type="PanelContainer" parent="Margin/MainScroll/RootVBox/KpiStrip"]
+theme_type_variation = &"KpiCardInfo"
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiVolume"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiVolume/VBox"]
+theme_type_variation = &"OverlineMuted"
+layout_mode = 2
+text = "UI_CONTRACTS_KPI_CONTRACTED"
+
+[node name="KpiVolumeValue" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiVolume/VBox"]
+theme_type_variation = &"Heading"
+unique_name_in_owner = true
+layout_mode = 2
+text = "--"
+
+[node name="KpiOpen" type="PanelContainer" parent="Margin/MainScroll/RootVBox/KpiStrip"]
+theme_type_variation = &"KpiCardWarn"
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiOpen"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiOpen/VBox"]
+theme_type_variation = &"OverlineMuted"
+layout_mode = 2
+text = "ÅPNE KONTRAKTER"
+
+[node name="KpiOpenValue" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiOpen/VBox"]
+theme_type_variation = &"Heading"
+unique_name_in_owner = true
+layout_mode = 2
+text = "--"
+
+[node name="MidRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="ChartCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox/MidRow"]
+theme_type_variation = &"Card"
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 2.0
+
+[node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer"]
+theme_type_variation = &"CardHeader"
+layout_mode = 2
+
+[node name="ChartTitle" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "💹 Prisutvikling (12 uker)"
+
+[node name="ChartPad" type="MarginContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="ChartBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartPad"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="PriceChart" type="Control" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartPad/ChartBody"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 170)
+layout_mode = 2
+size_flags_vertical = 3
+script = ExtResource("3_linechart")
+
+[node name="SummaryRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartPad/ChartBody"]
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="SumLoBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartPad/ChartBody/SummaryRow"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartPad/ChartBody/SummaryRow/SumLoBox"]
+theme_type_variation = &"OverlineMuted"
+layout_mode = 2
+text = "UI_CONTRACTS_PRICE_LOW"
+horizontal_alignment = 1
+
+[node name="SumLo" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartPad/ChartBody/SummaryRow/SumLoBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "--"
+horizontal_alignment = 1
+
+[node name="SumAvgBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartPad/ChartBody/SummaryRow"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartPad/ChartBody/SummaryRow/SumAvgBox"]
+theme_type_variation = &"OverlineMuted"
+layout_mode = 2
+text = "UI_CONTRACTS_PRICE_AVG"
+horizontal_alignment = 1
+
+[node name="SumAvg" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartPad/ChartBody/SummaryRow/SumAvgBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "--"
+horizontal_alignment = 1
+
+[node name="SumHiBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartPad/ChartBody/SummaryRow"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartPad/ChartBody/SummaryRow/SumHiBox"]
+theme_type_variation = &"OverlineMuted"
+layout_mode = 2
+text = "UI_CONTRACTS_PRICE_HIGH"
+horizontal_alignment = 1
+
+[node name="SumHi" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartPad/ChartBody/SummaryRow/SumHiBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "--"
+horizontal_alignment = 1
+
+[node name="SumTrendBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartPad/ChartBody/SummaryRow"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartPad/ChartBody/SummaryRow/SumTrendBox"]
+theme_type_variation = &"OverlineMuted"
+layout_mode = 2
+text = "TREND"
+horizontal_alignment = 1
+
+[node name="SumTrend" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartPad/ChartBody/SummaryRow/SumTrendBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "--"
+horizontal_alignment = 1
+
+[node name="BuyersCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox/MidRow"]
+theme_type_variation = &"Card"
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/BuyersCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/MidRow/BuyersCard/Outer"]
+theme_type_variation = &"CardHeader"
+layout_mode = 2
+
+[node name="BuyersTitle" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/BuyersCard/Outer/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "🏢 Kjøpere"
+
+[node name="BuyersPad" type="MarginContainer" parent="Margin/MainScroll/RootVBox/MidRow/BuyersCard/Outer"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="BuyersBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/BuyersCard/Outer/BuyersPad"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="BuyersContainer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/BuyersCard/Outer/BuyersPad/BuyersBody"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="BotRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="ContractsCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox/BotRow"]
+theme_type_variation = &"Card"
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/BotRow/ContractsCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/BotRow/ContractsCard/Outer"]
+theme_type_variation = &"CardHeader"
+layout_mode = 2
+
+[node name="ContractsTitle" type="Label" parent="Margin/MainScroll/RootVBox/BotRow/ContractsCard/Outer/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "📋 Kontrakter"
+
+[node name="ContractsPad" type="MarginContainer" parent="Margin/MainScroll/RootVBox/BotRow/ContractsCard/Outer"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="ContractsBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/BotRow/ContractsCard/Outer/ContractsPad"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="ContractsContainer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/BotRow/ContractsCard/Outer/ContractsPad/ContractsBody"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+

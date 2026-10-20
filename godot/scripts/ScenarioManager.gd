@@ -33,6 +33,74 @@ var goal_tracker: Dictionary = {}
 
 func _ready():
 	_load_scenarios()
+	_connect_game_signals()
+
+# ============================================================================
+# SIMULATION WIRING
+# ============================================================================
+
+## Keep goal progress in sync with the simulation. Connects to SimBridge's
+## per-tick signals and (defensively) to GameBridge's win/loss signals.
+func _connect_game_signals() -> void:
+	var sim = get_node_or_null("/root/SimBridge")
+	if sim != null:
+		if sim.has_signal("day_advanced"):
+			sim.day_advanced.connect(_on_sim_day_advanced)
+		if sim.has_signal("state_updated"):
+			sim.state_updated.connect(_on_sim_state_updated)
+
+	var bridge = get_node_or_null("/root/GameBridge")
+	if bridge != null:
+		if bridge.has_signal("ScenarioWon"):
+			bridge.ScenarioWon.connect(_on_bridge_scenario_won)
+		if bridge.has_signal("ScenarioLost"):
+			bridge.ScenarioLost.connect(_on_bridge_scenario_lost)
+
+func _on_sim_day_advanced(_day: int, _season: String) -> void:
+	_recompute_goal_progress()
+
+func _on_sim_state_updated() -> void:
+	_recompute_goal_progress()
+
+func _recompute_goal_progress() -> void:
+	if current_scenario.is_empty():
+		return
+	update_goal_progress(_build_game_state())
+
+## Build the game_state dictionary update_goal_progress() expects, deriving
+## values defensively from whatever the SimBridge exposes.
+func _build_game_state() -> Dictionary:
+	var state: Dictionary = {}
+	var sim = get_node_or_null("/root/SimBridge")
+	if sim == null:
+		return state
+	if "current_day" in sim:
+		state["Day"] = int(sim.current_day)
+	if "balance" in sim:
+		state["Balance"] = float(sim.balance)
+	if "is_public" in sim:
+		state["is_public"] = bool(sim.is_public)
+	if sim.has_method("get_revenue"):
+		state["total_revenue"] = float(sim.get_revenue())
+	if sim.has_method("get_total_debt"):
+		state["debt"] = float(sim.get_total_debt())
+	if sim.has_method("get_brand_score"):
+		state["reputation"] = float(sim.get_brand_score())
+	if sim.has_method("get_research_nodes"):
+		var unlocked_ids: Array = []
+		for node_data in sim.get_research_nodes():
+			if node_data is Dictionary and bool(node_data.get("unlocked", false)):
+				unlocked_ids.append(node_data.get("id", ""))
+		state["UnlockedResearchIds"] = unlocked_ids
+	return state
+
+func _on_bridge_scenario_won(_scenario_id: String, _scenario_name: String) -> void:
+	if not current_scenario.is_empty() and not goal_tracker.get("achieved", false):
+		_achieve_goal()
+
+func _on_bridge_scenario_lost(_scenario_id: String, _reason: String) -> void:
+	if not current_scenario.is_empty() and not goal_tracker.get("failed", false):
+		_fail_goal()
 
 # ============================================================================
 # SCENARIO LOADING
@@ -95,7 +163,10 @@ func apply_scenario(scenario_id: String) -> bool:
 	var game_bridge_node = get_node_or_null("/root/GameBridge")
 	if game_bridge_node != null:
 		var scenario_json = JSON.stringify(scenario)
-		game_bridge_node.ApplyScenario(scenario_json)
+		var applied: bool = game_bridge_node.ApplyScenario(scenario_json)
+		if not applied:
+			push_error("ScenarioManager: GameBridge.ApplyScenario failed for '%s'" % scenario_id)
+			return false
 		print("ScenarioManager: Scenario applied via GameBridge")
 	else:
 		push_error("ScenarioManager: GameBridge not found - cannot apply scenario")
@@ -146,8 +217,8 @@ func update_goal_progress(game_state: Dictionary) -> void:
 	match goal_type:
 		"revenue":
 			var total_revenue = game_state.get("total_revenue", 0)
-			progress = float(total_revenue) / float(target)
-			achieved = total_revenue >= target
+			progress = float(total_revenue) / float(target) if target > 0 else 0.0
+			achieved = target > 0 and total_revenue >= target
 		
 		"ipo":
 			var is_public = game_state.get("is_public", false)
@@ -158,13 +229,13 @@ func update_goal_progress(game_state: Dictionary) -> void:
 			var reputation = game_state.get("reputation", 0)
 			var balance = game_state.get("Balance", 0)
 			var is_profitable = balance > current_scenario.get("starting_balance", 0)
-			progress = float(reputation) / float(target)
-			achieved = reputation >= target and is_profitable
+			progress = float(reputation) / float(target) if target > 0 else 0.0
+			achieved = target > 0 and reputation >= target and is_profitable
 		
 		"research":
 			var unlocked_count = game_state.get("UnlockedResearchIds", []).size()
-			progress = float(unlocked_count) / float(target)
-			achieved = unlocked_count >= target
+			progress = float(unlocked_count) / float(target) if target > 0 else 0.0
+			achieved = target > 0 and unlocked_count >= target
 		
 		"debt_and_profit":
 			var debt = game_state.get("debt", 0)
@@ -222,4 +293,3 @@ func get_goal_description() -> String:
 		return ""
 	var goal = current_scenario.get("goal", {})
 	return goal.get("description", "")
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

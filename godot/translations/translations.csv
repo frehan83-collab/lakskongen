@@ -1,262 +1,2251 @@
-keys,English,Norwegian,Comment
-UI_MAINMENU_TITLE,LAKSKONGEN,LAKSKONGEN,Main menu game title
-UI_MAINMENU_SUBTITLE,Norwegian Salmon Farming Simulator,Norsk Lakseoppdrett Simulator,Main menu subtitle
-UI_BUTTON_NEW_GAME,New Game,Nytt Spill,Main menu button
-UI_BUTTON_LOAD_GAME,Load Game,Last Spill,Main menu button
-UI_BUTTON_SETTINGS,Settings,Innstillinger,Main menu button
-UI_BUTTON_QUIT,Quit,Avslutt,Main menu button
-UI_VERSION_TEXT,v0.2.0 Alpha — Nordic Minimalist,v0.2.0 Alpha — Nordic Minimalist,Version display
-UI_DASHBOARD_TITLE,%s — Overview,%s — Oversikt,Dashboard title with company name
-UI_DASHBOARD_PEN_NAME,Pen %d,Merd %d,Pen identifier in dashboard
-UI_KPI_BIOMASS_LABEL,TOTAL BIOMASS,TOTAL BIOMASSE,KPI card label
-UI_KPI_REVENUE_LABEL,REVENUE (YTD),INNTEKTER (YTD),KPI card label
-UI_KPI_HEALTH_LABEL,FISH HEALTH,FISKEHELSE,KPI card label
-UI_KPI_FCR_LABEL,FEED RATIO (FCR),FÔRFAKTOR (FCR),KPI card label
-UI_DASHBOARD_BIOMASS_FORMAT,%s tonnes,%s tonn,Biomass display format
-UI_DASHBOARD_REVENUE_FORMAT,%.1f MNOK,%.1f MNOK,Revenue display format
-UI_DASHBOARD_HEALTH_GOOD,▲ Good status,▲ God status,Health status indicator
-UI_DASHBOARD_HEALTH_STABLE,─ Stable,─ Stabil,Health status indicator
-UI_DASHBOARD_HEALTH_LOW,▼ Low,▼ Lav,Health status indicator
-UI_DASHBOARD_FCR_BETTER,▲ Better than target (1.15),▲ Bedre enn mål (1.15),FCR comparison
-UI_PEN_COUNT_LABEL,Count,Antall,Pen stat label
-UI_PEN_WEIGHT_LABEL,Avg weight,Snitt vekt,Pen stat label
-UI_PEN_TEMP_LABEL,Temp,Temp,Pen stat label
-UI_WATER_CARD_TITLE,Water Quality,Vannkvalitet,Card title
-UI_WATER_TEMP_LABEL,TEMPERATURE,TEMPERATUR,Water quality metric
-UI_WATER_OXYGEN_LABEL,OXYGEN,OKSYGEN,Water quality metric
-UI_WATER_SALINITY_LABEL,SALINITY,SALINITET,Water quality metric
-UI_WATER_PH_LABEL,PH,PH,Water quality metric
-UI_WEATHER_CARD_TITLE,Weather,Vær,Card title
-UI_WEATHER_WIND_LABEL,Wind:,Vind:,Weather detail label
-UI_WEATHER_WAVE_LABEL,Wave:,Bølge:,Weather detail label
-UI_WEATHER_VISIBILITY_LABEL,Visibility:,Sikt:,Weather detail label
-UI_WEATHER_HUMIDITY_LABEL,Humidity:,Fukt:,Weather detail label
-UI_FINANCE_CARD_TITLE,Finance (6 months),Økonomi (6 mnd),Finance chart title
-UI_FINANCE_LEGEND_REVENUE,Revenue,Inntekt,Chart legend
-UI_FINANCE_LEGEND_COST,Cost,Kostnad,Chart legend
-UI_FINANCE_KPI_REVENUE,REVENUE,INNTEKTER,Finance KPI label
-UI_FINANCE_KPI_EXPENSES,EXPENSES,KOSTNADER,Finance KPI label
-UI_FINANCE_KPI_PROFIT,PROFIT,RESULTAT,Finance KPI label
-UI_FINANCE_KPI_BALANCE,CASH,KONTANTER,Finance KPI label
-UI_FINANCE_PL_FEED,Feed costs,Fôrkostnader,P&L line item
-UI_FINANCE_PL_SALARY,Salary costs,Lønnskostnader,P&L line item
-UI_FINANCE_PL_MAINTENANCE,Maintenance,Vedlikehold,P&L line item
-UI_FINANCE_PL_INSURANCE,Insurance,Forsikring,P&L line item
-UI_FINANCE_PL_DELOUSING,Delousing,Avlusing,P&L line item
-UI_FINANCE_PL_TRANSPORT,Transport,Transport,P&L line item
-UI_FINANCE_PL_OTHER,Other costs,Andre kostnader,P&L line item
-UI_FINANCE_PL_TOTAL,TOTAL COSTS,TOTALE KOSTNADER,P&L total
-UI_FINANCE_LOAN_TITLE,Loans & Financing,Lån & Finansiering,Loan section title
-UI_FINANCE_LOAN_STATUS_LABEL,Status:,Status:,Loan info label
-UI_FINANCE_LOAN_AMOUNT_LABEL,Loan amount:,Lånebeløp:,Loan info label
-UI_FINANCE_LOAN_REMAINING_LABEL,Remaining:,Gjenstående:,Loan info label
-UI_FINANCE_LOAN_STATUS_ACTIVE,Active,Aktiv,Loan status
-UI_FINANCE_LOAN_STATUS_NONE,No loan,Ingen lån,Loan status
-UI_FINANCE_LOAN_TAKE_BUTTON,Take loan (5M NOK),Ta lån (5M NOK),Loan action button
-UI_FINANCE_LOAN_REPAY_BUTTON,Repay,Betal tilbake,Loan action button
-UI_FINANCE_HISTORY_TITLE,History (last 10 days),Historikk (siste 10 dager),History section title
-UI_ALERTS_CARD_TITLE,Alerts,Varsler,Alerts card title
-UI_ALERTS_TIME_MINUTES,%d min ago,%d min siden,Time format for alerts
-UI_ALERTS_TIME_HOURS,%d hours ago,%d timer siden,Time format for alerts
-UI_ACTIONS_CARD_TITLE,Quick Actions,Hurtigvalg,Actions card title
-UI_ACTION_FEED_ALL,Feed All,Fôr alle,Quick action button
-UI_ACTION_HARVEST,Harvest,Høst,Quick action button
-UI_ACTION_DELOUSE,Delouse,Avlus,Quick action button
-UI_ACTION_REPORTS,Reports,Rapporter,Quick action button
-UI_ACTION_RESEARCH,Research,Forskning,Quick action button
-UI_ACTION_MAP,Map,Kart,Quick action button
-UI_ACTION_HIRE,Hire,Ansett,Quick action button
-UI_ACTION_CONTRACTS,Contracts,Kontrakter,Quick action button
-UI_PEN_MANAGEMENT_TITLE,Pens,Merder,Pen management panel title
-UI_PEN_DETAIL_SELECT_PROMPT,Select a pen for details,Velg en merd for detaljer,Empty state message
-UI_PEN_DETAIL_NAME,Pen %d,Merd %d,Pen detail header
-UI_PEN_DETAIL_SUBTITLE_FORMAT,Zone: %s · Capacity: %.0f%%,Sone: %s · Kapasitet: %.0f%%,Pen subtitle format
-UI_PEN_DETAIL_STATUS_HEALTHY,● Healthy,● Frisk,Status badge
-UI_PEN_DETAIL_STATUS_LICE_WARNING,⚠ Elevated lice count,⚠ Forhøyet lusetall,Status badge warning
-UI_PEN_KPI_FISH_COUNT,FISH COUNT,ANTALL FISK,KPI label
-UI_PEN_KPI_AVG_WEIGHT,AVG WEIGHT,SNITT VEKT,KPI label
-UI_PEN_KPI_BIOMASS,BIOMASS,BIOMASSE,KPI label
-UI_PEN_KPI_FCR,FCR (CURRENT),FCR (AKTUELL),KPI label
-UI_PEN_ENVIRONMENT_TITLE,Environment,Miljø,Card title
-UI_PEN_ENVIRONMENT_TEMP,Temperature,Temperatur,Environment metric
-UI_PEN_ENVIRONMENT_OXYGEN,Oxygen,Oksygen,Environment metric
-UI_PEN_ENVIRONMENT_CURRENT,Current,Strøm,Environment metric
-UI_PEN_ENVIRONMENT_VISIBILITY,Visibility,Sikt,Environment metric
-UI_PEN_ENVIRONMENT_ALGAE,Algae growth,Algevekst,Environment metric
-UI_PEN_ENVIRONMENT_ALGAE_LOW,Low,Lav,Algae status
-UI_PEN_HEALTH_TITLE,Health,Helse,Card title
-UI_PEN_HEALTH_LICE,Lice count,Lusetall,Health metric
-UI_PEN_HEALTH_LICE_FORMAT,%.2f lice/fish,%.2f lus/fisk,Lice display format
-UI_PEN_HEALTH_DISEASE,Disease,Sykdom,Health metric
-UI_PEN_HEALTH_DISEASE_NONE,None,Ingen,Disease status
-UI_PEN_HEALTH_MORTALITY_WEEK,Mortality (week),Dødelighet (uke),Health metric
-UI_PEN_HEALTH_MORTALITY_TOTAL,Mortality (total),Dødelighet (total),Health metric
-UI_PEN_GENETICS_TITLE,Genetics,Genetikk,Card title
-UI_PEN_GENETICS_GROWTH,Growth rate,Veksthastighet,Genetics metric
-UI_PEN_GENETICS_LICE_RESIST,Lice resistance,Luseresistens,Genetics metric
-UI_PEN_GENETICS_DISEASE_RESIST,Disease resistance,Sykdomsresistens,Genetics metric
-UI_PEN_GENETICS_FILLET_QUALITY,Fillet quality,Filétkvalitet,Genetics metric
-UI_PEN_GENETICS_GRADE_A_PLUS,A+,A+,Genetics grade
-UI_PEN_GENETICS_GRADE_A,A,A,Genetics grade
-UI_PEN_GENETICS_GRADE_B,B,B,Genetics grade
-UI_PEN_ACTION_FEED,Feed,Fôr,Action button
-UI_PEN_ACTION_DELOUSE,Delouse,Avlus,Action button
-UI_PEN_ACTION_HARVEST,Harvest,Høst,Action button
-UI_PEN_LIST_EMPTY,No pens available,Ingen merder tilgjengelig,Empty state
-UI_PEN_LIST_EMPTY_STATUS,Empty,Tom,Empty pen status
-UI_HUD_DAY_LABEL,Day,Dag,HUD label
-UI_HUD_SEASON_WINTER,Winter,Vinter,Season name
-UI_HUD_SEASON_SPRING,Spring,Vår,Season name
-UI_HUD_SEASON_SUMMER,Summer,Sommer,Season name
-UI_HUD_SEASON_AUTUMN,Autumn,Høst,Season name
-UI_HUD_BALANCE_LABEL,Balance,Saldo,HUD label
-UI_HUD_FISH_LABEL,Fish,Fisk,HUD label
-UI_HUD_TEMP_LABEL,Temp,Temp,HUD label
-UI_HUD_PRICE_LABEL,Price,Pris,HUD label
-UI_HUD_ALERTS_LABEL,Alerts,Varsler,HUD label
-UI_HUD_WEATHER_LABEL,Weather,Vær,HUD label
-UI_HUD_TEMP_FORMAT,%.1f°C,%.1f°C,Temperature display format
-UI_HUD_PRICE_FORMAT,%.0f NOK/kg,%.0f kr/kg,Price display format
-UI_HUD_SPEED_BUTTON_PAUSE,Pause/Resume (Space),Pause/Resume (Space),Speed control tooltip
-UI_HUD_SPEED_BUTTON_1X,Normal speed,Normal hastighet,Speed control tooltip
-UI_HUD_SPEED_BUTTON_2X,Double speed,Dobbel hastighet,Speed control tooltip
-UI_HUD_SPEED_BUTTON_5X,5x speed,5x hastighet,Speed control tooltip
-UI_HUD_PAUSE_RESUME_TOOLTIP,Resume,Resume,Pause button tooltip
-UI_HUD_PAUSE_PAUSE_TOOLTIP,Pause,Pause,Pause button tooltip
-UI_SETTINGS_TITLE,Settings,Innstillinger,Settings panel title
-UI_SETTINGS_CLOSE_BUTTON,✕,✕,Close button
-UI_SETTINGS_RESET_BUTTON,Reset,Tilbakestill,Settings button
-UI_SETTINGS_APPLY_BUTTON,Apply,Bruk,Settings button
-UI_SETTINGS_TAB_AUDIO,Audio,Lyd,Settings tab
-UI_SETTINGS_TAB_GRAPHICS,Graphics,Grafikk,Settings tab
-UI_SETTINGS_TAB_GAMEPLAY,Gameplay,Spill,Settings tab
-UI_SETTINGS_TAB_ACCESSIBILITY,Accessibility,Tilgjengelighet,Settings tab
-UI_SETTINGS_MASTER_LABEL,Master,Master,Audio setting
-UI_SETTINGS_MUSIC_LABEL,Music,Musikk,Audio setting
-UI_SETTINGS_AMBIENT_LABEL,Ambient,Ambient,Audio setting
-UI_SETTINGS_SFX_LABEL,Effects,Effekter,Audio setting
-UI_SETTINGS_RESOLUTION_LABEL,Resolution,Oppløsning,Graphics setting
-UI_SETTINGS_FULLSCREEN_LABEL,Fullscreen,Fullskjerm,Graphics setting
-UI_SETTINGS_VSYNC_LABEL,VSync,VSync,Graphics setting
-UI_SETTINGS_AUTOSAVE_LABEL,Autosave,Autolagring,Gameplay setting
-UI_SETTINGS_AUTOSAVE_OFF,Off,Av,Autosave option
-UI_SETTINGS_AUTOSAVE_2MIN,2 min,2 min,Autosave option
-UI_SETTINGS_AUTOSAVE_5MIN,5 min,5 min,Autosave option
-UI_SETTINGS_AUTOSAVE_10MIN,10 min,10 min,Autosave option
-UI_SETTINGS_AUTOSAVE_30MIN,30 min,30 min,Autosave option
-UI_SETTINGS_TUTORIAL_LABEL,Show tutorial,Vis tutorial,Gameplay setting
-UI_SETTINGS_NOTIFICATIONS_LABEL,Notifications,Varsler,Gameplay setting
-UI_SETTINGS_SPEED_LABEL,Default speed,Standard hastighet,Gameplay setting
-UI_SETTINGS_HIGH_CONTRAST_LABEL,High contrast,Høykontrast,Accessibility setting
-UI_SAVELOAD_TITLE_LOAD,Load Game,Last Spill,Save/load panel title
-UI_SAVELOAD_TITLE_SAVE,Save Game,Lagre Spill,Save/load panel title
-UI_SAVELOAD_NEW_SAVE,New Save,💾 Nytt Lagringspunkt,New save button
-UI_SAVELOAD_MANAGER_UNAVAILABLE,SaveLoadManager not available,SaveLoadManager ikke tilgjengelig,Error message
-UI_SAVELOAD_EMPTY_LOAD,No saved games found,Ingen lagrede spill funnet,Empty state
-UI_SAVELOAD_EMPTY_SAVE,No existing saves,Ingen eksisterende lagringer,Empty state
-UI_SAVELOAD_DAY_FORMAT,Day %s,Dag %s,Save slot day format
-UI_SAVELOAD_LOAD_BUTTON,Load,Last,Action button
-UI_SAVELOAD_SAVE_BUTTON,Save,Lagre,Action button
-UI_TUTORIAL_STEP_FORMAT,Step %d / %d,Steg %d / %d,Tutorial progress
-UI_TUTORIAL_STEP_COMPLETE,Step %d complete! Reward: %s,Steg %d fullført! Belønning: %s,Completion message
-UI_TUTORIAL_COMPLETED,Tutorial completed,Tutorial fullført,Final step label
-UI_TUTORIAL_HINT_NEXT,Explore all features and grow your empire!,Utforsk alle funksjoner og voks imperiet ditt!,Post-tutorial hint
-UI_TUTORIAL_SKIP_CONFIRM,Are you sure you want to skip the tutorial?,Er du sikker på at du vil hoppe over tutorial?,Confirmation dialog
-UI_TUTORIAL_SKIP_DETAILS,You can always restart the tutorial from 'Help → Show Tutorial'.,Du kan alltid starte en ny tutorial fra menyvalget 'Hjelp → Vis tutorial'.,Skip dialog info
-UI_TUTORIAL_SKIP_BUTTON,Skip,Hopp over,Confirmation button
-UI_TUTORIAL_CANCEL_BUTTON,Cancel,Avbryt,Confirmation button
-UI_TUTORIAL_MINIMIZE_EXPAND,Minimize/expand tutorial panel,Minimer/utvid tutorial-panelet,Tooltip
-UI_TUTORIAL_SKIP_TOOLTIP,Skip tutorial and enable free play,Hopp over tutorial og aktiver fri spilling,Tooltip
-UI_CONTRACT_DIALOG_TITLE,CONTRACT NEGOTIATION,KONTRAKTSFORHANDLING,Dialog title
-UI_CONTRACT_BUYER_LABEL,Buyer:,Kjøper:,Contract detail
-UI_CONTRACT_VOLUME_LABEL,Volume:,Volum:,Contract detail
-UI_CONTRACT_PRICE_LABEL,Offered price:,Tilbudt pris:,Contract detail
-UI_CONTRACT_DURATION_LABEL,Duration:,Varighet:,Contract detail
-UI_CONTRACT_QUALITY_LABEL,Quality requirements:,Kvalitetskrav:,Contract detail
-UI_CONTRACT_PENALTY_LABEL,Penalties for non-delivery:,Bøter ved manglende levering:,Contract detail
-UI_CONTRACT_YOUR_COUNTER_PRICE,Your counter price:,Din motpris:,Negotiation label
-UI_CONTRACT_PRICE_PER_KG,%.2f NOK/kg,%.2f NOK/kg,Price format
-UI_CONTRACT_ACCEPTANCE_CHANCE,Acceptance chance: %d%%,Sjanse for aksept: %d%%,Chance display
-UI_CONTRACT_ACCEPT_BUTTON,ACCEPT OFFER,AKSEPTER TILBUD,Action button
-UI_CONTRACT_NEGOTIATE_BUTTON,NEGOTIATE,FORHANDL,Action button
-UI_CONTRACT_DECLINE_BUTTON,DECLINE,AVSLÅ,Action button
-UI_MONTH_OCTOBER,Oct,Okt,Month abbreviation
-UI_MONTH_NOVEMBER,Nov,Nov,Month abbreviation
-UI_MONTH_DECEMBER,Dec,Des,Month abbreviation
-UI_MONTH_JANUARY,Jan,Jan,Month abbreviation
-UI_MONTH_FEBRUARY,Feb,Feb,Month abbreviation
-UI_MONTH_MARCH,Mar,Mar,Month abbreviation
-UI_GENERIC_STATUS_UNKNOWN,Unknown,Ukjent,Unknown status
-UI_GENERIC_ZONE_UNKNOWN,Unknown zone,Ukjent sone,Unknown zone
-UI_GENERIC_EMPTY_PLACEHOLDER,--,--,Empty data placeholder
-UI_STATUS_HEALTHY,Healthy,Frisk,Status indicator
-UI_STATUS_WARNING,Warning,Advarsel,Status indicator
-UI_STATUS_DANGER,Danger,Farlig,Status indicator
-UI_STATUS_EMPTY,Empty,Tom,Status indicator
-UI_WEATHER_CALM,Clear,Klart,Weather condition
-UI_WEATHER_WINDY,Windy,Vind,Weather condition
-UI_WEATHER_STORM,Storm,Storm,Weather condition
-UI_WEATHER_PARTLY_CLOUDY,Partly cloudy,Delvis skyet,Weather condition
-UI_GENETICS_GRADE_A_PLUS,A+,A+,Grade indicator
-UI_GENETICS_GRADE_A,A,A,Grade indicator
-UI_GENETICS_GRADE_B,B,B,Grade indicator
-UI_PEN_CARD_TITLE,Pen Overview,Merdoversikt,Dashboard card title
-UI_WATER_CARD_TITLE_SHORT,Water,Vann,Dashboard card title
-# === TOOLTIPS — Nordic Minimalist Style ===
-TIP_TAB_PLAY,Main gameplay interface,Hovedspillsgrensesnitt,Tab navigation tooltip
-TIP_TAB_MAP,View production areas,Vis produksjonsområder,Tab navigation tooltip
-TIP_TAB_FINANCE,Financial dashboard and reports,Økonomisk oversikt og rapporter,Tab navigation tooltip
-TIP_TAB_REGULATION,Traffic light system and ESG,Trafikklyssystem og ESG,Tab navigation tooltip
-TIP_TAB_RESEARCH,Technology tree and upgrades,Teknologitre og oppgraderinger,Tab navigation tooltip
-TIP_TAB_MNA,Acquisitions and investments,Oppkjøp og investeringer,Tab navigation tooltip
-TIP_TAB_FACTORY,Processing and production,Foredling og produksjon,Tab navigation tooltip
-TIP_TAB_STAFF,Hire and manage personnel,Ansett og administrer personale,Tab navigation tooltip
-TIP_TAB_PENS,Manage fish pens and facilities,Håndter merder og anlegg,Tab navigation tooltip
-TIP_TAB_SAVE,Save or load game progress,Lagre eller last spillframgang,Tab navigation tooltip
-TIP_TAB_LOG,View event and simulation log,Vis hendelses- og simuleringslogg,Tab navigation tooltip
-TIP_ACTION_NEXT_DAY,Advance simulation one day,Fremskynd simulering én dag,Time control tooltip
-TIP_ACTION_SKIP_WEEK,Advance simulation 7 days,Fremskynd simulering 7 dager,Time control tooltip
-TIP_ACTION_SKIP_MONTH,Advance simulation 30 days,Fremskynd simulering 30 dager,Time control tooltip
-TIP_ACTION_BUY_SMOLT_STD,Purchase standard smolt 10K,Kjøp standard smolt 10K,Hatchery tooltip
-TIP_ACTION_BUY_SMOLT_PREM,Purchase premium smolt 10K,Kjøp premium smolt 10K,Hatchery tooltip
-TIP_ACTION_HARVEST_ALL,Harvest and sell ready batches,Høst og selg klare batch,Harvest tooltip
-TIP_ACTION_DELOUSE_PEN,Treat pen for sea lice,Behandle merd for lakselus,Pen action tooltip
-TIP_ACTION_HARVEST_PEN,Harvest fish from this pen,Høst fisk fra denne merden,Pen action tooltip
-TIP_ACTION_SELL_PEN,Sell pen and recover 50% value,Selg merd og få 50% verdi tilbake,Pen action tooltip
-TIP_ACTION_BUY_PEN,Purchase new pen facility,Kjøp ny merdfasilitet,Pen management tooltip
-TIP_STAT_CASH,Available funds for operations,Tilgjengelige midler for drift,Financial tooltip
-TIP_STAT_FISH_COUNT,Total fish across all pens,Totalt antall fisk i alle merder,Statistics tooltip
-TIP_STAT_FEED_COST,Daily feed expenditure,Daglig fôrforbruk,Financial tooltip
-TIP_STAT_REPUTATION,Company standing affects prices,Selskapets omdømme påvirker priser,Statistics tooltip
-TIP_STAT_SPOT_PRICE,Current market rate per kg,Gjeldende markedspris per kg,Market tooltip
-TIP_STAT_FCR,Feed conversion ratio efficiency,Fôromsetningsforhold effektivitet,Statistics tooltip
-TIP_STAT_BIOMASS,Total fish weight in tonnes,Totalt fiskevekt i tonn,Statistics tooltip
-TIP_STAT_HEALTH,Overall fish welfare status,Samlet fiskevelferdsstatus,Health tooltip
-TIP_STAT_LICE_LEVEL,Sea lice count per fish,Lakselustall per fisk,Health tooltip
-TIP_STATUS_HEALTHY,Fish in good condition,Fisk i god stand,Status tooltip
-TIP_STATUS_WARNING,Attention required — check metrics,Obs! Sjekk verdier,Status tooltip
-TIP_STATUS_DANGER,Critical — immediate action needed,Kritisk — umiddelbar handling nødvendig,Status tooltip
-TIP_KPI_REVENUE,Total income this period,Totale inntekter denne perioden,KPI tooltip
-TIP_KPI_EXPENSES,Total costs this period,Totale kostnader denne perioden,KPI tooltip
-TIP_KPI_PROFIT,Net revenue after costs,Netto inntekt etter kostnader,KPI tooltip
-TIP_ESG_CARBON,Environmental impact per kg,Miljøpåvirkning per kg,ESG tooltip
-TIP_ESG_ANTIBIOTIC,Medication usage level,Medikamentbruk nivå,ESG tooltip
-TIP_ESG_WELFARE,Fish quality of life score,Fiskevelferd score,ESG tooltip
-TIP_ESG_FEED,Sustainable feed sourcing,Bærekraftig fôrkilder,ESG tooltip
-TIP_ESG_ESCAPE,Risk of fish escaping,Risiko for rømning,ESG tooltip
-TIP_TECH_BIOLOGY,Biological research upgrades,Biologiske forskningsoppgraderinger,Tech tree tooltip
-TIP_TECH_INFRA,Facility improvements,Anleggsforbedringer,Tech tree tooltip
-TIP_TECH_UNDERWORLD,Unofficial operations,Uoffisielle operasjoner,Tech tree tooltip
-TIP_SAVE_QUICK,Quick save to slot 0,Hurtiglagre til plass 0,Save/load tooltip
-TIP_SAVE_SLOT,Save to numbered slot,Lagre til nummerert plass,Save/load tooltip
-TIP_LOAD_SLOT,Load from numbered slot,Last fra nummerert plass,Save/load tooltip
-TIP_DELETE_SLOT,Permanently remove save,Slett lagring permanent,Save/load tooltip
-TIP_STAFF_HIRE,Recruit new employee,Rekrutter ny ansatt,Staff tooltip
-TIP_STAFF_FIRE,Terminate employment,Avslutt ansettelse,Staff tooltip
-TIP_STAFF_TRAIN,Improve staff skills,Forbedre ansattes ferdigheter,Staff tooltip
-TIP_CONTRACT_ACCEPT,Agree to buyer terms,Godta kjøpers betingelser,Contract tooltip
-TIP_CONTRACT_NEGOTIATE,Counter offer price,Fremsett motpris,Contract tooltip
-TIP_CONTRACT_DECLINE,Reject offer,Avslå tilbud,Contract tooltip
-TIP_TRAFFIC_GREEN,6% growth allowed,6% vekst tillatt,Traffic light tooltip
-TIP_TRAFFIC_YELLOW,No growth change,Ingen vekstendring,Traffic light tooltip
-TIP_TRAFFIC_RED,6% reduction required,6% reduksjon påkrevd,Traffic light tooltip
+key,en,no
+UI_MAINMENU_TITLE,LAKSKONGEN,LAKSKONGEN
+UI_MAINMENU_SUBTITLE,Norwegian Salmon Farming Simulator,Norsk lakseoppdrettssimulator
+UI_BUTTON_NEW_GAME,New Game,Nytt spill
+UI_BUTTON_LOAD_GAME,Load Game,Last inn spill
+UI_BUTTON_SETTINGS,Settings,Innstillinger
+UI_BUTTON_QUIT,Quit,Avslutt
+UI_VERSION_TEXT,v%s (alpha),v%s (alfa)
+UI_DASHBOARD_TITLE,%s — Overview,%s — Oversikt
+UI_DASHBOARD_PEN_NAME,Pen %d,Merd %d
+UI_KPI_BIOMASS_LABEL,TOTAL BIOMASS,TOTAL BIOMASSE
+UI_KPI_REVENUE_LABEL,REVENUE (YTD),INNTEKTER (YTD)
+UI_KPI_HEALTH_LABEL,FISH HEALTH,FISKEHELSE
+UI_KPI_FCR_LABEL,FEED RATIO (FCR),FÔRFAKTOR (FCR)
+UI_DASHBOARD_BIOMASS_FORMAT,%s tonnes,%s tonn
+UI_DASHBOARD_REVENUE_FORMAT,%s MNOK,%s MNOK
+UI_DASHBOARD_HEALTH_GOOD,Good,God
+UI_DASHBOARD_HEALTH_STABLE,Stable,Stabil
+UI_DASHBOARD_HEALTH_LOW,Low,Lav
+UI_DASHBOARD_FCR_BETTER,Better than target (%s),Bedre enn målet (%s)
+UI_PEN_COUNT_LABEL,Count,Antall
+UI_PEN_WEIGHT_LABEL,Avg weight,Snitt vekt
+UI_PEN_TEMP_LABEL,Temp,Temp
+UI_WATER_CARD_TITLE,Water Quality,Vannkvalitet
+UI_WATER_TEMP_LABEL,TEMPERATURE,TEMPERATUR
+UI_WATER_OXYGEN_LABEL,OXYGEN,OKSYGEN
+UI_WATER_SALINITY_LABEL,SALINITY,SALINITET
+UI_WATER_PH_LABEL,PH,PH
+UI_WEATHER_CARD_TITLE,Weather,Vær
+UI_WEATHER_WIND_LABEL,Wind:,Vind:
+UI_WEATHER_WAVE_LABEL,Wave:,Bølge:
+UI_WEATHER_VISIBILITY_LABEL,Visibility:,Sikt:
+UI_WEATHER_HUMIDITY_LABEL,Humidity:,Fukt:
+UI_FINANCE_CARD_TITLE,Finance (6 months),Økonomi (6 mnd)
+UI_FINANCE_LEGEND_REVENUE,Revenue,Inntekt
+UI_FINANCE_LEGEND_COST,Cost,Kostnad
+UI_FINANCE_KPI_REVENUE,REVENUE,INNTEKTER
+UI_FINANCE_KPI_EXPENSES,EXPENSES,KOSTNADER
+UI_FINANCE_KPI_PROFIT,PROFIT,RESULTAT
+UI_FINANCE_KPI_BALANCE,CASH,KONTANTER
+UI_FINANCE_PL_FEED,Feed costs,Fôrkostnader
+UI_FINANCE_PL_SALARY,Salary costs,Lønnskostnader
+UI_FINANCE_PL_MAINTENANCE,Maintenance,Vedlikehold
+UI_FINANCE_PL_INSURANCE,Insurance,Forsikring
+UI_FINANCE_PL_DELOUSING,Delousing,Avlusing
+UI_FINANCE_PL_TRANSPORT,Transport,Transport
+UI_FINANCE_PL_OTHER,Other costs,Andre kostnader
+UI_FINANCE_PL_TOTAL,TOTAL COSTS,TOTALE KOSTNADER
+UI_FINANCE_LOAN_TITLE,Loans & Financing,Lån og finansiering
+UI_FINANCE_LOAN_STATUS_LABEL,Status:,Status:
+UI_FINANCE_LOAN_AMOUNT_LABEL,Loan amount:,Lånebeløp:
+UI_FINANCE_LOAN_REMAINING_LABEL,Remaining:,Gjenstående:
+UI_FINANCE_LOAN_STATUS_ACTIVE,Active,Aktiv
+UI_FINANCE_LOAN_STATUS_NONE,No loan,Ingen lån
+UI_FINANCE_LOAN_TAKE_BUTTON,Take loan (5M NOK),Ta lån (5M NOK)
+UI_FINANCE_LOAN_REPAY_BUTTON,Repay,Betal tilbake
+UI_FINANCE_HISTORY_TITLE,History (last 10 days),Historikk (siste 10 dager)
+UI_ALERTS_CARD_TITLE,Alerts,Varsler
+UI_ALERTS_TIME_MINUTES,%d min ago,%d min siden
+UI_ALERTS_TIME_HOURS,%d hours ago,%d timer siden
+UI_ACTIONS_CARD_TITLE,Quick Actions,Hurtigvalg
+UI_ACTION_FEED_ALL,Feed All,Fôr alle
+UI_ACTION_HARVEST,Harvest,Høst
+UI_ACTION_DELOUSE,Delouse,Avlus
+UI_ACTION_REPORTS,Reports,Rapporter
+UI_ACTION_RESEARCH,Research,Forskning
+UI_ACTION_MAP,Map,Kart
+UI_ACTION_HIRE,Hire,Ansett
+UI_ACTION_CONTRACTS,Contracts,Kontrakter
+UI_PEN_MANAGEMENT_TITLE,Pens,Merder
+UI_PEN_DETAIL_SELECT_PROMPT,Select a pen for details,Velg en merd for detaljer
+UI_PEN_DETAIL_NAME,Pen %d,Merd %d
+UI_PEN_DETAIL_SUBTITLE_FORMAT,Zone: %s · Capacity: %.0f%%,Sone: %s · Kapasitet: %.0f%%
+UI_PEN_DETAIL_STATUS_HEALTHY,● Healthy,● Frisk
+UI_PEN_DETAIL_STATUS_LICE_WARNING,⚠ Elevated lice count,⚠ Forhøyet lusetall
+UI_PEN_KPI_FISH_COUNT,FISH COUNT,ANTALL FISK
+UI_PEN_KPI_AVG_WEIGHT,AVG WEIGHT,SNITT VEKT
+UI_PEN_KPI_BIOMASS,BIOMASS,BIOMASSE
+UI_PEN_KPI_FCR,FCR (CURRENT),FCR (AKTUELL)
+UI_PEN_ENVIRONMENT_TITLE,Environment,Miljø
+UI_PEN_ENVIRONMENT_TEMP,Temperature,Temperatur
+UI_PEN_ENVIRONMENT_OXYGEN,Oxygen,Oksygen
+UI_PEN_ENVIRONMENT_CURRENT,Current,Strøm
+UI_PEN_ENVIRONMENT_VISIBILITY,Visibility,Sikt
+UI_PEN_ENVIRONMENT_ALGAE,Algae growth,Algevekst
+UI_PEN_ENVIRONMENT_ALGAE_LOW,Low,Lav
+UI_PEN_HEALTH_TITLE,Health,Helse
+UI_PEN_HEALTH_LICE,Lice count,Lusetall
+UI_PEN_HEALTH_LICE_FORMAT,%.2f lice/fish,%.2f lus/fisk
+UI_PEN_HEALTH_DISEASE,Disease,Sykdom
+UI_PEN_HEALTH_DISEASE_NONE,None,Ingen
+UI_PEN_HEALTH_MORTALITY_WEEK,Mortality (week),Dødelighet (uke)
+UI_PEN_HEALTH_MORTALITY_TOTAL,Mortality (total),Dødelighet (total)
+UI_PEN_GENETICS_TITLE,Genetics,Genetikk
+UI_PEN_GENETICS_GROWTH,Growth rate,Veksthastighet
+UI_PEN_GENETICS_LICE_RESIST,Lice resistance,Luseresistens
+UI_PEN_GENETICS_DISEASE_RESIST,Disease resistance,Sykdomsresistens
+UI_PEN_GENETICS_FILLET_QUALITY,Fillet quality,Filétkvalitet
+UI_PEN_GENETICS_GRADE_A_PLUS,A+,A+
+UI_PEN_GENETICS_GRADE_A,A,A
+UI_PEN_GENETICS_GRADE_B,B,B
+UI_PEN_ACTION_FEED,Feeding,Fôring
+UI_PEN_ACTION_DELOUSE,Delousing,Avlusing
+UI_PEN_ACTION_HARVEST,Harvest,Høsting
+UI_PEN_LIST_EMPTY,No pens available,Ingen merder tilgjengelig
+UI_PEN_LIST_EMPTY_STATUS,Empty,Tom
+UI_HUD_DAY_LABEL,Day,Dag
+UI_HUD_SEASON_WINTER,Winter,Vinter
+UI_HUD_SEASON_SPRING,Spring,Vår
+UI_HUD_SEASON_SUMMER,Summer,Sommer
+UI_HUD_SEASON_AUTUMN,Autumn,Høst
+UI_HUD_BALANCE_LABEL,Balance,Saldo
+UI_HUD_FISH_LABEL,Fish,Fisk
+UI_HUD_TEMP_LABEL,Temp,Temp
+UI_HUD_PRICE_LABEL,Price,Pris
+UI_HUD_ALERTS_LABEL,Alerts,Varsler
+UI_HUD_WEATHER_LABEL,Weather,Vær
+UI_HUD_TEMP_FORMAT,%s °C,%s °C
+UI_HUD_PRICE_FORMAT,%s NOK/kg,%s kr/kg
+UI_HUD_SPEED_BUTTON_PAUSE,Pause/resume (Space),Pause/fortsett (mellomrom)
+UI_HUD_SPEED_BUTTON_1X,Normal speed,Normal hastighet
+UI_HUD_SPEED_BUTTON_2X,Double speed,Dobbel hastighet
+UI_HUD_SPEED_BUTTON_5X,5× speed,5× hastighet
+UI_HUD_PAUSE_RESUME_TOOLTIP,Resume (Space),Fortsett (mellomrom)
+UI_HUD_PAUSE_PAUSE_TOOLTIP,Pause (Space),Pause (mellomrom)
+UI_SETTINGS_TITLE,Settings,Innstillinger
+UI_SETTINGS_CLOSE_BUTTON,✕,✕
+UI_SETTINGS_RESET_BUTTON,Reset,Tilbakestill
+UI_SETTINGS_APPLY_BUTTON,Apply,Bruk
+UI_SETTINGS_TAB_AUDIO,Audio,Lyd
+UI_SETTINGS_TAB_GRAPHICS,Graphics,Grafikk
+UI_SETTINGS_TAB_GAMEPLAY,Gameplay,Spill
+UI_SETTINGS_TAB_ACCESSIBILITY,Accessibility,Tilgjengelighet
+UI_SETTINGS_MASTER_LABEL,Master,Master
+UI_SETTINGS_MUSIC_LABEL,Music,Musikk
+UI_SETTINGS_AMBIENT_LABEL,Ambient,Ambient
+UI_SETTINGS_SFX_LABEL,Effects,Effekter
+UI_SETTINGS_RESOLUTION_LABEL,Resolution,Oppløsning
+UI_SETTINGS_FULLSCREEN_LABEL,Fullscreen,Fullskjerm
+UI_SETTINGS_VSYNC_LABEL,VSync,VSync
+UI_SETTINGS_QUALITY_LABEL,Graphics quality,Grafikkvalitet
+UI_SETTINGS_QUALITY_LOW,Low,Lav
+UI_SETTINGS_QUALITY_MEDIUM,Medium,Middels
+UI_SETTINGS_QUALITY_HIGH,High,Høy
+UI_SETTINGS_QUALITY_ULTRA,Ultra,Ultra
+UI_SETTINGS_AUTOSAVE_LABEL,Autosave,Autolagring
+UI_SETTINGS_AUTOSAVE_OFF,Off,Av
+UI_SETTINGS_AUTOSAVE_2MIN,2 min,2 min
+UI_SETTINGS_AUTOSAVE_5MIN,5 min,5 min
+UI_SETTINGS_AUTOSAVE_10MIN,10 min,10 min
+UI_SETTINGS_AUTOSAVE_30MIN,30 min,30 min
+UI_SETTINGS_TUTORIAL_LABEL,Show tutorial,Vis opplæring
+UI_SETTINGS_NOTIFICATIONS_LABEL,Notifications,Varsler
+UI_SETTINGS_SPEED_LABEL,Default speed,Standard hastighet
+UI_SETTINGS_HIGH_CONTRAST_LABEL,High contrast,Høykontrast
+UI_SAVELOAD_TITLE_LOAD,Load Game,Last inn spill
+UI_SAVELOAD_TITLE_SAVE,Save Game,Lagre spill
+UI_SAVELOAD_NEW_SAVE,💾 New Save,💾 Nytt lagringspunkt
+UI_SAVELOAD_MANAGER_UNAVAILABLE,SaveLoadManager not available,SaveLoadManager ikke tilgjengelig
+UI_SAVELOAD_EMPTY_LOAD,No saved games found,Ingen lagrede spill funnet
+UI_SAVELOAD_EMPTY_SAVE,No existing saves,Ingen eksisterende lagringer
+UI_SAVELOAD_DAY_FORMAT,Day %s,Dag %s
+UI_SAVELOAD_LOAD_BUTTON,Load,Last
+UI_SAVELOAD_SAVE_BUTTON,Save,Lagre
+UI_TUTORIAL_STEP_FORMAT,Step %d / %d,Steg %d / %d
+UI_TUTORIAL_STEP_COMPLETE,Step %d complete: %s,Steg %d fullført: %s
+UI_TUTORIAL_COMPLETED,Tutorial completed,Opplæringen er fullført
+UI_TUTORIAL_HINT_NEXT,Explore all features and grow your empire!,Utforsk alle funksjoner og voks imperiet ditt!
+UI_TUTORIAL_SKIP_CONFIRM,Are you sure you want to skip the tutorial?,Er du sikker på at du vil hoppe over opplæringen?
+UI_TUTORIAL_SKIP_DETAILS,You can always restart the tutorial from 'Help → Show Tutorial'.,Du kan alltid starte opplæringen på nytt fra «Hjelp → Vis opplæring».
+UI_TUTORIAL_SKIP_BUTTON,Skip,Hopp over
+UI_TUTORIAL_CANCEL_BUTTON,Cancel,Avbryt
+UI_TUTORIAL_MINIMIZE_EXPAND,Minimize/expand tutorial panel,Minimer/utvid opplæringspanelet
+UI_TUTORIAL_SKIP_TOOLTIP,Skip tutorial and enable free play,Hopp over opplæringen og spill fritt
+UI_CONTRACT_DIALOG_TITLE,CONTRACT NEGOTIATION,KONTRAKTSFORHANDLING
+UI_CONTRACT_BUYER_LABEL,Buyer:,Kjøper:
+UI_CONTRACT_VOLUME_LABEL,Volume:,Volum:
+UI_CONTRACT_PRICE_LABEL,Offered price:,Tilbudt pris:
+UI_CONTRACT_DURATION_LABEL,Duration:,Varighet:
+UI_CONTRACT_QUALITY_LABEL,Quality requirements:,Kvalitetskrav:
+UI_CONTRACT_PENALTY_LABEL,Penalties for non-delivery:,Bøter ved manglende levering:
+UI_CONTRACT_YOUR_COUNTER_PRICE,Your counter price:,Din motpris:
+UI_CONTRACT_PRICE_PER_KG,%.2f NOK/kg,%.2f NOK/kg
+UI_CONTRACT_ACCEPTANCE_CHANCE,Acceptance chance: %d%%,Sjanse for aksept: %d%%
+UI_CONTRACT_ACCEPT_BUTTON,ACCEPT OFFER,AKSEPTER TILBUD
+UI_CONTRACT_NEGOTIATE_BUTTON,NEGOTIATE,FORHANDL
+UI_CONTRACT_DECLINE_BUTTON,DECLINE,AVSLÅ
+UI_MONTH_OCTOBER,Oct,Okt
+UI_MONTH_NOVEMBER,Nov,Nov
+UI_MONTH_DECEMBER,Dec,Des
+UI_MONTH_JANUARY,Jan,Jan
+UI_MONTH_FEBRUARY,Feb,Feb
+UI_MONTH_MARCH,Mar,Mar
+UI_GENERIC_STATUS_UNKNOWN,Unknown,Ukjent
+UI_GENERIC_ZONE_UNKNOWN,Unknown zone,Ukjent sone
+UI_GENERIC_EMPTY_PLACEHOLDER,--,--
+UI_STATUS_HEALTHY,Healthy,Frisk
+UI_STATUS_WARNING,Warning,Advarsel
+UI_STATUS_DANGER,Danger,Farlig
+UI_STATUS_EMPTY,Empty,Tom
+UI_WEATHER_CALM,Clear,Klart
+UI_WEATHER_WINDY,Windy,Vind
+UI_WEATHER_STORM,Storm,Storm
+UI_WEATHER_PARTLY_CLOUDY,Partly cloudy,Delvis skyet
+UI_GENETICS_GRADE_A_PLUS,A+,A+
+UI_GENETICS_GRADE_A,A,A
+UI_GENETICS_GRADE_B,B,B
+UI_PEN_CARD_TITLE,Pen Overview,Merdoversikt
+UI_WATER_CARD_TITLE_SHORT,Water,Vann
+TIP_TAB_PLAY,Main gameplay interface,Hovedspillsgrensesnitt
+TIP_TAB_MAP,View production areas,Vis produksjonsområder
+TIP_TAB_FINANCE,Financial dashboard and reports,Økonomisk oversikt og rapporter
+TIP_TAB_REGULATION,Traffic light system and ESG,Trafikklyssystem og ESG
+TIP_TAB_RESEARCH,Technology tree and upgrades,Teknologitre og oppgraderinger
+TIP_TAB_MNA,Acquisitions and investments,Oppkjøp og investeringer
+TIP_TAB_FACTORY,Processing and production,Foredling og produksjon
+TIP_TAB_STAFF,Hire and manage personnel,Ansett og administrer personale
+TIP_TAB_PENS,Manage fish pens and facilities,Håndter merder og anlegg
+TIP_TAB_SAVE,Save or load game progress,Lagre eller last spillframgang
+TIP_TAB_LOG,View event and simulation log,Vis hendelses- og simuleringslogg
+TIP_ACTION_NEXT_DAY,Advance simulation one day,Fremskynd simulering én dag
+TIP_ACTION_SKIP_WEEK,Advance simulation 7 days,Fremskynd simulering 7 dager
+TIP_ACTION_SKIP_MONTH,Advance simulation 30 days,Fremskynd simulering 30 dager
+TIP_ACTION_BUY_SMOLT_STD,Purchase standard smolt 10K,Kjøp standard smolt 10K
+TIP_ACTION_BUY_SMOLT_PREM,Purchase premium smolt 10K,Kjøp premium smolt 10K
+TIP_ACTION_HARVEST_ALL,Harvest and sell ready batches,Høst og selg klare batch
+TIP_ACTION_DELOUSE_PEN,Treat pen for sea lice,Behandle merd for lakselus
+TIP_ACTION_HARVEST_PEN,Harvest fish from this pen,Høst fisk fra denne merden
+TIP_ACTION_SELL_PEN,Sell pen and recover 50% value,Selg merd og få 50% verdi tilbake
+TIP_ACTION_BUY_PEN,Purchase new pen facility,Kjøp ny merdfasilitet
+TIP_STAT_CASH,Available funds for operations,Tilgjengelige midler for drift
+TIP_STAT_FISH_COUNT,Total fish across all pens,Totalt antall fisk i alle merder
+TIP_STAT_FEED_COST,Daily feed expenditure,Daglig fôrforbruk
+TIP_STAT_REPUTATION,Company standing affects prices,Selskapets omdømme påvirker priser
+TIP_STAT_SPOT_PRICE,Current market rate per kg,Gjeldende markedspris per kg
+TIP_STAT_FCR,Feed conversion ratio efficiency,Fôromsetningsforhold effektivitet
+TIP_STAT_BIOMASS,Total fish weight in tonnes,Totalt fiskevekt i tonn
+TIP_STAT_HEALTH,Overall fish welfare status,Samlet fiskevelferdsstatus
+TIP_STAT_LICE_LEVEL,Sea lice count per fish,Lakselustall per fisk
+TIP_STATUS_HEALTHY,Fish in good condition,Fisk i god stand
+TIP_STATUS_WARNING,Attention required — check metrics,Obs! Sjekk verdier
+TIP_STATUS_DANGER,Critical — immediate action needed,Kritisk — umiddelbar handling nødvendig
+TIP_KPI_REVENUE,Total income this period,Totale inntekter denne perioden
+TIP_KPI_EXPENSES,Total costs this period,Totale kostnader denne perioden
+TIP_KPI_PROFIT,Net revenue after costs,Netto inntekt etter kostnader
+TIP_ESG_CARBON,Environmental impact per kg,Miljøpåvirkning per kg
+TIP_ESG_ANTIBIOTIC,Medication usage level,Medikamentbruk nivå
+TIP_ESG_WELFARE,Fish quality of life score,Fiskevelferd score
+TIP_ESG_FEED,Sustainable feed sourcing,Bærekraftig fôrkilder
+TIP_ESG_ESCAPE,Risk of fish escaping,Risiko for rømning
+TIP_TECH_BIOLOGY,Biological research upgrades,Biologiske forskningsoppgraderinger
+TIP_TECH_INFRA,Facility improvements,Anleggsforbedringer
+TIP_TECH_UNDERWORLD,Unofficial operations,Uoffisielle operasjoner
+TIP_SAVE_QUICK,Quick save to slot 0,Hurtiglagre til plass 0
+TIP_SAVE_SLOT,Save to numbered slot,Lagre til nummerert plass
+TIP_LOAD_SLOT,Load from numbered slot,Last fra nummerert plass
+TIP_DELETE_SLOT,Permanently remove save,Slett lagring permanent
+TIP_STAFF_HIRE,Recruit new employee,Rekrutter ny ansatt
+TIP_STAFF_FIRE,Terminate employment,Avslutt ansettelse
+TIP_STAFF_TRAIN,Improve staff skills,Forbedre ansattes ferdigheter
+TIP_CONTRACT_ACCEPT,Agree to buyer terms,Godta kjøpers betingelser
+TIP_CONTRACT_NEGOTIATE,Counter offer price,Fremsett motpris
+TIP_CONTRACT_DECLINE,Reject offer,Avslå tilbud
+TIP_TRAFFIC_GREEN,6% growth allowed,6% vekst tillatt
+TIP_TRAFFIC_YELLOW,No growth change,Ingen vekstendring
+TIP_TRAFFIC_RED,6% reduction required,6% reduksjon påkrevd
+UI_ACHIEVEMENT_UNLOCKED,Achievement unlocked,Prestasjon låst opp
+UI_ANALYTICS_TITLE,Analytics,Analyse
+UI_ANALYTICS_TITLE_TOOLTIP,Farm performance analytics,Analyse av oppdrettsytelse
+UI_ANALYTICS_BIOMASS,Biomass (t),Biomasse (t)
+UI_ANALYTICS_PROFIT,Profit/Loss (MNOK),Resultat (MNOK)
+UI_ANALYTICS_DO,Dissolved O₂ (mg/L),Oppløst O₂ (mg/L)
+UI_ANALYTICS_LICE,Lice Count,Lusetall
+UI_ANALYTICS_FEED,Feed Cost (MNOK),Fôrkostnad (MNOK)
+UI_ANALYTICS_PERIOD_7D,7d,7d
+UI_ANALYTICS_PERIOD_30D,30d,30d
+UI_ANALYTICS_PERIOD_90D,90d,90d
+UI_ANALYTICS_PERIOD_ALL,All,Alt
+UI_ANALYTICS_TODAY,Today,I dag
+UI_ANALYTICS_NO_DATA,No data,Ingen data
+UI_ANALYTICS_CURRENT,Current,Nåværende
+UI_ANALYTICS_7D_AVG,7-day avg,Snitt 7 d
+UI_ANALYTICS_TREND_UP,▲ Rising,▲ Stigende
+UI_ANALYTICS_TREND_DOWN,▼ Falling,▼ Synkende
+UI_ANALYTICS_TREND_FLAT,◆ Stable,◆ Stabil
+UI_ANALYTICS_CHART_EMPTY,No data available,Ingen data tilgjengelig
+UI_ANALYTICS_ZOOM_HINT,Scroll to zoom • Drag to pan • Right-click to reset,Rull for å zoome • Dra for å flytte • Høyreklikk for å tilbakestille
+UI_ENCYCLOPEDIA_CATEGORIES_HEADER,Categories,Kategorier
+UI_ENCYCLOPEDIA_ENTRIES_HEADER,Entries,Oppslag
+UI_ENCYCLOPEDIA_SEE_ALSO,See also,Se også
+UI_ENCYCLOPEDIA_SELECT_INFO,Select an entry to read more,Velg et oppslag for å lese mer
+UI_ENCYCLOPEDIA_TITLE,Encyclopedia,Leksikon
+UI_ENCYCLOPEDIA_WELCOME,Welcome to the salmon farming encyclopedia,Velkommen til leksikonet om lakseoppdrett
+UI_EVENTLOG_CLEARED,Event log cleared,Hendelseslogg tømt
+UI_EXPORT_FOLDER_LABEL,Folder,Mappe
+UI_EXPORT_LOG_LABEL,Export log,Eksportlogg
+UI_EXPORT_STATUS_READY,Ready,Klar
+UI_EXPORT_TITLE,Export,Eksporter
+UI_GENETICS_BV_FORMAT,BV: %s,AV: %s
+UI_GENETICS_CV_FORMAT,CV: %s,CV: %s
+UI_GENETICS_H2_FORMAT,Heritability: %s,Arvbarhet: %s
+UI_GENETICS_INBREEDING,Inbreeding: %s,Innavl: %s
+UI_MAP_CLICK_PROMPT,Click an area on the map,Klikk et område på kartet
+UI_MAP_COMPASS_N,N,N
+UI_MAP_NORWAY,Norway,Norge
+UI_MAP_REGION_DESC,"Click an area to see licences, temperature and disease risk.","Klikk et område for å se lisenser, temperatur og sykdomsrisiko."
+UI_MAP_SELECT_REGION,Production area,Produksjonsområde
+UI_MAP_SUBTITLE,Production areas,Produksjonsområder
+UI_MODMANAGER_AUTHOR_FORMAT,By %s,Av %s
+UI_MODMANAGER_AUTHOR_UNKNOWN,Unknown author,Ukjent forfatter
+UI_MODMANAGER_EMPTY,No mods installed,Ingen mods installert
+UI_MODMANAGER_NO_SELECTION,Select a mod to see details,Velg en mod for å se detaljer
+UI_MODMANAGER_TITLE,Mod Manager,Modbehandler
+UI_MODMANAGER_TOOLTIP,Manage game modifications,Behandle spillmodifikasjoner
+UI_NOTIFICATION_DAY_FORMAT,Day %d,Dag %d
+UI_PAUSE_SAVE,Save game,Lagre spill
+UI_PAUSE_SAVED,Game saved,Spill lagret
+UI_PAUSE_SAVE_FAILED,⚠️ Save failed,⚠️ Lagring feilet
+UI_PAUSE_SAVING,Saving...,Lagrer...
+UI_PRODUCTION_MARKETS_FORMAT,%d markets,%d markeder
+UI_PRODUCTION_QUANTITY_TOOLTIP,Quantity produced,Produsert mengde
+UI_PRODUCTION_STAGE_TOOLTIP,Stage: %s,Stadium: %s
+UI_PRODUCTION_STATUS_ACTIVE_EXPORTS,Active exports,Aktive eksporter
+UI_PRODUCTION_STATUS_AT_SEA_GROWING,"At sea, growing","I sjøen, vokser"
+UI_PRODUCTION_STATUS_GROWING_SEA,Growing at sea,Vokser i sjøen
+UI_PRODUCTION_STATUS_HARVESTING,Harvesting,Høsting
+UI_PRODUCTION_STATUS_HATCHING,Hatching,Klekking
+UI_PRODUCTION_STATUS_IDLE,Idle,Inaktiv
+UI_PRODUCTION_STATUS_NOT_BUILT,Not built,Ikke bygget
+UI_PRODUCTION_STATUS_NO_MARKETS,No markets,Ingen markeder
+UI_PRODUCTION_STATUS_PROCESSING_KG,Processing %d kg,Bearbeider %d kg
+UI_PRODUCTION_STATUS_PRODUCING,Producing,Produserer
+UI_PRODUCTION_STATUS_READY_EXPORT,Ready for export,Klar for eksport
+UI_PRODUCTION_STATUS_RECENTLY_RELEASED,Recently released,Nylig satt ut
+UI_PRODUCTION_STATUS_SENDING_MARKETS,Sending to %s,Sender til %s
+UI_PRODUCTION_STATUS_SMOLT_ACTIVE,Smolt active,Smolt aktiv
+UI_PRODUCTION_STATUS_SMOLT_WAIT,Waiting for smolt,Venter på smolt
+UI_PRODUCTION_STATUS_TOOLTIP,Production status,Produksjonsstatus
+UI_PRODUCTION_STATUS_WAITING_HATCH,Waiting to hatch,Venter på klekking
+UI_PRODUCTION_STATUS_WAITING_PROCESSING,Waiting for processing,Venter på bearbeiding
+UI_PRODUCTION_STATUS_WAITING_RELEASE,Waiting for release,Venter på utsett
+UI_PRODUCTION_THROUGHPUT_TOOLTIP,Throughput per day,Gjennomstrømning per dag
+UI_PRODUCTION_TITLE,Production,Produksjon
+UI_PRODUCTION_TITLE_TOOLTIP,Production chain overview,Oversikt over produksjonskjeden
+UI_SAVELOAD_LOAD,Load,Last inn
+UI_SAVELOAD_SAVE,Save,Lagre
+UI_SCENARIO_CAPITAL_ICON,Starting capital,Startkapital
+UI_SCENARIO_REGION_ICON,Region,Region
+UI_SCENARIO_SUBTITLE,Choose your starting scenario,Velg startscenario
+UI_SCENARIO_TITLE,Scenarios,Scenarioer
+UI_SCENARIO_WIN_ICON,Victory condition,Seiersvilkår
+UI_SETTINGS_APPLY,Apply,Bruk
+UI_SETTINGS_RESET,Reset,Tilbakestill
+UI_SUSTAINABILITY_BREAKDOWN,Breakdown,Delscorer
+UI_SUSTAINABILITY_CATEGORY_SCORE,%d of %d points,%d av %d poeng
+UI_SUSTAINABILITY_HEADER,Sustainability,Bærekraft
+UI_SUSTAINABILITY_SCORE_FORMAT,Score: %s,Poeng: %s
+UI_SUSTAINABILITY_TOOLTIP,Sustainability rating,Bærekraftsvurdering
+UI_TECH_CLOSE_TOOLTIP,Close research tree,Lukk forskningstreet
+UI_TECH_COMPLETED,Completed,Fullført
+UI_TECH_NO_RESEARCH,No active research,Ingen aktiv forskning
+UI_TECH_PROGRESS_DAYS,%d of %d days,%d av %d dager
+UI_TECH_STATUS_TOOLTIP,Research status,Forskningsstatus
+UI_TECH_TIER_LABEL,Tier %s,Nivå %s
+UI_TECH_TIER_NODE,%s %s,%s %s
+UI_TECH_TITLE,Research,Forskning
+UI_TECH_TITLE_TOOLTIP,Technology tree,Teknologitre
+UI_DECISION_TITLE,CRITICAL DECISION,KRITISK BESLUTNING
+UI_DECISION_DAYS_FORMAT,⏱️ %d days left to decide,⏱️ %d dager igjen å bestemme
+UI_CREW_TITLE,Crew,Mannskap
+UI_CREW_HIRE,Hire,Ansett ny
+UI_BRIEFING_TITLE,☀️ MORNING BRIEFING,☀️ MORGENBRIEFING
+UI_BRIEFING_START_DAY,Start the Day →,Start dagen →
+UI_PEN_SELECT_HINT,"Select a pen\nSelect a site in the list on the left to see its details, delouse, harvest or stock it.","Velg en merd\nVelg en lokalitet i listen til venstre for å se detaljer, avluse, høste eller sette ut fisk."
+UI_PEN_LIST_EMPTY_GUIDE,No pens yet\nChoose a production area on the map to get started.,Ingen merder ennå\nVelg et produksjonsområde på kartet for å komme i gang.
+UI_TOAST_FEED_OK,🐟 Pen %s fed,🐟 Merd %s fôret
+UI_TOAST_DELOUSE_OK,Delousing ordered for %s,Avlusing bestilt for %s
+UI_TOAST_HARVEST_OK,Harvest completed at %s!,Høsting fullført på %s!
+UI_TOAST_ACTION_FAILED,%s failed at %s,%s mislyktes på %s
+UI_TOAST_BUY_PEN,New site built — good luck!,Ny lokalitet bygget — lykke til!
+UI_TOAST_SELL_PEN,%s sold,%s solgt
+UI_TOAST_FEED_ALL,🐟 Feeding all pens …,🐟 Fôrer alle merder …
+UI_TOAST_HARVEST_START,📦 Ready to harvest — select a pen,📦 Klar for høsting — velg en merd
+UI_TOAST_DELOUSE_START,🧪 Select a pen for delousing,🧪 Velg en merd for avlusing
+UI_TOAST_RESEARCH_OPEN,🔬 Opening the research tree,🔬 Forskningstreet åpnes
+UI_TOAST_RESEARCH,Research started: %s,Forskning startet: %s
+UI_TOAST_LOAN_TAKEN,Loan taken: %s,Lån tatt opp: %s
+UI_TOAST_LOAN_REPAID,Repayment made: %s,Nedbetaling fullført: %s
+UI_TOAST_SAVED,💾 Game saved: %s,💾 Spill lagret: %s
+UI_TOAST_LOADED,💾 Save loaded: %s,💾 Lagring lastet: %s
+UI_DASHBOARD_ALERTS_EMPTY,No active alerts — everything looks good,Ingen aktive varsler — alt ser bra ut
+UI_FINANCE_HISTORY_EMPTY,📈 No history yet — figures will appear as the days pass.,📈 Ingen historikk ennå — tallene kommer etter hvert som dagene går.
+UI_SAVELOAD_EMPTY_SAVE_HINT,Press «New Save» to secure your progress.,Trykk «Nytt lagringspunkt» for å sikre framgangen din.
+UI_SAVELOAD_EMPTY_LOAD_HINT,Start a new game from the main menu to get going.,Start et nytt spill fra hovedmenyen for å komme i gang.
+UI_SAVELOAD_TITLE_BOTH,Save / Load,Lagre / last inn
+UI_SAVELOAD_OVERWRITE,Overwrite,Overskriv
+UI_SAVELOAD_DELETE,Delete,Slett
+UI_SAVELOAD_DELETE_CONFIRM,Confirm delete,Bekreft sletting
+UI_TOAST_SAVE_FAILED,⚠️ Save failed: %s,⚠️ Lagring feilet: %s
+UI_TOAST_LOAD_FAILED,⚠️ Load failed: %s,⚠️ Lasting feilet: %s
+UI_TOAST_DELETED,🗑 Save deleted: %s,🗑 Lagring slettet: %s
+UI_TOAST_QUICKSAVED,💾 Quicksaved,💾 Hurtiglagret
+UI_NOTIFY_EMPTY,No notifications yet — we will let you know when something happens.,Ingen varsler ennå — vi gir beskjed når noe skjer.
+UI_BRIEFING_WEATHER,🌤️ Weather forecast,🌤️ Værmelding
+UI_BRIEFING_MARKET,💰 Market,💰 Marked
+UI_BRIEFING_EVENTS,📰 Overnight events,📰 Nattens hendelser
+UI_BRIEFING_STATUS,🏢 Company status,🏢 Selskapsstatus
+UI_BRIEFING_DECISIONS,⚠️ Pending decisions,⚠️ Ventende beslutninger
+UI_BRIEFING_DAY_FORMAT,Day %d — year %d,Dag %d — år %d
+UI_BRIEFING_NO_EVENTS,Quiet night — nothing to report. 🎉,Rolig natt — ingen uhell å melde. 🎉
+UI_BRIEFING_NO_DATA,No data available.,Ingen data tilgjengelig.
+UI_BRIEFING_TREND_UP, (rising), (stigende)
+UI_BRIEFING_TREND_DOWN, (falling), (fallende)
+UI_BRIEFING_WEATHER_FORMAT,Sea temperature: %.1f°C - Now: %s - Oxygen: %d%%,Sjøtemperatur: %.1f°C - Nå: %s - Oksygen: %d%%
+UI_BRIEFING_MARKET_FORMAT,Spot price: %.2f NOK/kg %s - Change: %+.1f%%%s,Spotpris: %.2f NOK/kg %s - Endring: %+.1f%%%s
+UI_BRIEFING_STATUS_FORMAT,Cash: %s - Status: %s - Pens: %d - Reputation: %d/100,Kontanter: %s - Status: %s - Merder: %d - Omdømme: %d/100
+UI_BRIEFING_STATUS_HEALTHY,Solid,Solid
+UI_BRIEFING_STATUS_LOW,⚠️ Low liquidity,⚠️ Lav likviditet
+UI_BRIEFING_STATUS_DEBT,⚠️ IN DEBT,⚠️ I GJELD
+UI_BRIEFING_DECISION_FORMAT,• %s (%d days left),• %s (%d dager igjen)
+UI_NOTIFY_TITLE,Notifications,Varsler
+UI_RAS_TITLE,RAS facilities — overview,RAS-anlegg — oversikt
+UI_RAS_FACILITIES,Facilities,Anlegg
+UI_RAS_BUILD,Build a new RAS facility,Bygg nytt RAS-anlegg
+UI_RAS_MAINTENANCE,Maintenance,Vedlikehold
+UI_RAS_EMPTY,No RAS facilities yet — build a new facility below,Ingen RAS-anlegg ennå — bygg et nytt anlegg nedenfor
+UI_OFFSHORE_TITLE,Offshore facilities — overview,Offshoreanlegg — oversikt
+UI_OFFSHORE_FARMS,Offshore pens,Havmerder
+UI_OFFSHORE_BUILD,Build a new offshore facility,Bygg nytt offshoreanlegg
+UI_OFFSHORE_EMPTY,No offshore facilities yet — build one below,Ingen offshoreanlegg ennå — bygg et nytt anlegg nedenfor
+UI_AIFEED_TITLE,AI feeding,AI-fôring
+UI_AIFEED_INSTALL,Install the AI feeding system,Installer AI-fôringssystem
+UI_FJORD_HINT,WASD or middle-drag: pan • Q/E or right-drag: rotate • Scroll: zoom • T: top-down • Home: recentre • Click a pen for details,WASD eller midtklikk + dra: panorer • Q/E eller høyreklikk + dra: roter • Rull: zoom • T: ovenfra • Home: tilbake • Klikk en merd for detaljer
+UI_FJORD_FLY,🐟 Fly to pen,🐟 Fly til merd
+UI_FJORD_FLY_HINT,Focus the camera on the selected pen,Fokuser kameraet på valgt merd
+UI_FJORD_FLY_NONE,Select a pen in the 3D view or Pens tab first,Velg en merd i 3D-visningen eller Merder-fanen først
+UI_CONTAINMENT_LADDER,Containment per site,Innelukking per lokalitet
+UI_SLUDGE_VALORIZATION,Sludge recovery,Slamgjenvinning
+UI_SLUDGE_NO_DATA,No sludge data available,Ingen slamdata tilgjengelig
+UI_COHORT_TRANSFERS,Cohort transfers,Kohortoverføringer
+UI_TRANSFER_PLAN,Plan Transfer,Planlegg overføring
+UI_TRANSFER_EXECUTE,Execute Transfer,Utfør overføring
+UI_TRANSFER_INVALID_INPUT,"Invalid input — choose sites, count and weight","Ugyldige verdier — velg lokaliteter, antall og vekt"
+UI_CARBON_LEDGER,Carbon Ledger,Klimaregnskap
+UI_CARBON_SCOPE1,Scope 1 — Direct Fuel,Omfang 1 — Direkte brensel
+UI_CARBON_SCOPE2,Scope 2 — Electricity,Omfang 2 — Elektrisitet
+UI_CARBON_SCOPE3,Scope 3 — Feed and transport,Omfang 3 — Fôr og transport
+UI_CARBON_CREDITS,"Credits (biogas, kelp)","Kreditter (biogass, tare)"
+UI_CARBON_NET,Net Emissions,Netto utslipp
+UI_CARBON_INTENSITY,Carbon intensity (kg CO₂e/kg),Karbonintensitet (kg CO₂e/kg)
+UI_CARBON_NEUTRAL,CARBON NEUTRAL ✅,KARBONNØYTRAL ✅
+UI_CARBON_THIS_YEAR,This year,I år
+UI_CARBON_TOTAL,Total,Total
+UI_CARBON_BIOGAS_CREDIT,Biogas Credit,Biogass-kreditt
+UI_CARBON_SITE_EMISSIONS,Site Emissions,Lokalitetsutslipp
+UI_CARBON_OFFSHORE_EMISSIONS,Offshore Emissions,Offshore-utslipp
+UI_CARBON_RAS_EMISSIONS,RAS Emissions,RAS-utslipp
+UI_CARBON_PROCESSING_EMISSIONS,Processing Emissions,Foredlingsutslipp
+UI_BRIEFING_DEPTH,Daily depth status,Daglig dybdestatus
+UI_BRIEFING_DEPTH_GILL_CRIT,"⚠️ Gill health: %d critical, %d warned","⚠️ Gjellehelse: %d kritisk, %d varslet"
+UI_BRIEFING_DEPTH_GILL_WARN,⚠️ Gill health: %d pen(s) warned (max %.0f%% @ %s),⚠️ Gjellehelse: %d merd(er) varslet (maks %.0f%% @ %s)
+UI_BRIEFING_DEPTH_GILL_OK,🫁 Gill health: no warnings,🫁 Gjellehelse: ingen varsler
+UI_BRIEFING_DEPTH_INSURANCE,🛡️ Insurance: %s/year in premium,🛡️ Forsikring: %s/år i premie
+UI_BRIEFING_DEPTH_PEN_PRICE,📋 Price Council (pen price): %.2f NOK/kg,📋 Prisråd (pen-pris): %.2f NOK/kg
+UI_BRIEFING_DEPTH_SUPPLY,📉 Own supply pressure: %.0f%% (%s),📉 Eget tilbudstrykk: %.0f%% (%s)
+UI_BRIEFING_DEPTH_SUPPLY_LOW,low,lav
+UI_BRIEFING_DEPTH_SUPPLY_MED,moderate,moderat
+UI_BRIEFING_DEPTH_SUPPLY_HIGH,high,høy
+UI_BRIEFING_NIGHT_OPS,🌙 Night Operations Centre,🌙 Natt-Driftssentral
+UI_TOAST_MITIGATION_OK,Measures updated at %s,Tiltak oppdatert på %s
+UI_TOAST_REPAIR_OK,Nets repaired at %s,Nøtene er reparert på %s
+UI_TOAST_STOCK_OK,%s smolts stocked at %s,%s smolt satt ut på %s
+UI_TOAST_WELLBOAT_OK,Wellboat ordered to %s,Brønnbåt bestilt til %s
+UI_DASHBOARD_FCR_BAD,Over the ceiling — check feeding,Over taket — sjekk fôringen
+UI_DASHBOARD_TRENDS_TITLE,Trends (30 days),Trender (30 dager)
+UI_DASHBOARD_OPS_TITLE,🎛️ Operations centre,🎛️ Driftssentral
+UI_CREW_EMPTY,"No staff — press ""Hire"" (50k signing fee)",Ingen ansatte — trykk «Ansett ny» (50k i signeringshonorar)
+UI_BUTTON_MODS,Mods,Mods
+UI_NOTIFY_CLEAR_ALL,Clear,Tøm
+UI_NOTIFY_GROUP_CRITICAL,Critical,Kritisk
+UI_NOTIFY_GROUP_WARNING,Warning,Advarsel
+UI_NOTIFY_GROUP_INFO,Info,Info
+ENUM_WEATHER_CALM,Calm,Rolig
+ENUM_WEATHER_MODERATE,Moderate wind,Moderat vind
+ENUM_WEATHER_STORM,Storm,Storm
+ENUM_WEATHER_SEVERE,Severe storm,Ekstremvær
+ENUM_TRAFFIC_LIGHT_GREEN,Green,Grønn
+ENUM_TRAFFIC_LIGHT_YELLOW,Yellow,Gul
+ENUM_TRAFFIC_LIGHT_RED,Red,Rød
+ENUM_CONTAINMENT_OPEN_NET,Open net pen,Åpen merd
+ENUM_CONTAINMENT_SKIRT,Lice skirt,Luseskjørt
+ENUM_CONTAINMENT_SEMI_CLOSED,Semi-closed,Semilukket
+ENUM_CONTAINMENT_CLOSED_FLOAT,Closed floating,Lukket flytende
+ENUM_CONTAINMENT_SUBMERSIBLE,Submersible,Nedsenkbar
+ENUM_CONTAINMENT_OFFSHORE_CLOSED,Closed offshore,Lukket havmerd
+ENUM_BARRIER_NONE,None,Ingen
+ENUM_BARRIER_SMOLTSCREEN,Permeable lice liner,Permeabel lusebarriere
+ENUM_DELOUSING_HYDROGEN_PEROXIDE,Hydrogen peroxide,Hydrogenperoksid
+ENUM_DELOUSING_THERMOLICER,Thermal delousing,Termisk avlusing
+ENUM_DELOUSING_HYDROLICER,Flushing (mechanical),Spyling (mekanisk)
+ENUM_DELOUSING_CLEANER_FISH,Cleaner fish,Rensefisk
+ENUM_DELOUSING_LASER_DELOUSING,Laser delousing,Laseravlusing
+ENUM_DELOUSING_FRESHWATER_BATH,Freshwater bath,Ferskvannsbad
+ENUM_DELOUSING_MEDICATED_FEED,Medicated feed,Medisinfôr
+ENUM_DELOUSING_LICE_SKIRTS,Lice skirts,Luseskjørt
+ENUM_TRAIT_GROWTH_RATE,Growth rate,Vekstrate
+ENUM_TRAIT_DISEASE_RESISTANCE,Disease resistance,Sykdomsresistens
+ENUM_TRAIT_SEA_LICE_RESISTANCE,Sea-lice resistance,Luseresistens
+ENUM_TRAIT_FILLET_QUALITY,Fillet quality,Filetkvalitet
+ENUM_TRAIT_FEED_CONVERSION,Feed conversion,Fôrutnyttelse
+ENUM_TRAIT_STRESS_TOLERANCE,Stress tolerance,Stresstoleranse
+ENUM_TRAIT_LATE_MATURATION,Late maturation,Sen kjønnsmodning
+ENUM_TRAIT_COLD_TOLERANCE,Cold tolerance,Kuldetoleranse
+ENUM_TRANSFER_REASON_GRADING,Grading,Sortering
+ENUM_TRANSFER_REASON_FALLOWING,Before fallowing,Før brakklegging
+ENUM_TRANSFER_REASON_MAB_MANAGEMENT,Biomass limit (MAB),Biomassegrense (MTB)
+ENUM_TRANSFER_REASON_DISEASE_ISOLATION,Disease isolation,Smitteisolering
+ENUM_TRANSFER_REASON_OFFSHORE_STOCKING,Offshore stocking,Utsett i havmerd
+ENUM_TRANSFER_REASON_CONTAINMENT_UPGRADE,Containment upgrade,Oppgradering av innelukking
+ENUM_NIGHT_SHIFT_STANDARD,Standard night watch,Standard nattevakt
+ENUM_NIGHT_SHIFT_SCAN_ONLY,Scan only,Kun skanning
+ENUM_NIGHT_SHIFT_AUTOMATED_ROC,Automated operations centre,Automatisert driftssentral
+ENUM_WATCH_MODE_WATCH,Watch,Vakt
+ENUM_WATCH_MODE_SCAN,Scan,Skanning
+ENUM_WATCH_MODE_AUTO,Automatic,Automatisk
+LEDGER_ACHIEVEMENTS,Achievement rewards,Prestasjonsbelønninger
+LEDGER_ACQUISITIONS,Acquisitions,Oppkjøp
+LEDGER_BARRIERS,Lice barriers,Lusebarrierer
+LEDGER_BLOOM_COUNTERMEASURES,Algae countermeasures,Algetiltak
+LEDGER_BLOOM_MITIGATION,Algae protection,Algevern
+LEDGER_CONTAINMENT,Containment,Innelukking
+LEDGER_CONTRACT_PENALTIES,Contract penalties,Kontraktsbøter
+LEDGER_DELOUSING,Delousing,Avlusing
+LEDGER_EVENTS,Events,Hendelser
+LEDGER_FACILITIES,Facilities,Anlegg
+LEDGER_FACILITY_DEPRECIATION,Facility depreciation,Avskrivning av anlegg
+LEDGER_FEED,Feed,Fôr
+LEDGER_FEED_SPILL,Feed spill,Fôrspill
+LEDGER_FINES,Fines,Bøter
+LEDGER_FORCED_HARVEST,Forced harvest,Tvangsslakt
+LEDGER_GROWTH_LICENCE,Growth licence,Vekstlisens
+LEDGER_HARVEST,Harvest sales,Slaktesalg
+LEDGER_INSURANCE,Insurance,Forsikring
+LEDGER_INTEREST,Interest,Renter
+LEDGER_LICENCE_FEES,Licence fees,Lisensavgifter
+LEDGER_LOAN_PRINCIPAL,Loan repayment,Avdrag på lån
+LEDGER_LOAN_SERVICING,Loan servicing,Nedbetaling lån
+LEDGER_MITIGATION,Skirts and deterrents,Skjørt og skremmere
+LEDGER_NIGHT_SHIFT,Night shift,Nattskift
+LEDGER_OPERATIONS,Operations,Drift
+LEDGER_OTHER,Other,Annet
+LEDGER_PERMIT_FEES,Permit fees,Søknadsgebyrer
+LEDGER_RESEARCH,Research,Forskning
+LEDGER_SEA_SITE,New sea site,Nytt sjøanlegg
+LEDGER_SLUDGE,Sludge,Slam
+LEDGER_SMOLTS,Smolts,Smolt
+LEDGER_STORM_REPAIRS,Storm repairs,Stormreparasjoner
+LEDGER_TAX,Tax,Skatt
+LEDGER_TUTORIAL_REWARDS,Tutorial rewards,Opplæringsbelønninger
+LEDGER_UNCLASSIFIED,Unclassified,Uklassifisert
+LEDGER_VACCINATION,Vaccination,Vaksinering
+LEDGER_VERTICAL_INTEGRATION,Vertical integration,Vertikal integrasjon
+LEDGER_WAGES_MAINTENANCE,Wages and maintenance,Lønn og vedlikehold
+LEDGER_WELLBOAT,Wellboat,Brønnbåt
+ZONE_FJORD_WEST,Western fjords,Vestlandsfjordene
+ZONE_FJORD_NORTH,Northern coast,Nordlandskysten
+ZONE_PO3_NORD,PO3 north,PO3 nord
+ZONE_PO3_SOR,PO3 south,PO3 sør
+ZONE_ISA_KJERNE,ISA core zone,ILA-kjernen
+ZONE_ISA_NORD,Neighbouring field north,Nabofelt nord
+ZONE_ISA_SOR,Neighbouring field south,Nabofelt sør
+ZONE_ALGE_SOR,Algae belt south,Algebeltet sør
+ZONE_ALGE_MIDT,Algae belt middle,Algebeltet midt
+ZONE_ALGE_INDRE,Inner fjord,Indre fjord
+ZONE_VEST_1,West 1,Vest 1
+ZONE_VEST_2,West 2,Vest 2
+ZONE_VEST_3,West 3,Vest 3
+ALERT_LICE_CRITICAL,Lice CRITICAL: %s per fish (limit %s — treatment ordered),Lus KRITISK: %s / fisk (grense %s — pålegg om tiltak)
+ALERT_LICE_HIGH,Lice elevated: %s per fish (treatment considered at %s),Lus forhøyet: %s / fisk (behandling vurderes ved %s)
+ALERT_FCR_POOR,Feed conversion worsening: FCR %s (target %s),Fôrfaktoren forverres: FCR %s (mål %s)
+ALERT_APPETITE_LOW,Low appetite: %s ration — check oxygen and temperature,Lav appetitt: %s rasjon — sjekk oksygen og temperatur
+ALERT_MORTALITY,Mortality %s in the last day,Dødelighet %s siste døgn
+ALERT_OXYGEN_CRITICAL,Oxygen critically low: %s mg/L,Oksygen kritisk lavt: %s mg/L
+ALERT_OXYGEN_LOW,Oxygen low: %s mg/L (appetite falling),Oksygen lavt: %s mg/L (appetitten faller)
+ALERT_NETS_CRITICAL,"Nets critically worn: %s — escape risk, repair now","Nøter kritisk slitt: %s — rømmingsfare, reparer nå"
+ALERT_NETS_WORN,Nets worn: %s — consider repairs,Nøter slitt: %s — vurder reparasjon
+ALERT_STORM_RISK,Storm risk next 3 days: %s — check the nets,Stormfare neste 3 dager: %s — sjekk nøtene
+ALERT_RED_ZONES,Traffic light red in %d zone(s) — MAB tightened,Trafikklys rødt i %d sone(r) — MTB strammet inn
+ALERT_VACCINE_WINDOW,Vaccination window open (%d d left) — coverage %s,Vaksinasjonsvindu åpent (%d d igjen) — dekning %s
+ALERT_VACCINE_WINTER,Unvaccinated stock heading into winter (coverage %s),Uvaksinert bestand går mot vinteren (dekning %s)
+ALERT_WELLBOAT,Wellboat (%s) to %s in %d d,Brønnbåt (%s) til %s om %d d
+ALERT_BLOOM,%s at %s (%d d left),%s ved %s (%d d igjen)
+ALERT_BALANCE_NEGATIVE,Negative balance: %s,Negativ saldo: %s
+ALERT_SUSTAINABILITY_LOW,Sustainability below the requirement: %d/100,Bærekraft under kravet: %d/100
+ALERT_TEMPERATURE_HIGH,High sea temperature: %s (stress risk),Høy sjøtemperatur: %s (stressrisiko)
+ALERT_WEATHER,Weather: %s,Vær: %s
+ALERT_ESCAPE,"ESCAPE at %s — fine %s, repair the nets now","RØMMING ved %s — bot %s, reparer nøtene nå"
+ALERT_DISEASE,Disease (%s at %s): treatment approx. %s,Sykdom (%s ved %s): behandling ca. %s
+SITE_ALL,all sites,alle lokaliteter
+ENUM_WELLBOAT_JOB_HARVEST,harvest,slakting
+ENUM_WELLBOAT_JOB_DELOUSE,delousing,avlusing
+ENUM_WELLBOAT_JOB_ROV,ROV inspection,ROV-inspeksjon
+ENUM_WELLBOAT_JOB_FRESHWATER,freshwater treatment,ferskvannsbehandling
+ENUM_BLOOM_ALGAE,Algal bloom,Algeoppblomstring
+ENUM_BLOOM_JELLYFISH,Jellyfish,Maneter
+ENUM_BLOOM_HYPOXIA,Low oxygen,Oksygensvikt
+ENUM_DISEASE_ISA,ISA,ILA
+ENUM_DISEASE_PD,Pancreas disease (PD),Pankreassykdom (PD)
+ENUM_DISEASE_IHN,IHN,IHN
+ENUM_DISEASE_AGD,Amoebic gill disease (AGD),Amøbegjellesykdom (AGD)
+ENUM_DISEASE_CMS,Cardiomyopathy syndrome (CMS),Hjertesprekk (CMS)
+ENUM_DISEASE_WINTER_ULCERS,Winter ulcers,Vintersår
+ENUM_DISEASE_SEA_LICE,Sea lice,Lakselus
+ENUM_DISEASE_ESCAPE,Escape,Rømming
+UI_FARM_STATE_HEALTHY,All good — no critical deviations,Alt i rute — ingen kritiske avvik
+UI_FARM_STATE_STRAINED,Operations under pressure — keep watch,Driften er under press — følg med
+UI_FARM_STATE_CRITICAL,Critical — action needed now,Kritisk tilstand — handling kreves nå
+UI_FARM_STATE_DETAIL_HEALTHY,"Lice, oxygen, feed and liquidity on target","Lus, oksygen, fôr og likviditet innenfor mål"
+UI_FARM_STATE_CTA_LICE,Go to the pens,Til merdene
+UI_FARM_STATE_CTA_OXYGEN,Open telemetry,Til telemetri
+UI_FARM_STATE_CTA_FCR,Open the feeding plan,Til fôringsplanen
+UI_FARM_STATE_CTA_BALANCE,Open finance,Til økonomi
+UI_FARM_STATE_CTA_TIP,Opens the panel where this is handled,Åpner panelet der dette håndteres
+FARM_FACTOR_LICE_CRITICAL,lice %s (limit %s),lus %s (grense %s)
+FARM_FACTOR_LICE,lice %s,lus %s
+FARM_FACTOR_OXYGEN,O₂ %s mg/L,O₂ %s mg/L
+FARM_FACTOR_FCR_CRITICAL,FCR %s (target %s),FCR %s (mål %s)
+FARM_FACTOR_FCR,FCR %s,FCR %s
+FARM_FACTOR_BALANCE_NEGATIVE,negative balance,negativ saldo
+FARM_FACTOR_BALANCE_LOW,low liquidity,lav likviditet
+FARM_FAMILY_HAV,Offshore,Hav
+FARM_FAMILY_LAND,Land,Land
+FARM_FAMILY_SJO,Sea,Sjø
+FARM_VARIANT_CLOSED_PEN,Semi-closed / closed pen,Semi-lukket / lukket merd
+FARM_VARIANT_HAVFARM,Ship pen,Skipsmerd
+FARM_VARIANT_HFS,Land farm (hybrid),Landanlegg (hybrid)
+FARM_VARIANT_OF1,Offshore pen,Havmerd
+FARM_VARIANT_OPEN_PEN,Open net pen,Åpen merd
+FARM_VARIANT_POST_SMOLT,Post-smolt module,Postsmoltmodul
+FARM_VARIANT_RAS,Land farm (RAS),Landanlegg (RAS)
+RESEARCH_SCOPE_LAND,land tanks,landtanker
+RESEARCH_SCOPE_OFFSHORE,offshore units,havmerder
+RESEARCH_SCOPE_SEA,fjord pens,fjordmerder
+UI_COMPANY_FALLBACK,Your company,Ditt selskap
+UI_DASHBOARD_PENS_TITLE,Pen overview,Merdoversikt
+UI_DASHBOARD_WATER_TITLE,Water quality,Vannkvalitet
+UI_DASHBOARD_WEATHER_TITLE,Weather,Vær
+UI_DASHBOARD_FINANCE_TITLE,Income and costs (30 days),Inntekter og kostnader (30 d)
+UI_DASHBOARD_ALERTS_TITLE,Alerts,Varsler
+UI_DASHBOARD_ACTIONS_TITLE,Shortcuts,Hurtigvalg
+UI_DASHBOARD_ACTION_FEEDING,Feeding plan,Fôringsplan
+UI_DASHBOARD_ACTION_FEEDING_TIP,"Ration and feed type per site, or for every site at once (Pens tab).","Fôrmengde og fôrtype per lokalitet, eller for alle på en gang (Merder-fanen)."
+UI_DASHBOARD_ACTION_HARVEST,Harvest,Høst
+UI_DASHBOARD_ACTION_DELOUSE,Delouse,Avlus
+UI_DASHBOARD_ACTION_REPORTS,Reports,Rapporter
+UI_DASHBOARD_ACTION_RESEARCH,Research,Forskning
+UI_DASHBOARD_ACTION_MAP,Map,Kart
+UI_DASHBOARD_ACTION_HIRE,Hire,Ansett
+UI_DASHBOARD_ACTION_CONTRACTS,Contracts,Kontrakter
+UI_DASHBOARD_PEN_EMPTY,Empty,Tom
+UI_DASHBOARD_FCR_SETTLING,Smolts settling — FCR not judged yet,Smolten er i tilvenning — FCR vurderes ikke ennå
+UI_DASHBOARD_FCR_TARGET,target %s,mål %s
+UI_DASHBOARD_BIOMASS_TIP,"Standing biomass = number of fish × mean weight.\nNow: %s fish × %s kg ≈ %s tonnes.\nCounted per pen; moved by growth, mortality and escapes.","Stående biomasse = antall fisk × gjennomsnittsvekt.\nNå: %s fisk × %s kg ≈ %s tonn.\nTelles per merd; påvirkes av tilvekst, dødelighet og rømming."
+UI_DASHBOARD_REVENUE_TIP,"Revenue booked this financial year: harvest sales, insurance payouts and sludge sales.\nNow: %s MNOK.\nThe line shows the year so far, day by day.","Inntekter bokført i regnskapsåret: slaktesalg, forsikringsoppgjør og slamsalg.\nNå: %s MNOK.\nLinjen viser året så langt, dag for dag."
+UI_DASHBOARD_HEALTH_TIP,"Sustainability score (0–100 %%) = weighted sum of lice control, emissions,\nescapes and animal welfare.\nNow: %s. ≥ 90 green · 70–89 yellow · < 70 red.","Bærekraftsscore (0–100 %%) = vektet sum av lusekontroll, utslipp,\nrømming og dyrevelferd.\nNå: %s. ≥ 90 grønn · 70–89 gul · < 70 rød."
+UI_DASHBOARD_FCR_TIP,"Feed conversion ratio (FCR) = feed used (kg) / biomass gain (kg).\nLower is better; target %s. Now: %s.\nDrivers: water temperature, feed quality (protein/astaxanthin), density and oxygen.","Fôrfaktor (FCR) = fôr brukt (kg) / biomassevekst (kg).\nLavere er bedre; mål %s. Nå: %s.\nFaktorer: vanntemperatur, fôrkvalitet (protein/astaxanthin), tetthet og oksygen."
+UI_DASHBOARD_STORM_RISK,%s storm risk (3 d),%s stormfare (3 d)
+UI_DASHBOARD_NETS_VALUE,%s nets,%s nøter
+UI_DASHBOARD_LICE_VALUE,%s per fish,%s per fisk
+UI_DASHBOARD_FORECAST,7 d forecast (%s confidence),7 d prognose (%s sikkerhet)
+UI_CONFIDENCE_HIGH,high,høy
+UI_CONFIDENCE_MEDIUM,medium,middels
+UI_CONFIDENCE_LOW,low,lav
+UI_DASHBOARD_OPS_BUDGET,"Used %d/%d attention (watch %d · scan %d · auto %d, +%s feed spill)","Brukt %d/%d oppmerksomhet (vakt %d · skanning %d · auto %d, +%s fôrspill)"
+UI_DASHBOARD_WATCH_SWITCH,Switch to %s,Bytt til %s
+UI_CHART_BIOMASS_T,Biomass (tonnes),Biomasse (tonn)
+UI_CHART_PRICE_NOK_KG,Price (NOK/kg),Pris (NOK/kg)
+UI_CHART_LICE_LIMIT,Lice per fish (limit %s),Lus per fisk (grense %s)
+UI_CHART_FCR_TARGET,FCR (target %s),FCR (mål %s)
+UI_TREND_UP,Rising,Stigende
+UI_TREND_DOWN,Falling,Fallende
+UI_TREND_STABLE,Stable,Stabil
+UI_TIME_NOW,Now,Nå
+UI_EVENT_FALLBACK,Event,Hendelse
+UI_DAY_N,Day %d,Dag %d
+UI_DAYS_AGO_SHORT,−%d d,−%d d
+UI_HUD_TIP_BALANCE,"Cash on hand — all income minus costs, loans and investments.\nNow: %s","Kontanter — alle inntekter minus kostnader, lån og investeringer.\nNå: %s"
+UI_HUD_TIP_FISH,Fish in all stocked pens.\nNow: %s,Fisk i alle utsatte merder.\nNå: %s
+UI_HUD_TIP_TEMP,Sea temperature — drives growth and lice reproduction.\nNow: %s °C,Sjøtemperatur — styrer vekst og lusas formering.\nNå: %s °C
+UI_HUD_TIP_PRICE,"Spot price per kg — moves with market events, season and demand.\nNow: %s NOK/kg","Spotpris per kg — følger markedshendelser, sesong og etterspørsel.\nNå: %s kr/kg"
+UI_HUD_TIP_ALERTS,"Active alerts — press I for the attention list, V or the bell for notifications.\n%d active","Aktive varsler — trykk I for oppgavelisten, V eller bjella for varslene.\n%d aktive"
+UI_HUD_TIP_WEATHER,Current weather — storms can damage pens and halt operations.,Været nå — storm kan skade merder og stanse driften.
+UI_HUD_TIP_INBOX,Alert inbox (I),Varslingsinnboks (I)
+UI_FIN_PEN_PRICE,Pen price (binding),Merdpris (bindende)
+UI_FIN_RESOURCE_RENT,Resource rent tax,Grunnrenteskatt
+UI_FIN_INSURANCE_TITLE,Insurance per catastrophe,Forsikring per katastrofe
+UI_FIN_INSURANCE_HINT,The premium is paid annually; coverage and deductible decide the payout on a loss.,Premien betales årlig; dekning og egenandel avgjør utbetalingen ved tap.
+UI_FIN_INSURANCE_TOTAL_NONE,Total annual premium: –,Total årspremie: –
+UI_FIN_INSURANCE_TOGGLE_TIP,"Turn the insurance on or off. The premium is charged every year, whether or not a loss occurs.","Slå forsikringen av eller på. Premien belastes hvert år, uansett om det oppstår tap."
+UI_FIN_COVERAGE,Coverage,Dekning
+UI_FIN_COVERAGE_TIP,Share of the loss above the deductible that is covered. Higher coverage gives a higher premium.,Andel av tapet over egenandelen som dekkes. Høyere dekning gir høyere premie.
+UI_FIN_DEDUCTIBLE,Deductible,Egenandel
+UI_FIN_DEDUCTIBLE_TIP,The loss you carry yourself before the insurance pays. A higher deductible gives a lower premium.,Tapet du dekker selv før forsikringen trer inn. Høyere egenandel gir lavere premie.
+UI_FIN_INSURANCE_OFF,None,Ingen
+UI_FIN_INSURANCE_TOTAL,Total annual premium: %s,Total årspremie: %s
+UI_FIN_STORY_TITLE,Why did it go this way?,Hvorfor gikk det slik?
+UI_FIN_STORY_POSITIVE,The result is positive (%s MNOK). Largest income and cost below.,Resultatet er positivt (%s MNOK). Største inntekt og kostnad under.
+UI_FIN_STORY_NEGATIVE,The result is negative (%s MNOK). Largest cost drivers below.,Resultatet er negativt (%s MNOK). Største kostnadsdrivere under.
+UI_FIN_STORY_COSTS,Largest costs,Største kostnader
+UI_FIN_STORY_INCOME,Largest income,Største inntekter
+UI_FIN_TITLE,Finances,Økonomi
+UI_FIN_CHART_TITLE,Income and costs per month,Inntekter og kostnader per måned
+UI_FIN_PL_TITLE,Income statement,Resultatregnskap
+UI_FIN_LOAN_TITLE,Loans and financing,Lån og finansiering
+UI_FIN_TRENDS_TITLE,Trends (90 d),Trender (90 d)
+UI_FIN_TAKE_LOAN,Take a loan (5 MNOK),Ta opp lån (5 MNOK)
+UI_FIN_REPAY,Repay,Betal tilbake
+UI_FIN_LOAN_ACTIVE,Active,Aktivt
+UI_FIN_NO_LOAN,No loans,Ingen lån
+CMD_ERROR_GENERIC,The action could not be carried out.,Handlingen kunne ikke gjennomføres.
+CMD_ERROR_ENGINE_NOT_READY,No game is running.,Ingen spill er i gang.
+CMD_ERROR_INSUFFICIENT_FUNDS,Not enough cash.,Ikke nok kontanter.
+CMD_ERROR_SITE_NOT_FOUND,The site no longer exists.,Lokaliteten finnes ikke lenger.
+CMD_ERROR_FACILITY_NOT_FOUND,The facility no longer exists.,Anlegget finnes ikke lenger.
+CMD_ERROR_INVALID_COUNT,The number must be greater than zero.,Antallet må være større enn null.
+CMD_ERROR_NOT_OPERATIONAL,The facility is not in operation yet.,Anlegget er ikke i drift ennå.
+CMD_ERROR_MAB_EXCEEDED,This would put the site over its biomass limit (MAB).,Dette ville satt lokaliteten over biomassegrensen (MTB).
+CMD_ERROR_CAPACITY_EXCEEDED,The facility is full.,Anlegget er fullt.
+CMD_ERROR_BATCH_NOT_FOUND,The batch no longer exists.,Partiet finnes ikke lenger.
+CMD_ERROR_BATCH_NOT_READY,The batch is not ready yet.,Partiet er ikke klart ennå.
+CMD_ERROR_ZONE_RED,The production area is red: no growth allowed.,Produksjonsområdet er rødt: ingen vekst tillatt.
+CMD_ERROR_ZONE_NOT_FOUND,The production area does not exist.,Produksjonsområdet finnes ikke.
+CMD_ERROR_UNKNOWN_SCENARIO,Unknown scenario.,Ukjent scenario.
+CMD_ERROR_UNKNOWN_NODE,Unknown research project.,Ukjent forskningsprosjekt.
+CMD_ERROR_UNKNOWN_METHOD,Unknown treatment method.,Ukjent behandlingsmetode.
+CMD_ERROR_UNKNOWN_KIND,Unknown type.,Ukjent type.
+CMD_ERROR_SITE_EMPTY,There are no fish to harvest at the site.,Det er ingen fisk å høste på lokaliteten.
+CMD_ERROR_SCENARIO_LOCKED,The scenario is locked.,Scenarioet er låst.
+CMD_ERROR_RESEARCH_UNAVAILABLE,The research project is not available yet.,Forskningsprosjektet er ikke tilgjengelig ennå.
+CMD_ERROR_PURCHASE_FAILED,The purchase failed.,Kjøpet mislyktes.
+CMD_ERROR_OFFER_NOT_FOUND,The offer is no longer available.,Tilbudet er ikke lenger tilgjengelig.
+CMD_ERROR_NO_LOANS,You have no loans to repay.,Du har ingen lån å betale tilbake.
+CMD_ERROR_LICENCE_HELD,You already hold a licence there.,Du har allerede en lisens der.
+CMD_ERROR_INVALID_TYPE,Invalid type.,Ugyldig type.
+CMD_ERROR_INVALID_SCALE,Invalid size.,Ugyldig størrelse.
+CMD_ERROR_INVALID_LOAN_PARAMS,The bank does not accept these loan terms.,Banken godtar ikke disse lånevilkårene.
+CMD_ERROR_INVALID_AMOUNT,Invalid amount.,Ugyldig beløp.
+CMD_ERROR_GROWTH_LICENCE_REQUIRED,A growth licence is needed for a new production area.,Et nytt produksjonsområde krever en vekstlisens.
+CMD_ERROR_CREDIT_LIMIT,The bank's credit limit is reached.,Bankens kredittgrense er nådd.
+CMD_ERROR_CANCELLED,The action was cancelled.,Handlingen ble avbrutt.
+CMD_ERROR_AUCTION_OPEN,An auction is already open.,En auksjon er allerede åpen.
+CMD_ERROR_AUCTION_NOT_FOUND,The auction no longer exists.,Auksjonen finnes ikke lenger.
+CMD_ERROR_ASSET_NOT_FOUND,The asset is no longer for sale.,Eiendelen er ikke lenger til salgs.
+CMD_ERROR_ALREADY_VACCINATED,The batch is already vaccinated.,Partiet er allerede vaksinert.
+CMD_ERROR_ALREADY_OPERATING,The facility is already in operation.,Anlegget er allerede i drift.
+CMD_ERROR_ALREADY_BOOKED,A wellboat is already booked for this job.,En brønnbåt er allerede bestilt til denne jobben.
+UI_FIN_INS_MORTALITY,Mortality,Dødelighet
+UI_FIN_INS_BLOOM,Algal bloom,Oppblomstring
+UI_FIN_INS_STORM,Storm/escape,Storm/rømming
+UI_FIN_INS_ISA,ISA,ILA
+UI_FIN_TREND_CASH,Cash,Kontanter
+UI_FIN_TREND_LICE,Lice per fish,Lus per fisk
+UI_FIN_TREND_FCR,FCR,FCR
+UI_FIN_PER_YEAR,%s/year,%s/år
+UI_FIN_LOAN_REFUSED,The loan was refused.,Lånet ble avslått.
+UI_FIN_REPAY_REFUSED,The repayment was refused.,Nedbetalingen ble avslått.
+UI_PEN_LIST_TITLE,Pens,Merder
+UI_PEN_LIST_ROW,%s fish · %s t,%s fisk · %s t
+UI_PEN_ENVIRONMENT,Environment,Miljø
+UI_PEN_HEALTH,Health,Helse
+UI_PEN_GENETICS,Genetics,Genetikk
+UI_PEN_DELOUSE,Delouse,Avlus
+UI_PEN_HARVEST,Harvest,Høst
+UI_PEN_REPAIR,Repair nets,Reparer nøter
+UI_PEN_STOCK,Stock %s,Sett ut %s
+UI_PEN_STOCK_TIP,Stock %s smolts of the chosen strain and quality in the chosen pen,Sett ut %s smolt av valgt stamme og kvalitet i valgt merd
+UI_PEN_DELOUSE_METHOD_TIP,Treatment method: efficacy against mortality and resistance,Behandlingsmetode: effekt mot dødelighet og resistens
+UI_PEN_SKIRT,Lice skirt,Luseskjørt
+UI_PEN_DETERRENT,Seal deterrent,Selskremme
+UI_PEN_SKIRT_TIP,Lice skirt: 500k to install + 2k/day. Cuts lice settlement by about 70 % at full cover.,Luseskjørt: 500k i installasjon + 2k/dag. Reduserer luspåslaget med om lag 70 % ved full dekning.
+UI_PEN_DETERRENT_TIP,Seal deterrent: 200k to install + 1k/day. Protects against seal attacks.,Selskremme: 200k i installasjon + 1k/dag. Beskytter mot selangrep.
+UI_PEN_ROV_TIP,"ROV inspection: 75k, 2 days. Cleans the nets (+15 %) and files a report.","ROV-inspeksjon: 75k, 2 dager. Renser nøtene (+15 %) og leverer en funnrapport."
+UI_PEN_SUBTITLE,Area: %s · Capacity: %s · Nets: %s,Område: %s · Kapasitet: %s · Nøter: %s
+UI_PEN_LICE_VALUE,%s lice/fish,%s lus/fisk
+UI_PEN_BADGE_NETS,Nets critical — escape risk,Nøter kritisk — rømmingsfare
+UI_PEN_BADGE_LICE,Elevated lice count,Forhøyet lusetall
+UI_PEN_BADGE_HEALTHY,Healthy,Frisk
+UI_PEN_TREATMENT_ITEM,"%s — effect %s, mortality %s","%s — effekt %s, dødelighet %s"
+UI_PEN_QUALITY_TIP,Smolt quality — expected robustness at sea,Smoltkvalitet — forventet robusthet i sjøfasen
+UI_PEN_QUALITY_NONE,Smolt quality not available,Smoltkvalitet ikke tilgjengelig
+UI_PEN_QUALITY_ITEM_TIP,"%s — mortality ×%s, growth ×%s, days to harvest ×%s","%s — dødelighet ×%s, vekst ×%s, dager til slakt ×%s"
+UI_PEN_STRAIN_ITEM,"%s (%s g, ×%s)","%s (%s g, ×%s)"
+UI_NOT_MEASURED,Not measured,Ikke målt
+ENUM_SMOLT_TIER_STANDARD,Standard smolt,Standard smolt
+ENUM_SMOLT_TIER_LARGE,Large smolt,Storsmolt
+ENUM_SMOLT_TIER_SUPER_SMOLT,Super smolt,Supersmolt
+UI_PEN_ACTION_DELOUSING,Delousing,Avlusing
+UI_PEN_ACTION_REPAIR_NETS,Net repair,Notreparasjon
+UI_PEN_ACTION_STOCK_SMOLTS,Stocking,Utsett
+UI_PEN_ACTION_MITIGATION,Measure,Tiltak
+UI_PEN_ACTION_WELLBOAT,Wellboat order,Brønnbåtbestilling
+UI_PEN_ACTION_PLACE_PEN,Building a site,Bygging av lokalitet
+UI_PEN_ACTION_BUY,Purchase,Kjøp
+UI_PEN_ACTION_SELL,Sale,Salg
+UI_CONTRACTS_TITLE,Market and trade,Marked og handel
+UI_CONTRACTS_NEW,New contract,Ny kontrakt
+UI_CONTRACTS_SELL_SPOT,Sell spot,Selg spot
+UI_CONTRACTS_CHART_TITLE,Price history (12 weeks),Prisutvikling (12 uker)
+UI_CONTRACTS_BUYERS,Buyers,Kjøpere
+UI_CONTRACTS_ACTIVE,Contracts,Kontrakter
+UI_CONTRACTS_REGIONS,Market regions,Markedsregioner
+UI_CONTRACTS_TONNES,%s tonnes,%s tonn
+UI_CONTRACTS_NO_OFFERS,No offers today — check back tomorrow,Ingen tilbud i dag — kom tilbake i morgen
+UI_CONTRACTS_OFFER_TERMS,%s · %d weeks · penalty %s,%s · %d uker · bot %s
+UI_CONTRACTS_SIGN,Sign,Signer
+UI_CONTRACTS_SIGN_TIP,Sign the contract at the offered price; harvests fill it first.,Signer kontrakten til tilbudt pris; høstingen fyller den først.
+UI_CONTRACTS_COL_BUYER,Buyer,Kjøper
+UI_CONTRACTS_COL_VOLUME,Volume,Volum
+UI_CONTRACTS_COL_PRICE,Price,Pris
+UI_CONTRACTS_COL_FULFILLED,Delivered,Levert
+UI_CONTRACTS_COL_STATUS,Status,Status
+UI_CONTRACTS_NONE_ACTIVE,No active contracts — sign an offer above,Ingen aktive kontrakter — signer et tilbud over
+UI_CONTRACTS_STATUS_ACTIVE,Active,Aktiv
+UI_REGION_EU,EU (France/Spain),EU (Frankrike/Spania)
+UI_REGION_UK,United Kingdom,Storbritannia
+UI_REGION_JAPAN,Japan,Japan
+UI_REGION_USA,USA,USA
+UI_DEMAND_HIGH,High demand,Høy etterspørsel
+UI_DEMAND_MEDIUM,Medium demand,Middels etterspørsel
+UI_DEMAND_LOW,Low demand,Lav etterspørsel
+ENUM_CONTRACT_TYPE_SPOT,Spot,Spot
+ENUM_CONTRACT_TYPE_TOLLING,Toll processing,Leieforedling
+ENUM_CONTRACT_TYPE_EXCLUSIVE,Exclusive,Eksklusiv
+ENUM_CONTRACT_TYPE_FORWARD,Forward,Termin
+UI_MAP_TITLE,Production areas — the Norwegian coast,Produksjonsområder — norskekysten
+UI_MAP_KEY_LICENCES,AVAILABLE LICENCES,LEDIGE LISENSER
+UI_MAP_KEY_DISTANCE,DISTANCE TO PROCESSING,AVSTAND TIL SLAKTERI
+UI_MAP_KEY_HUB,PROCESSING HUB,SLAKTERI OG FOREDLING
+UI_MAP_KEY_HARVEST,ANNUAL HARVEST,ÅRLIG SLAKTEVOLUM
+UI_MAP_KEY_OPERATORS,LARGEST OPERATORS,STØRSTE AKTØRER
+UI_MAP_KEY_TEMPERATURE,WATER TEMPERATURE,SJØTEMPERATUR
+UI_MAP_KEY_DISEASE,DISEASE RISK,SYKDOMSRISIKO
+UI_MAP_TEMP_OPTIMAL,Optimal for salmon: 12–16 °C  ·  upper limit: 20 °C,Optimalt for laks: 12–16 °C  ·  øvre grense: 20 °C
+UI_MAP_ZONE,Production area %d · %s,Produksjonsområde %d · %s
+UI_MAP_LICENCES,%d licences,%d lisenser
+UI_MAP_HARVEST,%s tonnes/year,%s tonn/år
+ENUM_RISK_LOW,Low,Lav
+ENUM_RISK_MEDIUM,Medium,Middels
+ENUM_RISK_MEDIUM_HIGH,Medium to high,Middels til høy
+ENUM_RISK_HIGH,High,Høy
+REGION_PO01_DESC,"Norway's southernmost production area, from the Swedish border to Jæren. Summer peaks can approach 20 °C in shallow waters, so heat stress must be planned for. Fewer sheltered deep-water fjords than on the west coast make it a smaller but strategic area.","Norges sørligste produksjonsområde, fra svenskegrensen til Jæren. Sommertoppene kan nærme seg 20 °C på grunt vann, så varmestress må planlegges for. Færre lune dypvannsfjorder enn på Vestlandet gjør området mindre, men strategisk viktig."
+REGION_PO01_DISEASE,Low disease pressure. Warm summers can stress the fish now and then.,Lavt sykdomspress. Varme somre kan stresse fisken fra tid til annen.
+REGION_PO02_DESC,"Rogaland's main salmon area, with deep, sheltered fjords such as the Boknafjord system. Strong logistics around Stavanger. Summer temperatures are mostly favourable, and good deep-water exchange keeps oxygen levels high.","Rogalands viktigste lakseområde, med dype og lune fjorder som Boknafjord-systemet. Sterk logistikk rundt Stavanger. Sommertemperaturene er stort sett gunstige, og god dypvannsutskifting gir høyt oksygennivå."
+REGION_PO02_DISEASE,Moderate disease risk. Stable conditions in the deep Ryfylke fjords.,Moderat sykdomsrisiko. Stabile forhold i de dype Ryfylkefjordene.
+REGION_PO03_DESC,"From the outer archipelago to the inner fjords between Rogaland and Vestland. Dense farming has historically raised the biological pressure, making this a demanding but highly productive area and a hub for maritime technology and aquaculture innovation.","Fra den ytre skjærgården til de indre fjordene mellom Rogaland og Vestland. Tett oppdrett har historisk gitt høyt biologisk press, og området er krevende, men svært produktivt — og et knutepunkt for maritim teknologi og havbruksinnovasjon."
+REGION_PO03_DISEASE,Elevated disease and lice risk; strict biosecurity and active treatment needed.,Forhøyet sykdoms- og lusefare; krever streng biosikkerhet og aktiv behandling.
+REGION_PO04_DESC,"The rugged coast north of Bergen up to the exposed Stad peninsula. Biological pressure is high, but strong tidal currents and deep basins such as the Sognefjord help. Production calls for careful risk management and robust equipment.","Den værharde kysten nord for Bergen opp til det eksponerte Stadlandet. Det biologiske presset er høyt, men sterk tidevannsstrøm og dype bassenger som Sognefjorden hjelper. Produksjonen krever god risikostyring og robust utstyr."
+REGION_PO04_DISEASE,High disease and lice pressure. Strict area management is needed.,Høyt sykdoms- og lusepress. Krever streng områdeforvaltning.
+REGION_PO05_DESC,"Møre og Romsdal's main area, with deep fjords such as the Storfjord and exposed island sites. A major export hub through Ålesund. Sites face winter storms but gain from excellent water exchange with the Norwegian Sea.","Møre og Romsdals viktigste område, med dype fjorder som Storfjorden og eksponerte øylokaliteter. Et stort eksportknutepunkt via Ålesund. Lokalitetene møter vinterstormer, men har svært god vannutskifting med Norskehavet."
+REGION_PO05_DISEASE,Moderate to high disease risk. Exposed sites face tough weather.,Middels til høy sykdomsrisiko. Eksponerte lokaliteter får tøft vær.
+REGION_PO06_DESC,"A highly productive area between Møre og Romsdal and Trøndelag. The islands of Hitra and Frøya offer world-class farming conditions. The area has had a green traffic light, with sustainable lice levels and room to grow.","Et svært produktivt område mellom Møre og Romsdal og Trøndelag. Øyene Hitra og Frøya gir oppdrettsforhold i verdensklasse. Området har hatt grønt trafikklys, med bærekraftige lusenivåer og rom for vekst."
+REGION_PO06_DISEASE,Low disease pressure and strong biological results in recent years.,Lavt sykdomspress og gode biologiske resultater de siste årene.
+REGION_PO07_DESC,Northern Trøndelag up to the southern border of Nordland. Excellent biological conditions and strong local ownership. Rørvik and Nærøysund form one of Norway's most important maritime and aquaculture clusters.,Nordre Trøndelag opp til sørgrensen av Nordland. Svært gode biologiske forhold og sterkt lokalt eierskap. Rørvik og Nærøysund er en av Norges viktigste maritime klynger og havbruksklynger.
+REGION_PO07_DISEASE,Low biological risk. Excellent water quality and low lice levels.,Lav biologisk risiko. Svært god vannkvalitet og lave lusenivåer.
+REGION_PO08_DESC,"The Helgeland coast has thousands of islands with sheltered sites and strong ocean currents. A major engine of Northern Norway's aquaculture economy, with close community ties and innovative local producers.","Helgelandskysten har tusenvis av øyer med lune lokaliteter og sterk havstrøm. En viktig motor i havbruksøkonomien i Nord-Norge, med tette bånd til lokalsamfunnet og nyskapende lokale produsenter."
+REGION_PO08_DISEASE,Moderate disease risk. PD turns up now and then and needs close surveillance.,Moderat sykdomsrisiko. PD dukker opp av og til og krever tett overvåking.
+REGION_PO09_DESC,"The large Vestfjorden basin and the Vesterålen archipelago. Known for pioneering offshore and semi-closed pens on exposed sites. Cold, oxygen-rich water gives excellent welfare and quality, though the dark winter slows growth.","Det store Vestfjordbassenget og Vesterålen. Kjent for å ha gått foran med havmerder og semilukkede merder på eksponerte lokaliteter. Kaldt og oksygenrikt vann gir svært god velferd og kvalitet, selv om mørketiden bremser veksten."
+REGION_PO09_DISEASE,Low disease pressure. Cold water slows lice growth a lot.,Lavt sykdomspress. Kaldt vann bremser lusas vekst betydelig.
+REGION_PO10_DESC,"Between northern Nordland and southern Troms, dominated by the large islands of Andøya and Senja. The harsh, exposed sea demands heavy equipment but rewards operators with few lice problems and premium quality.","Mellom nordre Nordland og søndre Troms, preget av de store øyene Andøya og Senja. Det værharde, eksponerte havet krever tungt utstyr, men gir få luseproblemer og førsteklasses kvalitet."
+REGION_PO10_DISEASE,Very low biological pressure. Strong tidal currents keep the sites clean.,Svært lavt biologisk press. Sterk tidevannsstrøm holder lokalitetene rene.
+REGION_PO11_DESC,"Centred on the Tromsø region, with pristine Arctic fjords. The cold water calls for special feed and light regimes to keep growth up and prevent winter maturation. Strong biological results make it a highly profitable area for established operators.","Sentrert rundt Tromsø, med urørte arktiske fjorder. Det kalde vannet krever spesialfôr og lysstyring for å holde veksten oppe og hindre kjønnsmodning om vinteren. Sterke biologiske resultater gjør området svært lønnsomt for etablerte aktører."
+REGION_PO11_DISEASE,Excellent biosecurity. Low risk of systemic diseases such as PD or ISA.,Svært god biosikkerhet. Lav risiko for systemiske sykdommer som PD eller ILA.
+REGION_PO12_DESC,Norway's western Arctic frontier. The Altafjord has a long history in northern salmon farming. The extreme light seasons (midnight sun and polar night) strongly affect fish biology. Exceptional water quality and low lice counts.,Norges vestlige arktiske grense. Altafjorden har lang historie i nordnorsk lakseoppdrett. De ekstreme lysforholdene (midnattssol og mørketid) påvirker fiskens biologi sterkt. Enestående vannkvalitet og lave lusetall.
+REGION_PO12_DISEASE,Minimal disease risk. Strict transport rules protect the area's status.,Minimal sykdomsrisiko. Strenge transportregler beskytter områdets status.
+REGION_PO13_DESC,"The north-easternmost salmon production in Norway, bordering the Barents Sea. Very cold water can slow growth and cause winter ulcers, so handling and feed need care. In return, the area offers some of the cleanest waters there are for Arctic salmon.","Den nordøstligste lakseproduksjonen i Norge, mot Barentshavet. Svært kaldt vann kan bremse veksten og gi vintersår, så håndtering og fôr krever omtanke. Til gjengjeld har området noe av det reneste vannet som finnes for arktisk laks."
+REGION_PO13_DISEASE,"Extremely low lice and disease risk, but winter ulcers in very cold water.","Ekstremt lav luse- og sykdomsrisiko, men fare for vintersår i svært kaldt vann."
+UI_OVERLAY_TITLE,DATA OVERLAY,DATAOVERLEGG
+UI_OVERLAY_CYCLE_TIP,Switch map overlay: lice → oxygen → biomass → gills → containment,Bytt kartoverlegg: lus → oksygen → biomasse → gjeller → innelukking
+UI_OVERLAY_EMPTY,No sea sites to show yet.,Ingen sjøanlegg å vise ennå.
+UI_OVERLAY_LICE,Lice risk,Lusefare
+UI_OVERLAY_LICE_LO,0 lice/fish,0 lus/fisk
+UI_OVERLAY_LICE_HI,≥ 0.5 (limit),"≥ 0,5 (grense)"
+UI_OVERLAY_LICE_NOTE,"Company lice pressure, raised by a site's gill warning.","Selskapets lusetrykk, hevet av gjellevarsel på lokaliteten."
+UI_OVERLAY_OXYGEN,Oxygen,Oksygen
+UI_OVERLAY_OXYGEN_LO,7.0 mg/L (good),"7,0 mg/L (god)"
+UI_OVERLAY_OXYGEN_HI,≤ 4.0 mg/L (critical),"≤ 4,0 mg/L (kritisk)"
+UI_OVERLAY_OXYGEN_NOTE,Oxygen level; a bubble curtain or diffuser lowers the risk.,Oksygennivå; boblegardin eller diffusor demper risikoen.
+UI_OVERLAY_BIOMASS,Biomass,Biomasse
+UI_OVERLAY_BIOMASS_LO,0 %,0 %
+UI_OVERLAY_BIOMASS_HI,100 % of MAB,100 % av MTB
+UI_OVERLAY_BIOMASS_NOTE,Standing biomass / maximum allowed biomass (MAB).,Stående biomasse / maksimalt tillatt biomasse (MTB).
+UI_OVERLAY_GILL,Gill risk,Gjellerisiko
+UI_OVERLAY_GILL_LO,0,0
+UI_OVERLAY_GILL_HI,≥ 0.75 critical,"≥ 0,75 kritisk"
+UI_OVERLAY_GILL_NOTE,Gill health — early warning per site.,Gjellehelse — tidlig varsel per lokalitet.
+UI_OVERLAY_CONTAINMENT,Containment,Innelukking
+UI_OVERLAY_CONTAINMENT_LO,Closed (low),Lukket (lav)
+UI_OVERLAY_CONTAINMENT_HI,Open net (high),Åpen not (høy)
+UI_OVERLAY_CONTAINMENT_NOTE,Exposure by containment level.,Eksponering etter innelukkingsnivå.
+GILL_REASON_NO_SIGNIFICANT_GILL_HEALTH_RISK,No significant gill-health risk,Ingen vesentlig risiko for gjellehelsen
+GILL_REASON_LOW_DISSOLVED_OXYGEN,Low dissolved oxygen,Lavt oppløst oksygen
+GILL_REASON_TEMPERATURE_STRESS,Temperature stress,Temperaturstress
+GILL_REASON_RECENT_DELOUSING_TREATMENT_LOAD,Recent delousing treatment load,Belastning fra nylig avlusing
+GILL_REASON_HIGH_TURBIDITY_SUSPENDED_SOLIDS,High turbidity / suspended solids,Høy turbiditet / partikler i vannet
+GILL_REASON_STAGNANT_CURRENTS_LIMITING_GILL_CLEARANCE,Stagnant currents limiting gill clearance,Stillestående strøm hindrer rensing av gjellene
+GILL_REASON_NO_DATA,No data,Ingen data
+UI_OFFSHORE_ACTIVE,In operation,I drift
+UI_OFFSHORE_BUILDING,Under construction %s,Under bygging %s
+UI_OFFSHORE_STORM_LOCKDOWN,storm-secured,stormsikret
+UI_OFFSHORE_STOCK_SUMMARY,"%s fish, %s kg","%s fisk, %s kg"
+UI_OFFSHORE_FARM_FALLBACK,Offshore facility,Offshoreanlegg
+UI_OFFSHORE_STOCK,Stock %s smolts,Sett ut %s smolt
+UI_OFFSHORE_DONE,Done.,Utført.
+UI_OFFSHORE_WAVES,Weather and waves: %s,Vær og bølger: %s
+UI_OFFSHORE_ROTATION,Crew rotation: %s,Mannskapsrotasjon: %s
+UI_OFFSHORE_NO_FARMS,no facilities,ingen anlegg
+UI_OFFSHORE_LONGEST_SHIFT,longest shift %d days,lengste turnus %d dager
+UI_OFFSHORE_NEW_FARM_NAME,New offshore facility,Nytt offshoreanlegg
+UI_OFFSHORE_TOP_LEVEL,Highest level,Høyeste nivå
+UI_OFFSHORE_CONTAIN_TIP,Lice blocking %s · storm ×%s · escapes ×%s · growth ×%s · OPEX %s/week,Luseblokkering %s · storm ×%s · rømming ×%s · vekst ×%s · OPEX %s/uke
+UI_OFFSHORE_BARRIER_REMOVE,%s (remove),%s (fjern)
+UI_OFFSHORE_BARRIER_TIP,"Permeable liner (150 + 200 µm) — lice −%s, jellyfish −%s at today's current. Does not count as closed containment for the regulator.","Permeabel duk (150 + 200 µm) — lus −%s, maneter −%s ved dagens strøm. Regnes ikke som lukket innelukking av myndighetene."
+UI_OFFSHORE_BARRIER_CLEAN_TIP,Clean the barrier (removes fouling). Last cleaned %d days ago.,Rengjør barrieren (fjerner begroing). Sist rengjort for %d dager siden.
+UI_OFFSHORE_SLUDGE_ROW,%s: %s kg dry matter collected (%s kg/day projected),%s: %s kg tørrstoff samlet (%s kg/dag anslått)
+UI_OFFSHORE_HUB_CONNECTED,Connected to hub,Koblet til knutepunkt
+UI_OFFSHORE_HUB_CONNECT,Connect to hub,Koble til knutepunkt
+UI_OFFSHORE_HUB_TIP,"Build or connect to the central sludge hub (40 MNOK new, 5 MNOK to connect)","Bygg eller koble til sentralt slamknutepunkt (40 MNOK nytt, 5 MNOK tilkobling)"
+UI_OFFSHORE_VALORIZE,Recover now (%s kg dry matter),Gjenvinn nå (%s kg tørrstoff)
+UI_OFFSHORE_VALORIZE_TIP,Manual sludge recovery: biogas + fertiliser − OPEX,Manuell slamgjenvinning: biogass + gjødsel − OPEX
+UI_OFFSHORE_VALORIZED,Recovered: %s,Gjenvunnet: %s
+UI_OFFSHORE_NO_SLUDGE,No sludge to recover,Ikke noe slam å gjenvinne
+UI_TRANSFER_DEST_ITEM,%s (MAB free: %s t),%s (ledig MTB: %s t)
+UI_TRANSFER_ERROR,Error: %s,Feil: %s
+UI_TRANSFER_PLAN_SUMMARY,Plan: %s fish · %s kg · %s · %s loss · %d days · %s,Plan: %s fisk · %s kg · %s · %s tap · %d dager · %s
+UI_TRANSFER_DONE,"Transfer done (%s moved, %s lost)","Overføring utført (%s flyttet, %s tapt)"
+UI_TRANSFER_FAILED,The transfer failed.,Overføringen mislyktes.
+UI_CREW_ROLE_ROEKTER,Fish farmer (storm and net watch),Røkter (storm- og notvakt)
+UI_CREW_ROLE_VETERINAER,Veterinarian (treatment),Veterinær (behandling)
+UI_CREW_ROLE_SKIPPER,Skipper (wellboat),Skipper (brønnbåt)
+UI_CREW_ALL_FILLED,Every specialist role is filled,Alle spesialistroller er besatt
+UI_CREW_XP,%d XP,%d XP
+UI_CREW_FIRE_TIP,Dismiss,Si opp
+UI_CARBON_NOT_NEUTRAL,Not carbon neutral yet,Ikke karbonnøytral ennå
+UI_CARBON_NET_VALUE,Net: %s t,Netto: %s t
+UI_CARBON_CREDITS_VALUE,Credits: %s t,Kreditter: %s t
+UI_CARBON_NO_SITES,No coastal sites,Ingen kystlokaliteter
+UI_CARBON_ROW_NET,%s: %s t net,%s: %s t netto
+UI_CARBON_PROCESSING_PLANT,Processing plant (%s),Foredlingsanlegg (%s)
+UI_DATA_UNAVAILABLE,data not available,data ikke tilgjengelig
+UI_ATTENTION_INBOX_TITLE,Alert inbox,Varslingsinnboks
+UI_ATTENTION_INBOX_EMPTY,Nothing needs your attention right now.,Ingenting krever oppmerksomhet akkurat nå.
+UI_ATTENTION_INBOX_REFRESH,Refresh,Oppdater
+UI_ATTENTION_INBOX_AUTO_REFRESH,Refresh automatically,Oppdater automatisk
+UI_ATTENTION_INBOX_AUTO_REFRESH_TIP,Refresh the list every day while it is open,Oppdater listen hver dag mens den er åpen
+UI_CLOSE,Close,Lukk
+UI_ATTENTION_MARKET_DROP,Spot price falling,Spotprisen faller
+UI_ATTENTION_MARKET_DROP_DESC,The spot price is %s below the weekly average — review contracts and harvest timing,Spotprisen er %s under ukesnittet — vurder kontrakter og tidspunkt for høsting
+UI_ATTENTION_CAT_HEALTH,Fish health,Fiskehelse
+UI_ATTENTION_CAT_FINANCE,Finance,Økonomi
+UI_ATTENTION_CAT_INTERVENTION,Recommended actions,Anbefalte tiltak
+UI_ATTENTION_CAT_DECISION,Decisions,Beslutninger
+UI_ATTENTION_CAT_WEATHER,Weather,Vær
+UI_ATTENTION_CAT_MARKET,Market,Marked
+UI_ATTENTION_CAT_CONTRACT,Contracts,Kontrakter
+UI_ATTENTION_CAT_OTHER,Other,Annet
+UI_ATTENTION_IN_DAYS,in %d d,om %d d
+UI_ATTENTION_ACTION_VIEW,Show details,Vis detaljer
+UI_PRIORITY_CRITICAL,CRITICAL,KRITISK
+UI_PRIORITY_HIGH,HIGH,HØY
+UI_PRIORITY_MEDIUM,MEDIUM,MIDDELS
+UI_PRIORITY_LOW,LOW,LAV
+UI_ATTENTION_GILL_CRITICAL,Critical gill health,Kritisk gjellehelse
+UI_ATTENTION_GILL_CRITICAL_DESC,{0} has critical gill health — act now,{0} har kritisk gjellehelse — handle nå
+UI_ATTENTION_GILL_WARNING,Gill health warning,Varsel om gjellehelse
+UI_ATTENTION_GILL_WARNING_DESC,{0} has elevated gill risk,{0} har forhøyet gjellerisiko
+UI_ATTENTION_NEGATIVE_BALANCE,Negative balance,Negativ saldo
+UI_ATTENTION_NEGATIVE_BALANCE_DESC,The company's balance is negative: {0:N0} NOK,Selskapets saldo er negativ: {0:N0} kr
+UI_ATTENTION_LOW_LIQUIDITY,Low liquidity,Lav likviditet
+UI_ATTENTION_LOW_LIQUIDITY_DESC,Cash below 1 MNOK: {0:N0} NOK,Kontanter under 1 MNOK: {0:N0} kr
+UI_ATTENTION_LICE_CRITICAL,Lice above the treatment limit,Lus over behandlingsgrensen
+UI_ATTENTION_LICE_CRITICAL_DESC,Sea lice at {0:F2} per fish — treatment is mandatory,Lakselus på {0:F2} per fisk — behandling er påbudt
+UI_ATTENTION_LICE_WARNING,Elevated lice levels,Forhøyet lusenivå
+UI_ATTENTION_LICE_WARNING_DESC,Sea lice at {0:F2} per fish — nearing the treatment limit,Lakselus på {0:F2} per fisk — nærmer seg behandlingsgrensen
+UI_ATTENTION_STORM,Severe weather,Kraftig vær
+UI_ATTENTION_STORM_DESC,{0} warning — secure the sites and review operations,Farevarsel: {0} — sikre lokalitetene og vurder driften
+UI_ATTENTION_CONTRACT_EXPIRING,Contract expiring soon,Kontrakt utløper snart
+UI_ATTENTION_CONTRACT_EXPIRING_DESC,The contract with {0} expires in {1} weeks,Kontrakten med {0} utløper om {1} uker
+ADVISOR_RECIPE_TUNE,Adjust the feed recipe,Juster fôrresepten
+ADVISOR_DELOUSE_PREEMPT,Delouse before the limit,Avlus før grensen nås
+ADVISOR_HARVEST_WINDOW,Harvest in the window,Høst i vinduet
+UI_GOAL_PREFIX,Goal: %s,Mål: %s
+UI_GOAL_FREE_PLAY,Free play — no set goal,Fritt spill — ingen målsetting
+UI_GOAL_FAILED,%s — failed,%s — mislyktes
+UI_GOAL_YEARS_LEFT,%s years left,%s år igjen
+UI_TAB_LOCKED_TIP,Unlocked later in the tutorial,Låses opp senere i opplæringen
+UI_GENETICS_TITLE,Genetics and breeding,Genetikk og avl
+UI_GENETICS_COL_TRAIT,Trait,Egenskap
+UI_GENETICS_COL_HERITABILITY,Heritability,Arvbarhet
+UI_GENETICS_COL_BREEDING_VALUE,Breeding value,Avlsverdi
+UI_GENETICS_COL_CURRENT,Now,Nå
+UI_GENETICS_INBREEDING_WARNING,⚠ Inbreeding depression detected — genetic variation is falling.,⚠ Innavlsdepresjon påvist — den genetiske variasjonen faller.
+UI_GENETICS_GAIN_HEADER,Expected genetic gain (per generation),Forventet genetisk fremgang (per generasjon)
+UI_GENETICS_GE_HEADER,Genetic modification (GM) — regulatory status in Norway,Genmodifisering (GM) — reguleringsstatus i Norge
+UI_GENETICS_BREED,Choose broodstock,Velg stamfisk
+UI_GENETICS_BREED_DISABLED_TIP,No breeding programme yet. Choose strain and smolt quality when you stock fish in the Pens tab.,Ingen avlsprogram ennå. Velg stamme og smoltkvalitet når du setter ut fisk i Merder-fanen.
+UI_GENETICS_TRAIT_TIP,Name of the genetic trait.,Navn på den genetiske egenskapen.
+UI_GENETICS_H2_TIP,Heritability (h²): how much of the variation in the trait is genetic. Higher h² makes breeding more effective.,Arvbarhet (h²): hvor stor del av variasjonen i egenskapen som skyldes genetikk. Høyere h² gir mer effektiv avl.
+UI_GENETICS_BV_TIP,"Breeding value: the estimated genetic value of the trait. Positive is better, negative worse.","Avlsverdi: estimert genetisk verdi for egenskapen. Positive verdier er bedre, negative dårligere."
+UI_GENETICS_CV_TIP,The current average of this trait in your stock.,Nåværende gjennomsnitt for denne egenskapen i bestanden din.
+UI_GENETICS_INBREEDING_TIP,Inbreeding coefficient: how inbred the stock is. High values can reduce health and growth.,Innavlskoeffisient: hvor innavlet bestanden er. Høye verdier kan gi dårligere helse og vekst.
+UI_GENETICS_INBREEDING_WARNING_TIP,Warning: inbreeding is high. Bring in new broodstock to avoid the effects.,Advarsel: innavlen er høy. Ta inn ny stamfisk for å unngå skadevirkningene.
+UI_GENETICS_GAIN_UNAVAILABLE,Genomic selection is not available.,Genomisk seleksjon er ikke tilgjengelig.
+UI_GENETICS_NO_BROODSTOCK,No broodstock registered — no breeding programme yet.,Ingen stamfisk registrert — ingen avlsprogram ennå.
+UI_GENETICS_GAIN_TIP,Expected change in breeding value per generation under genomic selection.,Forventet endring i avlsverdi per generasjon under genomisk seleksjon.
+UI_GENETICS_INBREEDING_UNAVAILABLE,Inbreeding: not available,Innavl: ikke tilgjengelig
+UI_GENETICS_INBREEDING_DETAIL,Inbreeding: %s · growth penalty: %s,Innavl: %s · vekststraff: %s
+UI_GENETICS_INBREEDING_DETAIL_TIP,Coefficient and expected growth loss from inbreeding depression.,Koeffisient og forventet veksttap fra innavlsdepresjon.
+UI_GENETICS_GE_UNAVAILABLE,GM data not available.,GM-data er ikke tilgjengelig.
+UI_GENETICS_GE_NONE,No GM traits registered.,Ingen GM-egenskaper registrert.
+UI_GENETICS_GE_TIP,Regulatory status in Norway and the reputation cost of using it.,Reguleringsstatus i Norge og omdømmekostnad ved bruk.
+UI_GENETICS_GE_STATUS,%s (reputation %s),%s (omdømme %s)
+GE_TRAIT_GE_GROWTH_AQUADVANTAGE,Growth-hormone transgene,Veksthormon-transgen
+GE_TRAIT_GE_DISEASE_RESISTANCE,Engineered disease resistance,Genredigert sykdomsresistens
+GE_TRAIT_GE_STERILITY,Induced sterility (containment),Indusert sterilitet (innelukking)
+GE_TRAIT_GE_LICE_RESISTANCE,Engineered lice resistance,Genredigert luseresistens
+ENUM_GE_STATUS_NOT_SUBMITTED,Not submitted,Ikke søkt
+ENUM_GE_STATUS_UNDER_REVIEW,Under review,Til behandling
+ENUM_GE_STATUS_APPROVED,Approved,Godkjent
+ENUM_GE_STATUS_BANNED,Banned,Forbudt
+UI_ENCYCLOPEDIA_SEARCH,Search the encyclopedia…,Søk i leksikonet…
+UI_ENCYCLOPEDIA_SEARCH_TIP,"Search for fish, diseases, equipment, rules and markets.","Søk etter fisk, sykdommer, utstyr, regelverk og markeder."
+UI_ENCYCLOPEDIA_CLOSE_TIP,Close the encyclopedia (Esc),Lukk leksikonet (Esc)
+UI_SUSTAINABILITY_PRICE_BONUS,Price bonus: +%s,Pristillegg: +%s
+UI_SUSTAINABILITY_PRICE_PENALTY,Price penalty: −%s,Prisfradrag: −%s
+UI_SUSTAINABILITY_PRICE_STANDARD,Standard price,Standardpris
+UI_SUSTAINABILITY_CAT_LICE,Sea-lice control,Lusekontroll
+UI_SUSTAINABILITY_CAT_ESCAPE,Escape prevention,Rømmingssikring
+UI_SUSTAINABILITY_CAT_FEED,Sustainable feed,Bærekraftig fôr
+UI_SUSTAINABILITY_CAT_CARBON,Carbon footprint,Karbonavtrykk
+UI_SUSTAINABILITY_CAT_WELFARE,Animal welfare,Dyrevelferd
+UI_SUSTAINABILITY_CAT_ECOSYSTEM,Ecosystem impact,Påvirkning på økosystemet
+UI_SUSTAINABILITY_ZONES,Areas: 🟢 %d  🟡 %d  🔴 %d,Områder: 🟢 %d  🟡 %d  🔴 %d
+UI_SUSTAINABILITY_RED_TIGHTENS,red tightens the MAB,rødt strammer inn MTB
+UI_CERT_NON_COMPLIANT,Below requirements,Under kravene
+UI_CERT_BASIC_COMPLIANCE,Meets basic requirements,Oppfyller grunnkravene
+UI_CERT_ASC,ASC certified,ASC-sertifisert
+UI_CERT_ORGANIC,Organic certified,Økologisk sertifisert
+UI_CERT_LEADER,Sustainability leader,Bærekraftsleder
+UI_AIFEED_RECIPE_PREVIEW,%s NOK/kg · FCR ×%s · grade %s (%s),%s kr/kg · FCR ×%s · klasse %s (%s)
+UI_AIFEED_VAP_FULL,+12 % value-added premium,+12 % foredlingspremie
+UI_AIFEED_VAP_PALE,+6 % value-added premium (pale fillet),+6 % foredlingspremie (blek filet)
+UI_AIFEED_CALIBRATION,Calibration: %s,Kalibrering: %s
+UI_AIFEED_CAMERAS,Cameras: %s,Kameraer: %s
+UI_AIFEED_NOT_INSTALLED,not installed,ikke installert
+UI_AIFEED_UPTIME,uptime %s,oppetid %s
+UI_AIFEED_APPETITE,Appetite: %s (%s),Appetitt: %s (%s)
+UI_AIFEED_FCR_SAVINGS,FCR savings: %s,FCR-besparelse: %s
+UI_AIFEED_INSTALL_FIRST,– (install the system first),– (installer systemet først)
+UI_LEVEL_LOW,low,lav
+UI_LEVEL_MEDIUM,medium,middels
+UI_LEVEL_HIGH,high,høy
+UI_TECH_ACTIVE,Researching: %s — %d days left,Forsker: %s — %d dager igjen
+UI_TECH_IDLE,No active research  ·  pick a project to start,Ingen aktiv forskning  ·  velg et prosjekt for å starte
+UI_TECH_COST_DAYS,%s  ·  %d d,%s  ·  %d d
+UI_TECH_CONFIRM_TEXT,%s\n\nCost: %s\nResearch time: %d days\n\n%s,%s\n\nKostnad: %s\nForskningstid: %d dager\n\n%s
+UI_TECH_START_FAILED_TITLE,Cannot start research,Kan ikke starte forskning
+UI_TECH_START_FAILED,"Not enough cash, or a requirement is not met.","Ikke nok penger, eller et krav er ikke oppfylt."
+UI_TECH_REQUIRES,Requires: %s,Krever: %s
+UI_TECH_APPLIES_TO,Applies to: %s,Gjelder bare: %s
+UI_TECH_EFFECTS,Effects: %s,Effekter: %s
+UI_TECH_UNLOCKS,Opens: %s,Låser opp: %s
+RESEARCH_SELECTIVE_BREEDING_NAME,Selective breeding programme,Avlsprogram
+RESEARCH_SELECTIVE_BREEDING_DESC,Set up a systematic breeding programme that finds and multiplies fast-growing broodstock. Raises the base growth of every cohort.,Bygg opp et systematisk avlsprogram som finner og formerer hurtigvoksende stamfisk. Øker grunnveksten i alle kohorter.
+RESEARCH_DISEASE_RESISTANCE_NAME,Disease-resistant genetics,Sykdomsresistent genetikk
+RESEARCH_DISEASE_RESISTANCE_DESC,"Use genomic selection to breed salmon with heritable resistance to ISA, PD and CMS. Fewer and milder disease outbreaks.","Bruk genomisk seleksjon til å avle fram laks med arvelig motstand mot ILA, PD og CMS. Færre og mildere sykdomsutbrudd."
+RESEARCH_FEED_EFFICIENCY_GENETICS_NAME,Feed-efficiency genetics,Genetikk for fôrutnyttelse
+RESEARCH_FEED_EFFICIENCY_GENETICS_DESC,Select broodstock for better feed conversion. A lower FCR means less feed per kilo of fish and a lighter load on the environment.,Velg stamfisk med bedre fôrutnyttelse. Lavere fôrfaktor betyr mindre fôr per kilo fisk og mindre belastning på miljøet.
+RESEARCH_GROWTH_OPTIMIZATION_NAME,Growth protocols,Vekstprotokoller
+RESEARCH_GROWTH_OPTIMIZATION_DESC,"Fine-tuned light, temperature and feeding-window routines from smolt research. Speeds up growth at sea.","Finjusterte rutiner for lys, temperatur og fôringsvinduer fra smoltforskningen. Gir raskere vekst i sjøfasen."
+RESEARCH_SMOLT_EXCELLENCE_NAME,Smolt quality programme,Smoltkvalitetsprogram
+RESEARCH_SMOLT_EXCELLENCE_DESC,"A combined hatchery and smolt programme with genetics, nutrition and light control. Gives top-grade smolts that cope better at sea and die less after transfer.","Et samlet program for settefisk og smolt med genetikk, ernæring og lysstyring. Gir førsteklasses smolt som klarer seg bedre i sjøen og dør mindre etter utsett."
+RESEARCH_AUTOMATED_FEEDING_NAME,Automated feeding,Automatisk fôring
+RESEARCH_AUTOMATED_FEEDING_DESC,"Replace manual feeding with automatic spreaders steered by underwater appetite cameras. No overfeeding, less waste.",Erstatt manuell fôring med automatiske fôrspredere styrt av appetittkameraer under vann. Ingen overfôring og mindre svinn.
+RESEARCH_SENSOR_NETWORKS_NAME,Sensor networks,Sensornettverk
+RESEARCH_SENSOR_NETWORKS_DESC,"Buoys and in-pen sensors measure oxygen, salinity, pH, temperature and current in real time and warn early when the water quality drifts.","Bøyer og sensorer i merdene måler oksygen, saltholdighet, pH, temperatur og strøm i sanntid og varsler tidlig når vannkvaliteten endrer seg."
+RESEARCH_UNDERWATER_DRONES_NAME,Underwater ROVs,Undervannsdroner (ROV)
+RESEARCH_UNDERWATER_DRONES_DESC,Remote-operated vehicles inspect pens and nets and count lice early. Fewer diving hours and daily biomass estimates from stereo cameras.,Fjernstyrte undervannsfarkoster inspiserer merder og nøter og teller lus tidlig. Færre dykketimer og daglige biomasseanslag fra stereokameraer.
+RESEARCH_AI_MONITORING_NAME,AI health monitoring,KI-basert helseovervåking
+RESEARCH_AI_MONITORING_DESC,"Image models trained on millions of salmon pictures spot fin damage, sores, cataracts and odd behaviour, and give a daily welfare score per pen.","Bildemodeller trent på millioner av laksebilder oppdager finneskader, sår, grå stær og unormal atferd, og gir en daglig velferdsscore per merd."
+RESEARCH_PREDICTIVE_ANALYTICS_NAME,Predictive analytics,Prediktiv analyse
+RESEARCH_PREDICTIVE_ANALYTICS_DESC,"One platform for sensor history, weather forecasts, genetics and market signals. Predicts disease 14 days ahead, picks harvest windows and suggests feed changes.","Én plattform for sensorhistorikk, værvarsler, genetikk og markedssignaler. Varsler sykdom 14 dager i forveien, finner slaktevinduer og foreslår endringer i fôringen."
+RESEARCH_ORGANIC_CERTIFICATION_NAME,Organic certification,Økologisk sertifisering
+RESEARCH_ORGANIC_CERTIFICATION_DESC,"Become certified as an organic fish farm. Requires lower stocking density, no synthetic additives and stricter welfare standards, and earns a clear price premium.","Bli sertifisert som økologisk oppdrettsanlegg. Krever lavere tetthet, ingen syntetiske tilsetninger og strengere velferdskrav, og gir et tydelig pristillegg."
+RESEARCH_RENEWABLE_ENERGY_NAME,Renewable energy,Fornybar energi
+RESEARCH_RENEWABLE_ENERGY_DESC,"Power the sites with wind turbines, solar panels on shore and tidal generators. Less diesel and lower Scope 2 emissions.","Driv lokalitetene med vindturbiner, solceller på land og tidevannskraft. Mindre diesel og lavere utslipp i omfang 2."
+RESEARCH_CARBON_CAPTURE_NAME,Kelp farming for carbon capture,Tareoppdrett for karbonfangst
+RESEARCH_CARBON_CAPTURE_DESC,Grow kelp and mussels around the pens. The kelp binds CO₂ and the mussels filter particles — a natural clean-up belt with saleable by-products.,Dyrk tare og blåskjell rundt merdene. Taren binder CO₂ og skjellene filtrerer partikler — et naturlig rensebelte med salgbare biprodukter.
+RESEARCH_CIRCULAR_ECONOMY_NAME,Circular operations,Sirkulær drift
+RESEARCH_CIRCULAR_ECONOMY_DESC,"Turn sludge and processing waste into biogas and fertiliser, and reuse process water in a closed loop. Qualifies for zero-discharge certification.","Gjør slam og avfall fra foredlingen om til biogass og gjødsel, og gjenbruk prosessvann i et lukket kretsløp. Gir grunnlag for nullutslippssertifisering."
+RESEARCH_SUSTAINABILITY_LEADER_NAME,Sustainability leadership,Bærekraftsledelse
+RESEARCH_SUSTAINABILITY_LEADER_DESC,"Renewable energy, circular operations and a net gain for biodiversity, all at once. Opens for green licence renewals, ESG investors and the top ASC score.","Fornybar energi, sirkulær drift og netto gevinst for naturmangfoldet, alt på én gang. Åpner for grønne lisensfornyelser, ESG-investorer og toppscore i ASC."
+RESEARCH_PREMIUM_PRODUCTS_NAME,Premium product lines,Premiumprodukter
+RESEARCH_PREMIUM_PRODUCTS_DESC,"Launch your own retail brands, Lakskongen Premium and Lakskongen Reserve, with their own sizing, trimming standards and traceability codes to capture the retail margin.","Lanser egne merkevarer i dagligvare, Lakskongen Premium og Lakskongen Reserve, med egen sortering, trimmestandard og sporingskoder for å ta butikkmarginen."
+RESEARCH_VALUE_ADDED_PROCESSING_NAME,Value-added processing,Videreforedling
+RESEARCH_VALUE_ADDED_PROCESSING_DESC,"Expand into hot- and cold-smoked salmon, gravlaks, portions with skin and sashimi blocks. Every category pays more per kilo than whole gutted fish.","Utvid med varm- og kaldrøkt laks, gravlaks, porsjoner med skinn og sashimiblokker. Hver kategori gir mer per kilo enn hel sløyd fisk."
+RESEARCH_COLD_CHAIN_OPTIMIZATION_NAME,Better cold chain,Bedre kjølekjede
+RESEARCH_COLD_CHAIN_OPTIMIZATION_DESC,"Slurry-ice packing, cartons that log temperature and smarter transport routes. Longer shelf life, less waste and longer export routes.","Slurryis i pakningen, esker som logger temperaturen og smartere transportruter. Lengre holdbarhet, mindre svinn og lengre eksportruter."
+RESEARCH_PACKAGING_INNOVATION_NAME,Packaging innovation,Ny emballasje
+RESEARCH_PACKAGING_INNOVATION_DESC,"Modified-atmosphere packaging with bio-based film gives fresh fillets 21 days of shelf life, and recyclable materials replace polystyrene.","Emballasje med modifisert atmosfære og biobasert film gir fersk filet 21 dagers holdbarhet, og resirkulerbare materialer erstatter isopor."
+RESEARCH_SASHIMI_GRADE_NAME,Sashimi-grade export,Sashimikvalitet for eksport
+RESEARCH_SASHIMI_GRADE_DESC,"Meet the Japanese import standard for raw salmon: strict parasite control, a guaranteed fat range and an ultra-cold chain. Opens the most valuable market there is.","Oppfyll den japanske importstandarden for rå laks: streng parasittkontroll, garantert fettinnhold og en ekstra kald kjølekjede. Åpner det mest verdifulle markedet som finnes."
+RESEARCH_DEEP_SEA_FARMING_NAME,Exposed offshore farming,Havbruk til havs
+RESEARCH_DEEP_SEA_FARMING_DESC,Develop semi-submersible offshore pens for exposed sites with strong currents. Opens the offshore pen; its lice and disease effects apply to offshore units only.,Utvikle halvt nedsenkbare havmerder for eksponerte lokaliteter med sterk strøm. Låser opp havmerden; effektene mot lus og sykdom gjelder bare havmerder.
+RESEARCH_LAND_BASED_RAS_NAME,Land-based RAS,Landbasert RAS
+RESEARCH_LAND_BASED_RAS_DESC,"A recirculating facility on land: no sea lice, no escapes and a controlled environment all year. Opens the post-smolt module and the hybrid land farm; its mortality and disease effects apply to land tanks only.","Et resirkuleringsanlegg på land: ingen lakselus, ingen rømming og kontrollert miljø hele året. Låser opp postsmoltmodulen og landanlegget (hybrid); effektene mot dødelighet og sykdom gjelder bare landtanker."
+RESEARCH_ARCTIC_AQUACULTURE_NAME,Arctic farming,Arktisk oppdrett
+RESEARCH_ARCTIC_AQUACULTURE_DESC,"Cold-adapted strains and winterised equipment for sites north of 70° N. Arctic salmon sells at a premium, and the work is done with the local authorities in Troms and Finnmark.","Kuldetilpassede stammer og vinterklargjort utstyr for lokaliteter nord for 70° N. Arktisk laks gir pristillegg, og arbeidet gjøres sammen med lokale myndigheter i Troms og Finnmark."
+RESEARCH_INTERNATIONAL_EXPORT_NAME,International export,Internasjonal eksport
+RESEARCH_INTERNATIONAL_EXPORT_DESC,"Export desks for the USA, Japan and China with local sales agents, regulatory teams and currency hedging. Less dependence on the EU.","Eksportkontorer for USA, Japan og Kina med lokale salgsagenter, regelverksteam og valutasikring. Mindre avhengighet av EU."
+RESEARCH_GLOBAL_OPERATIONS_NAME,Global operations,Global drift
+RESEARCH_GLOBAL_OPERATIONS_DESC,"One management platform for every site, processing plant, logistics chain and export market: real-time supply planning, finance in many currencies and compliance in many countries.","Én styringsplattform for alle lokaliteter, foredlingsanlegg, logistikkjeder og eksportmarkeder: forsyningsplanlegging i sanntid, økonomi i mange valutaer og regeletterlevelse i mange land."
+EVENT_STORM_DAMAGE,Storm damage,Stormskade
+EVENT_MATTILSYNET_ORDER,Mattilsynet order,Pålegg fra Mattilsynet
+EVENT_MATTILSYNET_ORDER_CLOSED,Mattilsynet order closed,Pålegg fra Mattilsynet lukket
+EVENT_FORCED_DELOUSING,Forced delousing,Tvangsavlusing
+EVENT_GROWTH_LICENCE_AUCTION,Growth licence auction,Auksjon av vekstlisens
+EVENT_GROWTH_LICENCE_WON,Growth licence won,Vekstlisens vunnet
+EVENT_DELOUSING_TREATMENT,Delousing,Avlusing
+EVENT_HARVEST,Harvest,Slakting
+EVENT_MATTILSYNET_MAB_BESKJED,Biomass order (Mattilsynet),Pålegg om MTB fra Mattilsynet
+EVENT_MATTILSYNET_BESKED_TRUKKET,Biomass order withdrawn,Mattilsynet trakk pålegget
+EVENT_TVANGSAVSLAKT_MATTILSYNET,Forced harvest (Mattilsynet),Tvangsslakting (Mattilsynet)
+EVENT_MATTILSYNET_MAB_OPPGJOR,Biomass order met,MTB-pålegget er oppfylt
+UI_TOAST_COUNTERMEASURE_OK,Countermeasure installed at %s,Tiltaket er installert på %s
+UI_TOAST_GE_DEPLOYED,Gene-edited fish deployed at %s — expect scrutiny,Genredigert fisk satt ut på %s — vent kritiske spørsmål
+UI_TOAST_GE_DEPLOYED_SHORT,Gene-edited fish deployed,Genredigert fisk satt ut
+UI_TOAST_INSURANCE_PAYOUT,Insurance payout: %s,Forsikringsutbetaling: %s
+UI_ANALYTICS_TIP_CURRENT,Current: %s,Nå: %s
+UI_ANALYTICS_TIP_AVG_7D,7-day avg: %s,Snitt 7 d: %s
+UI_UNIT_TONNES,t,t
+UI_UNIT_MNOK,MNOK,MNOK
+UI_UNIT_MG_PER_L,mg/L,mg/l
+UI_UNIT_PER_FISH,per fish,per fisk
+UI_EXPORT_DAILY_TITLE,Daily snapshots,Daglige øyeblikksbilder
+UI_EXPORT_DAILY_SUBTITLE,One row per simulated day,En rad per simuleringsdag
+UI_EXPORT_DAILY_DESC,"Biomass, fish count, market price, sustainability score and more.\nGood for trend analysis and charts.","Biomasse, fiskeantall, markedspris, bærekraftsscore og mer.\nBra for trendanalyse og visualisering."
+UI_EXPORT_FINANCE_TITLE,Financial report,Finansrapport
+UI_EXPORT_FINANCE_SUBTITLE,Aggregated per 30-day period,Aggregert per 30-dagers periode
+UI_EXPORT_FINANCE_DESC,"Balance changes, average market price and FCR per period.\nGood for profitability analysis.","Saldoendringer, gjennomsnittlig markedspris og FCR per periode.\nBra for lønnsomhetsanalyse."
+UI_EXPORT_POPULATION_TITLE,Population data,Populasjonsdata
+UI_EXPORT_POPULATION_SUBTITLE,Biological key figures per day,Biologiske nøkkeltall per dag
+UI_EXPORT_POPULATION_DESC,"Fish count, mean weight, lice per fish, mortality.\nGood for biology and welfare tracking.","Fiskeantall, gjennomsnittsvekt, lus per fisk, dødsrate.\nBra for biologisk analyse og velferdssporing."
+UI_EXPORT_EVENTS_TITLE,Event log,Hendelseslogg
+UI_EXPORT_EVENTS_SUBTITLE,Every event with a financial impact,Alle hendelser med finansiell påvirkning
+UI_EXPORT_EVENTS_DESC,"Date, category, description and balance change for each event.\nGood for audits and risk review.","Dato, kategori, beskrivelse og saldoendring for hver hendelse.\nBra for revisjon og risikoevaluering."
+UI_EXPORT_PICK_FOLDER,Choose an export folder first.,Velg en eksportmappe først.
+UI_EXPORT_STATUS_RUNNING,Exporting…,Eksporterer …
+UI_EXPORT_STATUS_DONE,Done,Ferdig
+UI_EXPORT_STATUS_ERROR,Error,Feil
+UI_EXPORT_LOG_READY,Ready to export.,Klar til å eksportere.
+UI_EXPORT_STATUS_ALL,Exporting everything…,Eksporterer alt …
+UI_EXPORT_STATUS_TELEMETRY,Exporting telemetry…,Eksporterer telemetri …
+UI_EXPORT_STATUS_DEPTH,Exporting depth snapshot…,Eksporterer dybdeøyeblikksbilde …
+UI_EXPORT_NO_SIM,✗ The simulation is not available.,✗ Simuleringen er ikke tilgjengelig.
+UI_EXPORT_TELEMETRY_NO_SIM,Telemetry export failed: the simulation is not running,Telemetrieksporten mislyktes: simuleringen kjører ikke
+UI_EXPORT_DEPTH_NO_SIM,Depth export failed: the simulation is not running,Dybdeeksporten mislyktes: simuleringen kjører ikke
+UI_EXPORT_TELEMETRY_FAILED,Telemetry export failed,Telemetrieksporten mislyktes
+UI_EXPORT_DEPTH_FAILED,Depth export failed,Dybdeeksporten mislyktes
+UI_EXPORT_DEPTH_OK,✓ Depth snapshot exported,✓ Dybdeøyeblikksbilde eksportert
+UI_EXPORT_LOG_NO_METHOD,Export not available: %s,Eksporten er ikke tilgjengelig: %s
+UI_EXPORT_LOG_OK_PATH,✓ %s — %d rows → %s,✓ %s — %d rader → %s
+UI_EXPORT_LOG_FAILED,✗ Export failed: %s,✗ Eksporten mislyktes: %s
+UI_EXPORT_LOG_OK,✓ %s — %d rows,✓ %s — %d rader
+UI_EXPORT_LOG_ONE_FAILED,✗ %s failed,✗ %s mislyktes
+UI_EXPORT_STATUS_ALL_DONE,All exported — %d rows in total,Alt er eksportert — %d rader totalt
+UI_EXPORT_LOG_ALL_DONE,All exports finished. %d rows in total → %s,Alle eksportene er ferdige. %d rader totalt → %s
+UI_EXPORT_LOG_TELEMETRY_OK,✓ Balance telemetry — %d rows → %s,✓ Balansetelemetri — %d rader → %s
+UI_EXPORT_TELEMETRY_OK,✓ Telemetry exported (%d rows),✓ Telemetri eksportert (%d rader)
+UI_EXPORT_LOG_TELEMETRY_FAILED,✗ Telemetry export failed: %s,✗ Telemetrieksporten mislyktes: %s
+UI_EXPORT_LOG_DEPTH_OK,✓ Depth snapshot — %d rows → %s,✓ Dybdeøyeblikksbilde — %d rader → %s
+UI_EXPORT_LOG_DEPTH_FAILED,✗ Depth export failed: %s,✗ Dybdeeksporten mislyktes: %s
+UI_EXPORT_TELEMETRY_BUTTON,Export balance telemetry (CSV),Eksporter balansetelemetri (CSV)
+UI_EXPORT_TELEMETRY_TOOLTIP,One row per simulated day for the last %d days.,Én rad per simuleringsdag for de siste %d dagene.
+UI_EXPORT_DEPTH_BUTTON,Export depth snapshot (CSV),Eksporter dybdeøyeblikksbilde (CSV)
+UI_EXPORT_DEPTH_TOOLTIP,"Pen price, bid pressure, insurance premium, resource rent tax and worst gill risk.","Merdpris, budpress, forsikringspremie, grunnrenteskatt og verste gjellerisiko."
+UI_EXPORT_LOG_CANNOT_WRITE,Could not open the file for writing: %s,Kunne ikke åpne filen for skriving: %s
+UI_EXPORT_PICK_FOLDER_TITLE,Choose export folder,Velg eksportmappe
+UI_SAVELOAD_AUTOSAVE_LATEST,Latest autosave,Siste autolagring
+UI_SAVELOAD_AUTOSAVE_N,Autosave %s,Autolagring %s
+UI_SAVELOAD_AUTOSAVE,Autosave,Autolagring
+UI_SAVELOAD_QUICKSAVE,Quicksave,Hurtiglagring
+UI_EMPIRE_OVERVIEW,Empire overview,Konsernoversikt
+UI_EMPIRE_PHASE,Empire phase,Konsernfase
+UI_EMPIRE_LEADERBOARD,Competitor leaderboard,Konkurrenttabell
+UI_EMPIRE_BRAND,Brand and reputation,Merkevare og omdømme
+UI_EMPIRE_STOCK,Stock market,Aksjemarked
+UI_EMPIRE_VERTICAL,Vertical integration,Vertikal integrasjon
+UI_EMPIRE_CRISES,Crises and opportunities,Kriser og muligheter
+UI_EMPIRE_NO_COMPETITORS,No competitor data available,Ingen konkurrentdata tilgjengelig
+UI_EMPIRE_BRAND_SCORE,Brand score:,Merkevarepoeng:
+UI_EMPIRE_ACTIVE_CERTS,Active certifications:,Aktive sertifiseringer:
+UI_EMPIRE_NO_CERTS,No certifications yet,Ingen sertifiseringer ennå
+UI_EMPIRE_PRICING_POWER,Pricing power:,Prismakt:
+UI_EMPIRE_PRIVATE,Private company,Privat selskap
+UI_EMPIRE_IPO_READY,Ready for listing!,Klar for børsnotering!
+UI_EMPIRE_START_IPO,Start listing (IPO),Start børsnotering
+UI_EMPIRE_IPO_NOT_READY,Not eligible for listing yet,Ikke klar for børsnotering ennå
+UI_EMPIRE_LISTED,Listed company,Børsnotert selskap
+UI_EMPIRE_SHARE_PRICE,Share price:,Aksjekurs:
+UI_EMPIRE_MARKET_CAP,Market value:,Markedsverdi:
+UI_EMPIRE_OWNERSHIP,Your stake:,Din eierandel:
+UI_EMPIRE_INTEGRATION_SCORE,Integration score:,Integrasjonspoeng:
+UI_EMPIRE_OWNED_UNITS,Owned units:,Eide enheter:
+UI_EMPIRE_NO_INTEGRATION,  No vertical integration yet,  Ingen vertikal integrasjon ennå
+UI_EMPIRE_ACTIVE_CRISES,Active crises:,Aktive kriser:
+UI_EMPIRE_NO_CRISES,No active crises,Ingen aktive kriser
+UI_EMPIRE_ACQUISITIONS,Acquisition targets:,Oppkjøpsmuligheter:
+UI_EMPIRE_BUY,Buy,Kjøp
+UI_EMPIRE_NO_ACQUISITIONS,No acquisition targets right now,Ingen oppkjøpsmuligheter akkurat nå
+UI_STAKE_TITLE,Stakeholders and politics,Interessenter og politikk
+UI_STAKE_OVERVIEW,Stakeholder overview,Oversikt over interessenter
+UI_STAKE_DEMANDS,Active demands,Aktive krav
+UI_STAKE_REPUTATION,Reputation effects,Omdømmeeffekter
+UI_STAKE_ACTIONS,Political actions,Politiske handlinger
+UI_STAKE_ACTIONS_HINT,Use political actions to sway stakeholders and improve relations.,Bruk politiske handlinger for å påvirke interessenter og forbedre relasjonene.
+UI_STAKE_LOBBYING,Lobbying,Lobbyvirksomhet
+UI_STAKE_LOBBYING_HINT,Influence politicians and regulators in favour of your company.,Påvirk politikere og myndigheter til fordel for selskapet ditt.
+UI_STAKE_DONATIONS,Donations and sponsorship,Gaver og sponsing
+UI_STAKE_DONATIONS_HINT,Donate to local communities or environmental groups to build goodwill.,Gi til lokalsamfunnet eller miljøorganisasjoner for å bygge goodwill.
+UI_STAKE_MEDIA,Media campaigns,Mediekampanjer
+UI_STAKE_MEDIA_HINT,Run PR campaigns to improve your public image.,Kjør PR-kampanjer for å bedre omdømmet ditt.
+UI_STAKE_START_MEDIA,Start media campaign,Start mediekampanje
+UI_STAKE_NO_DEMANDS,No active demands right now,Ingen aktive krav akkurat nå
+UI_STAKE_NEGOTIATE,Negotiate,Forhandle
+UI_STAKE_IGNORE,Ignore,Ignorer
+UI_WD_TITLE,Weather and disease monitoring,Vær- og sykdomsovervåking
+UI_WD_CURRENT_WEATHER,Current weather,Været nå
+UI_WD_WEATHER_ALERTS,Weather alerts,Farevarsler
+UI_WD_DISEASE_OUTBREAKS,Disease outbreaks,Sykdomsutbrudd
+UI_WD_TREATMENTS,Treatment options,Behandlinger
+UI_WD_GILL_EARLY_WARNING,Gill health (early warning),Gjellehelse (tidligvarsling)
+UI_WD_NO_SITES,No sites — gill monitoring inactive,Ingen lokaliteter — gjelleovervåkingen er av
+UI_WD_MITIGATIONS,Countermeasures: cost · effect,Tiltak: kostnad · effekt
+UI_WD_REMOVE,Remove,Fjern
+UI_WD_INSTALL,Install,Installer
+UI_WD_MITIGATION_TOOLTIP,Removes up to %s of bloom mortality.\nInstallation: %s. Running cost at full severity: %s.\nBest against: %s.,Fjerner inntil %s av dødeligheten ved oppblomstring.\nInstallasjon: %s. Drift ved full styrke: %s.\nVirker best mot: %s.
+UI_WD_NO_WEATHER_ALERTS,No active weather alerts,Ingen farevarsler
+UI_WD_NO_OUTBREAKS,No active disease outbreaks,Ingen aktive sykdomsutbrudd
+UI_WD_LOCATION,Location: %s,Lokalitet: %s
+UI_WD_APPLY,Apply,Bruk
+UI_STOCK_TITLE,Stock market and listing,Aksjemarked og børsnotering
+UI_STOCK_IPO_ELIGIBILITY,Listing requirements,Krav til børsnotering
+UI_STOCK_PERFORMANCE,Share performance,Kursutvikling
+UI_STOCK_QUARTERLY,Quarterly results,Kvartalsresultater
+UI_STOCK_DIVIDEND,Dividend policy,Utbyttepolitikk
+UI_STOCK_LAUNCH_IPO,List the company,Børsnoter selskapet
+UI_STOCK_IS_PUBLIC,The company is listed,Selskapet er børsnotert
+UI_STOCK_ALREADY_PUBLIC,Already listed,Allerede børsnotert
+UI_STOCK_ELIGIBLE,Ready for listing — every requirement met!,Klar for børsnotering — alle krav er oppfylt!
+UI_STOCK_NO_QUARTERS,No quarterly data yet,Ingen kvartalstall ennå
+UI_CRISIS_ADVISOR_THREE_DAYS,[i]Advisor: You have 3 days to respond before it escalates.[/i],[i]Rådgiver: Du har 3 dager på å svare før det trappes opp.[/i]
+UI_CRISIS_ADVISOR_ACT_NOW,[i]Advisor: Act now! The crisis is getting worse.[/i],[i]Rådgiver: Handle nå! Krisen blir verre.[/i]
+UI_CRISIS_ADVISOR_CATASTROPHIC,[i]Advisor: CATASTROPHIC — damage control only.[/i],[i]Rådgiver: KATASTROFE — bare skadebegrensning gjenstår.[/i]
+UI_CRISIS_TIME_EXPIRED,TIME EXPIRED,TIDEN ER UTE
+UI_CRISIS_FINAL_DAY,FINAL DAY TO ACT,SISTE DAG FOR Å HANDLE
+UI_CRISIS_TIME_LIMITED,TIME LIMITED,BEGRENSET TID
+UI_MODS_ERROR,Error,Feil
+UI_MODS_ACTIVE,Active,Aktiv
+UI_MODS_DISABLED,Disabled,Deaktivert
+UI_MODS_NONE_SELECTED,No mod selected,Ingen utvidelse valgt
+UI_SCENARIO_DIFFICULTY,Difficulty  ,Vanskelighetsgrad  
+UI_SCENARIO_LOCKED,LOCKED,LÅST
+UI_SCENARIO_START,START SCENARIO,START SCENARIOET
+UI_CDIALOG_COUNTER_PRICE,Your counter-price:,Din motpris:
+UI_CDIALOG_PRICE_PLACEHOLDER,– NOK/kg,– kr/kg
+UI_CDIALOG_ACCEPT,ACCEPT OFFER,AKSEPTER TILBUDET
+UI_CDIALOG_DECLINE,DECLINE,AVSLÅ
+UI_MNA_TITLE,Mergers and acquisitions — competitors,Oppkjøp og fusjoner — konkurrenter
+UI_MNA_NOT_FOR_SALE,NOT FOR SALE,IKKE TIL SALGS
+UI_MNA_NO_COMPETITORS,No competitors found.,Fant ingen konkurrenter.
+UI_COMPDASH_NO_RECENT_ACTIVITY,No recent activity,Ingen aktivitet nylig
+UI_COMPDASH_NOT_FOR_SALE,Not for sale,Ikke til salgs
+UI_IPO_ELIGIBLE,READY for listing,KLAR for børsnotering
+UI_IPO_NOT_ELIGIBLE,NOT READY for listing,IKKE KLAR for børsnotering
+UI_PMIX_NOT_RECOMMENDED,Not recommended,Ikke anbefalt
+UI_DAILY_WEEK_SUMMARY,WEEKLY SUMMARY,UKENS OPPSUMMERING
+UI_SIMLOG_DAY_ZERO,DAY: 0,DAG: 0
+UI_TUTUI_DONE,Tutorial complete!,Opplæringen er fullført!
+UI_MCHAN_SELL_HERE,Sell here,Selg her
+UI_CDIALOG_TITLE,CONTRACT NEGOTIATION,KONTRAKTSFORHANDLING
+UI_CDIALOG_NEGOTIATE,NEGOTIATE,FORHANDLE
+UI_BRIEFING_CONDITIONS,"💧 Operations — water, lice, gills, feed","💧 Drift — vann, lus, gjeller, fôr"
+UI_BRIEFING_FINANCE,🛡️ Finance and insurance,🛡️ Økonomi og forsikring
+UI_O2_CRIT,critically low,kritisk lavt
+UI_O2_LOW,low,lavt
+UI_O2_OK,normal,normalt
+UI_LICE_CRIT,over the limit,over grensen
+UI_LICE_WARN,elevated,forhøyet
+UI_LICE_OK,normal,normalt
+UI_PCD_TOTAL_COST,Total cost per kg: %s,Total kostnad per kg: %s
+UI_PCD_FEED,Feed: %s (%s),Fôr: %s (%s)
+UI_PCD_LABOR,Labour: %s (%s),Lønn: %s (%s)
+UI_PCD_MAINTENANCE,Maintenance: %s (%s),Vedlikehold: %s (%s)
+UI_PCD_OTHER,Other: %s (%s),Annet: %s (%s)
+UI_PCD_BIOMASS,Total biomass: %s,Total biomasse: %s
+UI_PCD_FCR,FCR: %s,Fôrfaktor: %s
+UI_PCD_BENCHMARK,Industry benchmark: %s,Bransjesnitt: %s
+UI_PCD_VS_ABOVE,vs benchmark: %s above,mot bransjesnittet: %s over
+UI_PCD_VS_BELOW,vs benchmark: %s below,mot bransjesnittet: %s under
+UI_PCD_VERDICT_EXCELLENT,Excellent efficiency — top quartile,Svært effektiv drift — blant de beste
+UI_PCD_VERDICT_GOOD,Good efficiency — above the industry average,God drift — bedre enn bransjesnittet
+UI_PCD_VERDICT_AVERAGE,Average efficiency — room for improvement,Middels drift — rom for forbedring
+UI_PCD_VERDICT_BELOW,Below average — costs need work,Under snittet — kostnadene må ned
+UI_PCD_VERDICT_POOR,Poor efficiency — act now,Svak drift — handle nå
+UI_STOCK_LAUNCH_IPO_TOOLTIP,List the company on the stock exchange,Børsnoter selskapet
+SCENARIO_FORSTE_SESONG_NAME,The Family Farm,Familiegården
+SCENARIO_FORSTE_SESONG_SUBTITLE,Tutorial,Opplæring
+SCENARIO_FORSTE_SESONG_WIN,Finish the tutorial,Fullfør opplæringen
+SCENARIO_FORSTE_SESONG_DESCRIPTION,You have inherited your grandfather's small farm in Hardanger. With one licence and little money you must learn the basics of fish farming. Build the farm up from scratch and show that you can run it at a profit.,Du har arvet bestefars lille oppdrett i Hardanger. Med én lisens og små midler må du lære grunnleggende oppdrett. Bygg opp gården fra bunnen av og vis at du kan drive lønnsomt.
+SCENARIO_FORSTE_SESONG_SPECIAL_1,Calm weather,Rolig vær
+SCENARIO_FORSTE_SESONG_SPECIAL_2,Stable prices,Stabile priser
+SCENARIO_FORSTE_SESONG_SPECIAL_3,1 site,1 anlegg
+SCENARIO_LOFOTEN_EVENTYR_NAME,Nordland's Challenge,Nordlands utfordring
+SCENARIO_LOFOTEN_EVENTYR_SUBTITLE,Storms and premium prices,Storm og premiumpriser
+SCENARIO_LOFOTEN_EVENTYR_WIN,"Reach a profit of 5,000,000 NOK",Nå 5 000 000 kr i overskudd
+SCENARIO_LOFOTEN_EVENTYR_DESCRIPTION,"Nordland's harsh coast brings the worst storms and the coldest currents, but the salmon here fetches sashimi-grade prices in Japan. Weather the storms and reach a profit of 5,000,000 NOK.","De harde kystene i Nordland byr på de verste stormene og kaldeste havstrømmene, men laksen her når premiumpriser som sashimi til Japan. Takle uværet og nå et overskudd på 5 000 000 kr."
+SCENARIO_LOFOTEN_EVENTYR_SPECIAL_1,Hard storms,Harde stormer
+SCENARIO_LOFOTEN_EVENTYR_SPECIAL_2,Premium prices,Premiumpriser
+SCENARIO_LOFOTEN_EVENTYR_SPECIAL_3,High risk,Høy risiko
+SCENARIO_LAKSEBARONENE_NAME,The Trøndelag War,Trønder-krigen
+SCENARIO_LAKSEBARONENE_SUBTITLE,Competition,Konkurranse
+SCENARIO_LAKSEBARONENE_WIN,"Reach 10,000,000 NOK before your rivals",Nå 10 000 000 kr før konkurrentene
+SCENARIO_LAKSEBARONENE_DESCRIPTION,"Three computer rivals fight to become Trøndelag's largest salmon farmer. The market war is brutal — anyone can take market share, buy licences and dump prices. Be the first to reach a profit of 10,000,000 NOK.","Tre datastyrte konkurrenter kjemper om å bli Trøndelags største lakseaktør. Markedskampen er brutal – hvem som helst kan ta markedsandeler, kjøpe lisenser og dumpe priser. Vær den første til å nå 10 000 000 kr i fortjeneste."
+SCENARIO_LAKSEBARONENE_SPECIAL_1,3 computer rivals,3 datastyrte rivaler
+SCENARIO_LAKSEBARONENE_SPECIAL_2,Profit leaderboard,Profittledertavle
+SCENARIO_LAKSEBARONENE_SPECIAL_3,Dynamic market,Dynamisk marked
+SCENARIO_KRISE_MANAGER_NAME,Finnmark's Rebirth,Finnmarks gjenfødsel
+SCENARIO_KRISE_MANAGER_SUBTITLE,Survival test,Overlevelsesprøve
+SCENARIO_KRISE_MANAGER_WIN,Survive 730 days with a positive balance,Overlev 730 dager med positiv saldo
+SCENARIO_KRISE_MANAGER_DESCRIPTION,"You take over a bankrupt farm in Finnmark with an active ISA outbreak. 500,000 NOK of debt, and Mattilsynet has warned of sanctions. Survive for 730 days and turn the company around.","Du tar over et konkursrammet anlegg i Finnmark med et aktivt ILA-utbrudd, 500 000 kr i gjeld, og Mattilsynet har varslet sanksjoner. Overlev i 730 dager og snu selskapet til lønnsomhet."
+SCENARIO_KRISE_MANAGER_SPECIAL_1,ISA outbreak,ILA-utbrudd
+SCENARIO_KRISE_MANAGER_SPECIAL_2,Starting debt,Startgjeld
+SCENARIO_KRISE_MANAGER_SPECIAL_3,Regulatory pressure,Reguleringstrykk
+SCENARIO_BAREKRAFT_MESTER_NAME,The Salmon King,Lakskongen
+SCENARIO_BAREKRAFT_MESTER_SUBTITLE,Free play,Fri lek
+SCENARIO_BAREKRAFT_MESTER_WIN,"Reach a profit of 100,000,000 NOK",Nå 100 000 000 kr i overskudd
+SCENARIO_BAREKRAFT_MESTER_DESCRIPTION,"Free play — start anywhere in Norway without limits. Build your salmon empire from scratch, with no time pressure and no rivals. The goal is the largest and most profitable farming company.","Fri lek – start hvor som helst i Norge uten begrensninger. Bygg ditt lakseimperium fra bunnen av, uten tidspress eller konkurrenter. Målet er å skape den største og mest lønnsomme oppdrettsvirksomheten."
+SCENARIO_BAREKRAFT_MESTER_SPECIAL_1,Calm weather,Rolig vær
+SCENARIO_BAREKRAFT_MESTER_SPECIAL_2,Stable prices,Stabile priser
+SCENARIO_BAREKRAFT_MESTER_SPECIAL_3,No time pressure,Ingen tidspress
+UI_SCENARIO_LOCKED_TOOLTIP,This scenario is locked. Finish other scenarios to unlock it.,Dette scenarioet er låst. Fullfør andre scenarioer for å låse det opp.
+UI_SCENARIO_START_TOOLTIP,Start this scenario (Enter),Start dette scenarioet (Enter)
+UI_WHY_NO_FISH,There are no fish in the pen — stock smolts first.,Det er ingen fisk i merden — sett ut smolt først.
+UI_WHY_LICE_BELOW,"Lice are at %s per fish, below the treatment threshold of %s. Treating now only costs fish.","Lusenivået er %s per fisk, under tiltaksgrensen på %s. Behandling nå koster bare fisk."
+UI_WHY_HARVEST_WEIGHT,Mean weight is %s kg; the fish are ready for slaughter at %s kg.,Snittvekten er %s kg; fisken er slakteklar fra %s kg.
+UI_WHY_NETS_WHOLE,The nets are intact (%s) — nothing to repair.,Nøtene er hele (%s) — ingenting å reparere.
+UI_WHY_NO_CREDIT,The credit line is used up (%s available).,Kredittrammen er brukt opp (%s ledig).
+UI_WHY_NO_LOAN,You have no loan to repay.,Du har ikke noe lån å betale tilbake.
+UI_WHY_PLAN_FIRST,Plan the transfer first.,Planlegg overføringen først.
+UI_WHY_UNDER_CONSTRUCTION,The facility is still under construction.,Anlegget er fortsatt under bygging.
+UI_WHY_NOTHING_TO_HARVEST,There are no fish to harvest.,Det er ingen fisk å høste.
+UI_RAS_STOCK,Stock %s smolts,Sett ut %s smolt
+UI_RAS_WATER_NONE,Water chemistry: no facility,Vannkjemi: ingen anlegg
+UI_RAS_WATER,"Water chemistry: pH %s, %s °C, O₂ %s mg/L","Vannkjemi: pH %s, %s °C, O₂ %s mg/l"
+UI_RAS_NEW_FACILITY_NAME,New RAS facility,Nytt RAS-anlegg
+UI_WHY_NO_TRANSFER_SOURCE,No site has fish to move.,Ingen lokalitet har fisk å flytte.
+UI_WHY_NO_TRANSFER_DEST,No other site has room for these fish.,Ingen annen lokalitet har plass til fisken.
+UI_WHY_NO_RAS,You have no RAS facility yet.,Du har ikke noe RAS-anlegg ennå.
+UI_WHY_RAS_NO_MAINTENANCE,No facility needs maintenance right now.,Ingen anlegg trenger vedlikehold nå.
+UI_WHY_FUNDS,Not enough money: this costs %s and you have %s.,"Ikke nok penger: dette koster %s, og du har %s."
+UI_WHY_AI_INSTALLED,AI feeding is already installed.,KI-fôring er allerede installert.
+GAME_OVER_SIM_ERROR,Simulation error: {0},Feil i simuleringen: {0}
+GAME_OVER_SCENARIO_FAILED,Scenario '{0}' is lost: {1},Scenarioet «{0}» er tapt: {1}
+GAME_OVER_BANKRUPT,"Bankruptcy — debt passed 1,000,000 NOK!",Konkurs — gjelden passerte 1 000 000 kr!
+ALERT_GAME_OVER,Game over: %s,Spillet er over: %s
+UI_ALL_SITES,all sites,alle anlegg
+UI_TOAST_ESCAPE,ESCAPE at %s — repair the nets now,RØMMING på %s — reparer nøtene nå
+UI_TOAST_DISEASE,Disease: %s at %s,Sykdom: %s på %s
+UI_TOAST_GAME_OVER,Game over: %s,Spillet er over: %s
+UI_CHART_NO_DATA,No data yet,Ingen data ennå
+UI_PRICE_BREAK_EVEN,Break-even: %s,Nullpunkt: %s
+UI_PRICE_GRAPH_TITLE,SALMON SPOT PRICE (NOK/kg),SPOTPRIS LAKS (NOK/kg)
+ACHIEVEMENT_FIRST_SMOLT_NAME,First Smolt Release,Første utsett
+ACHIEVEMENT_FIRST_SMOLT_DESC,Stock your first pen with smolts,Sett ut smolt i din første merd
+ACHIEVEMENT_SURVIVE_YEAR_ONE_NAME,Year One Survivor,Overlevde første år
+ACHIEVEMENT_SURVIVE_YEAR_ONE_DESC,Survive your first year without bankruptcy,Kom gjennom det første året uten konkurs
+ACHIEVEMENT_FIRST_HARVEST_NAME,First Harvest,Første slakting
+ACHIEVEMENT_FIRST_HARVEST_DESC,Harvest your first salmon cohort,Slakt din første fiskegruppe
+ACHIEVEMENT_PROFITABLE_QUARTER_NAME,Profitable Quarter,Lønnsomt kvartal
+ACHIEVEMENT_PROFITABLE_QUARTER_DESC,End a quarter with positive cash flow,Avslutt et kvartal med positiv kontantstrøm
+ACHIEVEMENT_MILLION_REVENUE_NAME,Million NOK Revenue,Én million i inntekter
+ACHIEVEMENT_MILLION_REVENUE_DESC,Achieve cumulative revenue of 1M NOK,Nå 1 MNOK i samlede inntekter
+ACHIEVEMENT_100K_HARVEST_NAME,"100,000 Fish Harvested",100 000 fisk slaktet
+ACHIEVEMENT_100K_HARVEST_DESC,"Harvest 100,000 fish total",Slakt 100 000 fisk til sammen
+ACHIEVEMENT_FCR_EXCELLENCE_NAME,FCR Excellence,Fremragende fôrfaktor
+ACHIEVEMENT_FCR_EXCELLENCE_DESC,Achieve FCR below 1.15 for a full year,"Hold fôrfaktoren under 1,15 et helt år"
+ACHIEVEMENT_DISEASE_FREE_YEAR_NAME,Disease-Free Year,Et år uten sykdom
+ACHIEVEMENT_DISEASE_FREE_YEAR_DESC,Go 365 days without a disease outbreak,Gå 365 dager uten sykdomsutbrudd
+ACHIEVEMENT_ASC_CERTIFIED_NAME,ASC Certification,ASC-sertifisert
+ACHIEVEMENT_ASC_CERTIFIED_DESC,Achieve ASC certification status,Oppnå ASC-sertifisering
+ACHIEVEMENT_FIVE_MILLION_REVENUE_NAME,5 Million NOK Revenue,Fem millioner i inntekter
+ACHIEVEMENT_FIVE_MILLION_REVENUE_DESC,Reach 5M NOK cumulative revenue,Nå 5 MNOK i samlede inntekter
+ACHIEVEMENT_GENETIC_SUPERIORITY_NAME,Genetic Superiority,Genetisk overlegen
+ACHIEVEMENT_GENETIC_SUPERIORITY_DESC,Breed a strain with +2.0 breeding value in growth,"Avl fram en stamme med avlsverdi +2,0 for vekst"
+ACHIEVEMENT_CRISIS_SURVIVOR_NAME,Crisis Survivor,Kriseoverlever
+ACHIEVEMENT_CRISIS_SURVIVOR_DESC,"Survive a major crisis (ISA, storm, market crash) without bankruptcy","Kom gjennom en stor krise (ILA, storm, priskrakk) uten konkurs"
+ACHIEVEMENT_MULTI_SITE_OPERATOR_NAME,Multi-Site Operator,Flere lokaliteter
+ACHIEVEMENT_MULTI_SITE_OPERATOR_DESC,Operate 3+ sea sites simultaneously,Drift tre eller flere sjølokaliteter samtidig
+ACHIEVEMENT_SUSTAINABILITY_LEADER_NAME,Sustainability Leader,Bærekraftsleder
+ACHIEVEMENT_SUSTAINABILITY_LEADER_DESC,Achieve 95+ sustainability score,Nå minst 95 poeng i bærekraft
+ACHIEVEMENT_TEN_MILLION_REVENUE_NAME,10 Million NOK Empire,Lakseimperium på 10 millioner
+ACHIEVEMENT_TEN_MILLION_REVENUE_DESC,Build a 10M NOK salmon empire,Bygg et lakseimperium på 10 MNOK
+ACHIEVEMENT_VERTICAL_INTEGRATION_NAME,Vertical Integration Master,Mester i vertikal integrasjon
+ACHIEVEMENT_VERTICAL_INTEGRATION_DESC,"Own feed mill, hatchery, farms, and processing plant","Eie fôrfabrikk, settefiskanlegg, oppdrettsanlegg og slakteri"
+ACHIEVEMENT_ACQUISITION_SPREE_NAME,Acquisition Spree,Oppkjøpsbølge
+ACHIEVEMENT_ACQUISITION_SPREE_DESC,Acquire 3 competitor farms during crises,Kjøp opp tre konkurrenter under kriser
+ACHIEVEMENT_GLOBAL_EXPORTER_NAME,Global Exporter,Global eksportør
+ACHIEVEMENT_GLOBAL_EXPORTER_DESC,"Export to all 6 major markets (EU, USA, China, Japan, UK, Middle East)","Eksporter til alle seks hovedmarkeder (EU, USA, Kina, Japan, Storbritannia, Midtøsten)"
+ACHIEVEMENT_HUNDRED_MILLION_NAME,Salmon Billionaire,Laksemilliardær
+ACHIEVEMENT_HUNDRED_MILLION_DESC,Reach 100M NOK net worth,Nå 100 MNOK i nettoformue
+ACHIEVEMENT_PERFECT_FCR_NAME,Perfect FCR,Perfekt fôrfaktor
+ACHIEVEMENT_PERFECT_FCR_DESC,Achieve FCR of 1.05 or better,"Oppnå en fôrfaktor på 1,05 eller bedre"
+ACHIEVEMENT_ZERO_ESCAPES_NAME,Zero Escapes,Null rømming
+ACHIEVEMENT_ZERO_ESCAPES_DESC,Go 5 years without a single fish escape,Gå fem år uten en eneste rømt fisk
+ACHIEVEMENT_DISEASE_RESISTANCE_NAME,Disease Resistance Breakthrough,Gjennombrudd for sykdomsresistens
+ACHIEVEMENT_DISEASE_RESISTANCE_DESC,Breed ISA-resistant strain (0.5+ BV in disease resistance),"Avl fram en ILA-resistent stamme (avlsverdi 0,5+ for sykdomsresistens)"
+ACHIEVEMENT_INDUSTRY_LEADER_NAME,Industry Leader,Bransjeleder
+ACHIEVEMENT_INDUSTRY_LEADER_DESC,Become Norway's #1 salmon producer,Bli Norges største lakseprodusent
+ACHIEVEMENT_PERFECT_STORM_NAME,The Perfect Storm,Den perfekte stormen
+ACHIEVEMENT_PERFECT_STORM_DESC,Survive ISA outbreak + market crash + storm damage in same year,"Overlev ILA-utbrudd, priskrakk og stormskader i samme år"
+ACHIEVEMENT_SPEEDRUN_MILLIONAIRE_NAME,Speedrun Millionaire,Lynrask millionær
+ACHIEVEMENT_SPEEDRUN_MILLIONAIRE_DESC,Reach 1M NOK profit in under 500 days,Nå 1 MNOK i overskudd på under 500 dager
+ACHIEVEMENT_BANKRUPTCY_RECOVERY_NAME,Phoenix Rising,Fugl Føniks
+ACHIEVEMENT_BANKRUPTCY_RECOVERY_DESC,Recover from bankruptcy (balance below 0) to profitability,Kom tilbake fra negativ saldo til lønnsom drift
+ACHIEVEMENT_SELF_INSURED_NAME,Self-insured,Godt forsikret
+ACHIEVEMENT_SELF_INSURED_DESC,"Hold cover for all four catastrophes (mortality, bloom, storm, ISA)","Ha dekning for alle fire katastrofer (dødelighet, oppblomstring, storm, ILA)"
+ACHIEVEMENT_CLOSED_LOOP_NAME,Closed loop,Lukket anlegg
+ACHIEVEMENT_CLOSED_LOOP_DESC,Upgrade a red-zone site to closed containment and claim the biomass credit,Oppgrader en lokalitet i rød sone til lukket anlegg og få biomassekreditten
+ACHIEVEMENT_GENOMICIST_NAME,Genomicist,Genomiker
+ACHIEVEMENT_GENOMICIST_DESC,Complete two generations of genomic selection in your broodstock,Fullfør to generasjoner genomisk seleksjon i stamfisken
+ACHIEVEMENT_WEATHERPROOF_NAME,Weatherproof,Værbestandig
+ACHIEVEMENT_WEATHERPROOF_DESC,Survive an algal bloom with mitigation installed and stay solvent,Kom gjennom en algeoppblomstring med tiltak installert og hold deg solvent
+ACHIEVEMENT_TAX_PLANNER_NAME,Tax planner,Skatteplanlegger
+ACHIEVEMENT_TAX_PLANNER_DESC,Stay profitable through the resource-rent tax transition,Hold deg lønnsom gjennom innføringen av grunnrenteskatten
+ACHIEVEMENT_PRECISION_NAME,Precision,Presisjon
+ACHIEVEMENT_PRECISION_DESC,Reach a feed conversion ratio of 1.12 or better,"Nå en fôrfaktor på 1,12 eller bedre"
+ACHIEVEMENT_SUPER_SMOLT_NAME,SuperSmolt,Supersmolt
+ACHIEVEMENT_SUPER_SMOLT_DESC,"Stock a post-smolt facility and raise large, sea-ready smolts","Sett ut i et postsmoltanlegg og fôr fram stor, sjøklar smolt"
+ACHIEVEMENT_BLOOM_READY_NAME,Bloom Ready,Klar for oppblomstring
+ACHIEVEMENT_BLOOM_READY_DESC,Install bloom countermeasures (bubble curtain or O2 diffuser) at a site,Installer tiltak mot oppblomstring (boblegardin eller oksygendiffusor) på en lokalitet
+ENUM_ACHIEVEMENT_TIER_BEGINNER,Beginner,Nybegynner
+ENUM_ACHIEVEMENT_TIER_NOVICE,Novice,Lærling
+ENUM_ACHIEVEMENT_TIER_INTERMEDIATE,Intermediate,Viderekommen
+ENUM_ACHIEVEMENT_TIER_ADVANCED,Advanced,Erfaren
+ENUM_ACHIEVEMENT_TIER_MASTER,Master,Mester
+ENUM_ACHIEVEMENT_TIER_HIDDEN,Hidden,Skjult
+UI_DASHBOARD_ALERT_REPEATS,%d events,%d hendelser
+UI_GOAL_CHIP,Goal %s,Mål %s
+UI_GOAL_CHIP_WON,Goal reached,Mål nådd
+UI_GOAL_CHIP_LOST,Goal not reached,Mål ikke nådd
+UI_GOAL_DETAILS_TITLE,Scenario goal,Scenariomål
+UI_TAB_MORE,More ▾,Mer ▾
+UI_TAB_MORE_TIP,Tabs that do not fit the bar,Faner som ikke får plass i linjen
+UI_TAB_SHORTCUT_TIP,Shortcut: %s,Snarvei: %s
+UI_PAUSE_OVERLINE,Game paused,Spillet står stille
+UI_PAUSE_TITLE,Paused,Pause
+UI_PAUSE_RESUME,Resume,Fortsett
+UI_PAUSE_RESUME_TIP,Back to the game (Esc),Tilbake til spillet (Esc)
+UI_PAUSE_SAVE_TIP,Save to a new or an existing slot,Lagre på en ny eller en eksisterende plass
+UI_PAUSE_LOAD,Load game,Last inn spill
+UI_PAUSE_LOAD_TIP,Load a saved game,Last inn et lagret spill
+UI_PAUSE_MAIN_MENU,Main menu,Til hovedmenyen
+UI_PAUSE_MAIN_MENU_TIP,Leave this game for the main menu,Forlat spillet og gå til hovedmenyen
+UI_PAUSE_QUIT,Quit game,Avslutt spillet
+UI_PAUSE_QUIT_TIP,Close Lakskongen,Lukk Lakskongen
+UI_GUARD_QUIT_TITLE,Save before you quit?,Lagre før du avslutter?
+UI_GUARD_MENU_TITLE,Save before you leave?,Lagre før du går til hovedmenyen?
+UI_GUARD_BODY,"Progress since your last save is lost. Saving writes the quick-save slot, which Continue on the main menu loads.","Det du har gjort siden du sist lagret, går tapt. Lagring skriver til hurtiglagringen, som Fortsett i hovedmenyen laster inn."
+UI_GUARD_CANCEL,Cancel,Avbryt
+UI_GUARD_QUIT_DISCARD,Quit without saving,Avslutt uten å lagre
+UI_GUARD_QUIT_SAVE,Save and quit,Lagre og avslutt
+UI_GUARD_MENU_DISCARD,Leave without saving,Gå uten å lagre
+UI_GUARD_MENU_SAVE,Save and leave,Lagre og gå
+UI_GUARD_SAVE_FAILED,Save failed: %s. The game is still open.,Lagring feilet: %s. Spillet er fortsatt åpent.
+UI_BUTTON_CONTINUE,Continue,Fortsett
+UI_BUTTON_CONTINUE_TIP,Load your newest save,Last inn den nyeste lagringen
+UI_CONTINUE_CAPTION,Day %d · %s,Dag %d · %s
+UI_BUTTON_CREDITS,Credits,Medvirkende
+UI_CREDITS_CLOSE_TIP,Close (Esc),Lukk (Esc)
+UI_CREDITS_MADE_BY,Made by,Laget av
+UI_CREDITS_ROLE_CREATOR,"Design, development and production","Spilldesign, utvikling og produksjon"
+UI_CREDITS_THIRD_PARTY,Third-party works,Tredjepartsverk
+UI_CREDITS_THIRD_PARTY_INTRO,Lakskongen is built with these works. Thank you to everyone who shares their work.,Lakskongen er bygget med disse verkene. Takk til alle som deler arbeidet sitt.
+UI_CREDITS_USE_ENGINE,Game engine,Spillmotor
+UI_CREDITS_USE_RUNTIME,C# runtime,C#-kjøretid
+UI_CREDITS_USE_FONT,Typeface,Skrift
+UI_CREDITS_USE_UI_SOUNDS,Interface sounds,Lyder i grensesnittet
+UI_CREDITS_USE_ALERT_SOUNDS,Alert sounds,Varsellyder
+UI_CREDITS_USE_AMBIENCE,Ambient sound,Naturlyder
+UI_CREDITS_USE_MUSIC,Music,Musikk
+UI_CREDITS_DOTNET_TITLE,.NET runtime,.NET-kjøretiden
+UI_CREDITS_FREESOUND_TITLE,Sounds from Freesound,Lyder fra Freesound
+UI_CREDITS_MIXKIT_TITLE,Sound effects from Mixkit,Lydeffekter fra Mixkit
+UI_CREDITS_MUSIC_TITLE,Music by Kevin MacLeod,Musikk av Kevin MacLeod
+UI_CREDITS_LICENCE_MIXKIT,Mixkit free licence,Mixkit fri lisens
+UI_CREDITS_MUSIC_NOTICE,"“Lotus”, “Soaring”, “Morning”, “Dreamer”, “Evening” and “Bittersweet” by Kevin MacLeod (incompetech.com). Licensed under Creative Commons: By Attribution 4.0 (creativecommons.org/licenses/by/4.0). Converted to Ogg Vorbis.","«Lotus», «Soaring», «Morning», «Dreamer», «Evening» og «Bittersweet» av Kevin MacLeod (incompetech.com). Lisensiert under Creative Commons Navngivelse 4.0 (creativecommons.org/licenses/by/4.0). Konvertert til Ogg Vorbis."
+UI_CREDITS_THANKS,Thanks,Takk til
+UI_CREDITS_THANKS_BODY,The Norwegian aquaculture industry and everyone who tested the game.,Norsk havbruksnæring og alle som har testet spillet.
+UI_CREDITS_COPYRIGHT,© 2026 Lakskongen. All rights reserved.,© 2026 Lakskongen. Alle rettigheter forbeholdt.
+UI_SCENARIO_OVERLINE,New game,Nytt spill
+UI_SCENARIO_HEADING,Choose a scenario,Velg scenario
+UI_SCENARIO_COUNT,%d scenarios,%d scenarioer
+UI_SCENARIO_COUNT_MODS,"%d scenarios, %d from mods","%d scenarioer, %d fra mods"
+UI_SCENARIO_BACK,Back,Tilbake
+UI_SCENARIO_BACK_TIP,Back to the main menu (Esc),Tilbake til hovedmenyen (Esc)
+UI_SCENARIO_EMPTY,No scenarios are available.,Ingen scenarioer er tilgjengelige.
+UI_SCENARIO_MOD_TAG,Mod,Mod
+UI_SCENARIO_LOCKED_TAG,Locked,Låst
+UI_SCENARIO_FACT_TIME,Time limit,Tidsfrist
+UI_SCENARIO_NO_LIMIT,None,Ingen
+UI_SCENARIO_YEARS,%s years,%s år
+UI_SCENARIO_DAYS,%d days,%d dager
+UI_SCENARIO_START_BUTTON,Start scenario,Start scenarioet
+UI_SCENARIO_START_FAILED,Could not start the scenario: %s,Kunne ikke starte scenarioet: %s
+UI_SCENARIO_UNAVAILABLE,it is unknown or locked,det er ukjent eller låst
+UI_DIFFICULTY_1,Easy,Enkel
+UI_DIFFICULTY_2,Gentle,Lett
+UI_DIFFICULTY_3,Moderate,Middels
+UI_DIFFICULTY_4,Hard,Vanskelig
+UI_DIFFICULTY_5,Expert,Ekspert
+UI_REGION_NORDLAND,Nordland,Nordland
+UI_REGION_TROMS,Troms,Troms
+UI_REGION_FINNMARK,Finnmark,Finnmark
+UI_REGION_TRONDELAG,Trøndelag,Trøndelag
+UI_REGION_VESTLAND,Vestland,Vestland
+UI_REGION_ROGALAND,Rogaland,Rogaland
+UI_REGION_MORE_OG_ROMSDAL,Møre og Romsdal,Møre og Romsdal
+UI_REGION_SORLANDET,Sørlandet,Sørlandet
+UI_MEDAL_BRONZE,Bronze medal,Bronsemedalje
+UI_MEDAL_SILVER,Silver medal,Sølvmedalje
+UI_MEDAL_GOLD,Gold medal,Gullmedalje
+UI_MEDAL_PLATINUM,Platinum medal,Platinamedalje
+UI_VESSEL_JOB_HARVEST,Harvest,Slakting
+UI_VESSEL_JOB_DELOUSE,Delousing,Avlusing
+UI_VESSEL_JOB_ROV,ROV inspection,ROV-inspeksjon
+UI_VESSEL_JOB_FRESHWATER,Freshwater bath,Ferskvannsbad
+UI_VESSEL_JOB_OTHER,Wellboat job,Brønnbåtoppdrag
+UI_VESSEL_JOB_ETA,%s · in %d d,%s · om %d d
+UI_VESSEL_JOB_TODAY,%s · today,%s · i dag
+UI_VESSEL_JOB_DONE,%s · done,%s · ferdig
+UI_VESSEL_FEED_BARGE,Feed barge,Fôrflåte
+UI_VESSEL_BARGE_FEEDING,%s · feeding,%s · fôrer
+UI_VESSEL_BARGE_IDLE,%s · idle,%s · i ro
+UI_SOLVENCY_OVERDRAFT,Overdrawn account,Overtrukket konto
+UI_SOLVENCY_BANK_WARNING,Bank warning,Bankvarsel
+UI_SOLVENCY_FINAL_WARNING,Final warning from the bank,Siste varsel fra banken
+UI_SOLVENCY_DESC,Cash %s. Bankruptcy below %s.,Kontanter %s. Konkurs under %s.
+UI_ATTENTION_SOLVENCY_DESC,Cash {0} NOK. Bankruptcy below {1} NOK.,Kontanter {0} NOK. Konkurs under {1} NOK.
+GAME_OVER_BANKRUPTCY,Bankruptcy: cash fell below the bankruptcy floor and the bank called in its credit.,Konkurs: kontantbeholdningen passerte konkursgrensen og banken sa opp kreditten.
+UI_GAME_OVER_FORMAT,Game over: %s,Spillet er over: %s
+MORTALITY_CATEGORY_INFECTIOUS,Infectious diseases,Infeksjonssykdommer
+MORTALITY_CATEGORY_ENVIRONMENT,Environmental conditions,Miljøforhold
+MORTALITY_CATEGORY_INJURY_TREATMENT,Injuries (handling and delousing),Skader (håndtering og avlusing)
+MORTALITY_CATEGORY_PHYSIOLOGICAL,Physiological causes,Fysiologiske årsaker
+MORTALITY_CATEGORY_PREDATORS,Predators,Predatorer
+MORTALITY_CATEGORY_OTHER,Other causes,Andre årsaker
+MORTALITY_CATEGORY_UNEXPLAINED,Unknown cause,Ukjent årsak
+MORTALITY_CAUSE_BASELINE_ANCHOR,Background mortality (not attributed),Bakgrunnsdødelighet (ikke fordelt)
+MORTALITY_CAUSE_DISEASE,Disease,Sykdom
+MORTALITY_CAUSE_DISEASE_CULL,Disease cull order,Pålagt utslakting (sykdom)
+MORTALITY_CAUSE_DELOUSING,Delousing,Avlusing
+MORTALITY_CAUSE_HANDLING,Handling,Håndtering
+MORTALITY_CAUSE_TEMPERATURE,Water temperature,Vanntemperatur
+MORTALITY_CAUSE_LOW_OXYGEN,Low oxygen,Lavt oksygen
+MORTALITY_CAUSE_HARMFUL_ALGAE,Harmful algae,Skadelige alger
+MORTALITY_CAUSE_JELLYFISH,Jellyfish,Maneter
+MORTALITY_CAUSE_STORM,Storm,Uvær
+MORTALITY_CAUSE_PREDATOR,"Seal, otter or bird","Sel, oter eller fugl"
+FISH_REMOVAL_ESCAPE,Escaped,Rømt
+FISH_REMOVAL_HARVEST,Harvested,Slaktet
+FISH_REMOVAL_FORCED_HARVEST,Forced harvest,Tvangsslaktet
+FISH_REMOVAL_TRANSFER_OUT,Moved to another site,Flyttet til en annen lokalitet
+UI_DASHBOARD_KPI_SUSTAINABILITY,SUSTAINABILITY,BÆREKRAFT
+UI_HUD_CALENDAR,Week %d · %s · Year %d,Uke %d · %s · År %d
+UI_HUD_CAPTION_SEA_TEMP,Sea temp,Sjøtemp
+UI_HUD_CAPTION_SPOT,Spot price,Spotpris
+UI_HUD_NEXT_EVENT_TIP,"To the next event (N): runs at 30× and stops when something needs you, when a deadline comes near, or after 60 quiet days.","Til neste hendelse (N): spoler fram i 30× og stopper når noe trenger deg, når en frist nærmer seg eller etter 60 rolige dager."
+UI_HUD_SPEED_TIP_1,1×: one day a second (1),1×: én dag i sekundet (1)
+UI_HUD_SPEED_TIP_10,10×: ten days a second (3),10×: ti dager i sekundet (3)
+UI_HUD_SPEED_TIP_3,3×: three days a second (2),3×: tre dager i sekundet (2)
+UI_HUD_SPEED_TIP_30,30×: a month a second (4),30×: en måned i sekundet (4)
+UI_SETTINGS_REDUCED_MOTION,Reduce motion,Redusert bevegelse
+UI_SETTINGS_REDUCED_MOTION_TIP,"Keeps the camera still in the main menu, turns off camera shake and lets cards and notices fade in place instead of sliding. Also follows the system setting.","Holder kameraet i ro i hovedmenyen, slår av kamerarysting og lar kort og varsler tones inn på plass i stedet for å gli. Følger også systeminnstillingen."
+UI_SETTINGS_AUTO_SLOW,Slow down before deadlines,Bremse ned før frister
+UI_SETTINGS_AUTO_SLOW_TIP,"A week before a deadline you can act on (a Mattilsynet order), the game drops to 1×, and it stops the day before if nothing was done.","En uke før en frist du kan gjøre noe med (et pålegg fra Mattilsynet) går spillet ned til 1×, og det stopper dagen før hvis ingenting er gjort."
+UI_CREW_EFFECT_NETS,Nets wear %s slower,Nøtene slites %s saktere
+UI_CREW_EFFECT_STORM,Storms kill %s fewer fish,Stormer dreper %s færre fisk
+UI_CREW_EFFECT_TREATMENT,Treatments kill %s fewer fish,Behandlinger dreper %s færre fisk
+UI_CREW_EFFECT_WELLBOAT_COST,Wellboat hire %s cheaper,Brønnbåtleie %s billigere
+UI_CREW_EFFECT_WELLBOAT_DAYS,Wellboat arrives %d day sooner,Brønnbåten kommer %d dag tidligere
+UI_CREW_KPI_ROLES,ROLES COVERED,ROLLER DEKKET
+UI_CREW_ROLES_COVERED,%d of %d,%d av %d
+UI_CREW_ROLES_TITLE,Roles and what they do,Roller og hva de gjør
+UI_CREW_ROLE_HIRED,On staff,Ansatt
+UI_CREW_ROLE_VACANT,Vacant,Ledig
+UI_BRIEFING_CARD_DATE,%s · Week %d · Year %d,%s · Uke %d · År %d
+UI_BRIEFING_CARD_DEADLINE_VALUE,%s (until %s),%s (til %s)
+UI_BRIEFING_CARD_FACT_FARM,Farm,Anlegg
+UI_BRIEFING_CARD_FACT_GOAL,Goal,Mål
+UI_BRIEFING_CARD_FARM_MANY,%d sites · %s fish,%d lokaliteter · %s fisk
+UI_BRIEFING_CARD_FARM_NONE,No sites yet,Ingen lokaliteter ennå
+UI_BRIEFING_CARD_FARM_ONE,1 site · %s fish,1 lokalitet · %s fisk
+UI_BRIEFING_CARD_FREE_STORY,"You have capital, a licence and a fjord. Stock smolt, keep the lice under the limit and sell when the price is right.","Du har kapital, en konsesjon og en fjord. Sett ut smolt, hold lusa under grensen og selg når prisen er god."
+UI_BRIEFING_CARD_FREE_TITLE,Your own farm,Ditt eget oppdrett
+UI_BRIEFING_CARD_HINT,"The clock stands until you start. Before a deadline you can act on, the game slows to 1× a week ahead and stops the day before.","Klokken står til du starter. Før en frist du kan gjøre noe med, bremser spillet til 1× en uke før og stopper dagen før."
+UI_BRIEFING_CARD_KEY_DIGITS,1–4,1–4
+UI_BRIEFING_CARD_KEY_N,N,N
+UI_BRIEFING_CARD_KEY_NEXT,to the next event,til neste hendelse
+UI_BRIEFING_CARD_KEY_PAUSE,pause,pause
+UI_BRIEFING_CARD_KEY_SPACE,Space,Mellomrom
+UI_BRIEFING_CARD_KEY_SPEEDS,speed 1× 3× 10× 30×,fart 1× 3× 10× 30×
+UI_BRIEFING_CARD_LOOK,Look around first,Se deg rundt først
+UI_BRIEFING_CARD_LOOK_TIP,Close the card with the clock stopped (Esc). Space starts it.,Lukk kortet med klokken stoppet (Esc). Mellomrom starter den.
+UI_BRIEFING_CARD_OVERLINE_FREE,Free play,Fritt spill
+UI_BRIEFING_CARD_OVERLINE_SCENARIO,Scenario · %s,Scenario · %s
+UI_BRIEFING_CARD_START,Start the season,Start sesongen
+UI_BRIEFING_CARD_START_TIP,The clock starts at %s (Enter). Change the default speed under Settings > Gameplay.,Klokken starter på %s (Enter). Standardfarten endrer du under Innstillinger > Spill.
+UI_BRIEFING_CARD_TIME_TITLE,Time,Tid
+UI_DASHBOARD_PEN_LICE,Lice per fish,Lus per fisk
+UI_DASHBOARD_PEN_WEIGHT,Mean weight,Snittvekt
+UI_DASHBOARD_SITE_TIP,Standing biomass %s · %s adult female lice per fish (limit %s),Stående biomasse %s · %s voksne hunnlus per fisk (grense %s)
+UI_DASHBOARD_SITES_EMPTY,No sites yet,Ingen anlegg ennå
+UI_HUD_TIP_CALENDAR,%s\nSeason: %s,%s\nSesong: %s
+UI_FIN_KPI_OPERATING_RESULT,OPERATING RESULT,DRIFTSRESULTAT
+UI_FIN_PL_COSTS_TOTAL,TOTAL COSTS,SUM KOSTNADER
+UI_FIN_PL_NET_RESULT,RESULT AFTER INTEREST AND TAX,RESULTAT ETTER RENTER OG SKATT
+UI_FIN_PL_NO_COSTS,No costs booked yet,Ingen kostnader bokført ennå
+UI_FIN_PL_OTHER_COSTS,Other costs,Andre kostnader
+UI_FIN_PL_REVENUE_TOTAL,TOTAL INCOME,SUM INNTEKTER
+UI_CONTRACTS_CHART_TITLE_DAYS,"Spot price, last %d days","Spotpris, siste %d dager"
+UI_CONTRACTS_KPI_CONTRACTED,VOLUME UNDER CONTRACT,KONTRAHERT VOLUM
+UI_CONTRACTS_PRICE_AVG,AVERAGE,SNITT
+UI_CONTRACTS_PRICE_HIGH,HIGH,HØY
+UI_CONTRACTS_PRICE_LOW,LOW,LAV
+UI_CHART_COSTS,Costs,Kostnader
+UI_CHART_DAY_RANGE,Days %d–%d,Dag %d–%d
+UI_CHART_INCOME,Income,Inntekter
+ALERT_GILL_CRITICAL,Gill health critical at %s,Gjellehelsen er kritisk ved %s
+ALERT_GILL_POOR,Gill health declining at %s,Gjellehelsen svekkes ved %s
+DRIFTSPLAN_CHOICE_FRESHWATER,Freshwater bath,Ferskvannsbad
+DRIFTSPLAN_CHOICE_HYDROLICER,Flushing (mechanical),Spyling (mekanisk)
+DRIFTSPLAN_CHOICE_PEROXIDE,Hydrogen peroxide,Hydrogenperoksid
+DRIFTSPLAN_CHOICE_THERMOLICER,Thermal delousing,Termisk avlusing
+DRIFTSPLAN_FAIL_ALREADY_BOOKED,a boat was already booked,en båt var allerede bestilt
+DRIFTSPLAN_FAIL_CANCELLED,the treatment was called off,behandlingen ble avlyst
+DRIFTSPLAN_FAIL_INSUFFICIENT_FUNDS,not enough money,for lite penger
+DRIFTSPLAN_FAIL_OTHER,refused,avvist
+DRIFTSPLAN_FAIL_SITE_EMPTY,no fish,ingen fisk
+DRIFTSPLAN_INTRO,"Standing orders do the routine work by themselves, with the same orders and at the same price as when you give them yourself.","Faste oppdrag gjør rutinearbeidet av seg selv, med de samme bestillingene og til samme pris som når du gir dem selv."
+DRIFTSPLAN_LAST,last %s: %s,sist %s: %s
+DRIFTSPLAN_NEXT,Next planned: %s · %s,Neste planlagt: %s · %s
+DRIFTSPLAN_NEXT_NONE,Nothing planned,Ingenting planlagt
+DRIFTSPLAN_NONE_FOR_UNIT,No standing orders for this kind of unit yet.,Ingen faste oppdrag for denne typen anlegg ennå.
+DRIFTSPLAN_OUTCOME_OK,done,utført
+DRIFTSPLAN_POLICY_DELOUSE_ON_COUNT,Delouse on the count,Avlus ved telling
+DRIFTSPLAN_POLICY_NET_CLEANING,Net care (ROV and net cleaning),Notpleie (ROV og notvask)
+DRIFTSPLAN_SETTING_INTERVAL_DAYS,Days between jobs,Dager mellom hver jobb
+DRIFTSPLAN_SETTING_METHOD,Method,Metode
+DRIFTSPLAN_SETTING_MIN_INTERVAL_DAYS,Fewest days between treatments,Minst antall dager mellom behandlinger
+DRIFTSPLAN_SETTING_SHARE_OF_LIMIT,Share of the lice limit,Andel av lusegrensen
+DRIFTSPLAN_SETTING_TIP_DELOUSE_ON_COUNT_METHOD,Mechanical flushing works at any sea temperature.,Mekanisk spyling virker ved alle sjøtemperaturer.
+DRIFTSPLAN_SETTING_TIP_DELOUSE_ON_COUNT_MIN_INTERVAL_DAYS,Every handling stresses the fish: the order waits at least this long between two treatments.,Hver håndtering stresser fisken: oppdraget venter minst så lenge mellom to behandlinger.
+DRIFTSPLAN_SETTING_TIP_DELOUSE_ON_COUNT_SHARE_OF_LIMIT,The default treats a week before a second count over the limit would bring an order from Mattilsynet.,Standardverdien gir behandling en uke før en ny telling over grensen ville gitt pålegg fra Mattilsynet.
+DRIFTSPLAN_SETTING_TIP_NET_CLEANING_INTERVAL_DAYS,The default follows farms in Western Norway that cleaned their nets every other week from May to November 2019 (Elsheshtawy et al. 2023).,Standardverdien følger oppdrettere på Vestlandet som vasket nøtene annenhver uke fra mai til november 2019 (Elsheshtawy mfl. 2023).
+DRIFTSPLAN_SOURCE,Source: %s,Kilde: %s
+DRIFTSPLAN_STATUS_OFF,Off,Av
+DRIFTSPLAN_TIP_DELOUSE_ON_COUNT,"Delouses the site when the weekly lice count is above the chosen share of today's lice limit, at most once per count.","Avluser lokaliteten når den ukentlige lusetellingen er over valgt andel av dagens lusegrense, høyst én gang per telling."
+DRIFTSPLAN_TIP_NET_CLEANING,Books the ROV boat (net cleaning and inspection) at a fixed interval while there are fish in the pens. You pay the boat each time.,Bestiller ROV-båten (notvask og inspeksjon) med fast mellomrom så lenge det er fisk i merdene. Du betaler båten hver gang.
+DRIFTSPLAN_TITLE,Operating plan,Driftsplan
+DRIFTSPLAN_UNIT_DAYS,days,dager
+DRIFTSPLAN_WAIT,when needed,ved behov
+DRIFTSPLAN_WAIT_LICE_COUNT_ABOVE,when a lice count is above %s,når en lusetelling viser over %s
+DRIFTSPLAN_WAIT_SITE_STOCKED,waits for fish in the pens,venter på fisk i merdene
+DRIFTSPLAN_WHEN,%s (in %d days),%s (om %d dager)
+DRIFTSPLAN_WHEN_TODAY,today,i dag
+GAME_EVENT_ALGAL_BLOOM,Bloom at the farm,Oppblomstring ved anlegget
+GAME_EVENT_APPETITE_LOW,Low appetite,Lav appetitt
+GAME_EVENT_BIOFILTER_DEGRADED,Biofilter losing capacity,Biofilteret mister kapasitet
+GAME_EVENT_BIOMASS_ORDER,Order: get under the biomass limit,Pålegg: ned under MTB
+GAME_EVENT_CAPEX_OVERRUN,Construction over budget,Byggeprosjektet går over budsjett
+GAME_EVENT_CONSTRUCTION_PHASE_COMPLETE,Construction phase complete,Byggefase fullført
+GAME_EVENT_CONVERSION_DECISION,Conversion decision,Vedtak om konvertering
+GAME_EVENT_CONVERSION_PAYMENT_DUE,Conversion payment due,Konverteringsvederlaget forfaller
+GAME_EVENT_CREW_OVERDUE,Crew change overdue,Mannskapsbyttet er forsinket
+GAME_EVENT_DEV_LICENCE_AWARDED,Development licences awarded,Utviklingstillatelser tildelt
+GAME_EVENT_DEV_LICENCE_ROUND_OPENED,Development licence round open,Søknadsrunde for utviklingstillatelser er åpen
+GAME_EVENT_DISCHARGE_NEAR_CAP,Discharge near the permit cap,Utslippet nærmer seg grensen i tillatelsen
+GAME_EVENT_DRIFTSPLAN_COMMAND_FAILED,The operating plan could not do a job,Driftsplanen fikk ikke utført en oppgave
+GAME_EVENT_DRILL_COMPLETED,Drill completed,Øvelse gjennomført
+GAME_EVENT_ESCAPE,Fish escape,Rømming
+GAME_EVENT_FEED_CONVERSION_POOR,Feed conversion worsening,Fôrfaktoren forverres
+GAME_EVENT_GILL_HEALTH_CRITICAL,Gill health critical,Kritisk gjellehelse
+GAME_EVENT_GILL_HEALTH_POOR,Gill health declining,Svekket gjellehelse
+GAME_EVENT_GROWTH_SHORTFALL,Growth behind plan,Veksten ligger etter planen
+GAME_EVENT_H2S_ACUTE,Acute hydrogen sulphide,Akutt hydrogensulfid
+GAME_EVENT_H2S_CHRONIC,Hydrogen sulphide rising,Hydrogensulfid stiger
+GAME_EVENT_HANDLING_OVERDUE,Fish handling overdue,Håndtering av fisken er forsinket
+GAME_EVENT_INSURANCE_PAYOUT,Insurance settlement,Forsikringsoppgjør
+GAME_EVENT_LAND_O2_LOW,Low oxygen in the tanks,Lavt oksygen i karene
+GAME_EVENT_LAND_POWER_OUTAGE_UNCOVERED,Power outage: the backup did not start,Strømbrudd: reservekraften startet ikke
+GAME_EVENT_LICE_ABOVE_LIMIT,Lice above the legal limit,Lusenivået er over grensen
+GAME_EVENT_LICE_RISING,Lice levels rising,Lusenivået stiger
+GAME_EVENT_LICE_TREATMENT_DUE,Lice treatment due,Lusebehandling påkrevd
+GAME_EVENT_LICE_TREATMENT_ORDER,Order: delouse by the deadline,Pålegg: avlus innen fristen
+GAME_EVENT_LOX_SHORTAGE,Liquid oxygen running low,Flytende oksygen går mot slutten
+GAME_EVENT_MATTILSYNET_ORDER,Order: handle the fish by the deadline,Pålegg: håndter fisken innen fristen
+GAME_EVENT_MATURATION_RISING,Early maturation rising,Tidlig kjønnsmodning øker
+GAME_EVENT_MOORING_FAILURE,Mooring failure,Fortøyningsbrudd
+GAME_EVENT_MORTALITY_HIGH,High mortality,Høy dødelighet
+GAME_EVENT_NETS_CRITICAL,Nets critically worn,Nøtene er kritisk slitt
+GAME_EVENT_NETS_WORN,Nets worn,Nøtene er slitt
+GAME_EVENT_NET_TEAR,Net torn,Hull i nota
+GAME_EVENT_OFFSHORE_AREA_ROUND_OPENED,Offshore area round open,Utlysning av havområde er åpen
+GAME_EVENT_OFF_FLAVOUR_DETECTED,Off-flavour detected,Avsmak påvist
+GAME_EVENT_OUTAGE_COVERED,Power outage covered by the backup,Strømbrudd dekket av reservekraften
+GAME_EVENT_OXYGEN_CRITICAL,Oxygen critically low,Kritisk lavt oksygen
+GAME_EVENT_OXYGEN_LOW,Low oxygen,Lavt oksygen
+GAME_EVENT_PERMIT_DECISION,Permit decision,Vedtak i søknaden
+GAME_EVENT_SILO_LOW,Feed silo running low,Fôrsiloen går mot tom
+GAME_EVENT_SITE_APPROVAL_WITHDRAWN,Site approval withdrawn,Lokalitetsgodkjenningen er trukket tilbake
+GAME_EVENT_SOLVENCY_BANK_WARNING,Bank warning,Bankvarsel
+GAME_EVENT_SOLVENCY_FINAL_WARNING,Final warning from the bank,Siste varsel fra banken
+GAME_EVENT_SOLVENCY_OVERDRAFT,Account overdrawn,Overtrukket konto
+GAME_EVENT_STORM_DAMAGE,Storm damage,Stormskade
+GAME_EVENT_STORM_FORECAST,Storm on the way,Storm i vente
+GAME_EVENT_STORM_SWELL_FORECAST,Storm swell on the way,Stormsjø i vente
+GAME_EVENT_STORY_EVENT,Event,Hendelse
+GAME_EVENT_SUSTAINABILITY_LOW,Sustainability below the requirement,Bærekraft under kravet
+GAME_EVENT_TEETHING_DEFECT_REVEALED,Teething defect found,Barnesykdom avdekket
+GAME_EVENT_TEMPERATURE_HIGH,High sea temperature,Høy sjøtemperatur
+GAME_EVENT_TILT_EVENT,The unit is listing,Anlegget krenger
+GAME_EVENT_TOW_WINDOW_LIKELY,A tow window is likely,Godt slepevindu i sikte
+GAME_EVENT_TRAFFIC_LIGHT_CHANGED,Traffic light changed,Trafikklyset har skiftet
+GAME_EVENT_TRAFFIC_LIGHT_RED,Traffic light red,Trafikklyset er rødt
+GAME_EVENT_VACCINE_COVERAGE_LOW,Low vaccine coverage,Lav vaksinedekning
+GAME_EVENT_VACCINE_WINDOW_OPEN,Vaccination window open,Vaksinasjonsvinduet er åpent
+GAME_EVENT_WELLBOAT_COMPLETED,Wellboat job done,Brønnbåten er ferdig
+GAME_EVENT_WELLBOAT_RETURNED,Wellboat returned without finishing,Brønnbåten kom tilbake uten å fullføre
+GAME_EVENT_WELLBOAT_SCHEDULED,Wellboat booked,Brønnbåt bestilt
+UI_EVENT_CARD_CONTINUE,Continue,Fortsett
+UI_EVENT_CARD_HINT_PAUSED,The game is paused while this card is open. Esc continues.,Spillet står på pause mens kortet er åpent. Esc fortsetter.
+UI_EVENT_CARD_HINT_RUNNING,The game keeps running. Esc closes the card.,Spillet går videre. Esc lukker kortet.
+UI_EVENT_CARD_NEXT,Next,Neste
+UI_EVENT_CARD_OVERLINE,Critical event,Kritisk hendelse
+UI_EVENT_CARD_QUEUE,%d of %d,%d av %d
+UI_EVENT_CARD_SHOW_SITE,Show the site,Vis lokaliteten
+UI_EVENT_DAY,Day %d,Dag %d
+UI_EVENT_DEADLINE,Deadline: %s (in %d days),Frist: %s (om %d dager)
+UI_EVENT_DEADLINE_TODAY,Deadline: %s (today),Frist: %s (i dag)
+UI_EVENT_SUBJECT_COMPANY,The whole company,Hele selskapet
+UI_EVENT_VERB_ADJUST_WATER,Adjust the water,Juster vannet
+UI_EVENT_VERB_BOOK_OPERATION,Book an operation,Bestill operasjon
+UI_EVENT_VERB_BUILD_COMPETENCE,Build competence,Styrk kompetansen
+UI_EVENT_VERB_CHECK_WATER,Check the water,Se vannkvaliteten
+UI_EVENT_VERB_DELOUSE,Plan delousing,Planlegg avlusing
+UI_EVENT_VERB_FIX_DEFECT,Fix the defect,Utbedre feilen
+UI_EVENT_VERB_FRESHWATER_BATH,Plan a freshwater bath,Planlegg ferskvannsbehandling
+UI_EVENT_VERB_INSPECT_NETS,Check the nets,Sjekk nøtene
+UI_EVENT_VERB_INSPECT_SITE,Show the site,Vis lokaliteten
+UI_EVENT_VERB_OPEN_DRIFTSPLAN,Open the operating plan,Åpne driftsplanen
+UI_EVENT_VERB_OPEN_SUSTAINABILITY,See the requirements,Se kravene
+UI_EVENT_VERB_ORDER_OXYGEN,Order oxygen,Bestill oksygen
+UI_EVENT_VERB_PAY_CONVERSION,Pay the conversion,Betal konverteringen
+UI_EVENT_VERB_RAISE_CAPITAL,Raise capital,Skaff kapital
+UI_EVENT_VERB_REPAIR_UNIT,Repair,Reparer
+UI_EVENT_VERB_RESOLVE_OUTAGE,Choose a response,Velg tiltak
+UI_EVENT_VERB_REVIEW_ALARMS,Review the alarms,Gå gjennom alarmene
+UI_EVENT_VERB_REVIEW_FEEDING,Review feeding,Se på fôringen
+UI_EVENT_VERB_START_PURGE,Start a purge,Start rensing
+UI_EVENT_VERB_START_TOW,Plan the tow,Planlegg slepet
+UI_HUD_TIP_NOTIFICATIONS,Notifications (V) — %d unread,Varsler (V) — %d uleste
+UI_NOTIFY_CLEAR_ALL_TIP,Clear all notifications,Tøm alle varsler
+UI_NOTIFY_EXPAND_TIP,Click for the whole text,Klikk for hele teksten
+UI_NOTIFY_UNREAD,New,Ny
+UI_PACING_DEADLINE_FALLBACK,Deadline,Frist
+UI_PACING_PAUSED,Paused,Pause
+UI_PACING_RUNNING,Running to the next event,Spoler til neste hendelse
+UI_PACING_SLOWED,Slowed · due %s,Bremset · frist %s
+UI_PACING_STOPPED_DEADLINE,Stopped · due %s,Stoppet · frist %s
+UI_PACING_STOPPED_EVENT,Stopped · %s,Stoppet · %s
+UI_PACING_STOPPED_QUIET,Stopped · %d quiet days,Stoppet · %d rolige dager
+UI_PACING_TIP_DEADLINE,"%s\nDue %s, in %d days. The game slows to 1× a week before a deadline you can act on and stops the day before. Click for the notifications.","%s\nFrist %s, om %d dager. Spillet bremser til 1× en uke før en frist du kan gjøre noe med, og stopper dagen før. Klikk for varslene."
+UI_PACING_TIP_EVENT,To the next event stopped here: %s. Click for the notifications.,Til neste hendelse stoppet her: %s. Klikk for varslene.
+UI_PACING_TIP_PAUSED,The game is paused. Space or 1–4 starts the clock.,Spillet står stille. Mellomrom eller 1–4 starter klokken.
+UI_PACING_TIP_QUIET,Nothing needed you for 60 days. Press N to run on.,Ingenting trengte deg på 60 dager. Trykk N for å spole videre.
+LEDGER_MTB_CONFISCATION,Confiscated gain (biomass over MTB),Inndratt vinning (biomasse over MTB)
+LEDGER_MTB_FEE,Infringement fee (biomass over MTB),Overtredelsesgebyr (biomasse over MTB)
+CAPACITY_REASON_MTB_AREA_PROJECTED_PEAK,The production plan's peak would pass the licence MTB in this production area,Produksjonsplanens topp ville gått over tillatelsenes MTB i produksjonsområdet
+CAPACITY_REASON_MTB_SITE_PROJECTED_PEAK,The production plan's peak would pass this site's locality MTB,Produksjonsplanens topp ville gått over lokalitetens MTB
+CAPACITY_REASON_MTB_ORDER_OPEN,A biomass reduction order runs in this production area: no stocking until it is met,Et pålegg om å redusere biomassen gjelder i produksjonsområdet: ingen utsett før det er oppfylt
+CAPACITY_REASON_MTB_NO_LICENCE,The company holds no licence in this production area,Selskapet har ingen tillatelse i dette produksjonsområdet
+CAPACITY_BREACH_OPEN,Order running,Pålegg løper
+CAPACITY_BREACH_COMPLIED,Order met,Pålegg oppfylt
+CAPACITY_BREACH_FORCED_HARVEST,Forced harvest,Tvangsslakting
+CAPACITY_LICENCE_MTB,Licence MTB,Tillatelses-MTB
+CAPACITY_LOCALITY_MTB,Locality MTB,Lokalitets-MTB
+CAPACITY_HEADROOM,MTB headroom,Ledig MTB
+CAPACITY_PROJECTED_PEAK,Plan peak,Planlagt topp
+CAPACITY_BUILD_ADDS_NO_MTB,"A new site adds a locality, not MTB: the fish it can hold come from your licences in the production area","Et nytt anlegg gir en lokalitet, ikke MTB: fisken det kan holde, kommer fra tillatelsene dine i produksjonsområdet"
+PENS_TITLE,Pens and stocking,Merder og utsett
+PENS_CHIP_EMPTY,Pen %d · empty,Merd %d · tom
+PENS_CHIP_FISH,Pen %d · %s fish · %s kg/m³,Merd %d · %s fisk · %s kg/m³
+PENS_OPTION_FREE,Pen %d (%s m³),Merd %d (%s m³)
+PENS_PEN_PICK_TIP,"The pen to stock: only an empty pen takes smolts (one stocking, one year class per pen)",Merden det settes ut i: bare en tom merd tar smolt (ett utsett og én årsklasse per merd)
+PENS_NONE_FREE,No empty pen: harvest a pen before stocking,Ingen tom merd: høst en merd før utsett
+PENS_COUNT_TIP,"Smolts to stock in the chosen pen: at most %s a pen, and the plan's peak density at most %s kg/m³","Smolt å sette ut i valgt merd: høyst %s per merd, og planlagt topptetthet høyst %s kg/m³"
+PENS_PREVIEW,Plan peak %s of %s kg/m³ at %s kg · room for %s smolts,Planlagt topp %s av %s kg/m³ ved %s kg · plass til %s smolt
+CAPACITY_REASON_PEN_FISH_LIMIT,"A pen may hold at most 200,000 fish",En merd kan ha høyst 200 000 fisk
+CAPACITY_REASON_PEN_DENSITY,The plan's peak density in this pen would pass 25 kg/m³,Planlagt topptetthet i merden ville gått over 25 kg/m³
+CAPACITY_REASON_PEN_OCCUPIED,The pen already holds fish: one stocking per pen,Merden har allerede fisk: ett utsett per merd
+CAPACITY_REASON_PEN_NOT_FOUND,The site has no such pen,Lokaliteten har ingen slik merd
+CAPACITY_REASON_PENS_FULL,"The site's empty pens cannot take that many fish within 200,000 fish and 25 kg/m³ a pen",De tomme merdene på lokaliteten kan ikke ta så mye fisk innenfor 200 000 fisk og 25 kg/m³ per merd
+CAPACITY_REASON_INSUFFICIENT_FUNDS,Not enough money for the smolts,Ikke nok penger til smolten
+CAPACITY_REASON_MAB_EXCEEDED,The smolts would put the site over its MTB,Smolten ville satt lokaliteten over MTB-en
+CAPACITY_REASON_INVALID_COUNT,Choose a number of smolts above zero,Velg et antall smolt over null
+CAPACITY_REASON_SITE_NOT_FOUND,The site was not found,Fant ikke lokaliteten
+EXPANSION_AREA_PICKER_PROMPT,Choose a production area,Velg produksjonsområde
+EXPANSION_AREA_PICKER_TIP,Pick an area here or on the map,Velg et område her eller på kartet
+EXPANSION_AUCTION_AGAIN_BUTTON,Apply again,Søk på nytt
+EXPANSION_AUCTION_BIDS,Bids,Bud
+EXPANSION_AUCTION_BID_BUTTON,Place bid,Legg inn bud
+EXPANSION_AUCTION_BID_INFO,%s NOK per tonne · minimum bid %s · your cash %s,%s kr per tonn · minstebud %s · kontanter %s
+EXPANSION_AUCTION_BUTTON,Follow the auction,Følg auksjonen
+EXPANSION_AUCTION_CASH_SHORT,"Your cash (%s) does not cover %s. You can follow the auction, but you need more capital to win it.","Kontantene dine (%s) dekker ikke %s. Du kan følge auksjonen, men trenger mer kapital for å vinne den."
+EXPANSION_AUCTION_CLOCK_HINT,The auction runs as time passes: the clock slows to 1× while it runs and stops the day before it closes unless you lead. A bid on the last day keeps it open one more day.,"Auksjonen går mens tiden går: klokken senkes til 1× mens den pågår, og stopper dagen før den stenger hvis du ikke leder. Et bud på siste dag holder den åpen én dag til."
+EXPANSION_AUCTION_CLOSES_IN,Closes in %d days · %s,Stenger om %d dager · %s
+EXPANSION_AUCTION_CLOSES_TOMORROW,Closes tomorrow · %s,Stenger i morgen · %s
+EXPANSION_AUCTION_DAYS,%d days,%d dager
+EXPANSION_AUCTION_ENDED_BODY,The auction ended without a winner.,Auksjonen endte uten vinner.
+EXPANSION_AUCTION_ENDED_TITLE,No winner,Ingen vinner
+EXPANSION_AUCTION_FREE_HINT,Opening the auction costs nothing; you pay only if you win.,Det koster ingenting å åpne auksjonen; du betaler bare hvis du vinner.
+EXPANSION_AUCTION_LAST_ROUND,Last bidding day: a bid today keeps the auction open one more day,Siste budrunde: et bud i dag holder auksjonen åpen én dag til
+EXPANSION_AUCTION_LEADING_BID,Leading bid,Høyeste bud
+EXPANSION_AUCTION_LENGTH,Runs for,Varighet
+EXPANSION_AUCTION_LENGTH_NOTE,Rivals bid every day,Konkurrentene byr hver dag
+EXPANSION_AUCTION_LOST_BODY,%s won the licence for %s.,%s vant tillatelsen for %s.
+EXPANSION_AUCTION_LOST_TITLE,A rival won the licence,En konkurrent vant tillatelsen
+EXPANSION_AUCTION_MIN_BID_BUTTON,Minimum bid,Minstebud
+EXPANSION_AUCTION_NOBODY_LEADS,No bids yet,Ingen bud ennå
+EXPANSION_AUCTION_NO_BIDS,No bids,Ingen bud
+EXPANSION_AUCTION_NO_BIDS_YET,No bids yet. The reserve is the first minimum bid.,Ingen bud ennå. Minsteprisen er det første minstebudet.
+EXPANSION_AUCTION_OPEN_BUTTON,Open the auction,Åpne auksjonen
+EXPANSION_AUCTION_OVERLINE,Growth licence · auction,Vekstlisens · auksjon
+EXPANSION_AUCTION_PLUS_10,+10 %,+10 %
+EXPANSION_AUCTION_PLUS_5,+5 %,+5 %
+EXPANSION_AUCTION_PREVIEW_NOTE,"The licence's MTB counts for every site you have in the production area, wherever you build. Bids are taken in whole millions: the reserve first, then at least 5 % over the leading bid.","Tillatelsens MTB gjelder alle lokalitetene dine i produksjonsområdet, uansett hvor du bygger. Bud tas i hele millioner: først minsteprisen, deretter minst 5 % over høyeste bud."
+EXPANSION_AUCTION_REFERENCE,The state's capacity auctions: on average %s NOK per tonne in 2022 and %s NOK per tonne in 2024.,Statens kapasitetsauksjoner: i snitt %s kr per tonn i 2022 og %s kr per tonn i 2024.
+EXPANSION_AUCTION_RESERVE,Reserve,Minstepris
+EXPANSION_AUCTION_RESERVE_IS,Reserve %s,Minstepris %s
+EXPANSION_AUCTION_RIVAL_LEADS,%s leads: you are outbid,%s leder: du er overbudt
+EXPANSION_AUCTION_SPIN_TIP,Your bid in millions of NOK,Budet ditt i millioner kroner
+EXPANSION_AUCTION_SUBTITLE,%s t MTB in production area %d · the licence counts for the whole area,%s t MTB i produksjonsområde %d · tillatelsen gjelder hele området
+EXPANSION_AUCTION_TITLE,%s · PO %d,%s · PO %d
+EXPANSION_AUCTION_WON_BODY,%s t MTB in production area %d for %s. Build a locality in %s to farm in the zone.,%s t MTB i produksjonsområde %d for %s. Bygg en lokalitet i %s for å drive i sonen.
+EXPANSION_AUCTION_WON_TITLE,You won the growth licence,Du vant vekstlisensen
+EXPANSION_AUCTION_YOU,You,Du
+EXPANSION_AUCTION_YOUR_BID,Your bid,Ditt bud
+EXPANSION_AUCTION_YOU_LEAD,You lead,Du leder
+EXPANSION_BUILD_BUTTON,Build locality,Bygg lokalitet
+EXPANSION_BUILD_BUTTON_TIP,See what a new locality costs and holds before you build,Se hva en ny lokalitet koster og rommer før du bygger
+EXPANSION_BUILD_CONFIRM,Build for %s,Bygg for %s
+EXPANSION_BUILD_DONE_BODY,Its %d pens are empty and ready for smolts: stock them from the Pens tab.,De %d merdene står tomme og klare for smolt: sett ut fisk fra Merder-fanen.
+EXPANSION_BUILD_DONE_TITLE,%s is built,%s er bygd
+EXPANSION_BUILD_EXPLAIN,"A locality gives room, not permission: the fish you may hold come from your licences in the production area (%s t MTB in PO %d). A build adds none.","En lokalitet gir plass, ikke tillatelse: fisken du kan ha, kommer fra tillatelsene dine i produksjonsområdet (%s t MTB i PO %d). En bygging legger ikke til noe."
+EXPANSION_BUILD_FIRST_SITE,your first locality,din første lokalitet
+EXPANSION_BUILD_HEADER,Build,Bygging
+EXPANSION_BUILD_HINT,Construction is paid now; the crew and upkeep start with the site.,Byggingen betales nå; mannskap og vedlikehold starter med lokaliteten.
+EXPANSION_BUILD_NEW_ZONE,a new zone (uses your growth licence),ny sone (bruker vekstlisensen din)
+EXPANSION_BUILD_OK,Can be built for %s,Kan bygges for %s
+EXPANSION_BUILD_OVERLINE,New locality,Ny lokalitet
+EXPANSION_BUILD_SUBTITLE,Production area %d · %s,Produksjonsområde %d · %s
+EXPANSION_BUILD_TITLE,Build a locality in %s,Bygg lokalitet i %s
+EXPANSION_BUILD_VIEW_BUTTON,Show it on the fjord,Vis den på fjorden
+EXPANSION_BUILD_YOUR_ZONE,your zone,din sone
+EXPANSION_CANCEL,Cancel,Avbryt
+EXPANSION_CAPACITY_BAR_TIP,Standing biomass against your licence MTB in the area,Stående biomasse mot tillatelsenes MTB i området
+EXPANSION_CAPACITY_HEADER,Your capacity here,Kapasiteten din her
+EXPANSION_CAPACITY_LICENCES,Licences: %d · %s t MTB,Tillatelser: %d · %s t MTB
+EXPANSION_CAPACITY_NONE,No licences here yet. A licence in this area holds %s t of MTB.,Ingen tillatelser her ennå. En tillatelse i området holder %s t MTB.
+EXPANSION_CAPACITY_STANDING,Standing biomass %s t · headroom %s t,Stående biomasse %s t · ledig %s t
+EXPANSION_FAMILY_HEADER,Farm type,Anleggstype
+EXPANSION_FAMILY_LAND,Land,Land
+EXPANSION_FAMILY_LAND_BODY,Land-based farms are built from the RAS tab for now.,Landanlegg bygges foreløpig fra RAS-fanen.
+EXPANSION_FAMILY_LAND_BUTTON,Open the RAS tab,Åpne RAS-fanen
+EXPANSION_FAMILY_OFFSHORE,Offshore,Hav
+EXPANSION_FAMILY_OFFSHORE_BODY,Offshore farms are built from the Offshore tab for now.,Havbruk til havs bygges foreløpig fra Offshore-fanen.
+EXPANSION_FAMILY_OFFSHORE_BUTTON,Open the Offshore tab,Åpne Offshore-fanen
+EXPANSION_FAMILY_SEA,Sea,Sjø
+EXPANSION_FAMILY_SEA_BODY,Open net pens in a mooring frame on a new locality in the fjord. The preview below is for this choice.,Åpne merder i et fortøyningsrammeverk på en ny lokalitet i fjorden. Forhåndsvisningen under gjelder dette valget.
+EXPANSION_FAMILY_SELECTED,Chosen,Valgt
+EXPANSION_FAMILY_TAB_LOCKED,Unlocks later in the tutorial,Låses opp senere i opplæringen
+EXPANSION_LEDGER_CASH,Cash,Kontanter
+EXPANSION_LEDGER_COST,Investment,Investering
+EXPANSION_LEDGER_LICENCE_MTB,Licence MTB in PO %d,Tillatelses-MTB i PO %d
+EXPANSION_LEDGER_LICENCE_VALUE,%s t → %s t (+%s t),%s t → %s t (+%s t)
+EXPANSION_LEDGER_LOCALITY_MTB,Locality MTB,Lokalitets-MTB
+EXPANSION_LEDGER_PENS,Pens,Merder
+EXPANSION_LEDGER_PENS_VALUE,%d × %s m round · %s m deep · %s m³ each,%d × %s m omkrets · %s m dype · %s m³ hver
+EXPANSION_LEDGER_RUNNING,Running cost,Drift
+EXPANSION_LEDGER_RUNNING_VALUE,+%s per month (%d crew and upkeep),+%s per måned (%d ansatte og vedlikehold)
+EXPANSION_LEGEND_YOUR_SITES,Ring: your sites,Ring: dine lokaliteter
+EXPANSION_LICENCE_BUTTON,Apply for a growth licence,Søk vekstlisens
+EXPANSION_LICENCE_HEADER,Growth licence,Vekstlisens
+EXPANSION_LICENCE_OK,"Open: a %d-day auction, reserve %s","Kan søkes: auksjon over %d dager, minstepris %s"
+EXPANSION_LICENCE_RUNNING,An auction for the zone is running,En auksjon for sonen pågår
+EXPANSION_LIGHT_GREEN,Green,Grønt
+EXPANSION_LIGHT_RED,Red,Rødt
+EXPANSION_LIGHT_TIP,Traffic light: the area's colour as the game knows it. Red areas auction no growth.,Trafikklys: områdets farge slik spillet kjenner den. I røde områder auksjoneres ingen vekst.
+EXPANSION_LIGHT_YELLOW,Yellow,Gult
+EXPANSION_MARKER_TIP,%s · traffic light %s · %d of your sites,%s · trafikklys %s · %d av lokalitetene dine
+EXPANSION_PD_ZONE,PD zone,PD-sone
+EXPANSION_PER_TONNE,%s NOK per tonne,%s kr per tonn
+EXPANSION_PREVIEW_HEADER,Before you build,Før du bygger
+EXPANSION_REASON_ALREADY_OPERATING,"You already farm here: build directly, no new licence needed","Du driver allerede her: bygg direkte, uten ny lisens"
+EXPANSION_REASON_AUCTION_CLOSED,The auction has closed,Auksjonen er stengt
+EXPANSION_REASON_AUCTION_NOT_FOUND,No auction runs for this zone,Ingen auksjon går for denne sonen
+EXPANSION_REASON_AUCTION_OPEN,An auction for this zone is already running,En auksjon for sonen pågår allerede
+EXPANSION_REASON_BID_TOO_LOW,The bid is below the minimum bid,Budet er under minstebudet
+EXPANSION_REASON_ENGINE_NOT_READY,The game has not started,Spillet er ikke startet
+EXPANSION_REASON_GROWTH_LICENCE_REQUIRED,A new zone needs a growth licence: win the auction first,En ny sone krever vekstlisens: vinn auksjonen først
+EXPANSION_REASON_INSUFFICIENT_FUNDS,Not enough money,Ikke nok penger
+EXPANSION_REASON_LICENCE_HELD,You already hold an unused growth licence for this zone,Du har allerede en ubrukt vekstlisens for sonen
+EXPANSION_REASON_ZONE_NOT_FOUND,The zone does not exist,Sonen finnes ikke
+EXPANSION_REASON_ZONE_RED,Red traffic light: no growth licences are auctioned here,Rødt trafikklys: ingen vekstlisenser auksjoneres her
+EXPANSION_SURVEILLANCE_ZONE,Surveillance zone,Overvåkingssone
+EXPANSION_TONNES,%s t,%s t
+EXPANSION_ZONES_HEADER,Zones,Soner
+EXPANSION_ZONE_AUCTION_RUNNING,Auction running,Auksjon pågår
+EXPANSION_ZONE_LICENCE_WON,Growth licence won,Vekstlisens vunnet
+EXPANSION_ZONE_NEW,New zone,Ny sone
+EXPANSION_ZONE_YOURS_MANY,Your zone · %d sites,Din sone · %d lokaliteter
+EXPANSION_ZONE_YOURS_ONE,Your zone · %d site,Din sone · %d lokalitet
+FEEDPLAN_APPLY,Apply to %s,Bruk på %s
+FEEDPLAN_APPLY_ALL,Feed all (%d sites),Fôr alle (%d lokaliteter)
+FEEDPLAN_APPLY_ALL_TIP,"The same ration, feed type and duration for every site.","Samme fôrmengde, fôrtype og varighet for alle lokalitetene."
+FEEDPLAN_APPLY_TIP,Feed this site this way from today.,Fôr denne lokaliteten slik fra i dag.
+FEEDPLAN_COL_CHANGE,vs full appetite,mot full appetitt
+FEEDPLAN_COL_PLAN,This plan,Denne planen
+FEEDPLAN_COST,Feed cost,Fôrkostnad
+FEEDPLAN_COST_PER_KG,Feed cost per kg growth,Fôrkostnad per kg tilvekst
+FEEDPLAN_COST_VALUE,%s/day,%s/dag
+FEEDPLAN_ERROR_ENGINE_NOT_READY,No game is running.,Ingen spill kjører.
+FEEDPLAN_ERROR_RATION_OUT_OF_RANGE,The ration must lie between half and full appetite.,Fôrmengden må ligge mellom halv og full appetitt.
+FEEDPLAN_ERROR_SITE_NOT_FOUND,The site no longer exists.,Lokaliteten finnes ikke lenger.
+FEEDPLAN_ERROR_UNKNOWN_RECIPE,Unknown feed type.,Ukjent fôrtype.
+FEEDPLAN_ERROR_WINDOW_OUT_OF_RANGE,A plan can last at most a year.,En plan kan vare høyst ett år.
+FEEDPLAN_FCR,Feed conversion (FCR),Fôrfaktor (FCR)
+FEEDPLAN_GROWTH,Growth,Tilvekst
+FEEDPLAN_GROWTH_VALUE,%s kg/day,%s kg/dag
+FEEDPLAN_NOTE,"Projection for %d days: the area's normal sea temperature, today's appetite, no deaths.","Prognose for %d dager: områdets normale sjøtemperatur, dagens appetitt, uten dødelighet."
+FEEDPLAN_NO_FISH,No fish at this site yet: the plan applies to the fish you stock.,Ingen fisk på lokaliteten ennå: planen gjelder fisken du setter ut.
+FEEDPLAN_RATION,Ration,Fôrmengde
+FEEDPLAN_RATION_TIP,"The share of the fish's appetite you feed each day. Less feed: slower growth, better feed conversion, lower cost per day.","Andelen av fiskens appetitt du fôrer hver dag. Mindre fôr: saktere vekst, bedre fôrfaktor, lavere kostnad per dag."
+FEEDPLAN_RATION_VALUE,%s %% of appetite,%s %% av appetitt
+FEEDPLAN_RECIPE,Feed type,Fôrtype
+FEEDPLAN_RECIPE_ECONOMY,Economy,Økonomi
+FEEDPLAN_RECIPE_HIGH_ENERGY,High energy,Høyenergi
+FEEDPLAN_RECIPE_OPTION,%s · %s,%s · %s
+FEEDPLAN_RECIPE_STANDARD,Standard,Standard
+FEEDPLAN_RECIPE_TIP_ECONOMY,"Less energy and pigment, cheaper per kg: more feed for the same growth, and pale fillets at the processing plant.","Mindre energi og pigment, billigere per kg: mer fôr for samme tilvekst, og blek filet på fabrikken."
+FEEDPLAN_RECIPE_TIP_HIGH_ENERGY,"More fat, dearer per kg: less feed and less sludge under the pens for the same growth.","Mer fett, dyrere per kg: mindre fôr og mindre slam under merdene for samme tilvekst."
+FEEDPLAN_RECIPE_TIP_STANDARD,The ordinary commercial grower feed.,Vanlig kommersielt vekstfôr.
+FEEDPLAN_RESET,Back to standard,Tilbake til standard
+FEEDPLAN_RESET_TIP,Full appetite on standard feed until you change it.,Full appetitt med standardfôr til du endrer det.
+FEEDPLAN_SAME,same,samme
+FEEDPLAN_STATUS_CUSTOM,Own plan,Egen plan
+FEEDPLAN_STATUS_DAYS_LEFT,Own plan · %d days left,Egen plan · %d dager igjen
+FEEDPLAN_STATUS_STANDARD,Standard,Standard
+FEEDPLAN_STOP_FULL,Full appetite %s %%,Full appetitt %s %%
+FEEDPLAN_STOP_FULL_TIP,Feed until the fish stop eating: the fastest growth.,Fôr til fisken slutter å spise: raskest vekst.
+FEEDPLAN_STOP_MODERATE,Moderate %s %%,Moderat %s %%
+FEEDPLAN_STOP_MODERATE_TIP,"A little below appetite: almost full growth, slightly better feed conversion.","Litt under appetitt: nesten full vekst, litt bedre fôrfaktor."
+FEEDPLAN_STOP_RESTRICTED,Restricted %s %%,Begrenset %s %%
+FEEDPLAN_STOP_RESTRICTED_TIP,The best feed conversion: slows the growth and holds the biomass under the MTB.,Best fôrfaktor: bremser veksten og holder biomassen under MTB.
+FEEDPLAN_TITLE,Feeding plan,Fôringsplan
+FEEDPLAN_WEIGHT,Mean weight in %d days,Snittvekt om %d dager
+FEEDPLAN_WHY_IN_USE,The site is already fed this way.,Lokaliteten fôres allerede slik.
+FEEDPLAN_WHY_NO_SITES,You have no sea sites.,Du har ingen sjølokaliteter.
+FEEDPLAN_WHY_STANDARD,The site is on the standard plan.,Lokaliteten går på standardplanen.
+FEEDPLAN_WINDOW,Duration,Varighet
+FEEDPLAN_WINDOW_DAYS,%d days,%d dager
+FEEDPLAN_WINDOW_TIP,How long the plan holds; then the site goes back to full appetite on standard feed.,Hvor lenge planen gjelder; deretter går lokaliteten tilbake til full appetitt med standardfôr.
+FEEDPLAN_WINDOW_UNTIL_CHANGED,Until changed,Til endret
+GAME_EVENT_BANK_CALL,Bank call,Bankmøte
+GAME_EVENT_LICENCE_AUCTION_LOST,Licence auction lost,Lisensauksjonen er tapt
+GAME_EVENT_LICENCE_AUCTION_WON,Growth licence won,Vekstlisens vunnet
+GAME_EVENT_LICENCE_OUTBID,Outbid in the licence auction,Overbudt i lisensauksjonen
+GAME_EVENT_LIQUIDITY_WARNING,Liquidity warning,Likviditetsvarsel
+GAME_EVENT_RESCUE_LOAN_TAKEN,Rescue loan taken,Redningslån tatt opp
+HARVESTPLAN_BEST,best,best
+HARVESTPLAN_BUTTON_ORDERED,Harvest plan · ordered,Slakteplan · bestilt
+HARVESTPLAN_BUTTON_TIP,"Open the harvest planner: weights, prices, the wellboat and what waiting would bring","Åpne slakteplanen: vekter, priser, brønnbåt og hva det gir å vente"
+HARVESTPLAN_CANCEL_ORDER,Cancel the order,Avlys ordren
+HARVESTPLAN_CAPACITY_VALUE,%s t gutted a day,%s t sløyd per døgn
+HARVESTPLAN_CHART_NOTE,"Bars: gutted tonnes per size class. Under each, the class's price against the 4–5 kg reference.",Søyler: sløyde tonn per størrelsesklasse. Under hver: klassens pris mot referansen 4–5 kg.
+HARVESTPLAN_CHART_TITLE,"Weight distribution, gutted weight","Vektfordeling, sløyd vekt"
+HARVESTPLAN_CLOSE,Close,Lukk
+HARVESTPLAN_DAY_IN,%s (in %d d),%s (om %d d)
+HARVESTPLAN_DAY_RANGE,%s – %s,%s – %s
+HARVESTPLAN_ERROR_HOLDING_EMPTY,There are no fish to harvest.,Det er ingen fisk å slakte.
+HARVESTPLAN_ERROR_HOLDING_NOT_FOUND,The site no longer exists.,Lokaliteten finnes ikke lenger.
+HARVESTPLAN_ERROR_INVALID_FRACTION,Choose a share of the fish between 1 and 100 %.,Velg en andel av fisken mellom 1 og 100 %.
+HARVESTPLAN_ERROR_PEN_IN_ORDER,These pens are already in a harvest order.,Merdene er allerede i en slakteordre.
+HARVESTPLAN_ERROR_PEN_NOT_FOUND,A chosen pen is not at this site.,En valgt merd er ikke på lokaliteten.
+HARVESTPLAN_EXPRESS,Express today · %s,Ekspress i dag · %s
+HARVESTPLAN_EXPRESS_TIP,Sold today at %s; a spot wellboat and the slaughterhouse's waiting pen cost %s more.,Selges i dag til %s; spot-brønnbåt og slakteriets ventemerd koster %s ekstra.
+HARVESTPLAN_FASTING_VALUE,%d days (%s degree-days),%d døgn (%s døgngrader)
+HARVESTPLAN_FOOTER,"A planned harvest is the default: no surcharge, the fish fast at the farm, each day's batch sells at that day's price.","Planlagt slakting er standard: uten ekspresstillegg, fisken sultes på anlegget, og hver dags parti selges til dagens pris."
+HARVESTPLAN_FOOTER_WAIT,The details show a projection %d weeks ahead. Order when you want to harvest.,Detaljene viser en prognose %d uker fram. Bestill når du vil slakte.
+HARVESTPLAN_GRADES,Grade,Kvalitet
+HARVESTPLAN_GRADE_LEGEND,%s superior · %s ordinary · %s production,%s superior · %s ordinær · %s produksjon
+HARVESTPLAN_LAST_REPORT,Last harvest report,Siste slakterapport
+HARVESTPLAN_LOGISTICS,WELLBOAT AND SLAUGHTERHOUSE,BRØNNBÅT OG SLAKTERI
+HARVESTPLAN_ORDER,Order harvest · wellboat %s,Bestill slakting · brønnbåt %s
+HARVESTPLAN_ORDER_DETAIL,%s of %s fish slaughtered · slot in %d days. Cancelling feeds the fish again.,"%s av %s fisk slaktet · slot om %d døgn. Avlyser du, fôres fisken igjen."
+HARVESTPLAN_ORDER_FASTING,"Ordered: the fish fast, the wellboat comes %s","Bestilt: fisken sultes, brønnbåten kommer %s"
+HARVESTPLAN_ORDER_HARVESTING,Harvest under way (wellboat slot %s),Slaktingen er i gang (brønnbåt %s)
+HARVESTPLAN_ORDER_TIP,"The fish fast ahead of their turn, the wellboat takes them on its slot and the slaughterhouse sells each day's batch. Expected net %s.","Fisken sultes før sin tur, brønnbåten henter på sin slot og slakteriet selger hver dags parti. Forventet netto %s."
+HARVESTPLAN_OVERLINE,HARVEST PLAN,SLAKTEPLAN
+HARVESTPLAN_PENS,Pens,Merder
+HARVESTPLAN_PEN_CHIP,Pen %d · %s · %s,Merd %d · %s · %s
+HARVESTPLAN_PEN_IN_ORDER,This pen is already in a harvest order.,Merden er allerede i en slakteordre.
+HARVESTPLAN_PEN_TIP,Include this pen in the harvest,Ta med merden i slaktingen
+HARVESTPLAN_PRICE,PRICE,PRIS
+HARVESTPLAN_ROW_CAPACITY,Slaughterhouse,Slakteriet
+HARVESTPLAN_ROW_CONTRACT,Contract (%s),Kontrakt (%s)
+HARVESTPLAN_ROW_EXPECTED,Expected on the slaughter days,Forventet på slaktedagene
+HARVESTPLAN_ROW_FACTOR,Size and grade,Størrelse og kvalitet
+HARVESTPLAN_ROW_FASTING,Fasting,Sulting
+HARVESTPLAN_ROW_FEED,Feed until the fast,Fôr fram til sultingen
+HARVESTPLAN_ROW_FISH,Fish,Fisk
+HARVESTPLAN_ROW_GROSS,Gross sale,Brutto salg
+HARVESTPLAN_ROW_HOG,Gutted weight,Sløyd vekt
+HARVESTPLAN_ROW_NET,Net,Netto
+HARVESTPLAN_ROW_NET_AFTER_FEED,Net after feed,Netto etter fôr
+HARVESTPLAN_ROW_ORDER_DAY,Ordered,Bestilles
+HARVESTPLAN_ROW_SLAUGHTER,Slaughter and packing,Slakting og pakking
+HARVESTPLAN_ROW_SLAUGHTER_DAYS,Slaughter days,Slaktedager
+HARVESTPLAN_ROW_SPOT,Spot (%s),Spot (%s)
+HARVESTPLAN_ROW_SPOT_TODAY,Spot today,Spot i dag
+HARVESTPLAN_ROW_SURCHARGE,Express surcharge,Ekspresstillegg
+HARVESTPLAN_ROW_TRANSPORT,Wellboat,Brønnbåt
+HARVESTPLAN_ROW_VAP,Processing premium,Foredlingspremie
+HARVESTPLAN_ROW_WELLBOAT,Wellboat slot,Brønnbåt
+HARVESTPLAN_SETTLEMENT,SETTLEMENT,OPPGJØR
+HARVESTPLAN_SHARE,Share of the fish,Andel av fisken
+HARVESTPLAN_SHARE_ITEM,%s of each pen,%s av hver merd
+HARVESTPLAN_SHARE_TIP,Harvest part of each pen's fish; the rest are fed again,Slakt en del av fisken i hver merd; resten fôres videre
+HARVESTPLAN_STATUS_EMPTY,No fish,Ingen fisk
+HARVESTPLAN_STATUS_ORDERED,Ordered,Bestilt
+HARVESTPLAN_STATUS_READY,Ready for harvest,Klar for slakting
+HARVESTPLAN_STATUS_SMALL,Below harvest weight,Under slaktevekt
+HARVESTPLAN_SUBTITLE,%d pens with fish · %s fish · mean %s,%d merder med fisk · %s fisk · snittvekt %s
+HARVESTPLAN_TODAY,Today,I dag
+HARVESTPLAN_WAIT_NOTE,"A projection, not a promise: growth in the expected sea temperature, a normal day's deaths (%s a day) and the market's expected price. Blooms, disease and storms are not foreseen.","En prognose, ikke et løfte: vekst i forventet sjøtemperatur, normal dødelighet (%s per døgn) og markedets forventede pris. Alger, sykdom og storm er ikke med."
+HARVESTPLAN_WAIT_NOW,Now,Nå
+HARVESTPLAN_WAIT_TIP,Show this column's harvest in detail,Vis denne kolonnens slakting i detalj
+HARVESTPLAN_WAIT_TITLE,HARVEST NOW OR WAIT?,SLAKTE NÅ ELLER VENTE?
+HARVESTPLAN_WAIT_WEEKS,In %d weeks,Om %d uker
+HARVESTPLAN_WARN_SMALL,"Mean weight %s, below the usual harvest weight (%s kg). Small fish are paid below the reference price; waiting may pay better.","Snittvekten er %s, under vanlig slaktevekt (%s kg). Små fisk betales under referanseprisen; å vente kan lønne seg."
+HARVESTPLAN_WHY_NO_PENS,Pick at least one pen.,Velg minst én merd.
+HARVESTPLAN_WROW_DAYS,Slaughtered,Slaktes
+HARVESTPLAN_WROW_FEED,Feed,Fôr
+HARVESTPLAN_WROW_HOG,Gutted,Sløyd
+HARVESTPLAN_WROW_MEAN,Mean weight,Snittvekt
+HARVESTPLAN_WROW_NET,Net,Netto
+HARVESTPLAN_WROW_PRICE,"Price, NOK/kg","Pris, NOK/kg"
+HARVESTPLAN_WROW_RESULT,Net after feed,Netto etter fôr
+HARVESTREPORT_CLOSE,Continue,Fortsett
+HARVESTREPORT_DAYS,"%d slaughter days, %s – %s","%d slaktedager, %s – %s"
+HARVESTREPORT_FOOTER,Paid %s per gutted kilo on average; size and grade earned ×%s of the reference (superior 4–5 kg).,Snitt %s per sløyd kilo; størrelse og kvalitet ga ×%s av referansen (superior 4–5 kg).
+HARVESTREPORT_KPI_FISH,Fish,Fisk
+HARVESTREPORT_KPI_HOG,Gutted,Sløyd
+HARVESTREPORT_KPI_LIVE,Live,Levende
+HARVESTREPORT_KPI_MEAN,Mean weight,Snittvekt
+HARVESTREPORT_KPI_SUPERIOR,Superior,Superior
+HARVESTREPORT_LEDGER,"Booked in the accounts: harvest sales %s, harvest cost %s.","Bokført i regnskapet: slaktesalg %s, slaktekost %s."
+HARVESTREPORT_MODE_EXPRESS,Express,Ekspress
+HARVESTREPORT_MODE_FORCED,Forced harvest,Tvangsslakting
+HARVESTREPORT_MODE_HIREDWELLBOAT,Hired wellboat,Innleid brønnbåt
+HARVESTREPORT_MODE_PLANNED,Planned,Planlagt
+HARVESTREPORT_NET,NET,NETTO
+HARVESTREPORT_NET_DETAIL,Gross %s · harvest cost %s,Brutto %s · slaktekost %s
+HARVESTREPORT_ONE_DAY,Slaughtered %s,Slaktet %s
+HARVESTREPORT_OVERLINE,HARVEST REPORT,SLAKTERAPPORT
+HARVESTREPORT_ROW_PENALTY,Forced-harvest price,Tvangsslaktpris
+LEDGER_HARVEST_COST,Harvest and transport,Slakting og transport
+LEDGER_OVERDRAFT_INTEREST,Overdraft interest,Renter på overtrekk
+LEDGER_RESCUE_LOAN_FEE,Rescue loan fee,Gebyr for redningslån
+UI_AIFEED_PLAN_ALL_STANDARD,"All %d sites: full appetite, standard feed.","Alle %d lokaliteter: full appetitt, standardfôr."
+UI_AIFEED_PLAN_MOVED,"Feed type and ration are chosen per site, in its feeding plan.","Fôrtype og fôrmengde velges per lokalitet, i fôringsplanen."
+UI_AIFEED_PLAN_NO_SITES,No sea sites yet.,Ingen sjølokaliteter ennå.
+UI_AIFEED_PLAN_OPEN,Open the feeding plan,Åpne fôringsplanen
+UI_AIFEED_PLAN_OPEN_TIP,The Pens tab: one feeding plan per site.,Merder-fanen: én fôringsplan per lokalitet.
+UI_AIFEED_PLAN_SOME_CUSTOM,%d of %d sites on their own plan.,%d av %d lokaliteter på egen plan.
+UI_AIFEED_PLAN_TITLE,Feed type and ration,Fôrtype og fôrmengde
+UI_ATTENTION_AUCTION_NO_BIDS_DESC,No bids yet. Reserve {0:N0} NOK.,Ingen bud ennå. Minstepris {0:N0} kr.
+UI_ATTENTION_AUCTION_OUTBID,Outbid in the licence auction for {0},Overbudt i lisensauksjonen for {0}
+UI_ATTENTION_AUCTION_OUTBID_DESC,{0} leads with {1:N0} NOK. Minimum bid {2:N0} NOK.,{0} leder med {1:N0} kr. Minstebud {2:N0} kr.
+UI_ATTENTION_AUCTION_RUNNING,Licence auction for {0},Lisensauksjon for {0}
+UI_ATTENTION_AUCTION_RUNNING_DESC,Leading bid {0:N0} NOK. Minimum bid {1:N0} NOK.,Høyeste bud {0:N0} kr. Minstebud {1:N0} kr.
+UI_ATTENTION_CAT_EXPANSION,Growth,Vekst
+UI_ATTENTION_LICENCE_READY,Growth licence ready in {0},Vekstlisens klar i {0}
+UI_ATTENTION_LICENCE_READY_DESC,Its {0:N0} t of MTB already counts in the production area. Build a locality in {1} to farm there.,De {0:N0} t MTB gjelder allerede i produksjonsområdet. Bygg en lokalitet i {1} for å drive der.
+UI_BANK_ACCEPT,Take the rescue loan,Ta opp redningslånet
+UI_BANK_ACCEPT_TIP,"The money arrives today as a loan, repaid daily over its term",Pengene kommer i dag som et lån som betales ned daglig over løpetiden
+UI_BANK_DECLINE,Decline,Takk nei
+UI_BANK_DECLINE_TIP,The bank makes no new offer in this crisis,Banken gir ikke noe nytt tilbud i denne krisen
+UI_BANK_ERROR_BANKRUPT,The company is bankrupt.,Selskapet er konkurs.
+UI_BANK_ERROR_ENGINE_NOT_READY,No game is running.,Ingen spill kjører.
+UI_BANK_ERROR_NO_RESCUE_OFFER,The bank has no open offer.,Banken har ikke noe åpent tilbud.
+UI_BANK_ERROR_RESCUE_OFFER_EXPIRED,The offer has expired.,Tilbudet har gått ut.
+UI_BANK_FIG_BURN,Cash burn a day,Forbruk per dag
+UI_BANK_FIG_COLLATERAL,Fish in the sea (collateral),Fisk i sjøen (pant)
+UI_BANK_FIG_INTEREST,Overdraft interest paid,Renter på overtrekk betalt
+UI_BANK_FIG_INTEREST_VALUE,%s (%s a year),%s (%s i året)
+UI_BANK_FIG_RUNWAY,Days to the credit limit,Dager til kredittrammen
+UI_BANK_OFFER_ACCEPTED,You took the bank's rescue loan of %s (offered on day %d).,Dere tok opp bankens redningslån på %s (tilbudt dag %d).
+UI_BANK_OFFER_DECLINED,You declined the bank's rescue loan of %s (offered on day %d).,Dere takket nei til bankens redningslån på %s (tilbudt dag %d).
+UI_BANK_OFFER_EXPIRED,The rescue loan of %s offered on day %d expired unanswered.,Redningslånet på %s fra dag %d gikk ut ubesvart.
+UI_BANK_OFFER_TEXT,"%s at %s interest, a fee of %s, repaid over %d months. Answer by day %d (%d days left).","%s til %s rente og %s i gebyr, nedbetalt over %d måneder. Svar innen dag %d (%d dager igjen)."
+UI_BANK_OFFER_TITLE,The bank offers a rescue loan against the fish,Banken tilbyr et redningslån mot pant i fisken
+UI_BANK_OFFER_WITHDRAWN,The bank withdrew its offer of %s from day %d: the cash recovered.,Banken trakk tilbudet på %s fra dag %d: kontantene tok seg opp.
+UI_BANK_STAGE_CALL,Bank call,Bankmøte
+UI_BANK_STAGE_CALM,No remarks,Ingen merknader
+UI_BANK_STAGE_WARNING,Liquidity warning,Likviditetsvarsel
+UI_BANK_TEXT_CALL,The bank called you in on day %d: at today's burn the cash passes the credit limit of %s in %s days.,Banken kalte dere inn til møte dag %d: på dagens forbruk passerer kontantene kredittrammen på %s om %s dager.
+UI_BANK_TEXT_CALM,The cash is not falling. The bank has no remarks.,Kontantene faller ikke. Banken har ingen merknader.
+UI_BANK_TEXT_FALLING,The cash falls by %s a day and reaches the credit limit of %s in %s days.,Kontantene faller med %s om dagen og når kredittrammen på %s om %s dager.
+UI_BANK_TEXT_WARNING,"Liquidity warning on day %d: at today's burn the cash reaches the credit limit of %s in %s days. Harvest, borrow or cut costs.","Likviditetsvarsel dag %d: på dagens forbruk når kontantene kredittrammen på %s om %s dager. Slakt, lån eller kutt kostnader."
+UI_BANK_TITLE,The bank,Banken
+UI_ENDSCREEN_AUTOSAVE,Load autosave,Last inn autolagring
+UI_ENDSCREEN_AUTOSAVE_OFF,No autosave from before the end,Ingen autolagring fra før slutten
+UI_ENDSCREEN_AUTOSAVE_TIP,Go back to the latest autosave,Gå tilbake til siste autolagring
+UI_ENDSCREEN_CAMPAIGN_OVERLINE,Campaign,Kampanje
+UI_ENDSCREEN_CAMPAIGN_PROGRESS,%d of %d scenarios won · %d open,%d av %d scenarioer vunnet · %d åpne
+UI_ENDSCREEN_CAMPAIGN_UNLOCKED,New scenarios open: %s,Nye scenarioer er åpne: %s
+UI_ENDSCREEN_CHART_FLOOR,Credit limit,Kredittramme
+UI_ENDSCREEN_CHART_LOAN,Rescue loan %s,Redningslån %s
+UI_ENDSCREEN_CHART_TIP,%s %d\nIncome: %s\nCosts: %s\nResult: %s\nCash at month end: %s,%s %d\nInntekter: %s\nKostnader: %s\nResultat: %s\nKontanter ved månedsslutt: %s
+UI_ENDSCREEN_CONTINUE,Keep playing,Fortsett å spille
+UI_ENDSCREEN_CONTINUE_OFF,The game is over,Spillet er over
+UI_ENDSCREEN_CONTINUE_TIP,Play on in the same game,Spill videre i samme spill
+UI_ENDSCREEN_FISH_NONE,No fish died.,Ingen fisk døde.
+UI_ENDSCREEN_FISH_SUMMARY,"%s fish died (%s of all the fish the company held), %s were harvested and %s are still in the sea.","%s fisk døde (%s av all fisk selskapet hadde), %s ble slaktet og %s står fortsatt i sjøen."
+UI_ENDSCREEN_FISH_TITLE,Where the fish went,Hvor ble fisken av?
+UI_ENDSCREEN_FREE_GAME,Free play,Fritt spill
+UI_ENDSCREEN_KPI_BANK,The bank,Banken
+UI_ENDSCREEN_KPI_BANK_CALM,No remarks,Ingen merknader
+UI_ENDSCREEN_KPI_BANK_SUB,Overdraft interest %s,Renter på overtrekk %s
+UI_ENDSCREEN_KPI_CALL_MANY,%s calls,%s bankmøter
+UI_ENDSCREEN_KPI_CALL_ONE,%s call,%s bankmøte
+UI_ENDSCREEN_KPI_CASH,Cash,Kontanter
+UI_ENDSCREEN_KPI_CASH_SUB,Lowest %s (day %s),Lavest %s (dag %s)
+UI_ENDSCREEN_KPI_HARVEST,Harvested,Slaktet
+UI_ENDSCREEN_KPI_HARVEST_SUB,Gutted weight in %s harvests,Sløyd vekt i %s slakt
+UI_ENDSCREEN_KPI_MORTALITY,Mortality,Dødelighet
+UI_ENDSCREEN_KPI_MORTALITY_SUB,%s fish died,%s fisk døde
+UI_ENDSCREEN_KPI_RESULT,Result,Resultat
+UI_ENDSCREEN_KPI_RESULT_SUB,Income %s · costs %s,Inntekter %s · kostnader %s
+UI_ENDSCREEN_KPI_WARNING_MANY,%s warnings,%s varsler
+UI_ENDSCREEN_KPI_WARNING_ONE,%s warning,%s varsel
+UI_ENDSCREEN_LINE_COST,%s (costs),%s (kostnader)
+UI_ENDSCREEN_LINE_INCOME,%s (income),%s (inntekter)
+UI_ENDSCREEN_LOAD_FAILED,The autosave could not be loaded: %s,Autolagringen kunne ikke lastes: %s
+UI_ENDSCREEN_LOG_DAY,Day %d · %s,Dag %d · %s
+UI_ENDSCREEN_LOG_NONE,Nothing was logged.,Ingenting ble logget.
+UI_ENDSCREEN_LOG_TITLE,Event log,Hendelseslogg
+UI_ENDSCREEN_MARK_COMPLIANCE,Clean operation,Ren drift
+UI_ENDSCREEN_MARK_COMPLIANCE_MET,No fines or infringement fees,Ingen bøter eller overtredelsesgebyr
+UI_ENDSCREEN_MARK_COMPLIANCE_MISSED,Fines and fees: %s,Bøter og gebyrer: %s
+UI_ENDSCREEN_MARK_FINANCE,Sound finances,Sunn økonomi
+UI_ENDSCREEN_MARK_FINANCE_MET,The bank never called you in,Banken kalte aldri inn til møte
+UI_ENDSCREEN_MARK_FINANCE_MISSED,Bank calls: %d · rescue loans: %d,Bankmøter: %d · redningslån: %d
+UI_ENDSCREEN_MARK_MET,Met,Oppnådd
+UI_ENDSCREEN_MARK_MISSED,Missed,Ikke nådd
+UI_ENDSCREEN_MARK_WELFARE,Fish welfare,Fiskevelferd
+UI_ENDSCREEN_MARK_WELFARE_DETAIL,Mortality %s (limit %s),Dødelighet %s (grense %s)
+UI_ENDSCREEN_MEDAL_BEST,your best: %s,din beste: %s
+UI_ENDSCREEN_MEDAL_BRONZE,Bronze medal,Bronsemedalje
+UI_ENDSCREEN_MEDAL_GOLD,Gold medal,Gullmedalje
+UI_ENDSCREEN_MEDAL_NEW_BEST,your best yet,din beste hittil
+UI_ENDSCREEN_MEDAL_NONE,No medal,Ingen medalje
+UI_ENDSCREEN_MEDAL_NONE_SUB,Medals are for won scenarios,Medaljer gis for vunne scenarioer
+UI_ENDSCREEN_MEDAL_SILVER,Silver medal,Sølvmedalje
+UI_ENDSCREEN_MEDAL_SUB,%d of 3 distinctions,%d av 3 utmerkelser
+UI_ENDSCREEN_MENU,Main menu,Hovedmeny
+UI_ENDSCREEN_MENU_TIP,Leave the game for the main menu,Forlat spillet og gå til hovedmenyen
+UI_ENDSCREEN_MONEY_NONE,Nothing was booked.,Ingenting ble bokført.
+UI_ENDSCREEN_MONEY_TITLE,Where the money went,Hvor gikk pengene?
+UI_ENDSCREEN_NEXT,Next: %s,Neste: %s
+UI_ENDSCREEN_NEXT_NONE,Next scenario,Neste scenario
+UI_ENDSCREEN_NEXT_OFF,No other open scenario is left to win,Ingen andre åpne scenarioer gjenstår
+UI_ENDSCREEN_NEXT_TIP,"Start %s, the next scenario in the campaign","Start %s, neste scenario i kampanjen"
+UI_ENDSCREEN_POINTS_NONE,No single event moved the result.,Ingen enkelthendelse flyttet resultatet.
+UI_ENDSCREEN_POINTS_TITLE,Three turning points,Tre vendepunkter
+UI_ENDSCREEN_POINT_BOOKING_MANY,%s bookings,%s posteringer
+UI_ENDSCREEN_POINT_BOOKING_ONE,%s booking,%s postering
+UI_ENDSCREEN_POINT_DAY,Day %d · %s,Dag %d · %s
+UI_ENDSCREEN_POINT_DAYS,Days %d–%d · %s,Dag %d–%d · %s
+UI_ENDSCREEN_POINT_PARTS,Sales %s · costs %s,Salg %s · kostnader %s
+UI_ENDSCREEN_RETRY,Try again,Prøv igjen
+UI_ENDSCREEN_RETRY_TIP,Start the same scenario from the beginning,Start samme scenario fra begynnelsen
+UI_ENDSCREEN_SHEET_OVERLINE,The accounts,Regnskapet
+UI_ENDSCREEN_SHEET_PERIOD,%s to %s · %s days,%s til %s · %s dager
+UI_ENDSCREEN_START_FAILED,The scenario could not be started.,Scenarioet kunne ikke startes.
+UI_ENDSCREEN_STORY_HINT,"Cash at each month end, the month's result beneath; 1–3 mark the largest single events.","Kontanter ved hver månedsslutt, månedens resultat under; 1–3 er de største enkelthendelsene."
+UI_ENDSCREEN_STORY_TITLE,Where the money went,Pengehistorien
+UI_ENDSCREEN_SUB_BANKRUPT,The cash fell below the credit limit of %s on day %s and the bank petitioned for bankruptcy.,"Kontantene falt under kredittrammen på %s dag %s, og banken begjærte selskapet konkurs."
+UI_ENDSCREEN_SUB_BANK_LADDER,The bank warned you on day %s and called you in on day %s.,Banken varslet dere dag %s og kalte inn til møte dag %s.
+UI_ENDSCREEN_SUB_LOST,The game lasted %s days.,Spillet varte i %s dager.
+UI_ENDSCREEN_SUB_WON,You reached the goal after %s days: %s.,Dere nådde målet etter %s dager: %s.
+UI_ENDSCREEN_VERDICT_BANKRUPT,Bankrupt,Konkurs
+UI_ENDSCREEN_VERDICT_LOST,Scenario lost,Scenarioet er tapt
+UI_ENDSCREEN_VERDICT_WON,Goal reached,Målet er nådd
+UI_EVENT_VERB_BID_LICENCE,See the auction,Se auksjonen
+UI_PEN_ACTION_FEED_PLAN,Feeding plan,Fôringsplan
+UI_SCENARIO_CAMPAIGN_BEST,Your best: %s,Ditt beste: %s
+UI_SCENARIO_CAMPAIGN_LOCKED,Win %s to open this scenario.,Vinn %s for å åpne dette scenarioet.
+UI_SCENARIO_CAMPAIGN_OR, or , eller 
+UI_SCENARIO_MEDAL_BRONZE,Bronze,Bronse
+UI_SCENARIO_MEDAL_GOLD,Gold,Gull
+UI_SCENARIO_MEDAL_NONE,No medal,Ingen medalje
+UI_SCENARIO_MEDAL_SILVER,Silver,Sølv
+UI_TOAST_FEED_PLAN_ALL_OK,Feeding plan set for every site,Fôringsplan satt for alle lokaliteter
+UI_TOAST_FEED_PLAN_OK,Feeding plan for %s set,Fôringsplan for %s satt
+UI_TOAST_HARVEST_DONE,"Harvest done at %s: %s gutted, %s net. Click for the report.","Slakting ferdig på %s: %s sløyd, %s netto. Klikk for rapporten."
+UI_VESSEL_JOB_UNDER_WAY,%s · under way,%s · pågår
+ZONE_PO01_FLEKKEFJORD,Flekkefjord,Flekkefjord
+ZONE_PO02_FINNOY,Finnøy,Finnøy
+ZONE_PO03_BOMLO,Bømlo,Bømlo
+ZONE_PO04_SOLUND,Solund,Solund
+ZONE_PO05_SANDE,Sande,Sande
+ZONE_PO06_HITRA,Hitra,Hitra
+ZONE_PO07_VIKNA,Vikna,Vikna
+ZONE_PO08_LUROY,Lurøy,Lurøy
+ZONE_PO09_STEIGEN,Steigen,Steigen
+ZONE_PO10_SENJA,Senja,Senja
+ZONE_PO11_SKJERVOY,Skjervøy,Skjervøy
+ZONE_PO12_HASVIK,Hasvik,Hasvik
+ZONE_PO13_LEBESBY,Lebesby,Lebesby

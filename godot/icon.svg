@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <rect x="4" y="4" width="120" height="120" rx="24" fill="#0B3542"/>
+  <path d="M20 78 C 38 58, 58 58, 74 70 L 92 56 L 88 72 L 94 88 L 76 80 C 58 92, 36 92, 20 78 Z" fill="#4FB0C6"/>
+  <circle cx="34" cy="72" r="3.5" fill="#0B3542"/>
+  <path d="M74 70 L 92 56 L 88 72 L 94 88 Z" fill="#3A8CA3"/>
+  <text x="64" y="114" font-family="sans-serif" font-size="16" font-weight="bold" fill="#F2E9D8" text-anchor="middle">LAKS</text>
+</svg>

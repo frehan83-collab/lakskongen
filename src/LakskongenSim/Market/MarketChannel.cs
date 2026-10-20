@@ -91,7 +91,6 @@ namespace LakskongenSim.Market
     {
         private readonly Dictionary<SalesChannelType, SalesChannel> _channels = new();
         private readonly Dictionary<SalesChannelType, int> _weeklyVolumeUsed = new();
-        private readonly Random _rng = new();
 
         public event Action<SaleResult>? OnSaleCompleted;
         public event Action<SalesChannelType, bool>? OnChannelAccessChanged;
@@ -107,7 +106,7 @@ namespace LakskongenSim.Market
             _channels[SalesChannelType.SpotMarket] = new SalesChannel
             {
                 Type = SalesChannelType.SpotMarket,
-                Name = "Spot Market (Fish Pool)",
+                Name = "Spotmarked",
                 Description = "Immediate sale at current market price. Large volumes move the price.",
                 BasePriceMultiplier = 1.0m,
                 BidAskSpread = 0.025m,      // 2.5% spread (player gets bid price)

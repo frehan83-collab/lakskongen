@@ -1,0 +1,14 @@
+[gd_resource type="ShaderMaterial" load_steps=3 format=3 uid="uid://pen_bird_net_green_mat_001"]
+
+[ext_resource type="Shader" path="res://shaders/pen_net_shader.gdshader" id="1_shader"]
+[ext_resource type="Texture2D" path="res://assets/models/pen_cage/textures/net_mesh.png" id="2_net"]
+
+[resource]
+render_priority = 1
+shader = ExtResource("1_shader")
+shader_parameter/albedo_color = Color(0.141176, 0.45098, 0.282353, 1)
+shader_parameter/net_texture = ExtResource("2_net")
+shader_parameter/tile_m = 0.5
+shader_parameter/thread_alpha = 0.5
+shader_parameter/far_boost = 1.0
+shader_parameter/fouling_amount = 0.0

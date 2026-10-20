@@ -1,0 +1,319 @@
+{
+  "generated_by": "res://scripts/qa/LandKitPreview.gd",
+  "item": "F2-25",
+  "resolution": [
+    1920,
+    1080
+  ],
+  "shots": {
+    "39_landkit_close": {
+      "camera": {
+        "fov_deg": 49.8,
+        "position": [
+          -341.657562255859,
+          74.0207366943359,
+          -1684.34057617188
+        ],
+        "spec": {
+          "distance_m": 150.0,
+          "mode": "focus",
+          "offset": [
+            130.0,
+            -95.0
+          ],
+          "pitch_deg": -28.0,
+          "target": "pad_a"
+        }
+      },
+      "environment": {
+        "night_light": 0.0,
+        "sun_elevation_deg": 49.57
+      },
+      "sample_tank": {
+        "band": {
+          "height_px": 70,
+          "l_mean": 42.61,
+          "pixels": 1867,
+          "width_px": 256
+        },
+        "delta_l_lid_wall": 30.18,
+        "distance_m": 132.0,
+        "lid": {
+          "height_px": 119,
+          "l_mean": 36.06,
+          "pixels": 22911,
+          "width_px": 261
+        },
+        "position": [
+          -343.0,
+          3.59999990463257,
+          -1796.0
+        ],
+        "wall": {
+          "height_px": 197,
+          "l_mean": 66.24,
+          "pixels": 16949,
+          "width_px": 268
+        }
+      },
+      "triangles_drawn": 161308
+    },
+    "39_landkit_day": {
+      "camera": {
+        "fov_deg": 46.35,
+        "position": [
+          -522.703002929688,
+          337.849548339844,
+          -1328.34765625
+        ],
+        "spec": {
+          "distance_m": 520.0,
+          "mode": "focus",
+          "pitch_deg": -40.0,
+          "target": "pad_a"
+        }
+      },
+      "environment": {
+        "night_light": 0.0,
+        "sun_elevation_deg": 49.57
+      },
+      "perf": {
+        "added_opaque_draws": 11,
+        "added_shadow_draws": 10,
+        "off": {
+          "opaque_draws": 11,
+          "shadow_draws": 17
+        },
+        "on": {
+          "opaque_draws": 22,
+          "shadow_draws": 27
+        }
+      },
+      "sample_tank": {
+        "band": {
+          "height_px": 23,
+          "l_mean": 44.93,
+          "pixels": 438,
+          "width_px": 65
+        },
+        "delta_l_lid_wall": 30.77,
+        "distance_m": 532.2,
+        "lid": {
+          "height_px": 40,
+          "l_mean": 38.41,
+          "pixels": 1953,
+          "width_px": 64
+        },
+        "position": [
+          -439.0,
+          3.59999990463257,
+          -1734.0
+        ],
+        "wall": {
+          "height_px": 51,
+          "l_mean": 69.18,
+          "pixels": 855,
+          "width_px": 68
+        }
+      },
+      "triangles_drawn": 49516
+    },
+    "39_landkit_dusk": {
+      "camera": {
+        "fov_deg": 46.35,
+        "position": [
+          -522.703002929688,
+          337.849548339844,
+          -1328.34765625
+        ],
+        "spec": {
+          "distance_m": 520.0,
+          "mode": "focus",
+          "pitch_deg": -40.0,
+          "target": "pad_a"
+        }
+      },
+      "environment": {
+        "night_light": 0.8,
+        "sun_elevation_deg": 0.23
+      },
+      "sample_tank": {
+        "band": {
+          "height_px": 23,
+          "l_mean": 22.39,
+          "pixels": 438,
+          "width_px": 65
+        },
+        "delta_l_lid_wall": 30.65,
+        "distance_m": 532.2,
+        "lid": {
+          "height_px": 40,
+          "l_mean": 11.95,
+          "pixels": 1953,
+          "width_px": 64
+        },
+        "position": [
+          -439.0,
+          3.59999990463257,
+          -1734.0
+        ],
+        "wall": {
+          "height_px": 51,
+          "l_mean": 42.6,
+          "pixels": 855,
+          "width_px": 68
+        }
+      },
+      "triangles_drawn": 49516
+    },
+    "39_landkit_home_overcast": {
+      "camera": {
+        "fov_deg": 45.0,
+        "position": [
+          -385.391540527344,
+          263.134521484375,
+          -322.330200195312
+        ],
+        "spec": {
+          "mode": "home"
+        }
+      },
+      "environment": {
+        "night_light": 0.0,
+        "sun_elevation_deg": 49.57
+      },
+      "sample_tank": {
+        "band": {
+          "height_px": 6,
+          "l_mean": 43.1,
+          "pixels": 86,
+          "width_px": 27
+        },
+        "delta_l_lid_wall": 20.3,
+        "distance_m": 1435.4,
+        "lid": {
+          "height_px": 4,
+          "l_mean": 38.8,
+          "pixels": 78,
+          "width_px": 26
+        },
+        "position": [
+          -375.0,
+          3.59999990463257,
+          -1734.0
+        ],
+        "wall": {
+          "height_px": 10,
+          "l_mean": 59.1,
+          "pixels": 202,
+          "width_px": 28
+        }
+      },
+      "triangles_drawn": 17424
+    },
+    "39_landkit_lot": {
+      "camera": {
+        "fov_deg": 47.15,
+        "position": [
+          -463.443145751953,
+          247.859298706055,
+          -1478.30700683594
+        ],
+        "spec": {
+          "distance_m": 380.0,
+          "mode": "focus",
+          "offset": [
+            37.0,
+            -45.0
+          ],
+          "pitch_deg": -40.0,
+          "target": "pad_a"
+        }
+      },
+      "environment": {
+        "night_light": 0.0,
+        "sun_elevation_deg": 49.57
+      },
+      "sample_tank": {
+        "band": {
+          "height_px": 22,
+          "l_mean": 45.49,
+          "pixels": 321,
+          "width_px": 84
+        },
+        "delta_l_lid_wall": 31.67,
+        "distance_m": 404.7,
+        "lid": {
+          "height_px": 48,
+          "l_mean": 37.39,
+          "pixels": 3152,
+          "width_px": 84
+        },
+        "position": [
+          -407.0,
+          3.59999990463257,
+          -1796.0
+        ],
+        "wall": {
+          "height_px": 70,
+          "l_mean": 69.06,
+          "pixels": 1573,
+          "width_px": 87
+        }
+      },
+      "triangles_drawn": 73138
+    },
+    "39_landkit_lot_pale_lids": {
+      "camera": {
+        "fov_deg": 47.15,
+        "position": [
+          -463.443145751953,
+          247.859298706055,
+          -1478.30700683594
+        ],
+        "spec": {
+          "distance_m": 380.0,
+          "mode": "focus",
+          "offset": [
+            37.0,
+            -45.0
+          ],
+          "pitch_deg": -40.0,
+          "target": "pad_a"
+        }
+      },
+      "environment": {
+        "night_light": 0.0,
+        "sun_elevation_deg": 49.57
+      },
+      "sample_tank": {
+        "band": {
+          "height_px": 22,
+          "l_mean": 49.78,
+          "pixels": 321,
+          "width_px": 84
+        },
+        "delta_l_lid_wall": 18.72,
+        "distance_m": 404.7,
+        "lid": {
+          "height_px": 48,
+          "l_mean": 89.45,
+          "pixels": 3152,
+          "width_px": 84
+        },
+        "position": [
+          -407.0,
+          3.59999990463257,
+          -1796.0
+        ],
+        "wall": {
+          "height_px": 70,
+          "l_mean": 70.73,
+          "pixels": 1573,
+          "width_px": 87
+        }
+      },
+      "triangles_drawn": 73138
+    }
+  }
+}

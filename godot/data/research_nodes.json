@@ -1,0 +1,403 @@
+[
+  {
+    "id": "selective-breeding",
+    "name": "Selective Breeding Programme",
+    "description": "Establish a systematic genetic selection programme to identify and propagate fast-growing broodstock. Improves baseline growth rates across all cohorts.",
+    "branch": "Biology",
+    "tier": 1,
+    "costNOK": 800000,
+    "researchDays": 45,
+    "prerequisites": [],
+    "effects": {
+      "growth_rate_bonus": 0.04
+    }
+  },
+  {
+    "id": "disease-resistance",
+    "name": "Disease-Resistant Genetics",
+    "description": "Use genomic selection tools (GEBV) to breed salmon with heritable resistance to ISA, PD, and CMS. Reduces disease outbreak probability and severity.",
+    "branch": "Biology",
+    "tier": 2,
+    "costNOK": 1800000,
+    "researchDays": 75,
+    "prerequisites": [
+      "selective-breeding"
+    ],
+    "effects": {
+      "disease_resistance_bonus": 0.12,
+      "mortality_reduction": 0.02
+    }
+  },
+  {
+    "id": "feed-efficiency-genetics",
+    "name": "Feed Efficiency Genetics",
+    "description": "Select broodstock traits linked to superior feed conversion. Lower FCR means less feed cost per kg of fish produced and reduced environmental loading.",
+    "branch": "Biology",
+    "tier": 2,
+    "costNOK": 1500000,
+    "researchDays": 60,
+    "prerequisites": [
+      "selective-breeding"
+    ],
+    "effects": {
+      "fcr_reduction": 0.06
+    }
+  },
+  {
+    "id": "growth-optimization",
+    "name": "Growth Optimisation Protocols",
+    "description": "Fine-tuned photoperiod, temperature, and feeding window protocols derived from smoltification research. Accelerates seawater growth phase by controlling TGC predictively.",
+    "branch": "Biology",
+    "tier": 3,
+    "costNOK": 3500000,
+    "researchDays": 100,
+    "prerequisites": [
+      "disease-resistance"
+    ],
+    "effects": {
+      "growth_rate_bonus": 0.06,
+      "mortality_reduction": 0.02
+    }
+  },
+  {
+    "id": "smolt-excellence",
+    "name": "Smolt Excellence Programme",
+    "description": "Integrated hatchery and smolt quality programme combining genetics, nutrition, and light management. Produces grade-A smolts with superior seawater adaptation and reduced post-smolt mortality.",
+    "branch": "Biology",
+    "tier": 4,
+    "costNOK": 6000000,
+    "researchDays": 150,
+    "prerequisites": [
+      "growth-optimization",
+      "feed-efficiency-genetics"
+    ],
+    "effects": {
+      "growth_rate_bonus": 0.04,
+      "fcr_reduction": 0.03,
+      "mortality_reduction": 0.03
+    }
+  },
+  {
+    "id": "automated-feeding",
+    "name": "Automated Feeding Systems",
+    "description": "Replace manual feed distribution with demand-driven automated pellet dispensers linked to underwater appetite cameras. Eliminates overfeeding and reduces waste.",
+    "branch": "Technology",
+    "tier": 1,
+    "costNOK": 700000,
+    "researchDays": 40,
+    "prerequisites": [],
+    "effects": {
+      "fcr_reduction": 0.05,
+      "feed_waste_reduction": 0.12
+    }
+  },
+  {
+    "id": "sensor-networks",
+    "name": "Sensor Networks",
+    "description": "Deploy a mesh of IoT buoys and in-pen sensors monitoring dissolved oxygen, salinity, pH, temperature, and current in real time. Enables early warning on water quality anomalies.",
+    "branch": "Technology",
+    "tier": 2,
+    "costNOK": 2000000,
+    "researchDays": 70,
+    "prerequisites": [
+      "automated-feeding"
+    ],
+    "effects": {
+      "mortality_reduction": 0.02,
+      "sustainability_score_bonus": 3
+    }
+  },
+  {
+    "id": "underwater-drones",
+    "name": "Underwater ROV Drones",
+    "description": "Remotely operated vehicles for pen inspection, net integrity checks, and early sea-lice counting. Reduces diving labour costs and gives daily biomass estimates via stereo cameras.",
+    "branch": "Technology",
+    "tier": 3,
+    "costNOK": 4500000,
+    "researchDays": 110,
+    "prerequisites": [
+      "sensor-networks"
+    ],
+    "effects": {
+      "disease_resistance_bonus": 0.1,
+      "lice_reduction": 0.12
+    }
+  },
+  {
+    "id": "ai-monitoring",
+    "name": "AI Health Monitoring",
+    "description": "Computer-vision models trained on millions of salmon images detect fin damage, skin lesions, cataract, and abnormal behaviour patterns. Provides daily welfare scores per pen.",
+    "branch": "Technology",
+    "tier": 4,
+    "costNOK": 7000000,
+    "researchDays": 160,
+    "prerequisites": [
+      "underwater-drones"
+    ],
+    "effects": {
+      "disease_resistance_bonus": 0.08,
+      "mortality_reduction": 0.04
+    }
+  },
+  {
+    "id": "predictive-analytics",
+    "name": "Predictive Analytics Platform",
+    "description": "Combines multi-year sensor data, weather forecasts, genomics, and market signals into a unified ML platform. Predicts disease outbreaks 14 days ahead, optimises harvest windows, and recommends feed adjustments.",
+    "branch": "Technology",
+    "tier": 5,
+    "costNOK": 12000000,
+    "researchDays": 270,
+    "prerequisites": [
+      "ai-monitoring"
+    ],
+    "effects": {
+      "mortality_reduction": 0.05,
+      "disease_resistance_bonus": 0.1,
+      "growth_rate_bonus": 0.03
+    }
+  },
+  {
+    "id": "organic-certification",
+    "name": "Organic Certification",
+    "description": "Achieve organic aquaculture certification. Requires lower stocking density, no synthetic additives, and higher welfare standards. Commands a significant retail price premium.",
+    "branch": "Sustainability",
+    "tier": 1,
+    "costNOK": 600000,
+    "researchDays": 50,
+    "prerequisites": [],
+    "effects": {
+      "market_price_bonus": 0.08,
+      "sustainability_score_bonus": 8
+    }
+  },
+  {
+    "id": "renewable-energy",
+    "name": "Renewable Energy Integration",
+    "description": "Install offshore wind turbines, shore-side solar arrays, and tidal current generators to power site operations. Reduces diesel dependency and Scope 2 emissions.",
+    "branch": "Sustainability",
+    "tier": 2,
+    "costNOK": 2200000,
+    "researchDays": 80,
+    "prerequisites": [
+      "organic-certification"
+    ],
+    "effects": {
+      "sustainability_score_bonus": 6,
+      "carbon_reduction": 0.22
+    }
+  },
+  {
+    "id": "carbon-capture",
+    "name": "Carbon Capture via Kelp Farming",
+    "description": "Integrate kelp and mussel cultivation around sea pens. Kelp sequesters CO₂, mussels filter particulates — creating a natural bioremediation buffer and saleable co-products.",
+    "branch": "Sustainability",
+    "tier": 2,
+    "costNOK": 1800000,
+    "researchDays": 75,
+    "prerequisites": [
+      "organic-certification"
+    ],
+    "effects": {
+      "sustainability_score_bonus": 8,
+      "carbon_reduction": 0.28
+    }
+  },
+  {
+    "id": "circular-economy",
+    "name": "Circular Economy Operations",
+    "description": "Convert sludge and processing waste into biogas and fertiliser. Implement closed-loop water treatment to reuse process water. Zero-discharge certification eligible.",
+    "branch": "Sustainability",
+    "tier": 3,
+    "costNOK": 4000000,
+    "researchDays": 105,
+    "prerequisites": [
+      "carbon-capture"
+    ],
+    "effects": {
+      "sustainability_score_bonus": 10,
+      "fcr_reduction": 0.02
+    }
+  },
+  {
+    "id": "sustainability-leader",
+    "name": "Sustainability Leadership",
+    "description": "Full integration of renewable energy, circular economy, and biodiversity net gain. Qualifies for Havbruk green licence renewal, ESG investor premium, and top-tier ASC score. The gold standard in Norwegian aquaculture.",
+    "branch": "Sustainability",
+    "tier": 4,
+    "costNOK": 7500000,
+    "researchDays": 180,
+    "prerequisites": [
+      "circular-economy",
+      "renewable-energy"
+    ],
+    "effects": {
+      "market_price_bonus": 0.07,
+      "sustainability_score_bonus": 12
+    }
+  },
+  {
+    "id": "premium-products",
+    "name": "Premium Product Lines",
+    "description": "Develop branded retail products: Lakskongen Premium and Lakskongen Reserve. Differentiated sizing, trimming standards, and traceability QR codes to capture retail margin.",
+    "branch": "Processing",
+    "tier": 1,
+    "costNOK": 500000,
+    "researchDays": 35,
+    "prerequisites": [],
+    "effects": {
+      "market_price_bonus": 0.05
+    }
+  },
+  {
+    "id": "value-added-processing",
+    "name": "Value-Added Processing",
+    "description": "Expand processing into hot- and cold-smoked salmon, gravlaks, skin-on portions, and sashimi-trim blocks. Each category commands higher NOK/kg than fresh whole head-on gutted.",
+    "branch": "Processing",
+    "tier": 2,
+    "costNOK": 2500000,
+    "researchDays": 85,
+    "prerequisites": [
+      "premium-products"
+    ],
+    "effects": {
+      "market_price_bonus": 0.09
+    }
+  },
+  {
+    "id": "cold-chain-optimization",
+    "name": "Cold Chain Optimisation",
+    "description": "Upgrade to HiCO₂ slurry ice packing, real-time temperature-logging cartons, and predictive logistics routing. Extends shelf life, reduces wastage, and unlocks longer-haul export lanes.",
+    "branch": "Processing",
+    "tier": 2,
+    "costNOK": 1800000,
+    "researchDays": 65,
+    "prerequisites": [
+      "premium-products"
+    ],
+    "effects": {
+      "market_price_bonus": 0.04,
+      "mortality_reduction": 0.01
+    }
+  },
+  {
+    "id": "packaging-innovation",
+    "name": "Packaging Innovation",
+    "description": "Modified atmosphere packaging (MAP) with bio-based films extends fresh fillet shelf life to 21 days. Replaces polystyrene with certified-recyclable alternatives, supporting sustainability targets.",
+    "branch": "Processing",
+    "tier": 3,
+    "costNOK": 3200000,
+    "researchDays": 95,
+    "prerequisites": [
+      "value-added-processing"
+    ],
+    "effects": {
+      "market_price_bonus": 0.04,
+      "sustainability_score_bonus": 3
+    }
+  },
+  {
+    "id": "sashimi-grade",
+    "name": "Sashimi-Grade Export",
+    "description": "Achieve Japanese import standards for sashimi-grade fresh salmon: strict parasite controls, guaranteed fat content ranges, and ultra-cold chain with ice slurry. Unlocks the highest-value market segment globally.",
+    "branch": "Processing",
+    "tier": 4,
+    "costNOK": 6500000,
+    "researchDays": 160,
+    "prerequisites": [
+      "cold-chain-optimization",
+      "packaging-innovation"
+    ],
+    "effects": {
+      "market_price_bonus": 0.16
+    }
+  },
+  {
+    "id": "deep-sea-farming",
+    "name": "Deep-Sea Exposed Farming",
+    "description": "Develop offshore semi-submersible pen systems for exposed, high-current sites. Opens the semi-submersible offshore unit; its lice and disease effects apply to offshore units only.",
+    "branch": "Expansion",
+    "tier": 1,
+    "costNOK": 900000,
+    "researchDays": 55,
+    "prerequisites": [],
+    "effects": {
+      "lice_reduction": 0.1,
+      "disease_resistance_bonus": 0.06
+    },
+    "unlocks": [
+      "of1"
+    ],
+    "appliesTo": [
+      "offshore"
+    ]
+  },
+  {
+    "id": "land-based-ras",
+    "name": "Land-Based RAS Facility",
+    "description": "Recirculating Aquaculture System on shore. Zero sea lice, no escape risk, controlled environment year-round. Opens the post-smolt module and the hybrid land farm; its mortality and disease effects apply to land tanks only.",
+    "branch": "Expansion",
+    "tier": 1,
+    "costNOK": 1200000,
+    "researchDays": 60,
+    "prerequisites": [],
+    "effects": {
+      "mortality_reduction": 0.05,
+      "disease_resistance_bonus": 0.14
+    },
+    "unlocks": [
+      "post_smolt",
+      "hfs"
+    ],
+    "appliesTo": [
+      "land"
+    ]
+  },
+  {
+    "id": "arctic-aquaculture",
+    "name": "Arctic Aquaculture Methods",
+    "description": "Cold-adapted strains and winterised equipment for sites above 70°N. Unique Arctic salmon products command premium branding. Collaboration with Tromsø and Finnmark local authorities.",
+    "branch": "Expansion",
+    "tier": 2,
+    "costNOK": 2500000,
+    "researchDays": 80,
+    "prerequisites": [
+      "deep-sea-farming"
+    ],
+    "effects": {
+      "growth_rate_bonus": 0.02,
+      "mortality_reduction": 0.03,
+      "sustainability_score_bonus": 4
+    }
+  },
+  {
+    "id": "international-export",
+    "name": "International Export Programme",
+    "description": "Establish dedicated export desks for USA, Japan, and China markets with in-market sales agents, regulatory compliance teams, and currency hedging. Diversifies revenue beyond EU dependence.",
+    "branch": "Expansion",
+    "tier": 3,
+    "costNOK": 4500000,
+    "researchDays": 120,
+    "prerequisites": [
+      "arctic-aquaculture"
+    ],
+    "effects": {
+      "market_price_bonus": 0.07
+    }
+  },
+  {
+    "id": "global-operations",
+    "name": "Global Operations Platform",
+    "description": "Integrate all sites, processing plants, logistics, and export markets into a single management platform. Real-time global supply optimisation, multi-currency finance, and multinational regulatory compliance.",
+    "branch": "Expansion",
+    "tier": 4,
+    "costNOK": 9000000,
+    "researchDays": 200,
+    "prerequisites": [
+      "international-export",
+      "land-based-ras"
+    ],
+    "effects": {
+      "market_price_bonus": 0.09
+    }
+  }
+]

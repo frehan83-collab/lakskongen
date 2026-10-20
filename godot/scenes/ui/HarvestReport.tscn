@@ -1,0 +1,236 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/HarvestReport.gd" id="1_report"]
+[ext_resource type="Theme" path="res://theme/lakskongen_chart_theme.tres" id="2_chart"]
+[ext_resource type="Shader" path="res://shaders/ui_frost.gdshader" id="3_frost"]
+[ext_resource type="Script" path="res://scripts/ui/SizeClassChart.gd" id="4_sizes"]
+[ext_resource type="Script" path="res://scripts/ui/GradeBar.gd" id="5_grades"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_frost"]
+shader = ExtResource("3_frost")
+shader_parameter/tint_amount = 0.5
+shader_parameter/blur_lod = 3.0
+shader_parameter/vignette = 0.45
+
+[node name="HarvestReport" type="Control"]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("2_chart")
+script = ExtResource("1_report")
+
+[node name="Backdrop" type="ColorRect" parent="."]
+unique_name_in_owner = true
+material = SubResource("ShaderMaterial_frost")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.043137, 0.164706, 0.227451, 0.82)
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Card" type="PanelContainer" parent="Center"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(980, 0)
+layout_mode = 2
+theme_type_variation = &"Card"
+
+[node name="Outer" type="VBoxContainer" parent="Center/Card"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="PanelContainer" parent="Center/Card/Outer"]
+layout_mode = 2
+theme_type_variation = &"CardHeader"
+
+[node name="HeaderRow" type="HBoxContainer" parent="Center/Card/Outer/Header"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="TitleBox" type="VBoxContainer" parent="Center/Card/Outer/Header/HeaderRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 2
+
+[node name="Overline" type="Label" parent="Center/Card/Outer/Header/HeaderRow/TitleBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"OverlineAccent"
+text = "SLAKTERAPPORT"
+
+[node name="TitleLabel" type="Label" parent="Center/Card/Outer/Header/HeaderRow/TitleBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"Title"
+text = "Lokalitet"
+
+[node name="SubtitleLabel" type="Label" parent="Center/Card/Outer/Header/HeaderRow/TitleBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"SmallMuted"
+text = "--"
+
+[node name="ModeTag" type="Label" parent="Center/Card/Outer/Header/HeaderRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"TagInfo"
+text = "--"
+
+[node name="Pad" type="MarginContainer" parent="Center/Card/Outer"]
+layout_mode = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 14
+
+[node name="Body" type="VBoxContainer" parent="Center/Card/Outer/Pad"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="HeroRow" type="HBoxContainer" parent="Center/Card/Outer/Pad/Body"]
+layout_mode = 2
+theme_override_constants/separation = 28
+
+[node name="HeroBox" type="VBoxContainer" parent="Center/Card/Outer/Pad/Body/HeroRow"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="NetCaption" type="Label" parent="Center/Card/Outer/Pad/Body/HeroRow/HeroBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"Overline"
+text = "NETTO"
+
+[node name="NetValue" type="Label" parent="Center/Card/Outer/Pad/Body/HeroRow/HeroBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"DisplayOk"
+text = "+0 NOK"
+
+[node name="NetDetail" type="Label" parent="Center/Card/Outer/Pad/Body/HeroRow/HeroBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"SmallMuted"
+text = "--"
+
+[node name="Kpis" type="GridContainer" parent="Center/Card/Outer/Pad/Body/HeroRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+theme_override_constants/h_separation = 28
+theme_override_constants/v_separation = 2
+columns = 5
+
+[node name="Columns" type="HBoxContainer" parent="Center/Card/Outer/Pad/Body"]
+layout_mode = 2
+theme_override_constants/separation = 28
+
+[node name="LeftCol" type="VBoxContainer" parent="Center/Card/Outer/Pad/Body/Columns"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="ChartTitle" type="Label" parent="Center/Card/Outer/Pad/Body/Columns/LeftCol"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"BodySmallStrong"
+text = "Vektfordeling, sløyd vekt"
+
+[node name="SizeChart" type="Control" parent="Center/Card/Outer/Pad/Body/Columns/LeftCol"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(500, 190)
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("4_sizes")
+
+[node name="GradeRow" type="HBoxContainer" parent="Center/Card/Outer/Pad/Body/Columns/LeftCol"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="GradeCaption" type="Label" parent="Center/Card/Outer/Pad/Body/Columns/LeftCol/GradeRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(72, 0)
+layout_mode = 2
+theme_type_variation = &"SmallMuted"
+text = "Kvalitet"
+
+[node name="GradeBar" type="Control" parent="Center/Card/Outer/Pad/Body/Columns/LeftCol/GradeRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(160, 14)
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+script = ExtResource("5_grades")
+
+[node name="GradeLegend" type="Label" parent="Center/Card/Outer/Pad/Body/Columns/LeftCol/GradeRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"Small"
+text = "--"
+
+[node name="RightCol" type="VBoxContainer" parent="Center/Card/Outer/Pad/Body/Columns"]
+custom_minimum_size = Vector2(380, 0)
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="SettleTitle" type="Label" parent="Center/Card/Outer/Pad/Body/Columns/RightCol"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"Overline"
+text = "OPPGJØR"
+
+[node name="SettleGrid" type="GridContainer" parent="Center/Card/Outer/Pad/Body/Columns/RightCol"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/h_separation = 10
+theme_override_constants/v_separation = 4
+columns = 2
+
+[node name="LedgerNote" type="Label" parent="Center/Card/Outer/Pad/Body/Columns/RightCol"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_type_variation = &"SmallMuted"
+autowrap_mode = 3
+text = "--"
+
+[node name="Footer" type="PanelContainer" parent="Center/Card/Outer"]
+layout_mode = 2
+theme_type_variation = &"CardHeaderCompact"
+
+[node name="FooterRow" type="HBoxContainer" parent="Center/Card/Outer/Footer"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="FooterNote" type="Label" parent="Center/Card/Outer/Footer/FooterRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+theme_type_variation = &"SmallMuted"
+autowrap_mode = 3
+text = "--"
+
+[node name="CloseButton" type="Button" parent="Center/Card/Outer/Footer/FooterRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"LargePrimaryButton"
+text = "Fortsett"

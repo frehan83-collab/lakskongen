@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using LakskongenSim.Core;
 using LakskongenSim.Data;
 
 namespace LakskongenSim.Farm
@@ -132,10 +133,14 @@ namespace LakskongenSim.Farm
         /// <summary>
         /// Apply delousing treatment to a population.
         /// Returns treatment result with mortality, cost, and efficacy data.
+        /// The lice model is company-wide: pass applyCompanyLiceKill=true for
+        /// exactly ONE population per treatment operation so a multi-pen
+        /// order does not nuke global lice N times (S8).
         /// </summary>
         public TreatmentResult Treat(Biology.FishPopulation pop, DelousingMethod method,
             Health.SeaLiceModel liceModel, Health.IntegratedDiseaseSystem diseaseSystem,
-            double temperatureC = 10.0)
+            double temperatureC = 10.0, double mortalityMultiplier = 1.0,
+            bool applyCompanyLiceKill = true, SimRngStream? rng = null, double liceKillShare = 1.0)
         {
             var profile = GetProfile(method);
             int totalFish = pop.Cohorts.Sum(c => c.Count);
@@ -147,7 +152,7 @@ namespace LakskongenSim.Farm
                 return TreatmentResult.Cancelled(method, "Temperature out of range");
             }
 
-            // Calculate actual efficacy (may be reduced by resistance)
+// Calculate actual efficacy (may be reduced by resistance)
             double actualEfficacy = profile.Efficacy;
 
             // Temperature modifier on chemical treatments
@@ -157,39 +162,84 @@ namespace LakskongenSim.Farm
                 actualEfficacy *= Math.Max(0.5, tempModifier);
             }
 
-            // Apply lice reduction
-            liceModel.ApplyTreatment(actualEfficacy);
-
-            // Treatment mortality
-            var rng = new Random();
-            double actualMortalityRate = profile.MortalityRisk * (1.0 + (temperatureC - 10.0) * 0.05);
-            actualMortalityRate = Math.Max(0, actualMortalityRate);
-            int deaths = (int)(totalFish * actualMortalityRate);
-
-            // Apply mortality to cohorts
-            if (deaths > 0)
+            string treatmentType = method switch
             {
-                int remaining = deaths;
-                for (int i = 0; i < pop.Cohorts.Count && remaining > 0; i++)
-                {
-                    var cohort = pop.Cohorts[i];
-                    int take = Math.Min(remaining, (int)(cohort.Count * actualMortalityRate));
-                    remaining -= take;
-                    pop.Cohorts[i] = new Biology.FishPopulation.Cohort(
-                        cohort.AgeDays, cohort.Count - take, cohort.MeanWeightKg, cohort.Stage);
-                }
-                pop.Cohorts.RemoveAll(c => c.Count <= 0);
+                DelousingMethod.HydrogenPeroxide => "hydrogen_peroxide",
+                DelousingMethod.MedicatedFeed => "organophosphate",
+                DelousingMethod.Thermolicer => "thermal",
+                DelousingMethod.Hydrolicer => "mechanical",
+                DelousingMethod.CleanerFish => "cleaner_fish",
+                DelousingMethod.LaserDelousing => "laser",
+                DelousingMethod.FreshwaterBath => "freshwater",
+                DelousingMethod.LiceSkirts => "preventive",
+                _ => "mechanical"
+            };
+
+            // Apply lice reduction: the kill is the method's efficacy x
+            // (1 - resistance), once, and only for the flagged population —
+            // the model is company-wide (S8). Normalising the efficacy by the
+            // model's per-type base capped Laser at 0.50 and Thermolicer and
+            // Hydrolicer at 0.82 (F480).
+            double efficacyResult = 0.0;
+            if (applyCompanyLiceKill)
+            {
+                // S2-01b: treating some of a site's pens kills the lice of the
+                // treated share of its fish; the site model is a mean over all.
+                double share = Math.Clamp(liceKillShare, 0.0, 1.0);
+                efficacyResult = liceModel.ApplyTreatmentEfficacy(treatmentType,
+                    share >= 1.0 ? actualEfficacy : actualEfficacy * share);
+            }
+            else
+            {
+                efficacyResult = actualEfficacy;
             }
 
-            // Update disease system — treatment affects disease prevalence
+            // Treatment mortality (veterinarian supervision scales it).
+            // P4: handling harm compounds on repeat treatments — the harm
+            // model's immediate rate (handling + injury-linked) floors the
+            // profile rate, so back-to-back delousings kill extra fish.
+            double profileRate = profile.MortalityRisk * (1.0 + (temperatureC - 10.0) * 0.05) * mortalityMultiplier;
+            var harm = Health.DelousingHarmModel.EvaluateFor(method.ToString(), actualEfficacy);
+            pop.TreatmentHarm = Health.DelousingHarmModel.ApplyTreatment(
+                pop.TreatmentHarm, Health.DelousingHarmModel.MethodFor(method.ToString()), actualEfficacy);
+            double actualMortalityRate = Math.Max(0, Math.Max(profileRate, harm.TotalMortalityContribution));
+            // Stochastic handling deaths from the per-site treatment stream
+            // (SimRngStreams.Delouse). Mean-preserving: expected deaths equal
+            // the deterministic value; null stream keeps legacy behavior.
+            int deaths = rng != null
+                ? DrawBinomialDeaths(rng, totalFish, Math.Clamp(actualMortalityRate, 0.0, 1.0))
+                : (int)(totalFish * actualMortalityRate);
+
+            // Apply mortality to cohorts: the drawn deaths in full, shared over
+            // the cohorts by their fish (whole fish, exact sum). S2-05: each
+            // cohort used to be capped at floor(count x rate), so a draw above
+            // the expectation was cut back (the treatment killed fewer fish
+            // than drawn, a downward bias) while the result, the event log and
+            // the player still read the drawn number.
+            int applied = 0;
+            if (deaths > 0)
+            {
+                var weights = pop.Cohorts.Select(c => (double)Math.Max(0, c.Count)).ToArray();
+                var shares = Biology.MortalityLedger.Split(Math.Min(deaths, totalFish), weights);
+                for (int i = 0; i < shares.Length; i++)
+                    // In place: rebuilding the cohort reset its smolt quality tier
+                    // to Standard (F386). Booked as a treatment death (S2-05).
+                    applied += pop.RemoveDead(pop.Cohorts[i], shares[i], Biology.MortalityCause.Delousing);
+                pop.Cohorts.RemoveAll(c => c.Count <= 0);
+            }
+            deaths = applied;
+
+            // Update disease system — treatment affects disease prevalence.
+            // The per-population infected-fraction bookkeeping always runs;
+            // the company-wide lice kill never does here (applied above, once).
             if (diseaseSystem != null)
             {
-                diseaseSystem.ApplyTreatment(pop, actualEfficacy, actualEfficacy * 0.5, temperatureC);
+                diseaseSystem.ApplyTreatment(pop, "mechanical", actualEfficacy, actualEfficacy * 0.5, temperatureC, applyLiceModel: false);
             }
 
             // Mark population as recently treated (for resistance evolution)
             pop.HasRecentTreatment = true;
-            pop.TreatmentIntensity = actualEfficacy;
+            pop.TreatmentIntensity = efficacyResult;
 
             // Calculate cost
             decimal totalCost = totalFish * profile.CostPerFish;
@@ -197,18 +247,81 @@ namespace LakskongenSim.Farm
             // Fire events
             OnTreatmentCost?.Invoke(totalCost);
             if (deaths > 0) OnTreatmentMortality?.Invoke(deaths);
-            OnTreatmentEvent?.Invoke($"🐟 {method}: Treated {totalFish} fish, {deaths} deaths ({actualMortalityRate:P1}), efficacy {actualEfficacy:P0}, cost {totalCost:N0} NOK");
+            OnTreatmentEvent?.Invoke($"🐟 {method}: Treated {totalFish} fish, {deaths} deaths ({actualMortalityRate:P1}), efficacy {efficacyResult:P0}, cost {totalCost:N0} NOK");
 
             return new TreatmentResult
             {
                 Method = method,
                 FishTreated = totalFish,
                 Deaths = deaths,
-                Efficacy = actualEfficacy,
+                Efficacy = efficacyResult,
                 Cost = totalCost,
                 Success = true,
-                Message = $"Treatment complete: {actualEfficacy:P0} lice reduction"
+                Message = $"Treatment complete: {actualEfficacy:P0} lice reduction",
+                GillDamage = harm.GillDamageContribution,
+                HarmWelfareCost = harm.WelfareCost
             };
+        }
+
+        /// <summary>
+        /// Map UI/legacy method names to <see cref="DelousingMethod"/> (Phase 2.2).
+        /// Owner of the method-name contract since Phase 1 wave 2 — the Godot
+        /// bridge delegates to this instead of keeping its own table.
+        /// </summary>
+        /// <summary>
+        /// Mean-preserving binomial draw. Exact Bernoulli loop for small means,
+        /// normal approximation (Box-Muller) for large ones where looping up
+        /// to hundreds of thousands of fish per pen would stall the tick.
+        /// </summary>
+        private static int DrawBinomialDeaths(SimRngStream rng, int n, double p)
+        {
+            if (n <= 0 || p <= 0.0) return 0;
+            if (p >= 1.0) return n;
+            double mean = n * p;
+            if (mean < 25.0)
+            {
+                int deaths = 0;
+                for (int i = 0; i < n; i++)
+                    if (rng.NextDouble() < p) deaths++;
+                return deaths;
+            }
+            double u1 = Math.Max(1e-10, rng.NextDouble());
+            double u2 = rng.NextDouble();
+            double z = Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Cos(2.0 * Math.PI * u2);
+            double approx = mean + Math.Sqrt(mean * (1.0 - p)) * z;
+            return Math.Clamp((int)Math.Round(approx), 0, n);
+        }
+
+        public static bool TryParseMethodName(string name, out DelousingMethod method)
+        {
+            switch ((name ?? "").ToLower())
+            {
+                case "thermolicer":
+                case "thermal": method = DelousingMethod.Thermolicer; return true;
+                case "hydrolicer":
+                case "mechanical": method = DelousingMethod.Hydrolicer; return true;
+                case "cleanerfish":
+                case "cleaner_fish":
+                case "biological": method = DelousingMethod.CleanerFish; return true;
+                case "laser":
+                case "laserdelousing":
+                case "stingray": method = DelousingMethod.LaserDelousing; return true;
+                case "freshwater":
+                case "freshwaterbath": method = DelousingMethod.FreshwaterBath; return true;
+                case "peroxide":
+                case "hydrogen_peroxide":
+                case "chemical": method = DelousingMethod.HydrogenPeroxide; return true;
+                case "medicatedfeed":
+                case "medicated_feed": method = DelousingMethod.MedicatedFeed; return true;
+                case "skirt":
+                case "liceskirts": method = DelousingMethod.LiceSkirts; return true;
+                default:
+                    // The bridge lists treatments by enum name ("HydrogenPeroxide"),
+                    // and that is what the pen panel sends back (U1-08).
+                    return Enum.TryParse(name, ignoreCase: true, out method)
+                        && !int.TryParse(name, out _)
+                        && Enum.IsDefined(method);
+            }
         }
     }
 
@@ -237,6 +350,10 @@ namespace LakskongenSim.Farm
         public decimal Cost;
         public bool Success;
         public string Message;
+        /// <summary>Gill damage added by this treatment (P4 harm model).</summary>
+        public double GillDamage;
+        /// <summary>Welfare cost scalar of this treatment (P4 harm model).</summary>
+        public double HarmWelfareCost;
 
         public static TreatmentResult Cancelled(DelousingMethod method, string reason) => new TreatmentResult
         {

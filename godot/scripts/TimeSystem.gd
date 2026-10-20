@@ -18,4 +18,3 @@ func set_time_scale(scale: float) -> void:
 func tick(delta_seconds: float) -> void:
     # optional integration with engine; accumulate seconds → days using time_scale
     pass
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

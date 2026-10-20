@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 
+using LakskongenSim.Core;
+
 namespace LakskongenSim.Market
 {
     /// <summary>
@@ -70,7 +72,28 @@ namespace LakskongenSim.Market
         };
 
         // ─── Simulation state ───
-        private readonly Random _rng = new();
+        private SimRngStream _rng = SimRng.CreateUnseeded().Stream(SimRngStreams.Currency);
+        internal SimRngStream RngForSnapshot => _rng;
+        internal void SetRngForSeededRun(SimRngStream rng) => _rng = rng;
+
+        /// <summary>Engine-bound constructor: the engine passes its own seeded
+        /// stream so FX noise is deterministic and save-continuous.</summary>
+        public CurrencySystem(SimRngStream rng) => _rng = rng;
+
+        /// <summary>Parameterless constructor for tests/tools (unseeded fallback).</summary>
+        public CurrencySystem() { }
+
+        /// <summary>State that must survive a save so exchange-rate noise
+        /// continues instead of resetting (Phase 1 wave 6).</summary>
+        internal (int Day, decimal Eur, decimal Usd, decimal Jpy, decimal Gbp, decimal BankRate) ExportCurrencyState()
+            => (_simulationDay, NokPerEur, NokPerUsd, NokPerJpy, NokPerGbp, CentralBankRate);
+
+        internal void ImportCurrencyState((int Day, decimal Eur, decimal Usd, decimal Jpy, decimal Gbp, decimal BankRate) s)
+        {
+            _simulationDay = s.Day;
+            NokPerEur = s.Eur; NokPerUsd = s.Usd; NokPerJpy = s.Jpy; NokPerGbp = s.Gbp;
+            CentralBankRate = s.BankRate;
+        }
         private int _simulationDay;
 
         // ─── Events ───

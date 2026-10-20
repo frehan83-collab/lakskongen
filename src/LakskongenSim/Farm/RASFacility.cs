@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using LakskongenSim.Core;
 namespace LakskongenSim.Farm
 {
     /// <summary>
@@ -19,6 +20,19 @@ namespace LakskongenSim.Farm
         public string Name { get; set; } = "RAS Anlegg";
         public string ZoneId { get; set; } = "";
         public RASScale Scale { get; set; } = RASScale.Medium;
+
+        /// <summary>
+        /// What the land site produces (F2-03): grow-out, or post-smolt for the
+        /// sea sites (a pre-F2 post-smolt facility migrates to one).
+        /// </summary>
+        public LandSiteKind Kind { get; set; } = LandSiteKind.GrowOut;
+
+        /// <summary>
+        /// The land pad the site stands on ("pad_a"), "" for a facility a pre-F2
+        /// save has not yet placed (F2-03's migration gives it a pad); its
+        /// <see cref="ZoneId"/> is the pad's (<see cref="SitePlot"/>).
+        /// </summary>
+        public string PlotId { get; set; } = "";
 
         // ─── Capacity & Production ───
         /// <summary>Maximum annual production capacity in tonnes.</summary>
@@ -87,6 +101,10 @@ namespace LakskongenSim.Farm
         /// <summary>Is facility fully operational?</summary>
         public bool IsOperational => ConstructionProgress >= 1.0;
 
+        // Phase 5.4: Carbon ledger
+        /// <summary>Carbon emissions/credits tracker for this RAS facility.</summary>
+        public CarbonTracker CarbonTracker { get; set; } = new();
+
         // ─── Status ───
         public int DaysSinceLastMaintenance { get; set; } = 0;
         public int MaintenanceIntervalDays { get; set; } = 90; // Quarterly biofilter maintenance
@@ -96,6 +114,20 @@ namespace LakskongenSim.Farm
         // ─── Events (not serialized) ───
         public event Action<string>? OnAlert;
         public event Action<string>? OnMilestone;
+
+        // ─── Deterministic RNG (SimRngStreams.RASFacility, per-facility suffix) ───
+        private SimRngStream _rng = SimRng.CreateUnseeded().Stream(SimRngStreams.RASFacility);
+        internal SimRngStream RngForSnapshot => _rng;
+
+        public RASFacility() { }
+
+        public RASFacility(SimRngStream rng)
+        {
+            _rng = rng ?? throw new ArgumentNullException(nameof(rng));
+        }
+
+        /// <summary>Bind this facility to the engine's named stream (per-facility identity).</summary>
+        public void SetRng(SimRngStream rng) => _rng = rng ?? throw new ArgumentNullException(nameof(rng));
 
         /// <summary>
         /// Daily tick: update water chemistry, energy costs, construction progress.
@@ -124,7 +156,7 @@ namespace LakskongenSim.Farm
             // Temperature control (energy cost scales with delta from ambient)
             double tempDelta = Math.Abs(TargetWaterTemp - ambientTemp);
             double heatingCoolingFactor = 1.0 + (tempDelta * 0.05); // 5% more energy per °C difference
-            CurrentWaterTemp = TargetWaterTemp + (Random.Shared.NextDouble() - 0.5) * 0.3; // ±0.15°C noise
+            CurrentWaterTemp = TargetWaterTemp + (_rng.NextDouble() - 0.5) * 0.3; // ±0.15°C noise
 
             // Oxygen management
             double biomassKg = GetTotalBiomassKg();
@@ -159,7 +191,7 @@ namespace LakskongenSim.Farm
 
             // ─── Operating Costs ───
             // Staff costs (~650K NOK/year per employee)
-            result.DailyStaffCost = (decimal)EmployeeCount * 650_000m / 365m;
+            result.DailyStaffCost = (decimal)EmployeeCount * 650_000m / LakskongenSim.Core.SimCalendar.DaysPerYear;
             
             // Consumables (chemicals, oxygen, filters)
             result.DailyConsumablesCost = (decimal)(biomassKg * 0.02); // ~20 øre/kg biomass/day
@@ -188,7 +220,7 @@ namespace LakskongenSim.Farm
             BiofilterEfficiency = Math.Min(0.95, BiofilterEfficiency + 0.10);
             
             // Maintenance cost: ~500K-1M NOK per event
-            decimal cost = 500_000m + (decimal)(Random.Shared.NextDouble() * 500_000);
+            decimal cost = 500_000m + (decimal)(_rng.NextDouble() * 500_000);
             OnMilestone?.Invoke($"Vedlikehold gjennomført på '{Name}'. Biofilter: {BiofilterEfficiency:P0}");
             return cost;
         }
@@ -213,6 +245,15 @@ namespace LakskongenSim.Farm
             return total;
         }
 
+        /// <summary>Nameplate production capacity (tonnes/year) for a facility scale.</summary>
+        public static double DefaultCapacityTonnesPerYear(RASScale scale) => scale switch
+        {
+            RASScale.Small => 5_000,
+            RASScale.Medium => 8_000,   // Salmon Evolution phase 1 ≈ 7,900 t
+            RASScale.Large => 20_000,   // Atlantic Sapphire target
+            _ => 8_000
+        };
+
         /// <summary>Get CAPEX based on facility scale.</summary>
         public decimal GetCAPEX() => Scale switch
         {
@@ -224,7 +265,7 @@ namespace LakskongenSim.Farm
 
         /// <summary>Get annual OPEX estimate based on current configuration.</summary>
         public decimal EstimatedAnnualOPEX =>
-            (decimal)DailyEnergyKWh * EnergyPricePerKWh * 365m  // Energy
+            (decimal)DailyEnergyKWh * EnergyPricePerKWh * LakskongenSim.Core.SimCalendar.DaysPerYear  // Energy
             + (decimal)EmployeeCount * 650_000m                   // Staff
             + 15_000_000m;                                        // Consumables & maintenance
     }

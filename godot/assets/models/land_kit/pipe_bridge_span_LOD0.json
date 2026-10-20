@@ -1,0 +1,52 @@
+{
+  "asset": "pipe_bridge_span",
+  "atlas": "godot/assets/models/facility_kit/textures/facility_atlas.png",
+  "bbox_size": [
+    25.92,
+    13.5,
+    4.58
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "leg_height_m": 10.0,
+    "section_height_m": 3.5,
+    "section_width_m": 3.5,
+    "span_m": 25.24
+  },
+  "file": "pipe_bridge_span_LOD0.glb",
+  "lod": "LOD0",
+  "material_count": 1,
+  "materials": [
+    "LK_FacilityKit"
+  ],
+  "part_strips": {
+    "Conveyor": "conveyor",
+    "Footings": "concrete",
+    "Legs": "bridge_leg",
+    "Pipes": "pipe",
+    "Truss": "orange",
+    "Walkway": "grating"
+  },
+  "parts": {
+    "Conveyor": 12,
+    "Footings": 20,
+    "Legs": 56,
+    "Pipes": 48,
+    "Truss": 480,
+    "Walkway": 2
+  },
+  "surfaces": 1,
+  "swatches": {
+    "Pipes": {
+      "hex": "#9BA1A7",
+      "spec": "#9AA0A6",
+      "strip": "pipe"
+    },
+    "Truss": {
+      "hex": "#DA622B",
+      "spec": "#D9622B",
+      "strip": "orange"
+    }
+  },
+  "tri_count": 618
+}

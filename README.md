@@ -1,357 +1,106 @@
 # 🐟 Lakskongen — From Egg to Export
 
-**A deep simulation game about salmon farming in the fjords of Norway.**
+**A deep salmon-farming simulation set in the fjords of Norway.**
 
-[![Built with Godot](https://img.shields.io/badge/Godot-4.3-blue.svg)](https://godotengine.org/)
-[![.NET 8.0](https://img.shields.io/badge/.NET-8.0-512BD4.svg)](https://dotnet.microsoft.com/)
+[![Engine](https://img.shields.io/badge/Godot-4.7-blue.svg)](https://godotengine.org/)
+[![.NET](https://img.shields.io/badge/.NET-10-512BD4.svg)](https://dotnet.microsoft.com/)
 [![Status: Playable Alpha](https://img.shields.io/badge/Status-Playable%20Alpha-brightgreen.svg)]()
-[![Tests: 203/203](https://img.shields.io/badge/Tests-203%2F203%20passing-success.svg)]()
-[![License: TBD](https://img.shields.io/badge/License-TBD-yellow.svg)]()
+[![Tests: 663 passing](https://img.shields.io/badge/Tests-663%20passing-success.svg)]()
+
+Lakskongen puts you in charge of a Norwegian salmon farm and scales you from a
+single net pen to a vertically integrated corporation: egg → smolt → sea site →
+processing → export. It simulates real biology (genetics, growth, disease, sea
+lice), a calibrated Norwegian market, regulation (traffic lights, MAB), and the
+economics of feed, tax and resource rent — aiming for depth a surface
+aquaculture minigame can't reach. See [VISION.md](VISION.md) and
+[PLAN.md](PLAN.md).
+
+Current state: **[STATUS.md](STATUS.md)** · Roadmap: **[PLAN.md](PLAN.md)** ·
+History: **[CHANGELOG.md](CHANGELOG.md)**.
 
 ---
 
-## 🎮 Project Status: PLAYABLE ALPHA (v0.5.0-alpha)
+## Requirements
 
-Lakskongen is now **playable** with a full game loop, 3D fjord visuals, tutorial system, and deep simulation mechanics. The game runs from egg to export with environmental challenges, financial strategy, and Norwegian coastal aesthetics.
+- **Godot 4.7 with .NET support**
+- **.NET 10 SDK**
+- **Python 3.12** (tooling only: tokens, textures, store art, CI helpers)
 
-**Current milestone:** QA testing → Playtesting → Early Access prep
-
----
-
-## 🌊 Vision
-
-While **Farming Simulator 25** recently added salmon aquaculture as a surface-level feature, **Lakskongen** goes **100x deeper** — we are to salmon farming what iRacing is to Need for Speed.
-
-Build your empire from a single net pen to a vertically integrated corporation. Manage real genetics, navigate Norwegian regulations, master global markets, and discover why Norway is the world's #1 salmon producer.
-
----
-
-## 🕹️ Quick Start
-
-### Prerequisites
-- **.NET 8.0 SDK** — [Download](https://dotnet.microsoft.com/download)
-- **Godot 4.3+ with .NET support** — [Download](https://godotengine.org/)
-- **Git** — [Download](https://git-scm.com/)
-
-### Run the Game
-```powershell
-# Clone
-git clone https://github.com/yourusername/lakskongen.git
-cd lakskongen
-
-# Build C# simulation core
-dotnet build src/LakskongenSim.sln
-
-# Open in Godot 4.3+ (.NET edition)
-# Open godot/project.godot → Press F5 to play
-```
-
-### Controls
-| Key | Action |
-|-----|--------|
-| **WASD / Arrow Keys** | Pan camera |
-| **Mouse Wheel** | Zoom in/out |
-| **Space / P** | Pause/Resume |
-| **1-4** | Time speed (1x, 5x, 10x, 30x) |
-| **F5** | Quick Save |
-| **F9** | Quick Load |
-| **Tab** | Toggle Dashboard |
-| **Esc** | Menu |
-
----
-
-## 🐟 Features
-
-### 🌊 Phase 5: Real Norwegian Environmental Data *(NEW)*
-- **13 Norwegian production zones (PO01-PO13)** with geospatially accurate oceanographic data
-- **Daily resolution** temperature, oxygen, currents, salinity from Mareano/Geonorge/IMR
-- **Seasonal patterns** calibrated to Institute of Marine Research (IMR) monitoring data (2015-2025)
-- **7-day forecast cache** for performance optimization and player planning
-- **Environmental stress indices** that directly modulate fish growth, mortality, and disease risk
-- **Zone-specific characteristics:** Deep fjords (PO04-06), exposed coast (PO03), Arctic waters (PO11-13)
-- **Data sources:** Mareano (bathymetry, currents), Geonorge (habitat maps), IMR (temperature/oxygen), MET Norway (forecasts)
-
-### 💰 Phase 6: Economic Simulation & Strategic Optimization *(NEW)*
-- **Ornstein-Uhlenbeck price model** calibrated to Fish Pool FPI (Norwegian salmon spot market, 2020-2025)
-- **Contract system:** Spot, forward (4-12 weeks), tolling, exclusive contracts with quality grading and penalties
-- **International markets:** 18 export destinations (USA, EU, Japan, China, etc.) with tariffs, FX rates, quality premiums
-- **Strategic optimizers:**
-  - **Feeding Optimizer:** Temperature/oxygen-based feeding schedules, economic margin optimization
-  - **Harvest Optimizer:** Optimal timing based on size distribution, market price, contract deadlines
-  - **Pen Management Optimizer:** Stocking density optimization (welfare vs growth tradeoff)
-  - **Treatment Cost-Benefit Analyzer:** Disease treatment ROI analysis
-- **Norwegian taxation:** 22% corporate tax + 40% resource rent tax on profits >70M NOK (2023 reform)
-- **Financial instruments:** Loans (short/long-term), equity investors (seed, Series A/B), IPO/stock market
-- **License system:** MAB (Maximum Allowed Biomass) limits, traffic light system (green/yellow/red zones)
-- **Currency system:** Real-time FX rates (NOK/USD/EUR/GBP/JPY/CNY) for international trade
-
-### 🧬 Biology & Genetics
-- 8-trait Mendelian genetics (growth rate, disease resistance, fillet quality, maturation, feed efficiency, color, stress tolerance, fillet yield)
-- Full life cycle: Egg → Alevin → Fry → Parr → Smolt → Post-smolt → Adult → Broodstock
-- Cohort-based population dynamics with statistical variance
-- Inbreeding depression and genomic selection
-
-### 🏔️ 3D Fjord Renderer *(NEW — Wave 10)*
-- Norwegian coastal terrain with fjord geometry
-- 11 custom shaders (water, sky, terrain, tilt-shift, weather effects)
-- Dynamic weather visualization (storms, fog, northern lights)
-- Anno 1800-tier visual aesthetic at 60 FPS target
-- Camera system with smooth pan, zoom, and rotation
-
-### 🖥️ Complete UI System *(NEW — Wave 10)*
-- **Dashboard:** Real-time KPIs, biomass charts, financial overview
-- **Pen Management:** Stock, feed, harvest, monitor individual pens
-- **Save/Load:** Multiple save slots with metadata preview
-- **Game Loop:** Full pause, speed control, day/week/month progression
-
-### 📚 Tutorial System *(NEW — Wave 10)*
-- 23-step interactive tutorial with progress tracking
-- Contextual hints and guidance
-- Progressive feature unlocking for new players
-
-### 🌦️ Weather & Environment *(NEW — Wave 11)*
-- Weather impacts on fish health and operations
-- Storm events affecting feeding and mortality
-- Temperature stress modeling
-- Seasonal light cycles (midnight sun, polar night)
-
-### 🦠 Disease System *(NEW — Wave 11)*
-- Disease outbreak events with spread mechanics
-- Treatment options and costs
-- Sea lice, IPN, ISA, furunculosis models
-- Adaptive LOD for performance scaling
-
-### 📊 Financial Strategy *(NEW — Wave 11)*
-- Contract system (forward contracts vs spot market)
-- IPO/Stock market mechanics (company valuation, dividends)
-- Dynamic seasonal pricing with global market simulation
-- EBIT/kg tracking, cash flow management
-
-### 🎯 Scenarios *(NEW — Wave 12)*
-- **Small Farm Start:** Classic beginner experience
-- **Industrial Giant:** Large-scale operations challenge
-- **Organic Pioneer:** Sustainability-focused gameplay
-- **Research Station:** Science and breeding focus
-- **Family Inheritance:** Story-driven management
-
-### 🏗️ Operations & Production
-- 17-product processing chain (fresh, frozen, smoked, sashimi-grade)
-- Hatchery → Sea site → Processing → Export pipeline
-- Feed management with FCR optimization
-- Vertical integration opportunities
-
-### 📜 Regulations
-- Norwegian traffic light system (green/yellow/red zones)
-- MAB (Maximum Allowed Biomass) limits
-- Environmental monitoring and sustainability ratings
-- License management
-
----
-
-## 🧪 Running Tests
+## Quick start
 
 ```bash
-# All tests (203 tests)
-dotnet test src/LakskongenSim.sln --configuration Release
+# Build the whole solution (sim library + Godot C# assembly)
+dotnet build LakskongenSim.sln
 
-# Specific test projects
-dotnet test src/LakskongenSim.Tests/
-dotnet test src/LakskongenSim.LogisticsTests/
-dotnet test src/LakskongenSim.SaveLoadTests/
-dotnet test tests/
+# Run the full test suite (663 passing, 1 skipped)
+dotnet test LakskongenSim.sln
+
+# Launch the game
+godot --path godot
+# …or open godot/project.godot in the Godot 4.7 .NET editor and press F5.
+
+# Run the CI quality gate locally
+tools/ci.sh
 ```
 
-**Current test stats:** 203/203 passing, 0 failures, 0 errors
+The CI gate runs build, tests, the performance benchmark, design-token sync,
+JSON validation, scene-load validation and a headless GDScript parse scan
+(7 steps). See [docs/CI.md](docs/CI.md).
 
-### Testing Phase 5+6 Features
+## Regenerating generated assets
 
-**Environmental Data Integration:**
+All generators are deterministic and safe to re-run:
+
 ```bash
-# Test environmental data provider (13 zones)
-dotnet test src/LakskongenSim.Tests/ --filter "FullyQualifiedName~MareanoEnvironmentalDataProvider"
-
-# Test zone profiles and seasonal patterns
-dotnet test src/LakskongenSim.Tests/ --filter "FullyQualifiedName~NorwegianZoneEnvironmentalProfile"
+python3 tools/sync_tokens.py --write   # design/tokens.json -> godot/theme/tokens.json
+python3 tools/gen_textures.py          # 14 tileable fjord textures + normal maps
+python3 tools/gen_store_art.py         # Steam "Nordic Aurora Fjord" capsules
 ```
 
-**Economic System:**
+The screenshot harness renders with a graphics context and therefore needs a
+real display (it cannot run headless):
+
 ```bash
-# Test market simulation (O-U model, seasonal patterns)
-dotnet test src/LakskongenSim.Tests/ --filter "FullyQualifiedName~MarketSimulation"
-
-# Test contract system (spot, forward, quality grading)
-dotnet test src/LakskongenSim.Tests/ --filter "FullyQualifiedName~ContractSystem"
-
-# Test optimizers (feeding, harvest, pen management)
-dotnet test src/LakskongenSim.Tests/ --filter "FullyQualifiedName~Optimizer"
+tools/capture_screenshots.sh           # writes screenshots/game/*.png
 ```
 
-**Integration Tests:**
-```bash
-# Full simulation with environmental data → growth → market → revenue
-dotnet test src/LakskongenSim.Tests/ --filter "FullyQualifiedName~IntegrationTests"
-```
+See [docs/SCREENSHOTS.md](docs/SCREENSHOTS.md) for the shot list.
 
----
+## MCP Servers (Live Development)
 
-## 📦 Building & Exporting
+| Server | Port | Config | Purpose |
+|--------|------|--------|---------|
+| **Blender MCP** | 9876 | `.mcp.json` / `opencode.json` | Procedural asset generation (`blender/build_salmon.py`) |
+| **Godot MCP Toolkit** | 6550 | `godot/.mcp.json` | Scene inspection, node queries, runtime control |
 
-### Build from Source
-```powershell
-# Debug build
-dotnet build src/LakskongenSim.sln
+Both servers auto-start when the Godot editor runs with the `godot_mcp_toolkit` plugin enabled. Blender MCP requires the official Blender Lab addon on port 9876 (`uv --directory $HOME/blender_mcp/mcp run blender-mcp`).
 
-# Release build
-dotnet build src/LakskongenSim.sln --configuration Release
-```
+## Documentation
 
-### Export Windows EXE
-1. Open `godot/project.godot` in Godot 4.3+ (.NET edition)
-2. Project → Export → Windows Desktop
-3. Export presets configured in `godot/export_presets.cfg`
-4. Output: `godot/export/Lakskongen.exe`
+- **[docs/INDEX.md](docs/INDEX.md)** — index of everything in `docs/`, plus the
+  historical root-level reports.
+- **[PLAN.md](PLAN.md)** — roadmap and the current program of work.
+- **[STATUS.md](STATUS.md)** — build / test / perf snapshot.
+- **[docs/BALANCE.md](docs/BALANCE.md)** — calibration and measured realism.
+- **[docs/Architecture.md](docs/Architecture.md)** — system architecture.
+- **[SCENARIOS.md](SCENARIOS.md)** — campaign and sandbox scenarios.
+- **[docs/Modding_API.md](docs/Modding_API.md)** — mod contract + sample mod.
+- **[design/ART_DIRECTION.md](design/ART_DIRECTION.md)** — art direction.
+- **[CHANGELOG.md](CHANGELOG.md)** — version history.
 
----
-
-## 🏗️ Architecture
-
-| Component | Technology |
-|-----------|-----------|
-| **Game Engine** | Godot 4.3+ |
-| **Simulation Core** | C# (.NET 8.0) |
-| **UI & Scripting** | GDScript + C# |
-| **Shaders** | Godot Shader Language (11 custom) |
-| **Data Storage** | JSON + SQLite |
-| **Testing** | xUnit (203 tests) |
-
-### Design Philosophy
-- **Simulation Layer:** Pure C# — no Godot dependencies, fully testable, high performance
-- **Presentation Layer:** Godot scenes + GDScript for rendering, UI, input
-- **Bridge Layer:** SimBridge.gd ↔ GameBridge.cs for C#/GDScript interop
-- **Mod Support:** Resource-based system for custom content *(planned)*
-
----
-
-## 📁 Project Structure
+## Project layout
 
 ```
 lakskongen/
-├── godot/                    # Godot project
-│   ├── scenes/               # .tscn scene files
-│   │   ├── environment/      # 3D fjord renderer scenes
-│   │   └── ui/               # UI scenes
-│   ├── scripts/              # GDScript files
-│   │   ├── autoload/         # Autoload singletons (GameBridge.cs)
-│   │   ├── environment/      # Camera, weather, terrain scripts
-│   │   └── ui/               # UI panel scripts
-│   ├── shaders/              # Custom shader files (11)
-│   └── ui/                   # Additional UI resources
-├── src/                      # C# simulation core
-│   ├── LakskongenSim/        # Main simulation library
-│   │   ├── Biology/          # Fish genetics, growth, lifecycle
-│   │   ├── Core/             # SimulationEngine, GameState
-│   │   ├── Disease/          # Disease models, LOD system
-│   │   ├── Environment/      # Zones, water chemistry
-│   │   ├── Events/           # Storyteller, event system
-│   │   ├── Finance/          # Accounting, cash flow
-│   │   ├── Market/           # Pricing, contracts, intelligence
-│   │   └── Processing/       # VAP chain, yield calculation
-│   ├── LakskongenSim.Tests/  # Core unit tests
-│   ├── LakskongenSim.LogisticsTests/
-│   └── LakskongenSim.SaveLoadTests/
-├── tests/                    # Additional test projects
-├── docs/                     # Documentation
-├── screenshots/              # Store assets, capsules
-├── CHANGELOG.md
-├── README.md
-└── VISION.md
+├── godot/             # Godot 4.7 project (scenes, scripts, shaders, assets, data)
+├── src/               # C# simulation core + test projects (net10.0)
+├── tests/             # Additional test projects (health, processing)
+├── tools/             # ci.sh, token/texture/store-art generators, validators
+├── docs/              # Documentation (see docs/INDEX.md)
+├── design/            # Design tokens + art direction
+└── LakskongenSim.sln  # Whole-solution build entry point
 ```
 
----
+## License
 
-## 🎨 Visual Style
-
-**Stylized realism** — inspired by *Anno 1800* and *Northgard*:
-- Norwegian fjord terrain with volumetric fog
-- Tilt-shift miniature aesthetic
-- Dynamic weather (storms, fog, northern lights, midnight sun)
-- Custom water shader with reflections and foam
-- Satisfying fish-jumping and processing animations
-
----
-
-## 📖 Documentation
-
-### Core Documentation
-- **[Architecture Overview](docs/ARCHITECTURE.md)** — Full system architecture, data flow, module dependencies *(Updated for Phase 5+6)*
-- **[Economic System](docs/ECONOMIC_SYSTEM.md)** — Phase 6 deep dive: finance, markets, contracts, optimization *(NEW)*
-- **[Environmental Data](docs/ENVIRONMENTAL_DATA.md)** — Phase 5 deep dive: Mareano/Geonorge integration, 13 zones, data sources *(NEW)*
-- **[API Reference](docs/API_Reference.md)** — SimBridge, GameBridge, EventBus APIs
-
-### Additional Documentation
-- **[VISION.md](VISION.md)** — Design philosophy and market analysis
-- **[GAMEPLAY_ROADMAP.md](GAMEPLAY_ROADMAP.md)** — Feature roadmap
-- **[CHANGELOG.md](CHANGELOG.md)** — Version history
-- **[CONTRIBUTING.md](CONTRIBUTING.md)** — How to contribute
-
----
-
-## 🗺️ Development Roadmap
-
-### ✅ Completed
-- **Phase 1:** Core simulation (biology, genetics, disease, market, processing)
-- **Phase 5:** Mareano/Geonorge environmental data integration (13 Norwegian production zones, daily resolution) *(NEW)*
-- **Phase 6:** Economic simulation and strategic optimization (O-U price model, contracts, optimizers) *(NEW)*
-- **Sprint 9:** Advanced biology, disease LOD, market dynamics
-- **Sprint 10:** Performance optimization, localization, stress testing
-- **Wave 9:** Market intelligence, VAP processing, commercial gameplay
-- **Wave 10:** Complete UI, 3D fjord renderer, tutorial system
-- **Wave 11:** Weather impacts, disease events, contracts, IPO/stock market
-- **Wave 12:** 5 scenarios, Windows export configuration
-
-### 🔜 Next Up
-- QA testing and playtesting
-- Steam store page preparation
-- Technology research tree
-- Active competitor AI
-- Campaign mode
-- Multiplayer co-op *(planned)*
-
-**Estimated Early Access Launch:** Q3 2026
-
----
-
-## 🐛 Known Issues
-
-- Some UI panels use placeholder data pending full SimBridge integration
-- Weather system visual effects are shader-based approximations
-- Stock market prices use simplified model (full integration pending)
-- Tutorial may skip steps if game is advanced manually during guided sections
-- Export templates need Godot .NET export templates installed separately
-
----
-
-## 🤝 Contributing
-
-We welcome contributions! See **[CONTRIBUTING.md](CONTRIBUTING.md)** for guidelines.
-
----
-
-## 📜 License
-
-**TBD** — License to be determined before public release.
-
----
-
-## 🙏 Acknowledgments
-
-- Norwegian Directorate of Fisheries (Fiskeridir) for aquaculture data
-- Barentswatch for fish health monitoring integration
-- Real-world salmon farmers for domain expertise validation
-- Godot community for engine support
-
----
-
-**Built with passion for simulation, respect for the ocean, and Norwegian precision.**
-
-*Lakskongen — From Egg to Export.* 🐟🌊🇳🇴
+**TBD** — to be determined before public release.

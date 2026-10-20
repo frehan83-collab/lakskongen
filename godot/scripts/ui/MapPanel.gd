@@ -1,32 +1,47 @@
 extends Control
 
-## Norwegian coastline region selector for new sea site placement.
-## 13 production zones (PO 1-13) from south to north covering the entire
-## Norwegian coast with licence, temperature, disease risk, and logistics data.
+## The region view (roadmap U2-01): the 13 production areas on the coast,
+## each marked with its traffic light as the sim knows it and a ring where the
+## company farms. Picking an area shows the company's capacity there and its
+## zones with the engine's build and licence verdicts (RegionExpansionSection);
+## "Bygg lokalitet" opens the BuildSiteDialog and "Søk vekstlisens" the
+## LicenceAuctionCard. Every refusal is rendered as text.
 
 signal close_requested
 signal region_selected(region_id: String)
 
+# Data-overlay legend embedded into the detail panel (see SiteOverlayLegend.gd).
+const SiteOverlayLegend = preload("res://scripts/ui/SiteOverlayLegend.gd")
+const NorwayCoastline = preload("res://scripts/ui/NorwayCoastline.gd")
+const AuctionCardScene := preload("res://scenes/ui/LicenceAuctionCard.tscn")
+const BuildDialogScene := preload("res://scenes/ui/BuildSiteDialog.tscn")
+
+## The sim's traffic light -> the marker dot's tone on the chart.
+const LIGHT_PALETTE_KEYS := {"green": &"ok", "yellow": &"warn", "red": &"crit"}
+
 # ── Colors ────────────────────────────────────────────────────────────────────
-const BG_DEEP        := Color("#ECEFF4")
+const BG_DEEP        := Color("#F4F1EA")
 const BG_PANEL       := Color("#FFFFFF")
-const BG_DETAIL      := Color("#F8F9FB")
-const BG_MAP         := Color("#ECEFF4")
-const BORDER_COLOR   := Color("#D8DEE9")
-const TEXT_TITLE     := Color("#2E3440")
-const TEXT_BODY      := Color("#4C566A")
-const TEXT_MUTED     := Color("#7B8794")
-const TEXT_ACCENT    := Color("#0A4D68")
-const LAND_COLOR     := Color("#D8DEE9")
+const BG_DETAIL      := Color("#EDE9E0")
+const BG_MAP         := Color("#F4F1EA")
+const BORDER_COLOR   := Color("#D6CFBF")
+const TEXT_TITLE     := Color("#1C1E20")
+const TEXT_BODY      := Color("#5A6168")
+const TEXT_MUTED     := Color("#5A6168")
+const TEXT_ACCENT    := Color("#1F5E73")
+const LAND_COLOR     := Color("#D6CFBF")
 const LAND_HOVER     := Color("#C8D3E5")
 const LAND_SELECTED  := Color("#B0BED4")
-const SEA_COLOR      := Color("#88C0D0")
-const RISK_LOW       := Color("#A3BE8C")
-const RISK_MEDIUM    := Color("#EBCB8B")
-const RISK_HIGH      := Color("#BF616A")
-const FJORD_COLOR    := Color("#5E81AC")
+const SEA_COLOR      := Color("#1F5E73")
+const RISK_LOW       := Color("#2E6B45")
+const RISK_MEDIUM    := Color("#8A5A00")
+const RISK_HIGH      := Color("#B3172F")
+const FJORD_COLOR    := Color("#1F5E73")
 
 # ── Region data ───────────────────────────────────────────────────────────────
+# Texts (description, disease details) live in translations.csv as
+# REGION_<ID>_DESC / REGION_<ID>_DISEASE. Operators are the game's parody
+# rivals (roadmap D17: no real company names).
 # Positions are normalised [0..1] in a vertical layout (0 = top = north, 1 = south).
 # x is the approximate coastline position left/right.
 const REGIONS := [
@@ -36,19 +51,17 @@ const REGIONS := [
 		"norwegian_name": "PO 1: Svenskegrensen til Jæren",
 		"production_zone": "PO01",
 		"pos": Vector2(0.22, 0.96),
+		"lonlat": Vector2(8.00, 58.15),
 		"available_licenses": 28,
-		"temp_range": "7.5 – 13.5 °C",
 		"temp_min": 7.5,
 		"temp_max": 13.5,
 		"disease_risk": "Low",
-		"disease_details": "Low disease pressure. Warmer summer temperatures may occasionally stress fish.",
 		"distance_to_processing": "180 km (Kristiansand)",
 		"processing_hub": "Kristiansand, Stavanger",
 		"annual_harvest_kt": 15,
-		"key_operators": ["Skagerak Salmon", "Mowi"],
-		"description": "Norway's southernmost production zone, stretching from the Swedish border to Jæren. Summer peaks can approach 20°C in shallow areas, making thermal stress a consideration. Relatively few sheltered deep-water fjord locations compared to the west coast, making it a smaller but strategic production area.",
+		"key_operators": ["Herøy Seafood AS", "Mowier ASA"],
 		"icon": "🌊",
-		"color": Color("#5E81AC"),
+		"color": Color("#1F5E73"),
 	},
 	{
 		"id": "po02",
@@ -56,19 +69,17 @@ const REGIONS := [
 		"norwegian_name": "PO 2: Ryfylke",
 		"production_zone": "PO02",
 		"pos": Vector2(0.24, 0.88),
+		"lonlat": Vector2(5.70, 59.00),
 		"available_licenses": 32,
-		"temp_range": "7.0 – 13.0 °C",
 		"temp_min": 7.0,
 		"temp_max": 13.0,
 		"disease_risk": "Medium",
-		"disease_details": "Moderate disease risk. Stable conditions in the deep Ryfylke fjords.",
 		"distance_to_processing": "60 km (Stavanger)",
 		"processing_hub": "Stavanger, Hjelmeland",
 		"annual_harvest_kt": 50,
-		"key_operators": ["Grieg Seafood", "Bremnes Seashore", "Mowi"],
-		"description": "Rogaland's main salmon farming region, characterized by deep, sheltered fjords like the Boknafjord system. Strong logistics infrastructure tied to the Stavanger region. Summer temperatures are generally favorable, with excellent deep-water exchange providing good oxygenation.",
+		"key_operators": ["Greed Gregarious ASA", "Mowier ASA"],
 		"icon": "⚓",
-		"color": Color("#5E81AC"),
+		"color": Color("#1F5E73"),
 	},
 	{
 		"id": "po03",
@@ -76,19 +87,17 @@ const REGIONS := [
 		"norwegian_name": "PO 3: Karmøy til Sotra",
 		"production_zone": "PO03",
 		"pos": Vector2(0.26, 0.81),
+		"lonlat": Vector2(5.27, 59.41),
 		"available_licenses": 24,
-		"temp_range": "7.0 – 12.5 °C",
 		"temp_min": 7.0,
 		"temp_max": 12.5,
 		"disease_risk": "Medium-High",
-		"disease_details": "Elevated disease and sea lice risk, requiring strict biosecurity and active treatment.",
 		"distance_to_processing": "80 km (Bergen/Bømlo)",
 		"processing_hub": "Bømlo, Bergen",
 		"annual_harvest_kt": 80,
-		"key_operators": ["Lerøy", "Mowi", "Bremnes Seashore"],
-		"description": "Spanning the outer coastal archipelago and inner fjords between Rogaland and Vestland. High density of farming activity historically led to elevated biological pressures, making this a complex but highly productive zone. Key hub for maritime technology and aquaculture innovation.",
+		"key_operators": ["Herøy Seafood AS", "Mowier ASA"],
 		"icon": "🐟",
-		"color": Color("#5E81AC"),
+		"color": Color("#1F5E73"),
 	},
 	{
 		"id": "po04",
@@ -96,17 +105,15 @@ const REGIONS := [
 		"norwegian_name": "PO 4: Nordhordland til Stadt",
 		"production_zone": "PO04",
 		"pos": Vector2(0.28, 0.73),
+		"lonlat": Vector2(5.32, 60.39),
 		"available_licenses": 18,
-		"temp_range": "6.5 – 12.0 °C",
 		"temp_min": 6.5,
 		"temp_max": 12.0,
 		"disease_risk": "High",
-		"disease_details": "High disease and lice pressure. Strict area management needed to navigate challenges.",
 		"distance_to_processing": "120 km (Florø)",
 		"processing_hub": "Florø, Måløy",
 		"annual_harvest_kt": 110,
-		"key_operators": ["Mowi", "SalMar", "Cermaq"],
-		"description": "Covering the rugged coastline north of Bergen up to the exposed Stadt peninsula. This region sees significant biological pressure, but benefits from strong tidal currents and deep fjord basins like the Sognefjord. Production requires careful risk management and robust equipment.",
+		"key_operators": ["Mowier ASA", "SalMax Group ASA"],
 		"icon": "🏭",
 		"color": Color("#7B9BC0"),
 	},
@@ -116,17 +123,15 @@ const REGIONS := [
 		"norwegian_name": "PO 5: Stadt til Hustadvika",
 		"production_zone": "PO05",
 		"pos": Vector2(0.31, 0.65),
+		"lonlat": Vector2(6.15, 62.47),
 		"available_licenses": 22,
-		"temp_range": "6.5 – 11.5 °C",
 		"temp_min": 6.5,
 		"temp_max": 11.5,
 		"disease_risk": "Medium-High",
-		"disease_details": "Moderate to high disease risk. Exposed areas face tough weather conditions.",
 		"distance_to_processing": "90 km (Ålesund)",
 		"processing_hub": "Ålesund, Molde",
 		"annual_harvest_kt": 95,
-		"key_operators": ["Hofseth", "SalMar", "Mowi"],
-		"description": "Møre og Romsdal's primary zone, offering deep fjords like the Storfjord and exposed island sites. The region is a major export hub through Ålesund. Sites here must contend with winter storms but benefit from excellent water exchange from the Norwegian Sea.",
+		"key_operators": ["SalMax Group ASA", "Mowier ASA"],
 		"icon": "🚢",
 		"color": Color("#7B9BC0"),
 	},
@@ -136,17 +141,15 @@ const REGIONS := [
 		"norwegian_name": "PO 6: Nordmøre og Sør-Trøndelag",
 		"production_zone": "PO06",
 		"pos": Vector2(0.34, 0.58),
+		"lonlat": Vector2(7.73, 63.11),
 		"available_licenses": 20,
-		"temp_range": "6.0 – 11.0 °C",
 		"temp_min": 6.0,
 		"temp_max": 11.0,
 		"disease_risk": "Low",
-		"disease_details": "Low disease pressure with excellent biological performance in recent years.",
 		"distance_to_processing": "150 km (Hitra/Frøya)",
 		"processing_hub": "Kristiansund, Hitra",
 		"annual_harvest_kt": 120,
-		"key_operators": ["Lerøy Midt", "SalMar", "Måsøval"],
-		"description": "A highly productive region bridging Møre og Romsdal and Trøndelag. The islands of Hitra and Frøya to the north provide world-class farming conditions. The zone currently enjoys a green traffic light status, indicating sustainable lice levels and good capacity for growth.",
+		"key_operators": ["SalMax Group ASA", "Herøy Seafood AS"],
 		"icon": "🐟",
 		"color": Color("#7B9BC0"),
 	},
@@ -156,17 +159,15 @@ const REGIONS := [
 		"norwegian_name": "PO 7: Nord-Trøndelag med Bindal",
 		"production_zone": "PO07",
 		"pos": Vector2(0.38, 0.50),
+		"lonlat": Vector2(11.24, 64.86),
 		"available_licenses": 16,
-		"temp_range": "5.5 – 10.5 °C",
 		"temp_min": 5.5,
 		"temp_max": 10.5,
 		"disease_risk": "Low",
-		"disease_details": "Low biological risk. Excellent water quality and low lice levels.",
 		"distance_to_processing": "120 km (Rørvik)",
 		"processing_hub": "Rørvik, Nærøysund",
 		"annual_harvest_kt": 100,
-		"key_operators": ["SinkabergHansen", "SalMar", "Mowi"],
-		"description": "Covering the northern part of Trøndelag up to the southern border of Nordland. Characterized by excellent biological conditions and strong local ownership in the aquaculture sector. Rørvik/Nærøysund is one of Norway's most vital maritime and aquaculture clusters.",
+		"key_operators": ["SalMax Group ASA", "Mowier ASA"],
 		"icon": "⚓",
 		"color": Color("#7B9BC0"),
 	},
@@ -176,19 +177,17 @@ const REGIONS := [
 		"norwegian_name": "PO 8: Helgeland til Bodø",
 		"production_zone": "PO08",
 		"pos": Vector2(0.42, 0.42),
+		"lonlat": Vector2(14.41, 67.28),
 		"available_licenses": 19,
-		"temp_range": "5.0 – 10.0 °C",
 		"temp_min": 5.0,
 		"temp_max": 10.0,
 		"disease_risk": "Medium",
-		"disease_details": "Moderate disease risk. PD is occasionally present, requiring careful surveillance.",
 		"distance_to_processing": "180 km (Bodø/Sandnessjøen)",
 		"processing_hub": "Bodø, Sandnessjøen",
 		"annual_harvest_kt": 130,
-		"key_operators": ["Nova Sea", "Cermaq", "Kvarøy"],
-		"description": "The stunning Helgeland coast features thousands of islands providing sheltered farming locations with strong ocean currents. A major engine for Northern Norway's aquaculture economy, with strong community integration and innovative local producers.",
+		"key_operators": ["NordLaks Nord AS", "Offshore Optimists AS"],
 		"icon": "⛰️",
-		"color": Color("#88C0D0"),
+		"color": Color("#1F5E73"),
 	},
 	{
 		"id": "po09",
@@ -196,19 +195,17 @@ const REGIONS := [
 		"norwegian_name": "PO 9: Vestfjorden og Vesterålen",
 		"production_zone": "PO09",
 		"pos": Vector2(0.46, 0.35),
+		"lonlat": Vector2(14.57, 68.23),
 		"available_licenses": 21,
-		"temp_range": "4.5 – 9.5 °C",
 		"temp_min": 4.5,
 		"temp_max": 9.5,
 		"disease_risk": "Low",
-		"disease_details": "Low disease pressure. Cold water reduces lice growth significantly.",
 		"distance_to_processing": "160 km (Sortland/Bodø)",
 		"processing_hub": "Sortland, Svolvær",
 		"annual_harvest_kt": 110,
-		"key_operators": ["Nordlaks", "Cermaq", "Eidsfjord Sjøfarm"],
-		"description": "Encompassing the massive Vestfjorden basin and the Vesterålen archipelago. Known for pioneering offshore and semi-closed containment systems to utilize exposed areas. The cold, oxygen-rich waters produce excellent fish welfare and quality, though winter darkness slows growth.",
+		"key_operators": ["NordLaks Nord AS", "Offshore Optimists AS"],
 		"icon": "❄️",
-		"color": Color("#88C0D0"),
+		"color": Color("#1F5E73"),
 	},
 	{
 		"id": "po10",
@@ -216,19 +213,17 @@ const REGIONS := [
 		"norwegian_name": "PO 10: Andøya til Senja",
 		"production_zone": "PO10",
 		"pos": Vector2(0.50, 0.27),
+		"lonlat": Vector2(16.12, 69.31),
 		"available_licenses": 14,
-		"temp_range": "4.0 – 9.0 °C",
 		"temp_min": 4.0,
 		"temp_max": 9.0,
 		"disease_risk": "Low",
-		"disease_details": "Very low biological pressure. Strong tidal currents keep sites clean.",
 		"distance_to_processing": "140 km (Finnsnes)",
 		"processing_hub": "Finnsnes, Senja",
 		"annual_harvest_kt": 90,
-		"key_operators": ["SalMar", "Wilsgård", "Lerøy"],
-		"description": "Bridging northern Nordland and southern Troms. The region is dominated by the large islands of Andøya and Senja. The harsh, exposed environment requires heavy-duty equipment but rewards operators with minimal lice issues and premium quality output.",
+		"key_operators": ["SalMax Group ASA", "Herøy Seafood AS"],
 		"icon": "🌊",
-		"color": Color("#A3D1DE"),
+		"color": Color("#8CC7DA"),
 	},
 	{
 		"id": "po11",
@@ -236,19 +231,17 @@ const REGIONS := [
 		"norwegian_name": "PO 11: Kvaløya til Loppa",
 		"production_zone": "PO11",
 		"pos": Vector2(0.54, 0.19),
+		"lonlat": Vector2(18.96, 69.65),
 		"available_licenses": 12,
-		"temp_range": "3.5 – 8.5 °C",
 		"temp_min": 3.5,
 		"temp_max": 8.5,
 		"disease_risk": "Low",
-		"disease_details": "Excellent biosecurity. Low risk of systemic diseases like PD or ISA.",
 		"distance_to_processing": "100 km (Tromsø)",
 		"processing_hub": "Tromsø, Skjervøy",
 		"annual_harvest_kt": 75,
-		"key_operators": ["Lerøy Aurora", "Cermaq", "Arnøy Laks"],
-		"description": "Centered around the Tromsø region, offering pristine arctic fjord conditions. The cold water requires specialized feed and light regimes to optimize growth and prevent winter maturation. Excellent biological performance makes it a highly profitable zone for established players.",
+		"key_operators": ["Herøy Seafood AS", "Greed Gregarious ASA"],
 		"icon": "🚢",
-		"color": Color("#A3D1DE"),
+		"color": Color("#8CC7DA"),
 	},
 	{
 		"id": "po12",
@@ -256,19 +249,17 @@ const REGIONS := [
 		"norwegian_name": "PO 12: Vest-Finnmark",
 		"production_zone": "PO12",
 		"pos": Vector2(0.58, 0.12),
+		"lonlat": Vector2(23.68, 70.66),
 		"available_licenses": 10,
-		"temp_range": "3.0 – 8.0 °C",
 		"temp_min": 3.0,
 		"temp_max": 8.0,
 		"disease_risk": "Low",
-		"disease_details": "Minimal disease risk. Strict transport regulations protect the zone's status.",
 		"distance_to_processing": "150 km (Alta)",
 		"processing_hub": "Alta, Hammerfest",
 		"annual_harvest_kt": 60,
-		"key_operators": ["Grieg Seafood", "Cermaq", "SalMar"],
-		"description": "Norway's western Arctic frontier. The Altafjord is a historically important area for salmon farming development in the north. The extreme photoperiod (midnight sun and polar night) profoundly affects fish biology. Exceptional water quality and low lice counts.",
+		"key_operators": ["Greed Gregarious ASA", "SalMax Group ASA"],
 		"icon": "❄️",
-		"color": Color("#A3D1DE"),
+		"color": Color("#8CC7DA"),
 	},
 	{
 		"id": "po13",
@@ -276,19 +267,17 @@ const REGIONS := [
 		"norwegian_name": "PO 13: Øst-Finnmark",
 		"production_zone": "PO13",
 		"pos": Vector2(0.64, 0.04),
+		"lonlat": Vector2(31.11, 70.37),
 		"available_licenses": 8,
-		"temp_range": "2.5 – 7.5 °C",
 		"temp_min": 2.5,
 		"temp_max": 7.5,
 		"disease_risk": "Low",
-		"disease_details": "Extremely low lice and disease risk. Risk of winter sores due to very cold temperatures.",
 		"distance_to_processing": "250 km (Alta / Kirkenes)",
 		"processing_hub": "Kirkenes, Vadsø",
 		"annual_harvest_kt": 40,
-		"key_operators": ["SalMar", "Grieg Seafood"],
-		"description": "The northeasternmost point of Norway's salmon production, bordering the Barents Sea. Extremely low water temperatures can slow growth and cause winter sores, requiring careful handling and specific diet formulations. However, the region represents the ultimate pristine environment for arctic salmon.",
+		"key_operators": ["SalMax Group ASA", "Greed Gregarious ASA"],
 		"icon": "🧊",
-		"color": Color("#A3D1DE"),
+		"color": Color("#8CC7DA"),
 	}
 ]
 
@@ -296,38 +285,415 @@ const REGIONS := [
 var _selected_region_id: String = ""
 var _hovered_region_id: String = ""
 var _region_nodes: Dictionary = {}  # id -> Control (map dot)
-var _confirm_btn: Button
+var _overlay = null  # SiteOverlayLegend instance (additive; optional)
 
-# ── Node refs ─────────────────────────────────────────────────────────────────
-var _detail_panel: Control
-var _detail_name: Label
-var _detail_zone: Label
-var _detail_icon: Label
-var _detail_desc: Label
-var _detail_licenses: Label
-var _detail_temp: Label
-var _detail_risk_label: Label
-var _detail_risk_indicator: ColorRect
-var _detail_distance: Label
-var _detail_processing: Label
-var _detail_harvest: Label
-var _detail_operators: Label
+# ── Node refs (declared in scenes/ui/MapPanel.tscn) ───────────────────────────
+@onready var _map_container: Control = %MapContainer
+@onready var _map_icon: Label = %MapIcon
+@onready var _title_label: Label = %TitleLabel
+@onready var _subtitle_label: Label = %SubtitleLabel
+@onready var _close_btn: Button = %CloseBtn
+@onready var _map_title: Label = %MapTitle
+@onready var _compass_label: Label = %CompassLabel
+@onready var _detail_icon: Label = %DetailIcon
+@onready var _detail_name: Label = %DetailName
+@onready var _detail_zone: Label = %DetailZone
+@onready var _detail_desc: Label = %DetailDesc
+@onready var _detail_licenses: Label = %DetailLicenses
+@onready var _detail_temp: Label = %DetailTemp
+@onready var _detail_risk_label: Label = %DetailRiskLabel
+@onready var _detail_risk_indicator: ColorRect = %DetailRiskIndicator
+@onready var _detail_distance: Label = %DetailDistance
+@onready var _detail_processing: Label = %DetailProcessing
+@onready var _detail_harvest: Label = %DetailHarvest
+@onready var _detail_operators: Label = %DetailOperators
+@onready var _disease_details: Label = %DiseaseDetails
+@onready var _temp_bar_slot: Control = %TempBarSlot
 var _temp_bar: Control
-var _map_container: Control
+## The chart under the markers; its city names keep clear of the markers.
+var _coastline: _CoastlineDrawer = null
+
+# ── Expansion (U2-01) ─────────────────────────────────────────────────────────
+var _sim: Node = null
+## The engine's expansion map (SimBridge.get_expansion_overview).
+var _overview: Dictionary = {}
+var _area_picker: OptionButton = null
+var _expansion: RegionExpansionSection = null
+var _auction_card: LicenceAuctionCard = null
+var _build_dialog: BuildSiteDialog = null
+var _map_legend: HBoxContainer = null
 
 # ─────────────────────────────────────────────────────────────────────────────
 func _ready() -> void:
-	_build_ui()
+	_sim = get_node_or_null("/root/SimBridge")
+	_apply_localization()
+	_close_btn.pressed.connect(_on_close_pressed)
+	# Decorative coastline backdrop (custom drawing, added behind labels).
+	_coastline = _CoastlineDrawer.new()
+	_coastline.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_map_container.add_child(_coastline)
+	_map_container.move_child(_coastline, 0)
+	# Temperature bar visualisation (custom drawing, added to its slot).
+	_temp_bar = _TempBar.new()
+	_temp_bar.custom_minimum_size = Vector2(0, 28)
+	_temp_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_temp_bar_slot.add_child(_temp_bar)
+	# U2-01: the area picker (a keyboard path to every area) and the expansion
+	# section sit right under the area's name; the dialogs cover the panel.
+	_add_expansion_section()
+	# Live data-overlay legend (lice/oxygen/biomass/gill/containment).
+	_add_overlay_legend()
+	_add_map_legend()
+	_add_dialogs()
+	# Region markers are built deferred so the map container has layout size.
+	call_deferred("_build_region_markers")
 	hide()
+	if _sim != null:
+		_sim.state_updated.connect(_on_sim_changed)
+		_sim.day_advanced.connect(func(_d: int, _s: String) -> void: _on_sim_changed())
+	# Leaving the tab closes a dialog; coming back shows the map, not a stale card.
+	visibility_changed.connect(func() -> void:
+		if not visible:
+			if _auction_card != null:
+				_auction_card.close()
+			if _build_dialog != null:
+				_build_dialog.close())
+
+	var audio := get_node_or_null("/root/AudioController")
+	if audio and audio.has_method("attach_ui_sounds"):
+		audio.attach_ui_sounds(self)
+
+## Embed the SiteOverlayLegend under the expansion section and wire it so
+## region markers re-tint whenever the overlay metric or live site data changes.
+func _add_overlay_legend() -> void:
+	_overlay = SiteOverlayLegend.new()
+	_overlay.name = "SiteOverlayLegend"
+	var host := find_child("DetailInner", true, false)
+	if host == null:
+		_overlay = null
+		return
+	host.add_child(_overlay)
+	host.move_child(_overlay, _expansion.get_index() + 1 if _expansion != null else 0)
+	if _overlay.has_signal("sites_updated"):
+		_overlay.sites_updated.connect(_apply_overlay_to_markers)
+	if _overlay.has_signal("metric_changed"):
+		_overlay.metric_changed.connect(_on_overlay_metric_changed)
+
+func _on_overlay_metric_changed(_metric_id: String) -> void:
+	_apply_overlay_to_markers()
+
+## Tint each region marker by the average overlay intensity of the sea sites
+## sharing its production zone. Regions with no live sites keep their static
+## disease-risk dot (overlay_active = false), so existing behavior is preserved.
+func _apply_overlay_to_markers() -> void:
+	if _overlay == null or not is_instance_valid(_overlay):
+		return
+	for rid in _region_nodes:
+		var m = _region_nodes[rid]
+		if m == null or not is_instance_valid(m):
+			continue
+		var region := _get_region(rid)
+		var zone := str(region.get("production_zone", ""))
+		var t := float(_overlay.get_zone_intensity(zone))
+		if t < 0.0:
+			m.overlay_active = false
+		else:
+			m.overlay_active = true
+			m.overlay_color = _overlay.intensity_to_color(t)
+		m.queue_redraw()
+
+func _apply_localization() -> void:
+	_map_icon.text = "🗺️"
+	_title_label.text = tr("UI_MAP_TITLE")
+	_subtitle_label.text = tr("UI_MAP_SUBTITLE")
+	_map_title.text = tr("UI_MAP_NORWAY")
+	_compass_label.text = tr("UI_MAP_COMPASS_N")
+	for pair in [["KeyLicences", "UI_MAP_KEY_LICENCES"], ["KeyDistance", "UI_MAP_KEY_DISTANCE"],
+			["KeyHub", "UI_MAP_KEY_HUB"], ["KeyHarvest", "UI_MAP_KEY_HARVEST"],
+			["KeyOperators", "UI_MAP_KEY_OPERATORS"], ["TempHeader", "UI_MAP_KEY_TEMPERATURE"],
+			["OptimalLabel", "UI_MAP_TEMP_OPTIMAL"], ["RiskHeader", "UI_MAP_KEY_DISEASE"]]:
+		var lbl := find_child(pair[0], true, false) as Label
+		if lbl:
+			lbl.text = tr(pair[1])
+	# U2-01: the invented "available licences" count gives way to the
+	# company's real licences in the expansion section.
+	for node_name in ["KeyLicences", "DetailLicenses"]:
+		var cell := find_child(node_name, true, false) as Control
+		if cell:
+			cell.visible = false
+
+
+# ── Expansion (U2-01) ─────────────────────────────────────────────────────────
+
+func _add_expansion_section() -> void:
+	var host := find_child("DetailInner", true, false) as VBoxContainer
+	var name_row := find_child("NameRow", true, false) as Control
+	if host == null:
+		return
+	_area_picker = OptionButton.new()
+	_area_picker.name = "AreaPicker"
+	_area_picker.tooltip_text = tr("EXPANSION_AREA_PICKER_TIP")
+	_area_picker.custom_minimum_size = Vector2(0, 40)
+	_area_picker.add_item(tr("EXPANSION_AREA_PICKER_PROMPT"), 0)
+	for i in REGIONS.size():
+		_area_picker.add_item(tr("UI_MAP_ZONE") % [i + 1, REGIONS[i]["name"]], i + 1)
+	_area_picker.item_selected.connect(_on_area_picked)
+	host.add_child(_area_picker)
+	host.move_child(_area_picker, name_row.get_index() + 1 if name_row else 0)
+	_expansion = RegionExpansionSection.new()
+	_expansion.name = "ExpansionSection"
+	_expansion.build_requested.connect(open_build)
+	_expansion.licence_requested.connect(open_auction)
+	host.add_child(_expansion)
+	host.move_child(_expansion, _area_picker.get_index() + 1)
+
+
+func _add_dialogs() -> void:
+	_auction_card = AuctionCardScene.instantiate() as LicenceAuctionCard
+	_auction_card.name = "LicenceAuctionCard"
+	add_child(_auction_card)
+	_auction_card.build_requested.connect(open_build)
+	_auction_card.closed.connect(_refresh_expansion)
+	_build_dialog = BuildDialogScene.instantiate() as BuildSiteDialog
+	_build_dialog.name = "BuildSiteDialog"
+	add_child(_build_dialog)
+	_build_dialog.set_tab_probe(_tab_open)
+	_build_dialog.built.connect(func(_site: String, _zone: String) -> void: _refresh_expansion())
+	_build_dialog.closed.connect(_refresh_expansion)
+	_build_dialog.view_site_requested.connect(_view_site)
+	_build_dialog.tab_requested.connect(_show_tab)
+
+
+## The chart's key: what the dots and the ring mean.
+func _add_map_legend() -> void:
+	_map_legend = HBoxContainer.new()
+	_map_legend.name = "MapLegend"
+	_map_legend.add_theme_constant_override("separation", LakskongenTheme.SPACE_SM)
+	_map_legend.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
+	_map_legend.position = Vector2(12, -40)
+	_map_legend.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	_map_legend.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var card := PanelContainer.new()
+	card.theme_type_variation = &"CardCompact"
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", LakskongenTheme.SPACE_SM + 2)
+	for entry in [["Ok", "EXPANSION_LIGHT_GREEN"], ["Warn", "EXPANSION_LIGHT_YELLOW"], ["Crit", "EXPANSION_LIGHT_RED"]]:
+		var swatch := PanelContainer.new()
+		swatch.theme_type_variation = StringName("Swatch" + str(entry[0]))
+		swatch.custom_minimum_size = Vector2(12, 12)
+		swatch.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		row.add_child(swatch)
+		var l := Label.new()
+		l.text = tr(str(entry[1]))
+		l.theme_type_variation = &"Small"
+		row.add_child(l)
+	var ring := Label.new()
+	ring.text = tr("EXPANSION_LEGEND_YOUR_SITES")
+	ring.theme_type_variation = &"SmallAccent"
+	row.add_child(ring)
+	card.add_child(row)
+	_map_legend.add_child(card)
+	_map_container.add_child(_map_legend)
+
+
+## The tab a family card links to may be opened (the tutorial's gate).
+func _tab_open(tab_id: String) -> bool:
+	var ui := _game_ui()
+	if ui == null or not ui.has_method("_is_tab_unlocked"):
+		return true
+	return bool(ui.call("_is_tab_unlocked", tab_id))
+
+
+func _game_ui() -> Node:
+	var node: Node = self
+	while node != null:
+		if node.has_method("show_tab") and node.has_method("get_active_tab"):
+			return node
+		node = node.get_parent()
+	return null
+
+
+func _show_tab(tab_id: String) -> void:
+	var ui := _game_ui()
+	if ui != null:
+		ui.show_tab(tab_id)
+
+
+## After a build: the fjord tab, with the camera on the new site.
+func _view_site(site_id: String) -> void:
+	var ui := _game_ui()
+	if ui == null:
+		return
+	ui.show_tab("fjord")
+	var scene: Node = ui.owner
+	var vista: Node = scene.get_node_or_null("%FjordVistaBridge") if scene != null else null
+	if vista != null and vista.has_method("select_pen_from_ui"):
+		vista.select_pen_from_ui(site_id)
+		vista.focus_selected_pen()
+
+
+## GameUI calls this whenever the tab is shown: re-read the engine's map and
+## pick the company's home area when nothing is picked yet.
+func on_panel_shown() -> void:
+	# Rebuild only what changed: a reopened map keeps its cards (and focus).
+	_refresh_expansion(false)
+	if _selected_region_id == "":
+		var home := _home_area()
+		if home > 0:
+			select_area(home)
+
+
+func _on_sim_changed() -> void:
+	if is_visible_in_tree():
+		_refresh_expansion(false)
+
+
+func _refresh_expansion(force: bool = true) -> void:
+	if _sim == null:
+		return
+	var fresh: Dictionary = _sim.get_expansion_overview()
+	var changed: bool = force or fresh.get("areas", []) != _overview.get("areas", [])
+	_overview = fresh
+	if not changed:
+		return
+	_apply_expansion_to_markers()
+	if _selected_region_id != "":
+		var a := _area_view(_region_area(_selected_region_id))
+		if not a.is_empty() and _expansion != null:
+			_expansion.show_area(a, _overview)
+			_show_area_climate(a)
+
+
+## The overview's row of a production area (1-13), or {}.
+func _area_view(area: int) -> Dictionary:
+	for a in _overview.get("areas", []):
+		if int(a.get("production_area", 0)) == area:
+			return a
+	return {}
+
+
+## The area where the company has the most sites (0 when it has none).
+func _home_area() -> int:
+	var best := 0
+	var best_sites := 0
+	for a in _overview.get("areas", []):
+		var sites := 0
+		for z in a.get("zones", []):
+			sites += int(z.get("player_sites", 0))
+		if sites > best_sites:
+			best_sites = sites
+			best = int(a.get("production_area", 0))
+	return best
+
+
+func _region_area(region_id: String) -> int:
+	return int(str(_get_region(region_id).get("production_zone", "PO0")).trim_prefix("PO"))
+
+
+func _region_of_area(area: int) -> String:
+	return REGIONS[area - 1]["id"] if area >= 1 and area <= REGIONS.size() else ""
+
+
+## Pick a production area (1-13) as a click on its marker does.
+func select_area(area: int) -> void:
+	var rid := _region_of_area(area)
+	if rid == "":
+		return
+	_selected_region_id = rid
+	_show_region(rid)
+	_refresh_markers()
+
+
+func _on_area_picked(index: int) -> void:
+	var area := _area_picker.get_item_id(index)
+	if area > 0:
+		select_area(area)
+
+
+## Open the licence auction card for a zone (map, inbox, an "overbudt" event).
+func open_auction(zone_id: String) -> void:
+	if _auction_card == null:
+		return
+	_select_area_of_zone(zone_id)
+	_build_dialog.close()
+	_auction_card.open_for_zone(zone_id)
+
+
+## Open the build dialog for a zone.
+func open_build(zone_id: String) -> void:
+	if _build_dialog == null:
+		return
+	_select_area_of_zone(zone_id)
+	_auction_card.close()
+	_build_dialog.open_for_zone(zone_id)
+
+
+func auction_card() -> LicenceAuctionCard:
+	return _auction_card
+
+
+func build_dialog() -> BuildSiteDialog:
+	return _build_dialog
+
+
+func expansion_section() -> RegionExpansionSection:
+	return _expansion
+
+
+func _select_area_of_zone(zone_id: String) -> void:
+	if _overview.is_empty():
+		_refresh_expansion()
+	for a in _overview.get("areas", []):
+		for z in a.get("zones", []):
+			if str(z.get("zone_id", "")) == zone_id:
+				var area := int(a.get("production_area", 0))
+				if _region_area(_selected_region_id) != area:
+					select_area(area)
+				return
+
+
+func _apply_expansion_to_markers() -> void:
+	for rid in _region_nodes:
+		var m = _region_nodes[rid]
+		if m == null or not is_instance_valid(m):
+			continue
+		var a := _area_view(_region_area(rid))
+		var sites := 0
+		for z in a.get("zones", []):
+			sites += int(z.get("player_sites", 0))
+		var light := str(a.get("traffic_light", ""))
+		m.has_light = LIGHT_PALETTE_KEYS.has(light)
+		if m.has_light:
+			m.light_color = LakskongenTheme.palette(self, LIGHT_PALETTE_KEYS[light])
+		m.ring_color = LakskongenTheme.palette(self, &"accent")
+		m.player_sites = sites
+		m.tooltip_text = tr("EXPANSION_MARKER_TIP") % [tr("UI_MAP_ZONE") % [_region_area(rid), str(_get_region(rid).get("name", ""))],
+			tr("EXPANSION_LIGHT_" + light.to_upper()) if light != "" else "", sites]
+		m.queue_redraw()
+
+
+## The area's sea temperature range from the sim's climatology (monthly means at 3 m).
+func _show_area_climate(a: Dictionary) -> void:
+	var tmin := float(a.get("sea_temp_min_c", 0.0))
+	var tmax := float(a.get("sea_temp_max_c", 0.0))
+	_detail_temp.text = "%s – %s °C" % [SimFormatters.num(tmin, 1), SimFormatters.num(tmax, 1)]
+	if _temp_bar is _TempBar:
+		_temp_bar.set_range(tmin, tmax)
 
 func _input(event: InputEvent) -> void:
 	"""Handle keyboard navigation"""
-	if not visible:
+	if not visible or _dialog_open():
 		return
-	
+
 	if event.is_action_pressed("ui_cancel"):
 		hide()
 		get_viewport().set_input_as_handled()
+
+
+## True while the auction card or the build dialog is up (Esc closes it first).
+func _dialog_open() -> bool:
+	return (_auction_card != null and _auction_card.visible) or (_build_dialog != null and _build_dialog.visible)
 
 func show_panel() -> void:
 	show()
@@ -342,138 +708,7 @@ func hide_panel() -> void:
 	tw.tween_callback(hide)
 
 # ─────────────────────────────────────────────────────────────────────────────
-func _build_ui() -> void:
-	anchor_right = 1.0
-	anchor_bottom = 1.0
-
-	# Dim overlay
-	var overlay := ColorRect.new()
-	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	overlay.color = Color(0.18, 0.20, 0.25, 0.60)
-	add_child(overlay)
-
-	# Outer margin
-	var outer := MarginContainer.new()
-	outer.set_anchors_preset(Control.PRESET_FULL_RECT)
-	for side in ["left", "right", "top", "bottom"]:
-		outer.add_theme_constant_override("margin_" + side, 50)
-	add_child(outer)
-
-	var panel_bg := _make_panel(BG_PANEL, 14)
-	panel_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	outer.add_child(panel_bg)
-
-	var root_vbox := VBoxContainer.new()
-	root_vbox.set_anchors_preset(Control.PRESET_FULL_RECT)
-	panel_bg.add_child(root_vbox)
-
-	root_vbox.add_child(_build_header())
-	root_vbox.add_child(_make_hsep())
-
-	var body := HBoxContainer.new()
-	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	body.add_theme_constant_override("separation", 0)
-	root_vbox.add_child(body)
-
-	body.add_child(_build_map_area())
-	body.add_child(_make_vsep())
-	body.add_child(_build_detail_panel())
-
-# ── Header ────────────────────────────────────────────────────────────────────
-func _build_header() -> Control:
-	var hdr := HBoxContainer.new()
-	hdr.custom_minimum_size.y = 62
-
-	var hdr_bg := ColorRect.new()
-	hdr_bg.color = Color("#FFFFFF")
-	hdr_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	hdr.add_child(hdr_bg)
-
-	var m := MarginContainer.new()
-	m.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	for side in ["left", "right"]:
-		m.add_theme_constant_override("margin_" + side, 24)
-	for side in ["top", "bottom"]:
-		m.add_theme_constant_override("margin_" + side, 12)
-	hdr.add_child(m)
-
-	var inner := HBoxContainer.new()
-	inner.alignment = BoxContainer.ALIGNMENT_CENTER
-	m.add_child(inner)
-
-	var map_icon := Label.new()
-	map_icon.text = tr("🗺️  ")
-	map_icon.add_theme_font_size_override("font_size", 22)
-	inner.add_child(map_icon)
-
-	var title := Label.new()
-	title.text = tr("SELECT REGION — NORWEGIAN COASTLINE")
-	title.add_theme_font_size_override("font_size", 20)
-	title.add_theme_color_override("font_color", TEXT_TITLE)
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	inner.add_child(title)
-
-	var subtitle := Label.new()
-	subtitle.text = tr("UI_MAP_SUBTITLE")
-	subtitle.add_theme_font_size_override("font_size", 13)
-	subtitle.add_theme_color_override("font_color", TEXT_MUTED)
-	subtitle.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	inner.add_child(subtitle)
-
-	var close_btn := _make_btn("✕", 18, Color("#BF616A"))
-	close_btn.custom_minimum_size = Vector2(44, 44)
-	close_btn.tooltip_text = "Lukk kartpanelet (Esc)"
-	close_btn.pressed.connect(_on_close_pressed)
-	inner.add_child(close_btn)
-
-	return hdr
-
-# ── Map area ──────────────────────────────────────────────────────────────────
-func _build_map_area() -> Control:
-	var map_bg := _make_panel(BG_MAP, 0)
-	map_bg.custom_minimum_size.x = 480
-	map_bg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-
-	var map_margin := MarginContainer.new()
-	map_margin.set_anchors_preset(Control.PRESET_FULL_RECT)
-	for side in ["left", "right", "top", "bottom"]:
-		map_margin.add_theme_constant_override("margin_" + side, 24)
-	map_bg.add_child(map_margin)
-
-	# Container for map drawing
-	_map_container = Control.new()
-	_map_container.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_map_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_map_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	map_margin.add_child(_map_container)
-
-	# "Norway" title
-	var map_title := Label.new()
-	map_title.text = tr("UI_MAP_NORWAY")
-	map_title.add_theme_font_size_override("font_size", 11)
-	map_title.add_theme_color_override("font_color", TEXT_MUTED)
-	map_title.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	map_title.position = Vector2(4, 0)
-	_map_container.add_child(map_title)
-
-	# Compass rose
-	var compass := Label.new()
-	compass.text = tr("UI_MAP_COMPASS_N")
-	compass.add_theme_font_size_override("font_size", 13)
-	compass.add_theme_color_override("font_color", TEXT_ACCENT)
-	compass.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	compass.position = Vector2(-40, 0)
-	_map_container.add_child(compass)
-
-	# Draw the coastline (simplified SVG-like polyline via a custom node)
-	var coastline := _CoastlineDrawer.new()
-	coastline.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_map_container.add_child(coastline)
-
-	# Region markers - built deferred so we can use layout size
-	call_deferred("_build_region_markers")
-
-	return map_bg
+# (Shell layout now lives in scenes/ui/MapPanel.tscn — see _apply_localization.)
 
 # ─────────────────────────────────────────────────────────────────────────────
 func _build_region_markers() -> void:
@@ -486,214 +721,57 @@ func _build_region_markers() -> void:
 	for region in REGIONS:
 		var marker := _RegionMarker.new()
 		marker.region_data = region
-		# Convert normalised pos to pixel coords with some horizontal centering
-		var px := region["pos"].x * map_size.x
-		var py := region["pos"].y * (map_size.y - 80) + 30
-		marker.position = Vector2(px - 60, py - 22)
+		# Real coastal anchor: project lon/lat into map space so the marker
+		# dot sits on the actual coastline (legacy "pos" kept as fallback).
+		var anchor := Vector2(region["pos"].x, region["pos"].y)
+		if region.has("lonlat"):
+			var ll: Vector2 = region["lonlat"]
+			anchor = NorwayCoastline.project(ll.x, ll.y)
+		var px: float = anchor.x * map_size.x
+		var py: float = anchor.y * (map_size.y - 80) + 30
+		# Dot lives at marker-local (9, 22): land the dot on the anchor so
+		# the label extends east over land.
+		marker.position = Vector2(px - 9, py - 22)
 		marker.custom_minimum_size = Vector2(120, 44)
 		marker.mouse_entered.connect(_on_region_hover.bind(region["id"]))
 		marker.mouse_exited.connect(_on_region_unhover.bind(region["id"]))
 		marker.gui_input.connect(_on_region_input.bind(region["id"]))
 		_map_container.add_child(marker)
 		_region_nodes[region["id"]] = marker
+	# Apply the current overlay (if any) and the sim's traffic lights once markers exist.
+	_apply_overlay_to_markers()
+	_apply_expansion_to_markers()
+	# U1-05: city names give way to the region markers (Bodø sat on top of
+	# "Helgeland til Bodø", Trondheim on "Nordmøre og Sør-Trøndelag").
+	if _coastline != null:
+		_coastline.avoid = region_label_rects()
+		_coastline.queue_redraw()
+
+
+## Where each region marker draws its dot and its name (map-container space).
+func region_label_rects() -> Array[Rect2]:
+	var out: Array[Rect2] = []
+	for id in _region_nodes:
+		var marker: Control = _region_nodes[id]
+		if not is_instance_valid(marker):
+			continue
+		out.append(Rect2(marker.position + Vector2(0.0, 11.0), Vector2(22.0, 22.0)))
+		var lbl := marker.get_node_or_null("NameLabel") as Label
+		if lbl != null:
+			var text_size := lbl.get_minimum_size()
+			out.append(Rect2(marker.position + lbl.position + Vector2(0.0, (lbl.size.y - text_size.y) * 0.5), text_size))
+	return out
+
+
+## The city labels the chart placed (map-container space; tests read them).
+func city_label_rects() -> Array[Rect2]:
+	var out: Array[Rect2] = []
+	if _coastline != null:
+		out.assign(_coastline.placed)
+	return out
 
 # ── Detail panel ──────────────────────────────────────────────────────────────
-func _build_detail_panel() -> Control:
-	_detail_panel = _make_panel(BG_DETAIL, 0)
-	_detail_panel.custom_minimum_size.x = 340
-
-	var scroll := ScrollContainer.new()
-	scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	_detail_panel.add_child(scroll)
-
-	var vbox := VBoxContainer.new()
-	vbox.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	vbox.add_theme_constant_override("separation", 0)
-	scroll.add_child(vbox)
-
-	var m := MarginContainer.new()
-	m.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	for side in ["left", "right"]:
-		m.add_theme_constant_override("margin_" + side, 24)
-	for side in ["top", "bottom"]:
-		m.add_theme_constant_override("margin_" + side, 20)
-	vbox.add_child(m)
-
-	var inner := VBoxContainer.new()
-	inner.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	inner.add_theme_constant_override("separation", 14)
-	m.add_child(inner)
-
-	# Icon + name
-	var name_row := HBoxContainer.new()
-	name_row.add_theme_constant_override("separation", 12)
-	inner.add_child(name_row)
-
-	_detail_icon = Label.new()
-	_detail_icon.text = tr("🗺️")
-	_detail_icon.add_theme_font_size_override("font_size", 36)
-	name_row.add_child(_detail_icon)
-
-	var name_col := VBoxContainer.new()
-	name_row.add_child(name_col)
-
-	_detail_name = Label.new()
-	_detail_name.text = tr("UI_MAP_SELECT_REGION")
-	_detail_name.add_theme_font_size_override("font_size", 20)
-	_detail_name.add_theme_color_override("font_color", TEXT_TITLE)
-	name_col.add_child(_detail_name)
-
-	_detail_zone = Label.new()
-	_detail_zone.text = tr("UI_MAP_CLICK_PROMPT")
-	_detail_zone.add_theme_font_size_override("font_size", 13)
-	_detail_zone.add_theme_color_override("font_color", TEXT_MUTED)
-	name_col.add_child(_detail_zone)
-
-	inner.add_child(_make_hsep())
-
-	# Description
-	_detail_desc = Label.new()
-	_detail_desc.text = tr("UI_MAP_REGION_DESC")
-	_detail_desc.add_theme_font_size_override("font_size", 14)
-	_detail_desc.add_theme_color_override("font_color", TEXT_BODY)
-	_detail_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_detail_desc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	inner.add_child(_detail_desc)
-
-	inner.add_child(_make_hsep())
-
-	# Stats grid
-	var stats := _build_stats_grid()
-	inner.add_child(stats)
-
-	inner.add_child(_make_hsep())
-
-	# Temperature bar
-	var temp_section := VBoxContainer.new()
-	temp_section.add_theme_constant_override("separation", 8)
-	inner.add_child(temp_section)
-
-	var temp_hdr := Label.new()
-	temp_hdr.text = tr("WATER TEMPERATURE RANGE")
-	temp_hdr.add_theme_font_size_override("font_size", 11)
-	temp_hdr.add_theme_color_override("font_color", TEXT_MUTED)
-	temp_section.add_child(temp_hdr)
-
-	_detail_temp = Label.new()
-	_detail_temp.text = tr("—")
-	_detail_temp.add_theme_font_size_override("font_size", 15)
-	_detail_temp.add_theme_color_override("font_color", TEXT_ACCENT)
-	temp_section.add_child(_detail_temp)
-
-	_temp_bar = _TempBar.new()
-	_temp_bar.custom_minimum_size = Vector2(0, 28)
-	_temp_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	temp_section.add_child(_temp_bar)
-
-	# Optimal range label
-	var optimal_lbl := Label.new()
-	optimal_lbl.text = tr("Optimal: 12–16 °C  |  Max tolerance: 20 °C")
-	optimal_lbl.add_theme_font_size_override("font_size", 11)
-	optimal_lbl.add_theme_color_override("font_color", TEXT_MUTED)
-	temp_section.add_child(optimal_lbl)
-
-	inner.add_child(_make_hsep())
-
-	# Disease risk
-	var risk_section := VBoxContainer.new()
-	risk_section.add_theme_constant_override("separation", 8)
-	inner.add_child(risk_section)
-
-	var risk_hdr := Label.new()
-	risk_hdr.text = tr("DISEASE RISK")
-	risk_hdr.add_theme_font_size_override("font_size", 11)
-	risk_hdr.add_theme_color_override("font_color", TEXT_MUTED)
-	risk_section.add_child(risk_hdr)
-
-	var risk_row := HBoxContainer.new()
-	risk_row.add_theme_constant_override("separation", 10)
-	risk_section.add_child(risk_row)
-
-	_detail_risk_indicator = ColorRect.new()
-	_detail_risk_indicator.custom_minimum_size = Vector2(18, 18)
-	_detail_risk_indicator.color = TEXT_MUTED
-	var risk_ind_style := StyleBoxFlat.new()
-	risk_ind_style.bg_color = TEXT_MUTED
-	risk_ind_style.corner_radius_top_left = 9
-	risk_ind_style.corner_radius_top_right = 9
-	risk_ind_style.corner_radius_bottom_left = 9
-	risk_ind_style.corner_radius_bottom_right = 9
-	_detail_risk_indicator.add_theme_stylebox_override("panel", risk_ind_style)
-	risk_row.add_child(_detail_risk_indicator)
-
-	_detail_risk_label = Label.new()
-	_detail_risk_label.text = tr("—")
-	_detail_risk_label.add_theme_font_size_override("font_size", 15)
-	_detail_risk_label.add_theme_color_override("font_color", TEXT_BODY)
-	risk_row.add_child(_detail_risk_label)
-
-	var disease_details_lbl: Label = _make_wrapped_label("")
-	disease_details_lbl.name = "DiseaseDetails"
-	disease_details_lbl.add_theme_font_size_override("font_size", 13)
-	risk_section.add_child(disease_details_lbl)
-
-	inner.add_child(_make_hsep())
-
-	# Confirm button
-	_confirm_btn = _make_btn("  SELECT THIS REGION  ", 16, TEXT_ACCENT)
-	_confirm_btn.custom_minimum_size = Vector2(0, 50)
-	_confirm_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_confirm_btn.disabled = true
-	_confirm_btn.tooltip_text = "Velg denne regionen for å plassere et nytt sjøanlegg (Enter)"
-	_confirm_btn.pressed.connect(_on_confirm_pressed)
-	inner.add_child(_confirm_btn)
-
-	return _detail_panel
-
-func _build_stats_grid() -> Control:
-	var grid := GridContainer.new()
-	grid.columns = 2
-	grid.add_theme_constant_override("h_separation", 16)
-	grid.add_theme_constant_override("v_separation", 10)
-
-	grid.add_child(_make_stat_key("AVAILABLE LICENCES"))
-	_detail_licenses = _make_stat_val("—")
-	grid.add_child(_detail_licenses)
-
-	grid.add_child(_make_stat_key("DISTANCE TO PROCESSING"))
-	_detail_distance = _make_stat_val("—")
-	grid.add_child(_detail_distance)
-
-	grid.add_child(_make_stat_key("PROCESSING HUB"))
-	_detail_processing = _make_stat_val("—")
-	grid.add_child(_detail_processing)
-
-	grid.add_child(_make_stat_key("ANNUAL HARVEST"))
-	_detail_harvest = _make_stat_val("—")
-	grid.add_child(_detail_harvest)
-
-	grid.add_child(_make_stat_key("KEY OPERATORS"))
-	_detail_operators = _make_stat_val("—")
-	_detail_operators.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	grid.add_child(_detail_operators)
-
-	return grid
-
-func _make_stat_key(key: String) -> Label:
-	var l := Label.new()
-	l.text = key
-	l.add_theme_font_size_override("font_size", 11)
-	l.add_theme_color_override("font_color", TEXT_MUTED)
-	return l
-
-func _make_stat_val(initial: String) -> Label:
-	var l := Label.new()
-	l.text = initial
-	l.add_theme_font_size_override("font_size", 14)
-	l.add_theme_color_override("font_color", TEXT_BODY)
-	return l
+# (Detail panel layout now lives in scenes/ui/MapPanel.tscn.)
 
 # ─────────────────────────────────────────────────────────────────────────────
 func _show_region(region_id: String) -> void:
@@ -701,55 +779,59 @@ func _show_region(region_id: String) -> void:
 	if r.is_empty():
 		return
 
+	var key := str(r["id"]).to_upper()
 	_detail_name.text = r["name"]
-	_detail_zone.text = "Production Zone " + r["production_zone"] + "  •  " + r["norwegian_name"]
+	_detail_zone.text = tr("UI_MAP_ZONE") % [int(str(r["production_zone"]).trim_prefix("PO")), r["name"]]
 	_detail_icon.text = r.get("icon", "📍")
-	_detail_desc.text = r["description"]
-	_detail_licenses.text = str(r["available_licenses"]) + " licences"
-	_detail_temp.text = r["temp_range"]
+	_detail_desc.text = tr("REGION_%s_DESC" % key)
+	_detail_licenses.text = tr("UI_MAP_LICENCES") % int(r["available_licenses"])
+	_detail_temp.text = "%s – %s °C" % [SimFormatters.num(float(r["temp_min"]), 1), SimFormatters.num(float(r["temp_max"]), 1)]
 	_detail_distance.text = r["distance_to_processing"]
 	_detail_processing.text = r["processing_hub"]
-	_detail_harvest.text = str(r["annual_harvest_kt"]) + " 000 tonnes/year"
-	_detail_operators.text = tr("\n")
+	_detail_harvest.text = tr("UI_MAP_HARVEST") % SimFormatters.integer(int(r["annual_harvest_kt"]) * 1000)
+	_detail_operators.text = "\n".join(PackedStringArray(r["key_operators"]))
 
 	var risk: String = r["disease_risk"]
-	_detail_risk_label.text = risk
+	_detail_risk_label.text = SimLabels.risk(risk)
 	var risk_color := _risk_color(risk)
-	_detail_risk_label.add_theme_color_override("font_color", risk_color)
+	LakskongenTheme.set_text_color(_detail_risk_label, risk_color)
 	_detail_risk_indicator.color = risk_color
 
 	# Update disease details label
-	var dd_lbl := _detail_panel.find_child("DiseaseDetails", true, false) as Label
-	if dd_lbl:
-		dd_lbl.text = r.get("disease_details", "")
+	_disease_details.text = tr("REGION_%s_DISEASE" % key)
 
 	# Temperature bar
 	if _temp_bar is _TempBar:
 		_temp_bar.set_range(r["temp_min"], r["temp_max"])
 
-	_confirm_btn.disabled = false
-	_confirm_btn.text = "  SELECT " + r["name"].to_upper() + "  "
+	# U2-01: the engine's view of the area (capacity, zones, verdicts) and its
+	# sea temperature from the sim's climatology.
+	var area := int(str(r["production_zone"]).trim_prefix("PO"))
+	if _overview.is_empty():
+		_refresh_expansion()
+	var view := _area_view(area)
+	if _expansion != null and not view.is_empty():
+		_expansion.show_area(view, _overview)
+		_show_area_climate(view)
+	if _area_picker != null:
+		_area_picker.select(area)
 
 func _clear_selection() -> void:
 	_selected_region_id = ""
 	_detail_name.text = tr("UI_MAP_SELECT_REGION")
 	_detail_zone.text = tr("UI_MAP_CLICK_PROMPT")
-	_detail_icon.text = tr("🗺️")
+	_detail_icon.text = "🗺️"
 	_detail_desc.text = tr("UI_MAP_REGION_DESC")
-	_detail_licenses.text = tr("—")
-	_detail_temp.text = tr("—")
-	_detail_distance.text = tr("—")
-	_detail_processing.text = tr("—")
-	_detail_harvest.text = tr("—")
-	_detail_operators.text = tr("—")
-	_detail_risk_label.text = tr("—")
-	_detail_risk_label.add_theme_color_override("font_color", TEXT_BODY)
+	for lbl in [_detail_licenses, _detail_temp, _detail_distance, _detail_processing, _detail_harvest,
+			_detail_operators, _detail_risk_label]:
+		lbl.text = "—"
+	LakskongenTheme.set_text_color(_detail_risk_label, TEXT_BODY)
 	_detail_risk_indicator.color = TEXT_MUTED
-	_confirm_btn.disabled = true
-	_confirm_btn.text = tr("  SELECT THIS REGION  ")
-	var dd_lbl := _detail_panel.find_child("DiseaseDetails", true, false) as Label
-	if dd_lbl:
-		dd_lbl.text = ""
+	_disease_details.text = ""
+	if _expansion != null:
+		_expansion.show_area({}, _overview)
+	if _area_picker != null:
+		_area_picker.select(0)
 	_refresh_markers()
 
 # ── Marker state refresh ───────────────────────────────────────────────────────
@@ -779,20 +861,14 @@ func _on_region_input(event: InputEvent, region_id: String) -> void:
 		_selected_region_id = region_id
 		_show_region(region_id)
 		_refresh_markers()
-
-func _on_confirm_pressed() -> void:
-	if _selected_region_id.is_empty():
-		return
-	emit_signal("region_selected", _selected_region_id)
-	hide_panel()
-	emit_signal("close_requested")
+		region_selected.emit(region_id)
 
 func _on_close_pressed() -> void:
 	hide_panel()
 	emit_signal("close_requested")
 
 func _unhandled_key_input(event: InputEvent) -> void:
-	if not visible:
+	if not visible or _dialog_open():
 		return
 	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
 		_on_close_pressed()
@@ -813,130 +889,168 @@ func _risk_color(risk: String) -> Color:
 	else:
 		return RISK_MEDIUM
 
-func _make_wrapped_label(text: String) -> Label:
-	var l := Label.new()
-	l.text = text
-	l.add_theme_font_size_override("font_size", 13)
-	l.add_theme_color_override("font_color", TEXT_BODY)
-	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	return l
-
-func _make_panel(bg: Color, radius: int) -> PanelContainer:
-	var pc := PanelContainer.new()
-	var style := StyleBoxFlat.new()
-	style.bg_color = bg
-	style.corner_radius_top_left = radius
-	style.corner_radius_top_right = radius
-	style.corner_radius_bottom_left = radius
-	style.corner_radius_bottom_right = radius
-	pc.add_theme_stylebox_override("panel", style)
-	return pc
-
-func _make_btn(text: String, fsize: int, color: Color) -> Button:
-	var btn := Button.new()
-	btn.text = text
-	btn.add_theme_font_size_override("font_size", fsize)
-	btn.add_theme_color_override("font_color", color)
-	btn.add_theme_color_override("font_hover_color", color.lightened(0.2))
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(color, 0.12)
-	style.border_color = Color(color, 0.55)
-	for p in ["border_width_bottom","border_width_top","border_width_left","border_width_right"]:
-		style.set(p, 1)
-	style.corner_radius_top_left = 7
-	style.corner_radius_top_right = 7
-	style.corner_radius_bottom_left = 7
-	style.corner_radius_bottom_right = 7
-	style.content_margin_left = 16
-	style.content_margin_right = 16
-	style.content_margin_top = 10
-	style.content_margin_bottom = 10
-	btn.add_theme_stylebox_override("normal", style)
-	var hover := style.duplicate() as StyleBoxFlat
-	hover.bg_color = Color(color, 0.26)
-	btn.add_theme_stylebox_override("hover", hover)
-	return btn
-
-func _make_hsep() -> HSeparator:
-	var sep := HSeparator.new()
-	sep.add_theme_color_override("color", BORDER_COLOR)
-	return sep
-
-func _make_vsep() -> VSeparator:
-	var sep := VSeparator.new()
-	sep.add_theme_color_override("color", BORDER_COLOR)
-	return sep
+# (Widget factories removed — static styling lives in scenes/ui/MapPanel.tscn.)
 
 # ── Inner classes ─────────────────────────────────────────────────────────────
 
-## Draws a simplified Norwegian coastline as a decorative backdrop.
+## Real Norwegian coastline (Natural Earth 50m) rendered as a light
+## nautical chart: sea gradient, landmass fill, coastline glow + stroke,
+## graticule with labels, and major coastal cities.
 class _CoastlineDrawer extends Control:
-	var _points: PackedVector2Array
+	const SEA_TOP := Color("#DCE9F2")
+	const SEA_BOTTOM := Color("#C3D8E8")
+	const LAND_FILL := Color("#E9EDE0")
+	const COAST_GLOW := Color(0.04, 0.30, 0.41, 0.22)
+	const COAST_LINE := Color("#1F5E73")
+	const GRID_LINE := Color(1, 1, 1, 0.55)
+	const GRID_TEXT := Color("#5A6168")
+
+	var _rings: Array = []
+	var _font: Font
+	## Rects the city names must keep clear of (the region markers).
+	var avoid: Array[Rect2] = []
+	## The city name rects drawn last time.
+	var placed: Array[Rect2] = []
+	const CITY_FONT := 13
+	const LABEL_GAP := 8.0
 
 	func _ready() -> void:
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_rings = NorwayCoastline.rings()
+		_font = get_theme_default_font()
+		resized.connect(queue_redraw)
+		queue_redraw()
 
 	func _draw() -> void:
 		var w := size.x
 		var h := size.y
-		# Sea background
-		draw_rect(Rect2(0, 0, w, h), Color("#ECEFF4"))
+		if w <= 1.0 or h <= 1.0:
+			return
+		placed.clear()
+		_draw_sea(w, h)
+		_draw_graticule(w, h)
+		_draw_land(w, h)
+		_draw_cities(w, h)
 
-		# Simplified Norway coastline (normalised 0..1 coords)
-		# These points trace a rough west-coast outline from north to south
-		var pts: PackedVector2Array = PackedVector2Array([
-			Vector2(0.72, 0.0),
-			Vector2(0.68, 0.05),
-			Vector2(0.65, 0.08),
-			Vector2(0.62, 0.12),
-			Vector2(0.58, 0.18),
-			Vector2(0.56, 0.24),
-			Vector2(0.53, 0.28),
-			Vector2(0.50, 0.34),
-			Vector2(0.47, 0.40),
-			Vector2(0.44, 0.46),
-			Vector2(0.40, 0.52),
-			Vector2(0.37, 0.58),
-			Vector2(0.34, 0.64),
-			Vector2(0.31, 0.70),
-			Vector2(0.28, 0.76),
-			Vector2(0.25, 0.82),
-			Vector2(0.23, 0.88),
-			Vector2(0.22, 0.94),
-			Vector2(0.22, 1.0),
-			# Fill right side
-			Vector2(1.0, 1.0),
-			Vector2(1.0, 0.0),
-		])
-		var scaled: PackedVector2Array
-		for p in pts:
-			scaled.append(Vector2(p.x * w, p.y * h))
-		draw_colored_polygon(scaled, Color(0.92, 0.94, 0.96, 0.95))
-		# Coastline highlight
-		var coast_pts: PackedVector2Array
-		for i in range(pts.size() - 2):
-			coast_pts.append(Vector2(pts[i].x * w, pts[i].y * h))
-		draw_polyline(coast_pts, Color("#8FAD78"), 2.0)
+	func _draw_sea(w: float, h: float) -> void:
+		var bands := 28
+		for i in range(bands):
+			var t0 := float(i) / bands
+			var col := SEA_TOP.lerp(SEA_BOTTOM, t0)
+			draw_rect(Rect2(0, t0 * h, w, h / bands + 1.0), col)
 
-		# Fjord decorations (small blue wedges)
-		var fjords := [
-			[Vector2(0.62, 0.12), Vector2(0.75, 0.14)],
-			[Vector2(0.53, 0.28), Vector2(0.65, 0.31)],
-			[Vector2(0.47, 0.40), Vector2(0.60, 0.43)],
-			[Vector2(0.40, 0.52), Vector2(0.53, 0.56)],
-			[Vector2(0.34, 0.64), Vector2(0.48, 0.68)],
-			[Vector2(0.28, 0.76), Vector2(0.42, 0.80)],
+	func _draw_graticule(w: float, h: float) -> void:
+		# Latitude lines every 2 degrees with labels.
+		var lat := 58.0
+		while lat <= 72.0:
+			var y := NorwayCoastline.project(10.0, lat).y * h
+			if y >= 0.0 and y <= h:
+				draw_line(Vector2(0, y), Vector2(w, y), GRID_LINE, 1.0)
+				if _font:
+					_grid_label("%d°N" % int(lat), Vector2(6, y - 4))
+			lat += 2.0
+		# Longitude lines every 5 degrees with bottom labels.
+		var lon := 5.0
+		while lon <= 30.0:
+			var x := NorwayCoastline.project(lon, 65.0).x * w
+			if x >= 0.0 and x <= w:
+				draw_line(Vector2(x, 0), Vector2(x, h), GRID_LINE, 1.0)
+				if _font:
+					_grid_label("%d°E" % int(lon), Vector2(x + 4, h - 6))
+			lon += 5.0
+
+	## A graticule label at its baseline, unless a region marker is there.
+	func _grid_label(text: String, baseline: Vector2) -> void:
+		var sz := _font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, CITY_FONT)
+		var rect := Rect2(Vector2(baseline.x, baseline.y - sz.y + 4.0), sz)
+		if _hits(rect):
+			return
+		placed.append(rect)
+		draw_string(_font, baseline, text, HORIZONTAL_ALIGNMENT_LEFT, -1, CITY_FONT, GRID_TEXT)
+
+	func _scaled_ring(ring: Array, w: float, h: float, close_east: bool) -> PackedVector2Array:
+		var out := PackedVector2Array()
+		for p in ring:
+			var a: Array = p
+			out.append(Vector2(float(a[0]) * w, float(a[1]) * h))
+		if close_east and out.size() >= 2:
+			# Close the open mainland polyline via the eastern map edge
+			# (land = east). Off-canvas x clips cleanly.
+			out.append(Vector2(w * 1.08, out[out.size() - 1].y))
+			out.append(Vector2(w * 1.08, out[0].y))
+		return out
+
+	func _draw_land(w: float, h: float) -> void:
+		NorwayCoastline.draw_landmass(self, Vector2(w, h), LAND_FILL)
+		# Coastline glow + crisp edge on top of all fills.
+		for ring in _rings:
+			var open := NorwayCoastline.is_open_ring(ring)
+			var poly := _scaled_ring(ring, w, h, false)
+			if poly.size() < 2:
+				continue
+			if open:
+				draw_polyline(poly, COAST_GLOW, 8.0)
+			else:
+				var closed := poly + PackedVector2Array([poly[0]])
+				draw_polyline(closed, COAST_GLOW, 8.0)
+		for ring in _rings:
+			var poly := _scaled_ring(ring, w, h, false)
+			if poly.size() < 2:
+				continue
+			if NorwayCoastline.is_open_ring(ring):
+				draw_polyline(poly, COAST_LINE, 2.0)
+			else:
+				var closed := poly + PackedVector2Array([poly[0]])
+				draw_polyline(closed, COAST_LINE, 2.0)
+
+	## Cities with their names where the names fit: west over the sea first
+	## (land lies east), then east, above and below. A city whose dot sits on
+	## a region marker, or whose name fits nowhere clear of the markers and
+	## of the names already placed, is left out: the region names it anyway.
+	func _draw_cities(w: float, h: float) -> void:
+		if _font == null:
+			return
+		var bounds := Rect2(Vector2.ZERO, Vector2(w, h))
+		for c in NorwayCoastline.cities():
+			var name := str(c[2])
+			var pos := NorwayCoastline.project(float(c[0]), float(c[1])) * Vector2(w, h)
+			var dot := Rect2(pos - Vector2(5.0, 5.0), Vector2(10.0, 10.0))
+			if not bounds.encloses(dot) or _hits(dot):
+				continue
+			var label := _place_city_label(name, pos, bounds)
+			if label.size == Vector2.ZERO:
+				continue
+			placed.append(label)
+			draw_circle(pos, 4.5, COAST_LINE)
+			draw_circle(pos, 2.5, Color.WHITE)
+			# A halo in the land colour keeps the name readable over the coastline.
+			var at := Vector2(label.position.x, label.end.y - 4.0)
+			draw_string_outline(_font, at, name, HORIZONTAL_ALIGNMENT_LEFT, -1, CITY_FONT, 4, Color(LAND_FILL, 0.9))
+			draw_string(_font, at, name, HORIZONTAL_ALIGNMENT_LEFT, -1, CITY_FONT, Color("#1C1E20"))
+
+	func _place_city_label(name: String, pos: Vector2, bounds: Rect2) -> Rect2:
+		var sz := _font.get_string_size(name, HORIZONTAL_ALIGNMENT_LEFT, -1, CITY_FONT)
+		sz.y = float(CITY_FONT) + 4.0
+		var candidates := [
+			Vector2(pos.x - LABEL_GAP - sz.x, pos.y - sz.y * 0.5),
+			Vector2(pos.x + LABEL_GAP, pos.y - sz.y * 0.5),
+			Vector2(pos.x - sz.x * 0.5, pos.y - LABEL_GAP - sz.y),
+			Vector2(pos.x - sz.x * 0.5, pos.y + LABEL_GAP),
 		]
-		for fjord in fjords:
-			var p1 := Vector2(fjord[0].x * w, fjord[0].y * h)
-			var p2 := Vector2(fjord[1].x * w, fjord[1].y * h)
-			draw_line(p1, p2, Color("#5E81AC"), 2.0)
+		for at in candidates:
+			var rect := Rect2(at, sz)
+			if bounds.encloses(rect) and not _hits(rect):
+				return rect
+		return Rect2()
 
-		# Latitude grid lines
-		for i in range(1, 8):
-			var y := h * i / 8.0
-			draw_line(Vector2(0, y), Vector2(w, y), Color(1, 1, 1, 0.04), 1.0)
+	func _hits(rect: Rect2) -> bool:
+		for r in avoid:
+			if r.intersects(rect):
+				return true
+		for r in placed:
+			if r.intersects(rect):
+				return true
+		return false
 
 
 ## Interactive region marker button drawn directly on the map.
@@ -945,17 +1059,28 @@ class _RegionMarker extends Control:
 
 	var region_data: Dictionary = {}
 	var state: int = STATE_NORMAL
+	var overlay_active: bool = false
+	var overlay_color: Color = Color("#5A6168")
+	## U2-01: the area's traffic light as the sim knows it (the dot) and the
+	## company's sites there (a ring around the dot).
+	var has_light: bool = false
+	var light_color: Color = Color("#8A5A00")
+	var ring_color: Color = Color("#B5452B")
+	var player_sites: int = 0
 
 	func _ready() -> void:
 		mouse_filter = Control.MOUSE_FILTER_STOP
 		var lbl := Label.new()
 		lbl.name = "NameLabel"
 		lbl.text = region_data.get("name", "")
-		lbl.add_theme_font_size_override("font_size", 13)
-		lbl.add_theme_color_override("font_color", Color("#2E3440"))
+		LakskongenTheme.set_size(lbl, 13)
+		LakskongenTheme.set_tone(lbl, &"")
 		lbl.position = Vector2(22, 0)
 		lbl.size = Vector2(max(size.x - 22, 80), size.y)
 		lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		# A halo in the surface colour (the theme's outline colour) keeps the
+		# name readable where it crosses the coastline (U1-05).
+		lbl.add_theme_constant_override("outline_size", 4)
 		add_child(lbl)
 
 	func _draw() -> void:
@@ -964,7 +1089,7 @@ class _RegionMarker extends Control:
 		var w := size.x
 		var h := size.y
 		var risk: String = region_data.get("disease_risk", "Low")
-		var region_color: Color = region_data.get("color", Color("#88C0D0"))
+		var region_color: Color = region_data.get("color", Color("#1F5E73"))
 
 		# Background highlight on hover/select
 		var bg_color := Color.TRANSPARENT
@@ -974,21 +1099,27 @@ class _RegionMarker extends Control:
 			STATE_SELECTED:
 				bg_color = Color(region_color, 0.40)
 		if bg_color.a > 0:
-			draw_rect(Rect2(0, 0, w, h), bg_color, true, 0.0)
+			draw_rect(Rect2(0, 0, w, h), bg_color, true)
 
-		# Dot
-		var dot_col := _risk_dot_color(risk)
-		if state == STATE_SELECTED:
-			dot_col = region_color.lightened(0.3)
+		# Dot: the traffic light (or the active data overlay); the selection
+		# grows it and the company's sites ring it.
+		var dot_col := light_color if has_light else _risk_dot_color(risk)
+		if overlay_active:
+			dot_col = overlay_color
 		var dot_r := 7.0 if state == STATE_NORMAL else 9.0
-		draw_circle(Vector2(dot_r + 2, h / 2.0), dot_r, dot_col)
+		var center := Vector2(11.0, h / 2.0)
+		if state == STATE_SELECTED:
+			draw_circle(center, dot_r + 5.0, Color(region_color, 0.35))
+		draw_circle(center, dot_r, dot_col)
+		if player_sites > 0:
+			draw_arc(center, dot_r + 3.0, 0.0, TAU, 32, ring_color, 2.5, true)
 
 	func _risk_dot_color(risk: String) -> Color:
 		if risk.begins_with("Low"):
-			return Color("#A3BE8C")
+			return Color("#2E6B45")
 		elif risk.begins_with("High") or risk.ends_with("High"):
-			return Color("#BF616A")
-		return Color("#EBCB8B")
+			return Color("#B3172F")
+		return Color("#8A5A00")
 
 
 ## Temperature range bar visualisation.
@@ -1007,22 +1138,22 @@ class _TempBar extends Control:
 		var total_range := 22.0  # 0°C to 22°C shown on bar
 
 		# Background track
-		draw_rect(Rect2(0, h * 0.3, w, h * 0.4), Color("#5E81AC"), true)
+		draw_rect(Rect2(0, h * 0.3, w, h * 0.4), Color("#1F5E73"), true)
 
 		# Optimal zone (12–16°C)
 		var opt_start := 12.0 / total_range * w
 		var opt_end := 16.0 / total_range * w
 		draw_rect(Rect2(opt_start, h * 0.1, opt_end - opt_start, h * 0.8),
-				Color("#A3BE8C"), true)
+				Color("#2E6B45"), true)
 		draw_rect(Rect2(opt_start, h * 0.1, opt_end - opt_start, h * 0.8),
-				Color("#A3BE8C"), false, 1.0)
+				Color("#2E6B45"), false, 1.0)
 
 		# Region range
 		var range_start := _temp_min / total_range * w
 		var range_end := _temp_max / total_range * w
-		var range_color := Color("#88C0D0") if _temp_max < 17.0 else Color("#EBCB8B")
+		var range_color := Color("#1F5E73") if _temp_max < 17.0 else Color("#8A5A00")
 		if _temp_max >= 19.0:
-			range_color = Color("#BF616A")
+			range_color = Color("#B3172F")
 		draw_rect(Rect2(range_start, h * 0.25, range_end - range_start, h * 0.5),
 				Color(range_color, 0.7), true)
 
@@ -1030,6 +1161,3 @@ class _TempBar extends Control:
 		for t in [5, 10, 12, 15, 16, 20]:
 			var tx := float(t) / total_range * w
 			draw_line(Vector2(tx, h * 0.8), Vector2(tx, h), Color(1, 1, 1, 0.3), 1.0)
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
-    if event.is_action_pressed("ui_cancel"):
-        get_tree().call_group_flags(2, "tooltips", "hide")

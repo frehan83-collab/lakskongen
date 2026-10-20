@@ -1,0 +1,16 @@
+{
+  "asset": "spruce",
+  "bbox_size": [
+    5.0,
+    14.6,
+    4.3301
+  ],
+  "blender_version": "5.2.2 LTS",
+  "file": "spruce_LOD1.glb",
+  "lod": "LOD1",
+  "material_count": 1,
+  "materials": [
+    "LK_Tree"
+  ],
+  "tri_count": 12
+}

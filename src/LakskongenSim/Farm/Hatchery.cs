@@ -27,10 +27,30 @@ namespace LakskongenSim.Farm
         /// Create smolt batch (for stocking sea pens).
         /// Smolts are reared to proper size and age before release.
         /// </summary>
-        public void ReleaseSmolt(int count)
+        /// <param name="count">Number of smolts in the released batch.</param>
+        /// <param name="quality">Smolt quality tier carried into the sea phase. Defaults to Standard.</param>
+        public void ReleaseSmolt(int count, SmoltQualityTier quality = SmoltQualityTier.Standard)
         {
             // Smolts are typically ~12-18 months old (365 days) and 60-100g when released
             var cohort = new Biology.FishPopulation.Cohort(MaturationDays, count, SmoltReleaseWeight, LifeStage.Smolt);
+            cohort.Quality = quality;
+            OnNewCohort?.Invoke(cohort);
+        }
+
+        /// <summary>
+        /// Create smolt batch from a full <see cref="SmoltQuality"/> profile, applying
+        /// the tier and (optionally) its release weight to the cohort.
+        /// </summary>
+        public void ReleaseSmolt(int count, SmoltQuality quality, bool applyReleaseWeight = false)
+        {
+            // Smolts are typically ~12-18 months old (365 days) and 60-100g when released
+            double weight = applyReleaseWeight
+                ? quality.GrowthMultiplier * SmoltReleaseWeight
+                : SmoltReleaseWeight;
+            var cohort = new Biology.FishPopulation.Cohort(MaturationDays, count, weight, LifeStage.Smolt)
+            {
+                Quality = quality.Tier
+            };
             OnNewCohort?.Invoke(cohort);
         }
         

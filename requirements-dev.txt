@@ -1,0 +1,9 @@
+# Python packages the quality gate (tools/ci.sh) needs. CI installs them with
+#   python3 -m pip install -r requirements-dev.txt
+# Checked by running tools/ci.sh in a fresh virtualenv with only these.
+pytest==8.3.3        # tests/ (bridge contract, model checks)
+websockets==16.0     # .claude/skills/ecc/godot-mcp-ops: imported at load, even with --no-mcp
+numpy==2.4.2         # tests/test_terrain_material.py, test_water_v2.py: texture rebuilds compared byte for byte
+pillow==10.4.0       # the same texture generators (tools/gen_*_textures.py)
+scipy==1.18.1        # tools/gen_terrain_textures.py (rebuilt by tests/test_terrain_material.py)
+fonttools==4.61.1    # tools/build_brand.py (tests/test_main_menu.py: the wordmark outlines and brand SVGs)

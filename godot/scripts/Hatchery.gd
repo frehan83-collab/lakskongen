@@ -23,8 +23,11 @@ func spawn_egg(genetics: Dictionary, incubation_days: int = 30) -> int:
 
 func _hatch(egg: Dictionary) -> void:
     # create a Fish as juvenile (smolt)
-    var Fish = preload("res://godot/scripts/data/Fish.gd").Fish
-    var f = Fish.new(next_id, egg.genetics, 0.2, 0)
+    var f: Fish = Fish.new()
+    f.id = next_id
+    f.genetics = egg.genetics
+    f.weight_g = 0.2
+    f.age_days = 0
     next_id += 1
     juveniles.append(f)
 
@@ -36,4 +39,3 @@ func stock_to_farm(count: int, farm_node: Node) -> Array:
             farm_node.receive_stock(f)
         moved.append(f)
     return moved
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

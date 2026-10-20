@@ -1,0 +1,29 @@
+{
+  "asset": "auv",
+  "bbox_size": [
+    0.6534,
+    0.6534,
+    3.96
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "air_draught_m": 0.327,
+    "beam_m": 0.5,
+    "bow_y_m": 2.0,
+    "draught_m": 0.327,
+    "length_m": 3.96,
+    "stern_y_m": -1.96
+  },
+  "file": "auv_LOD1.glb",
+  "lod": "LOD1",
+  "material_count": 2,
+  "materials": [
+    "LK_VDark",
+    "LK_VSubseaOrange"
+  ],
+  "parts": {
+    "Hull": 72,
+    "Rubber": 48
+  },
+  "tri_count": 120
+}

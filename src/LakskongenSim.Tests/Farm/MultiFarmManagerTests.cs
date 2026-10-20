@@ -581,7 +581,7 @@ namespace LakskongenSim.Tests.Farm
             Assert.Equal(1.2, farm.FeedConversionRatio);
             Assert.Equal(1.0, farm.DiseasePressure);
             Assert.Equal(5000m, farm.LicenseCostPerTon);
-            Assert.Equal(15m, farm.FeedCostPerKg);
+            Assert.Equal(LakskongenSim.Calibration.CalibrationRegistry.Default.Feed.FeedPricePerKgFeedNOK, farm.FeedCostPerKg);
             Assert.Equal(150000m, farm.LaborCostPerMonth);
             Assert.Equal(0m, farm.MarketPriceBonus);
         }

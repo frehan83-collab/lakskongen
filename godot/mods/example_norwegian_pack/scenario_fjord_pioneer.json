@@ -1,0 +1,16 @@
+[
+  {
+    "id": "scenario_fjord_pioneer",
+    "name": "Fjord Pioneer",
+    "description": "Start a single-licence operation in a remote West Norway fjord and grow it into a sustainable producer.",
+    "starting_capital_nok": 5000000,
+    "starting_region": "Vestland",
+    "difficulty": 2,
+    "win_condition": "Profit",
+    "initial_balance_nok": 5000000,
+    "starting_fish_count": 50000,
+    "initial_events": [
+      "evt_winter_storm"
+    ]
+  }
+]

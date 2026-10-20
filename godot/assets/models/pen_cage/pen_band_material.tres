@@ -1,0 +1,7 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3 uid="uid://pen_band_mat_001"]
+
+[ext_resource type="Shader" path="res://shaders/pen_band_shader.gdshader" id="1_shader"]
+
+[resource]
+shader = ExtResource("1_shader")
+shader_parameter/roughness = 0.5

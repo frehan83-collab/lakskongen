@@ -11,70 +11,61 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1")
 
-[node name="Panel" type="Panel" parent="."]
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -400.0
-offset_top = -300.0
-offset_right = 400.0
-offset_bottom = 300.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="TitleLabel" type="Label" parent="Panel"]
-layout_mode = 1
-anchors_preset = 5
-anchor_left = 0.5
-anchor_right = 0.5
-offset_left = -100.0
-offset_top = 20.0
-offset_right = 100.0
-offset_bottom = 50.0
-grow_horizontal = 2
-text = "Save / Load Game"
-horizontal_alignment = 1
-
-[node name="CloseButton" type="Button" parent="Panel"]
-layout_mode = 1
-anchors_preset = 1
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -80.0
-offset_top = 10.0
-offset_right = -10.0
-offset_bottom = 40.0
-grow_horizontal = 0
-text = "Close"
-
-[node name="NewSaveButton" type="Button" parent="Panel"]
-layout_mode = 1
-anchors_preset = 2
-anchor_top = 1.0
-anchor_bottom = 1.0
-offset_left = 10.0
-offset_top = -50.0
-offset_right = 150.0
-offset_bottom = -10.0
-grow_vertical = 0
-text = "New Save"
-
-[node name="ScrollContainer" type="ScrollContainer" parent="Panel"]
+[node name="Overlay" type="ColorRect" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 10.0
-offset_top = 60.0
-offset_right = -10.0
-offset_bottom = -70.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0.043137, 0.164706, 0.227451, 0.65)
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="SlotsContainer" type="VBoxContainer" parent="Panel/ScrollContainer"]
+[node name="DialogPanel" type="PanelContainer" parent="./Center"]
+theme_type_variation = &"Dialog"
+unique_name_in_owner = true
+custom_minimum_size = Vector2(600, 450)
+layout_mode = 2
+
+[node name="DialogVBox" type="VBoxContainer" parent="./Center/DialogPanel"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="HeaderRow" type="HBoxContainer" parent="./Center/DialogPanel/DialogVBox"]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="./Center/DialogPanel/DialogVBox/HeaderRow"]
+theme_type_variation = &"Heading"
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
+text = "Last Spill"
+
+[node name="CloseButton" type="Button" parent="./Center/DialogPanel/DialogVBox/HeaderRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "✕"
+
+[node name="SlotsScroll" type="ScrollContainer" parent="./Center/DialogPanel/DialogVBox"]
+layout_mode = 2
 size_flags_vertical = 3
+
+[node name="SlotsContainer" type="VBoxContainer" parent="./Center/DialogPanel/DialogVBox/SlotsScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="NewSaveButton" type="Button" parent="./Center/DialogPanel/DialogVBox"]
+theme_type_variation = &"PrimaryButton"
+unique_name_in_owner = true
+layout_mode = 2
+text = "💾 Nytt Lagringspunkt"

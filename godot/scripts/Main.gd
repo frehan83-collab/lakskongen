@@ -8,6 +8,10 @@ extends Control
 @onready var _hud: Control = %HUD
 @onready var _game_ui: Control = %GameUI
 @onready var _dashboard: Control = null  # Dashboard is now loaded dynamically by GameUI
+## The pause menu (Esc, roadmap U1-06): on its own layer above the game UI.
+@onready var _pause_menu: Control = get_node_or_null("%PauseMenu")
+## The critical event card (U2-06): it pauses the game while it is open.
+@onready var _critical_card: Control = get_node_or_null("%CriticalEventCard")
 
 # Configuration
 const STARTING_CAPITAL: int = 10_000_000
@@ -27,11 +31,23 @@ func _ready() -> void:
 	# Connect to SimBridge signals
 	_sim.state_updated.connect(_on_state_updated)
 	_sim.day_advanced.connect(_on_day_advanced)
-	_sim.alert_raised.connect(_on_alert_raised)
 
-	# Connect HUD speed change signal
-	if _hud:
-		_hud.speed_changed.connect(_on_speed_changed)
+	# The HUD drives the game clock itself and draws it from clock_changed
+	# (U2-07); "Bremse ned før frister" comes from the settings, and again
+	# when the pause menu (with its settings) closes.
+	_apply_gameplay_prefs()
+
+	# The window's close button asks "Lagre før du avslutter?" (U1-06): the
+	# game screen takes the close request instead of quitting outright.
+	get_tree().set_auto_accept_quit(false)
+	if _pause_menu:
+		_pause_menu.opened.connect(_sync_hud_pause)
+		_pause_menu.closed.connect(_sync_hud_pause)
+		_pause_menu.closed.connect(_apply_gameplay_prefs)
+	# A critical event pauses through its card (one channel, U2-06); the
+	# alert text no longer decides anything here.
+	if _critical_card:
+		_critical_card.pause_changed.connect(_sync_hud_pause)
 
 	# Start the game after a short delay to ensure everything is ready
 	call_deferred("_start_game")
@@ -43,20 +59,73 @@ func _start_game() -> void:
 	if _game_started:
 		return
 
+	# The main menu already started a scenario or loaded a save before switching
+	# to this scene — keep that game instead of resetting it (F056).
+	if _sim.is_game_running():
+		_game_started = true
+		print("Main: Keeping the game started from the main menu (day %d)" % _sim.current_day)
+		return
+
 	print("Main: Starting new game...")
 
-	# Start the simulation via SimBridge
-	var success = _sim.start_new_game("default", DEFAULT_PLAYER_NAME)
+	# Start the simulation via SimBridge. A new game opens paused on its
+	# briefing card (U2-07); the card's "Start" sets the clock going.
+	var success = _sim.start_new_game(DEFAULT_PLAYER_NAME)
 
 	if success:
 		_game_started = true
 		print("Main: Game started successfully with %d NOK capital" % STARTING_CAPITAL)
-
-		# Ensure simulation is running (not paused)
-		_sim.set_paused(false)
-		_sim.set_time_speed(1.0)
 	else:
 		push_error("Main: Failed to start game!")
+
+func _exit_tree() -> void:
+	get_tree().set_auto_accept_quit(true)
+
+## The window's close button (and Cmd+Q on macOS) ask before leaving.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST:
+		request_quit()
+
+## Ask "Lagre før du avslutter?" (over the pause menu); quits outright only
+## when the scene has no pause menu.
+func request_quit() -> void:
+	if _pause_menu == null:
+		get_tree().quit()
+		return
+	var inbox := get_node_or_null("AttentionInbox")
+	if inbox != null:
+		inbox.visible = false
+	_pause_menu.request_quit()
+
+## Ctrl/Cmd+S quicksave (project input action `quick_save`). Esc that nothing
+## else on the screen took (an open panel, popup or tab closes first; the
+## dashboard is home) opens the pause menu.
+func _unhandled_input(event: InputEvent) -> void:
+	if _game_started and event.is_action_pressed("quick_save"):
+		quick_save()
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("ui_cancel") and _pause_menu != null and not _pause_menu.is_open():
+		_pause_menu.show_menu()
+		get_viewport().set_input_as_handled()
+
+## The HUD's pause button follows the clock while the pause menu holds it.
+func _sync_hud_pause() -> void:
+	if _hud and _hud.has_method("set_paused_state") and _sim:
+		_hud.set_paused_state(_sim.is_paused())
+
+func quick_save() -> bool:
+	var ok: bool = _sim.quick_save()
+	var toast := get_node_or_null("/root/ToastNotification")
+	if toast:
+		if ok:
+			toast.show_toast(_tr_or("UI_TOAST_QUICKSAVED", "💾 Hurtiglagret"), "SUCCESS", 3.0)
+		else:
+			toast.show_toast(_tr_or("UI_TOAST_SAVE_FAILED", "⚠️ Lagring feilet: %s") % _sim.get_last_save_error(), "ERROR", 5.0)
+	return ok
+
+func _tr_or(key: String, fallback: String) -> String:
+	var t := tr(key)
+	return t if t != key else fallback
 
 func _on_state_updated() -> void:
 	# UI components auto-update via their own SimBridge connections
@@ -65,13 +134,10 @@ func _on_state_updated() -> void:
 func _on_day_advanced(day: int, season: String) -> void:
 	print("Main: Day %d (%s)" % [day, season])
 
-func _on_alert_raised(level: String, message: String) -> void:
-	print("Main: Alert [%s] %s" % [level, message])
-
-func _on_speed_changed(speed: float, paused: bool) -> void:
+## "Bremse ned før frister" (GameplayPrefs) reaches the game clock.
+func _apply_gameplay_prefs() -> void:
 	if _sim:
-		_sim.set_time_speed(speed)
-		_sim.set_paused(paused)
+		_sim.set_auto_slow_deadlines(GameplayPrefs.auto_slow_deadlines())
 
 func advance_one_day() -> void:
 	if _sim:
@@ -89,35 +155,5 @@ func get_current_day() -> int:
 func is_game_started() -> bool:
 	return _game_started
 
-func _toggle_pause_menu() -> void:
-	if not _pause_menu:
-		return
-	
-	if _pause_menu.visible:
-		_pause_menu.hide_menu()
-	else:
-		_pause_menu.show_menu()
-
-func _on_resume_requested() -> void:
-	# Resume is handled by PauseMenu itself
-	pass
-
-func _on_quit_to_menu() -> void:
-	# This is handled by PauseMenu, but we could add cleanup here if needed
-	pass
-y() -> void:
-	if _sim:
-		_sim.advance_day()
-
-func set_paused(paused: bool) -> void:
-	if _sim:
-		_sim.set_paused(paused)
-
-func get_current_day() -> int:
-	if _sim:
-		return _sim.current_day
-	return 0
-
-func is_game_started() -> bool:
-	return _game_started
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
+func is_pause_menu_open() -> bool:
+	return _pause_menu != null and _pause_menu.is_open()

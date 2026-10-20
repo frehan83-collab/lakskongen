@@ -85,27 +85,9 @@ func _on_toggle_pause() -> void:
 	pause_toggled.emit(_is_paused)
 	print("GameController: %s" % ("paused" if _is_paused else "resumed"))
 
-# ── Keyboard shortcuts ────────────────────────────────────────────────────────
-
-func _unhandled_input(event: InputEvent) -> void:
-	# Space — toggle pause
-	if event.is_action_pressed("ui_accept"):
-		_on_toggle_pause()
-		get_viewport().set_input_as_handled()
-		return
-
-	# D — advance one day
-	if event is InputEventKey and event.pressed:
-		match event.keycode:
-			KEY_D:
-				_on_next_day()
-				get_viewport().set_input_as_handled()
-			KEY_W:
-				_on_next_week()
-				get_viewport().set_input_as_handled()
-			KEY_M:
-				_on_next_month()
-				get_viewport().set_input_as_handled()
+# Keyboard: Space pause lives in HUD (toggle_pause). The D/W/M step keys were
+# removed: D and W are the fjord camera's pan keys, and W/M called methods
+# that do not exist.
 
 # ── Public API ────────────────────────────────────────────────────────────────
 
@@ -135,16 +117,13 @@ func _advance(days: int) -> void:
 		return
 	# If we are running in auto-tick mode, a manual advance still works;
 	# the engine handles concurrent calls safely.
-	match days:
-		1:  _sim.advance_day()
-		7:  _sim.advance_week()
-		30: _sim.advance_month()
-		_:  push_warning("GameController._advance: unexpected days=%d" % days)
-
+	_sim.advance_days(days)
 	advance_completed.emit(days)
 
 ## Safe button lookup — searches the scene tree by unique name (%) first,
 ## then falls back to a direct child search.  Returns null if not found.
+## The buttons are optional (HUD owns speed control in GameScene), so a miss
+## is silent by design — callers must null-check.
 func _get_button(node_name: String) -> Button:
 	# Try %UniqueNodeName lookup (requires the node to be marked unique in scene)
 	var unique_path := "%" + node_name
@@ -152,10 +131,8 @@ func _get_button(node_name: String) -> Button:
 		var n := get_node(unique_path)
 		if n is Button:
 			return n as Button
-	push_warning("GameController: button '%s' not found in scene — skipping" % node_name)
 	return null
 
 func _connect_button(btn: Button, callable: Callable) -> void:
 	if btn and not btn.pressed.is_connected(callable):
 		btn.pressed.connect(callable)
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

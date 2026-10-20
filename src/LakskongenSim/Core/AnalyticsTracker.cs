@@ -26,6 +26,16 @@ namespace LakskongenSim.Core
         public const string ExternalMarketSupport = "external_market_support";
         public const string ExternalWarningCount = "external_warning_count";
         public const string ExternalCompositeRisk = "external_composite_risk";
+        /// <summary>Year-to-date net income (the analytics tab charted it but it was never recorded).</summary>
+        public const string ProfitLoss = "profit_loss_nok";
+        /// <summary>Year-to-date feed cost.</summary>
+        public const string FeedCost = "feed_cost_nok";
+        /// <summary>Mean zone dissolved oxygen.</summary>
+        public const string DissolvedOxygen = "dissolved_oxygen";
+        /// <summary>Revenue booked this financial year to date (U1-05: the income charts read it).</summary>
+        public const string Revenue = "revenue_nok";
+        /// <summary>Costs (COGS + operating expenses) booked this financial year to date.</summary>
+        public const string Expenses = "expenses_nok";
     }
 
     /// <summary>
@@ -85,6 +95,21 @@ namespace LakskongenSim.Core
         /// <summary>Composite external health risk score.</summary>
         public double ExternalCompositeRisk { get; set; }
 
+        /// <summary>Net income this financial year to date (NOK).</summary>
+        public double ProfitLossNok { get; set; }
+
+        /// <summary>Feed cost this financial year to date (NOK).</summary>
+        public double FeedCostNok { get; set; }
+
+        /// <summary>Mean dissolved oxygen across zones holding fish (mg/L; 0 without zones).</summary>
+        public double DissolvedOxygen { get; set; }
+
+        /// <summary>Revenue this financial year to date (NOK); resets at the annual close.</summary>
+        public double RevenueNok { get; set; }
+
+        /// <summary>COGS + operating expenses this financial year to date (NOK); resets at the annual close.</summary>
+        public double ExpensesNok { get; set; }
+
         /// <summary>
         /// Return the value of a named metric. Returns NaN if unknown.
         /// </summary>
@@ -106,6 +131,11 @@ namespace LakskongenSim.Core
             AnalyticsMetric.ExternalMarketSupport => ExternalMarketSupport,
             AnalyticsMetric.ExternalWarningCount => ExternalWarningCount,
             AnalyticsMetric.ExternalCompositeRisk => ExternalCompositeRisk,
+            AnalyticsMetric.ProfitLoss          => ProfitLossNok,
+            AnalyticsMetric.FeedCost            => FeedCostNok,
+            AnalyticsMetric.DissolvedOxygen     => DissolvedOxygen,
+            AnalyticsMetric.Revenue             => RevenueNok,
+            AnalyticsMetric.Expenses            => ExpensesNok,
             _                                   => double.NaN
         };
     }
@@ -131,6 +161,15 @@ namespace LakskongenSim.Core
 
         /// <summary>Minimum slope magnitude (as fraction of mean) to count as a trend.</summary>
         private const double TrendThreshold = 0.005; // 0.5% change per day
+
+        /// <summary>
+        /// Memory bound (TD-11): at most this many daily snapshots are retained
+        /// (10 years of daily data). Older entries are evicted oldest-first on
+        /// record; aggregates are computed incrementally so nothing else depends
+        /// on full history. Same list instance is shared with GameState, so the
+        /// save format is unchanged — saves just stop growing without bound.
+        /// </summary>
+        public const int MaxSnapshotsRetained = 3650;
 
         // ── Storage ───────────────────────────────────────────────────────────
 
@@ -184,18 +223,41 @@ namespace LakskongenSim.Core
                 MarketPriceNok     = (double)(engine.MarketSimulation?.PricePerKg ?? 70m),
                 BalanceNok         = (double)(engine.FinanceManager?.Balance ?? 0m),
                 FCR                = engine.Feed?.CurrentFCR ?? 1.15,
-                LicePerFish        = engine.SeaLice?.AverageLicePerFish ?? 0.0,
-                SustainabilityScore = engine.SustainabilityManager?.CurrentScore ?? 0,
+                // Phase 1 wave 6: read the persisted mirrors / site authority,
+                // never live-only subsystem instances — a fresh engine after
+                // a load must record the same snapshot as an uninterrupted run.
+                LicePerFish        = engine.GetCompanyLiceAverage(),
+                SustainabilityScore = state.SustainabilityScore,
                 MortalityRate      = mortalityRate,
                 ExternalLicePressure = external?.IndustryLicePressure ?? 0.0,
                 ExternalDiseasePressure = external?.DiseasePressureIndex ?? 0.0,
                 ExternalBiomassUtilization = external?.NationalBiomassUtilization ?? 0.0,
                 ExternalMarketSupport = external?.MarketPriceSupportIndex ?? 0.0,
                 ExternalWarningCount = state.ExternalHealthWarnings?.Count ?? 0,
-                ExternalCompositeRisk = externalReport.CompositeRiskScore
+                ExternalCompositeRisk = externalReport.CompositeRiskScore,
+                ProfitLossNok = (double)(engine.FinancialStatements?.ComputeNetIncome() ?? 0m),
+                FeedCostNok = engine.FinancialStatements != null
+                    && engine.FinancialStatements.CostBreakdown.TryGetValue("feed", out var feedCost)
+                        ? (double)feedCost : 0.0,
+                DissolvedOxygen = MeanZoneOxygen(state),
+                RevenueNok = (double)(engine.FinancialStatements?.Revenue ?? 0m),
+                ExpensesNok = engine.FinancialStatements != null
+                    ? (double)(engine.FinancialStatements.COGS + engine.FinancialStatements.OperatingExpenses)
+                    : 0.0
             };
 
             _snapshots.Add(snap);
+            if (_snapshots.Count > MaxSnapshotsRetained)
+                _snapshots.RemoveRange(0, _snapshots.Count - MaxSnapshotsRetained);
+        }
+
+        /// <summary>Mean O2 over zones holding fish (all zones when none hold fish; 0 without zones).</summary>
+        private static double MeanZoneOxygen(GameState state)
+        {
+            if (state.Zones == null || state.Zones.Count == 0) return 0.0;
+            var stocked = state.Zones.Where(z => z.CurrentFishBiomassKg > 0.0).ToList();
+            var zones = stocked.Count > 0 ? stocked : state.Zones;
+            return zones.Average(z => z.WaterChemistry?.OxygenO2 ?? 0.0);
         }
 
         // ── Query API ─────────────────────────────────────────────────────────
@@ -265,6 +327,16 @@ namespace LakskongenSim.Core
 
         /// <summary>Number of snapshots recorded so far.</summary>
         public int SnapshotCount => _snapshots.Count;
+
+        /// <summary>
+        /// Returns the most recent value of <paramref name="metric"/>,
+        /// or NaN when no snapshots exist yet.
+        /// </summary>
+        public double GetLatest(string metric)
+        {
+            if (_snapshots.Count == 0) return double.NaN;
+            return _snapshots[^1].GetMetric(metric);
+        }
 
         // ── Helpers ───────────────────────────────────────────────────────────
 

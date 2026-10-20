@@ -1,0 +1,5984 @@
+{
+  "SaveName": "pre-F2 facilities fixture (F2-01)",
+  "SaveTime": "2026-10-15T00:00:00Z",
+  "GameVersion": "1.0.0",
+  "SaveVersion": 8,
+  "GameState": {
+    "Day": 31,
+    "RandomSeed": 3,
+    "Balance": 1672597763.9223261840168987656,
+    "Zones": [
+      {
+        "Id": "po3_nord",
+        "Name": "",
+        "CarryingCapacityTonnes": 1060,
+        "WaterChemistry": {
+          "AmmoniaNH4": 0.05028181567853069,
+          "NitriteNO2": 0.01006096166749251,
+          "NitrateNO3": 0.5000107636365058,
+          "PhosphorusPO4": 0.0999277317359142,
+          "OxygenO2": 9.581410955958317,
+          "pH": 8.049950485546338,
+          "Temperature": 7.300897602026858
+        },
+        "CurrentFishBiomassKg": 49921.657315588665,
+        "CurrentStockingDensity": 0,
+        "WaterFlowRate": 1019.8328706990363,
+        "FeedConversionRatio": 1.0978382450824877,
+        "WaterVolumeM3": 500000,
+        "CurrentSpeed": 0.17327762356634546,
+        "NutrientLevel": 0.496589655334706,
+        "AlgaeBloomActive": false,
+        "AlgalBloomDaysRemaining": 0,
+        "JellyfishDensity": 0,
+        "ExternalRiskMultiplier": 1,
+        "ExternalNutrientMultiplier": 1,
+        "ExternalDiseasePressure": 1,
+        "ExternalTemperatureStress": 1,
+        "ExternalTreatmentIntensity": 1,
+        "ElapsedDays": 31,
+        "FollowsSeaTemperature": true,
+        "ProductionArea": 3
+      },
+      {
+        "Id": "po3_sor",
+        "Name": "",
+        "CarryingCapacityTonnes": 1060,
+        "WaterChemistry": {
+          "AmmoniaNH4": 0.05011734826218992,
+          "NitriteNO2": 0.010065338104357262,
+          "NitrateNO3": 0.5000115888748378,
+          "PhosphorusPO4": 0.09984783788000523,
+          "OxygenO2": 9.581380096965793,
+          "pH": 8.049965389364164,
+          "Temperature": 7.300897602026858
+        },
+        "CurrentFishBiomassKg": 25491.992182997503,
+        "CurrentStockingDensity": 0,
+        "WaterFlowRate": 1122.1292990695292,
+        "FeedConversionRatio": 1.091307949194213,
+        "WaterVolumeM3": 500000,
+        "CurrentSpeed": 0.20737643302317646,
+        "NutrientLevel": 0.4962543613555187,
+        "AlgaeBloomActive": false,
+        "AlgalBloomDaysRemaining": 0,
+        "JellyfishDensity": 0,
+        "ExternalRiskMultiplier": 1,
+        "ExternalNutrientMultiplier": 1,
+        "ExternalDiseasePressure": 1,
+        "ExternalTemperatureStress": 1,
+        "ExternalTreatmentIntensity": 1,
+        "ElapsedDays": 31,
+        "FollowsSeaTemperature": true,
+        "ProductionArea": 3
+      }
+    ],
+    "SeaSites": [
+      {
+        "Id": "po3_nord",
+        "ZoneId": "po3_nord",
+        "DisplayName": "PO3 Nord",
+        "Pens": [
+          {
+            "Id": "00000000-0000-4000-8000-000000000001",
+            "Cohorts": [
+              {
+                "AgeDays": 441,
+                "Count": 11871,
+                "MeanWeightKg": 0.7054268477901616,
+                "Stage": "Seawater",
+                "Genetics": {
+                  "TraitValues": {
+                    "GrowthRate": 0.05,
+                    "DiseaseResistance": 0.6,
+                    "SeaLiceResistance": 0.5,
+                    "FilletQuality": 0,
+                    "FeedConversion": 0,
+                    "StressTolerance": 0,
+                    "LateMaturation": 0,
+                    "ColdTolerance": 0
+                  },
+                  "Generation": 0,
+                  "HasMutation": false,
+                  "MutatedTraits": [],
+                  "InbreedingCoefficient": 0
+                },
+                "Quality": "Standard",
+                "WeightCv": 0.2234019449843339
+              }
+            ],
+            "TotalCount": 11871,
+            "ZoneId": "po3_nord",
+            "HasRecentTreatment": false,
+            "TreatmentIntensity": 0,
+            "TreatmentHarm": {
+              "InjuryLoad": 0,
+              "GillDamage": 0,
+              "CumulativeWelfareCost": 0,
+              "DaysSinceLastTreatment": 1030,
+              "TreatmentsToDate": 0
+            },
+            "SeaLiceLoad": 0.10017258683693213,
+            "VaccinatedDay": -1,
+            "SiteId": "po3_nord",
+            "Ration": {
+              "FractionOfAppetite": 1
+            },
+            "FastingSinceDay": -1,
+            "FastingDegreeDays": 0,
+            "ColdExposure": 0.31667856207231226,
+            "GrowthPenalty": 0
+          },
+          {
+            "Id": "00000000-0000-4000-8000-000000000002",
+            "Cohorts": [
+              {
+                "AgeDays": 441,
+                "Count": 11871,
+                "MeanWeightKg": 0.7054268477901616,
+                "Stage": "Seawater",
+                "Genetics": {
+                  "TraitValues": {
+                    "GrowthRate": 0.05,
+                    "DiseaseResistance": 0.6,
+                    "SeaLiceResistance": 0.5,
+                    "FilletQuality": 0,
+                    "FeedConversion": 0,
+                    "StressTolerance": 0,
+                    "LateMaturation": 0,
+                    "ColdTolerance": 0
+                  },
+                  "Generation": 0,
+                  "HasMutation": false,
+                  "MutatedTraits": [],
+                  "InbreedingCoefficient": 0
+                },
+                "Quality": "Standard",
+                "WeightCv": 0.2234019449843339
+              }
+            ],
+            "TotalCount": 11871,
+            "ZoneId": "po3_nord",
+            "HasRecentTreatment": false,
+            "TreatmentIntensity": 0,
+            "TreatmentHarm": {
+              "InjuryLoad": 0,
+              "GillDamage": 0,
+              "CumulativeWelfareCost": 0,
+              "DaysSinceLastTreatment": 1030,
+              "TreatmentsToDate": 0
+            },
+            "SeaLiceLoad": 0.10017258683693213,
+            "VaccinatedDay": -1,
+            "SiteId": "po3_nord",
+            "Ration": {
+              "FractionOfAppetite": 1
+            },
+            "FastingSinceDay": -1,
+            "FastingDegreeDays": 0,
+            "ColdExposure": 0.31667856207231226,
+            "GrowthPenalty": 0
+          },
+          {
+            "Id": "00000000-0000-4000-8000-000000000003",
+            "Cohorts": [
+              {
+                "AgeDays": 441,
+                "Count": 11871,
+                "MeanWeightKg": 0.7054268477901616,
+                "Stage": "Seawater",
+                "Genetics": {
+                  "TraitValues": {
+                    "GrowthRate": 0.05,
+                    "DiseaseResistance": 0.6,
+                    "SeaLiceResistance": 0.5,
+                    "FilletQuality": 0,
+                    "FeedConversion": 0,
+                    "StressTolerance": 0,
+                    "LateMaturation": 0,
+                    "ColdTolerance": 0
+                  },
+                  "Generation": 0,
+                  "HasMutation": false,
+                  "MutatedTraits": [],
+                  "InbreedingCoefficient": 0
+                },
+                "Quality": "Standard",
+                "WeightCv": 0.2234019449843339
+              }
+            ],
+            "TotalCount": 11871,
+            "ZoneId": "po3_nord",
+            "HasRecentTreatment": false,
+            "TreatmentIntensity": 0,
+            "TreatmentHarm": {
+              "InjuryLoad": 0,
+              "GillDamage": 0,
+              "CumulativeWelfareCost": 0,
+              "DaysSinceLastTreatment": 1030,
+              "TreatmentsToDate": 0
+            },
+            "SeaLiceLoad": 0.10017258683693213,
+            "VaccinatedDay": -1,
+            "SiteId": "po3_nord",
+            "Ration": {
+              "FractionOfAppetite": 1
+            },
+            "FastingSinceDay": -1,
+            "FastingDegreeDays": 0,
+            "ColdExposure": 0.31667856207231226,
+            "GrowthPenalty": 0
+          },
+          {
+            "Id": "00000000-0000-4000-8000-000000000004",
+            "Cohorts": [
+              {
+                "AgeDays": 441,
+                "Count": 11871,
+                "MeanWeightKg": 0.7054268477901616,
+                "Stage": "Seawater",
+                "Genetics": {
+                  "TraitValues": {
+                    "GrowthRate": 0.05,
+                    "DiseaseResistance": 0.6,
+                    "SeaLiceResistance": 0.5,
+                    "FilletQuality": 0,
+                    "FeedConversion": 0,
+                    "StressTolerance": 0,
+                    "LateMaturation": 0,
+                    "ColdTolerance": 0
+                  },
+                  "Generation": 0,
+                  "HasMutation": false,
+                  "MutatedTraits": [],
+                  "InbreedingCoefficient": 0
+                },
+                "Quality": "Standard",
+                "WeightCv": 0.2234019449843339
+              }
+            ],
+            "TotalCount": 11871,
+            "ZoneId": "po3_nord",
+            "HasRecentTreatment": false,
+            "TreatmentIntensity": 0,
+            "TreatmentHarm": {
+              "InjuryLoad": 0,
+              "GillDamage": 0,
+              "CumulativeWelfareCost": 0,
+              "DaysSinceLastTreatment": 1030,
+              "TreatmentsToDate": 0
+            },
+            "SeaLiceLoad": 0.10017258683693213,
+            "VaccinatedDay": -1,
+            "SiteId": "po3_nord",
+            "Ration": {
+              "FractionOfAppetite": 1
+            },
+            "FastingSinceDay": -1,
+            "FastingDegreeDays": 0,
+            "ColdExposure": 0.31667856207231226,
+            "GrowthPenalty": 0
+          },
+          {
+            "Id": "00000000-0000-4000-8000-000000000005",
+            "Cohorts": [
+              {
+                "AgeDays": 441,
+                "Count": 11871,
+                "MeanWeightKg": 0.7054268477901616,
+                "Stage": "Seawater",
+                "Genetics": {
+                  "TraitValues": {
+                    "GrowthRate": 0.05,
+                    "DiseaseResistance": 0.6,
+                    "SeaLiceResistance": 0.5,
+                    "FilletQuality": 0,
+                    "FeedConversion": 0,
+                    "StressTolerance": 0,
+                    "LateMaturation": 0,
+                    "ColdTolerance": 0
+                  },
+                  "Generation": 0,
+                  "HasMutation": false,
+                  "MutatedTraits": [],
+                  "InbreedingCoefficient": 0
+                },
+                "Quality": "Standard",
+                "WeightCv": 0.2234019449843339
+              }
+            ],
+            "TotalCount": 11871,
+            "ZoneId": "po3_nord",
+            "HasRecentTreatment": false,
+            "TreatmentIntensity": 0,
+            "TreatmentHarm": {
+              "InjuryLoad": 0,
+              "GillDamage": 0,
+              "CumulativeWelfareCost": 0,
+              "DaysSinceLastTreatment": 1030,
+              "TreatmentsToDate": 0
+            },
+            "SeaLiceLoad": 0.10017258683693213,
+            "VaccinatedDay": -1,
+            "SiteId": "po3_nord",
+            "Ration": {
+              "FractionOfAppetite": 1
+            },
+            "FastingSinceDay": -1,
+            "FastingDegreeDays": 0,
+            "ColdExposure": 0.31667856207231226,
+            "GrowthPenalty": 0
+          },
+          {
+            "Id": "00000000-0000-4000-8000-000000000006",
+            "Cohorts": [
+              {
+                "AgeDays": 441,
+                "Count": 11871,
+                "MeanWeightKg": 0.7054268477901616,
+                "Stage": "Seawater",
+                "Genetics": {
+                  "TraitValues": {
+                    "GrowthRate": 0.05,
+                    "DiseaseResistance": 0.6,
+                    "SeaLiceResistance": 0.5,
+                    "FilletQuality": 0,
+                    "FeedConversion": 0,
+                    "StressTolerance": 0,
+                    "LateMaturation": 0,
+                    "ColdTolerance": 0
+                  },
+                  "Generation": 0,
+                  "HasMutation": false,
+                  "MutatedTraits": [],
+                  "InbreedingCoefficient": 0
+                },
+                "Quality": "Standard",
+                "WeightCv": 0.2234019449843339
+              }
+            ],
+            "TotalCount": 11871,
+            "ZoneId": "po3_nord",
+            "HasRecentTreatment": false,
+            "TreatmentIntensity": 0,
+            "TreatmentHarm": {
+              "InjuryLoad": 0,
+              "GillDamage": 0,
+              "CumulativeWelfareCost": 0,
+              "DaysSinceLastTreatment": 1030,
+              "TreatmentsToDate": 0
+            },
+            "SeaLiceLoad": 0.10017258683693213,
+            "VaccinatedDay": -1,
+            "SiteId": "po3_nord",
+            "Ration": {
+              "FractionOfAppetite": 1
+            },
+            "FastingSinceDay": -1,
+            "FastingDegreeDays": 0,
+            "ColdExposure": 0.31667856207231226,
+            "GrowthPenalty": 0
+          }
+        ],
+        "PhysicalPens": [
+          {
+            "Id": "po3_nord/p01",
+            "Number": 1,
+            "CircumferenceM": 160,
+            "NetWallDepthM": 25,
+            "ConeDepthM": 15,
+            "VolumeM3": 61115.498147287806,
+            "PopulationId": "00000000-0000-4000-8000-000000000001"
+          },
+          {
+            "Id": "po3_nord/p02",
+            "Number": 2,
+            "CircumferenceM": 160,
+            "NetWallDepthM": 25,
+            "ConeDepthM": 15,
+            "VolumeM3": 61115.498147287806,
+            "PopulationId": "00000000-0000-4000-8000-000000000002"
+          },
+          {
+            "Id": "po3_nord/p03",
+            "Number": 3,
+            "CircumferenceM": 160,
+            "NetWallDepthM": 25,
+            "ConeDepthM": 15,
+            "VolumeM3": 61115.498147287806,
+            "PopulationId": "00000000-0000-4000-8000-000000000003"
+          },
+          {
+            "Id": "po3_nord/p04",
+            "Number": 4,
+            "CircumferenceM": 160,
+            "NetWallDepthM": 25,
+            "ConeDepthM": 15,
+            "VolumeM3": 61115.498147287806,
+            "PopulationId": "00000000-0000-4000-8000-000000000004"
+          },
+          {
+            "Id": "po3_nord/p05",
+            "Number": 5,
+            "CircumferenceM": 160,
+            "NetWallDepthM": 25,
+            "ConeDepthM": 15,
+            "VolumeM3": 61115.498147287806,
+            "PopulationId": "00000000-0000-4000-8000-000000000005"
+          },
+          {
+            "Id": "po3_nord/p06",
+            "Number": 6,
+            "CircumferenceM": 160,
+            "NetWallDepthM": 25,
+            "ConeDepthM": 15,
+            "VolumeM3": 61115.498147287806,
+            "PopulationId": "00000000-0000-4000-8000-000000000006"
+          },
+          {
+            "Id": "po3_nord/p07",
+            "Number": 7,
+            "CircumferenceM": 160,
+            "NetWallDepthM": 25,
+            "ConeDepthM": 15,
+            "VolumeM3": 61115.498147287806,
+            "PopulationId": ""
+          },
+          {
+            "Id": "po3_nord/p08",
+            "Number": 8,
+            "CircumferenceM": 160,
+            "NetWallDepthM": 25,
+            "ConeDepthM": 15,
+            "VolumeM3": 61115.498147287806,
+            "PopulationId": ""
+          }
+        ],
+        "MABTonnes": 780,
+        "EscapesThisYear": 0,
+        "EscapeIncidents": [],
+        "IsClosedContainment": false,
+        "Containment": "SemiClosed",
+        "RedZoneCreditApplied": false,
+        "WatchMode": "watch",
+        "GillScore": 100,
+        "HasBubbleCurtain": false,
+        "HasO2Diffuser": false,
+        "Barrier": "None",
+        "LastStockedDay": 0,
+        "BarrierDaysSinceCleaning": 0,
+        "NetIntegrityPct": 97.65000000000009,
+        "HasLiceSkirt": false,
+        "HasSealDeterrent": false,
+        "SludgeAccumulatedKgDs": 153.2487303949763,
+        "SludgeValorizedKgDs": 0,
+        "LastSludgeValorizationDay": -1,
+        "HasSludgeHubConnection": false,
+        "CarbonTracker": {
+          "SourceId": "",
+          "Emissions": [
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_nord",
+              "KgCO2e": 188.8673797759561,
+              "Day": 0
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_nord",
+              "KgCO2e": 6.505536756679712,
+              "Day": 0
+            },
+            {
+              "Category": "Scope3_Feed",
+              "Source": "feed_total",
+              "KgCO2e": 1514.7957041424634,
+              "Day": 0
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_nord",
+              "KgCO2e": 189.26527362897176,
+              "Day": 1
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_nord",
+              "KgCO2e": 6.513554020882267,
+              "Day": 1
+            },
+            {
+              "Category": "Scope3_Feed",
+              "Source": "feed_total",
+              "KgCO2e": 1526.0373886265363,
+              "Day": 1
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_nord",
+              "KgCO2e": 189.674965279483,
+              "Day": 2
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_nord",
+              "KgCO2e": 6.52180900190003,
+              "Day": 2
+            },
+            {
+              "Category": "Scope3_Feed",
+              "Source": "feed_total",
+              "KgCO2e": 1537.6131843468318,
+              "Day": 2
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_nord",
+              "KgCO2e": 190.0515923427092,
+              "Day": 3
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_nord",
+              "KgCO2e": 6.5293977561590655,
+              "Day": 3
+            },
+            {
+              "Category": "Scope3_Feed",
+              "Source": "feed_total",
+              "KgCO2e": 1548.25842824325,
+              "Day": 3
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_nord",
+              "KgCO2e": 190.41592350272785,
+              "Day": 4
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_nord",
+              "KgCO2e": 6.536738757144517,
+              "Day": 4
+            },
+            {
+              "Category": "Scope3_Feed",
+              "Source": "feed_total",
+              "KgCO2e": 1558.558370917004,
+              "Day": 4
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_nord",
+              "KgCO2e": 190.78600106439404,
+              "Day": 5
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_nord",
+              "KgCO2e": 6.544195543834805,
+              "Day": 5
+            },
+            {
+              "Category": "Scope3_Feed",
+              "Source": "feed_total",
+              "KgCO2e": 1569.0216520854642,
+              "Day": 5
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_nord",
+              "KgCO2e": 191.17619413417307,
+              "Day": 6
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_nord",
+              "KgCO2e": 6.552057643001994,
+              "Day": 6
+            },
+            {
+              "Category": "Scope3_Feed",
+              "Source": "feed_total",
+              "KgCO2e": 1580.053546588702,
+              "Day": 6
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_nord",
+              "KgCO2e": 191.5456710960007,
+              "Day": 7
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_nord",
+              "KgCO2e": 6.559502328053745,
+              "Day": 7
+            },
+            {
+              "Category": "Scope3_Feed",
+              "Source": "feed_total",
+              "KgCO2e": 1590.5025953753561,
+              "Day": 7
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_nord",
+              "KgCO2e": 191.93161808781974,
+              "Day": 8
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_nord",
+              "KgCO2e": 6.567278871918756,
+              "Day": 8
+            },
+            {
+              "Category": "Scope3_Feed",
+              "Source": "feed_total",
+              "KgCO2e": 1601.4112882778863,
+              "Day": 8
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_nord",
+              "KgCO2e": 192.30752345438543,
+              "Day": 9
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_nord",
+              "KgCO2e": 6.5748530845286615,
+              "Day": 9
+            },
+            {
+              "Category": "Scope3_Feed",
+              "Source": "feed_total",
+              "KgCO2e": 1612.0442919388352,
+              "Day": 9
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_nord",
+              "KgCO2e": 192.70363491819955,
+              "Day": 10
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_nord",
+              "KgCO2e": 6.582834434918946,
+              "Day": 10
+            },
+            {
+              "Category": "Scope3_Feed",
+              "Source": "feed_total",
+              "KgCO2e": 1623.2487135722145,
+              "Day": 10
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_nord",
+              "KgCO2e": 193.13660073125916,
+              "Day": 11
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_nord",
+              "KgCO2e": 6.591558372943282,
+              "Day": 11
+            },
+            {
+              "Category": "Scope3_Feed",
+              "Source": "feed_total",
+              "KgCO2e": 1635.4945002662857,
+              "Day": 11
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_nord",
+              "KgCO2e": 193.6066558936616,
+              "Day": 12
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_nord",
+              "KgCO2e": 6.601029633678256,
+              "Day": 12
+            },
+            {
+              "Category": "Scope3_Feed",
+              "Source": "feed_total",
+              "KgCO2e": 1648.7886454862914,
+              "Day": 12
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_nord",
+              "KgCO2e": 194.0682790733046,
+              "Day": 13
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_nord",
+              "KgCO2e": 6.610330996253152,
+              "Day": 13
+            },
+            {
+              "Category": "Scope3_Feed",
+              "Source": "feed_total",
+              "KgCO2e": 1661.8401918985019,
+              "Day": 13
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_nord",
+              "KgCO2e": 194.4539075758048,
+              "Day": 14
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_nord",
+              "KgCO2e": 6.618101122796066,
+              "Day": 14
+            },
+            {
+              "Category": "Scope3_Feed",
+              "Source": "feed_total",
+              "KgCO2e": 1672.7549222601028,
+              "Day": 14
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_nord",
+              "KgCO2e": 194.89374423907736,
+              "Day": 15
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_nord",
+              "KgCO2e": 6.626963503324693,
+              "Day": 15
+            },
+            {
+              "Category": "Scope3_Feed",
+              "Source": "feed_total",
+              "KgCO2e": 1685.1946619241498,
+              "Day": 15
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_nord",
+              "KgCO2e": 195.3122288573434,
+              "Day": 16
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_nord",
+              "KgCO2e": 6.635395656080799,
+              "Day": 16
+            },
+            {
+              "Category": "Scope3_Feed",
+              "Source": "feed_total",
+              "KgCO2e": 1697.039814256154,
+              "Day": 16
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_nord",
+              "KgCO2e": 195.7638368553313,
+              "Day": 17
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_nord",
+              "KgCO2e": 6.644495220219362,
+              "Day": 17
+            },
+            {
+              "Category": "Scope3_Feed",
+              "Source": "feed_total",
+              "KgCO2e": 1709.8217845939714,
+              "Day": 17
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_nord",
+              "KgCO2e": 196.21835637731297,
+              "Day": 18
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_nord",
+              "KgCO2e": 6.6536534493936195,
+              "Day": 18
+            },
+            {
+              "Category": "Scope3_Feed",
+              "Source": "feed_total",
+              "KgCO2e": 1722.6877033132507,
+              "Day": 18
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_nord",
+              "KgCO2e": 196.64617700632408,
+              "Day": 19
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_nord",
+              "KgCO2e": 6.662273715799066,
+              "Day": 19
+            },
+            {
+              "Category": "Scope3_Feed",
+              "Source": "feed_total",
+              "KgCO2e": 1734.8012903911929,
+              "Day": 19
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_nord",
+              "KgCO2e": 197.0882990596886,
+              "Day": 20
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_nord",
+              "KgCO2e": 6.671182145232532,
+              "Day": 20
+            },
+            {
+              "Category": "Scope3_Feed",
+              "Source": "feed_total",
+              "KgCO2e": 1747.3203920523322,
+              "Day": 20
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_nord",
+              "KgCO2e": 197.47746822003162,
+              "Day": 21
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_nord",
+              "KgCO2e": 6.679023613388697,
+              "Day": 21
+            },
+            {
+              "Category": "Scope3_Feed",
+              "Source": "feed_total",
+              "KgCO2e": 2357.5995347776366,
+              "Day": 21
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_nord",
+              "KgCO2e": 197.87329275469295,
+              "Day": 22
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_nord",
+              "KgCO2e": 6.686999182370679,
+              "Day": 22
+            },
+            {
+              "Category": "Scope3_Feed",
+              "Source": "feed_total",
+              "KgCO2e": 2377.80786851824,
+              "Day": 22
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_nord",
+              "KgCO2e": 198.31245855280906,
+              "Day": 23
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_nord",
+              "KgCO2e": 6.695848045467048,
+              "Day": 23
+            },
+            {
+              "Category": "Scope3_Feed",
+              "Source": "feed_total",
+              "KgCO2e": 2399.9694285870905,
+              "Day": 23
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_nord",
+              "KgCO2e": 198.74857292133967,
+              "Day": 24
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_nord",
+              "KgCO2e": 6.704635424534455,
+              "Day": 24
+            },
+            {
+              "Category": "Scope3_Feed",
+              "Source": "feed_total",
+              "KgCO2e": 2422.188233059464,
+              "Day": 24
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_nord",
+              "KgCO2e": 199.19741536452312,
+              "Day": 25
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_nord",
+              "KgCO2e": 6.713679264807555,
+              "Day": 25
+            },
+            {
+              "Category": "Scope3_Feed",
+              "Source": "feed_total",
+              "KgCO2e": 2444.9053181126765,
+              "Day": 25
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_nord",
+              "KgCO2e": 199.644634364396,
+              "Day": 26
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_nord",
+              "KgCO2e": 6.722690393909471,
+              "Day": 26
+            },
+            {
+              "Category": "Scope3_Feed",
+              "Source": "feed_total",
+              "KgCO2e": 2467.7009581691923,
+              "Day": 26
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_nord",
+              "KgCO2e": 200.03546382375822,
+              "Day": 27
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_nord",
+              "KgCO2e": 6.730565315851845,
+              "Day": 27
+            },
+            {
+              "Category": "Scope3_Feed",
+              "Source": "feed_total",
+              "KgCO2e": 2488.0686718474753,
+              "Day": 27
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_nord",
+              "KgCO2e": 200.459566599521,
+              "Day": 28
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_nord",
+              "KgCO2e": 6.739110670288856,
+              "Day": 28
+            },
+            {
+              "Category": "Scope3_Feed",
+              "Source": "feed_total",
+              "KgCO2e": 2509.984609428271,
+              "Day": 28
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_nord",
+              "KgCO2e": 200.89502080288884,
+              "Day": 29
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_nord",
+              "KgCO2e": 6.747884747520894,
+              "Day": 29
+            },
+            {
+              "Category": "Scope3_Feed",
+              "Source": "feed_total",
+              "KgCO2e": 2532.470234500059,
+              "Day": 29
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_nord",
+              "KgCO2e": 201.32794176534077,
+              "Day": 30
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_nord",
+              "KgCO2e": 6.756607781838955,
+              "Day": 30
+            },
+            {
+              "Category": "Scope3_Feed",
+              "Source": "feed_total",
+              "KgCO2e": 2554.940140992424,
+              "Day": 30
+            }
+          ],
+          "Credits": []
+        },
+        "MaxAllowedDensity": 25,
+        "PenVolume": 50000,
+        "NumberOfPens": 6,
+        "Lice": {
+          "ChalimusPerFish": 0.08583142475829342,
+          "PreAdultPerFish": 0.01342772159091957,
+          "AdultFemalePerFish": 0.00034074371445531334,
+          "AdultMalePerFish": 0.00034074371445531334,
+          "AverageLicePerFish": 0.09994063377812362,
+          "TemperatureC": 7.300897602026858,
+          "SalinityPSU": 35,
+          "ExternalPressureMultiplier": 0.8142444831433233,
+          "CurrentSpeedMs": 0.17327762356634546,
+          "StockingDensityKgM3": 0.16640552438529554,
+          "PyrethroidResistance": 0,
+          "OrganophosphateResistance": 0,
+          "HydrogenPeroxideResistance": 0,
+          "MechanicalResistance": 0,
+          "CleanerFishEfficiency": 0,
+          "CopepodidDensity": 0.5690125306071503,
+          "PreventiveCoverage01": 0.865
+        },
+        "LastLiceCount": 0.0002975765646315271,
+        "LastLiceCountDay": 28,
+        "ConsecutiveLiceBreaches": 0,
+        "TreatmentOrderDueDay": -1,
+        "MattilsynetDeadlineDay": -1,
+        "HasActiveMattilsynetOrder": false,
+        "MattilsynetOrderFulfilled": false
+      },
+      {
+        "Id": "po3_sor",
+        "ZoneId": "po3_sor",
+        "DisplayName": "PO3 S\u00F8r",
+        "Pens": [
+          {
+            "Id": "00000000-0000-4000-8000-000000000007",
+            "Cohorts": [
+              {
+                "AgeDays": 441,
+                "Count": 9902,
+                "MeanWeightKg": 0.6480475030859516,
+                "Stage": "Seawater",
+                "Genetics": {
+                  "TraitValues": {
+                    "GrowthRate": 0.1,
+                    "DiseaseResistance": 0.1,
+                    "SeaLiceResistance": 0.1,
+                    "FilletQuality": 0,
+                    "FeedConversion": 0.1,
+                    "StressTolerance": 0,
+                    "LateMaturation": 0,
+                    "ColdTolerance": 0
+                  },
+                  "Generation": 0,
+                  "HasMutation": false,
+                  "MutatedTraits": [],
+                  "InbreedingCoefficient": 0
+                },
+                "Quality": "Standard",
+                "WeightCv": 0.2244712182738704
+              }
+            ],
+            "TotalCount": 9902,
+            "ZoneId": "po3_sor",
+            "HasRecentTreatment": false,
+            "TreatmentIntensity": 0,
+            "TreatmentHarm": {
+              "InjuryLoad": 0,
+              "GillDamage": 0,
+              "CumulativeWelfareCost": 0,
+              "DaysSinceLastTreatment": 1030,
+              "TreatmentsToDate": 0
+            },
+            "SeaLiceLoad": 0.1649746581029391,
+            "VaccinatedDay": -1,
+            "SiteId": "po3_sor",
+            "Ration": {
+              "FractionOfAppetite": 1
+            },
+            "FastingSinceDay": -1,
+            "FastingDegreeDays": 0,
+            "ColdExposure": 0.31667856207231226,
+            "GrowthPenalty": 0
+          },
+          {
+            "Id": "00000000-0000-4000-8000-000000000008",
+            "Cohorts": [
+              {
+                "AgeDays": 441,
+                "Count": 9902,
+                "MeanWeightKg": 0.6480475030859516,
+                "Stage": "Seawater",
+                "Genetics": {
+                  "TraitValues": {
+                    "GrowthRate": 0.1,
+                    "DiseaseResistance": 0.1,
+                    "SeaLiceResistance": 0.1,
+                    "FilletQuality": 0,
+                    "FeedConversion": 0.1,
+                    "StressTolerance": 0,
+                    "LateMaturation": 0,
+                    "ColdTolerance": 0
+                  },
+                  "Generation": 0,
+                  "HasMutation": false,
+                  "MutatedTraits": [],
+                  "InbreedingCoefficient": 0
+                },
+                "Quality": "Standard",
+                "WeightCv": 0.2244712182738704
+              }
+            ],
+            "TotalCount": 9902,
+            "ZoneId": "po3_sor",
+            "HasRecentTreatment": false,
+            "TreatmentIntensity": 0,
+            "TreatmentHarm": {
+              "InjuryLoad": 0,
+              "GillDamage": 0,
+              "CumulativeWelfareCost": 0,
+              "DaysSinceLastTreatment": 1030,
+              "TreatmentsToDate": 0
+            },
+            "SeaLiceLoad": 0.1649746581029391,
+            "VaccinatedDay": -1,
+            "SiteId": "po3_sor",
+            "Ration": {
+              "FractionOfAppetite": 1
+            },
+            "FastingSinceDay": -1,
+            "FastingDegreeDays": 0,
+            "ColdExposure": 0.31667856207231226,
+            "GrowthPenalty": 0
+          },
+          {
+            "Id": "00000000-0000-4000-8000-000000000009",
+            "Cohorts": [
+              {
+                "AgeDays": 441,
+                "Count": 9902,
+                "MeanWeightKg": 0.6480475030859516,
+                "Stage": "Seawater",
+                "Genetics": {
+                  "TraitValues": {
+                    "GrowthRate": 0.1,
+                    "DiseaseResistance": 0.1,
+                    "SeaLiceResistance": 0.1,
+                    "FilletQuality": 0,
+                    "FeedConversion": 0.1,
+                    "StressTolerance": 0,
+                    "LateMaturation": 0,
+                    "ColdTolerance": 0
+                  },
+                  "Generation": 0,
+                  "HasMutation": false,
+                  "MutatedTraits": [],
+                  "InbreedingCoefficient": 0
+                },
+                "Quality": "Standard",
+                "WeightCv": 0.2244712182738704
+              }
+            ],
+            "TotalCount": 9902,
+            "ZoneId": "po3_sor",
+            "HasRecentTreatment": false,
+            "TreatmentIntensity": 0,
+            "TreatmentHarm": {
+              "InjuryLoad": 0,
+              "GillDamage": 0,
+              "CumulativeWelfareCost": 0,
+              "DaysSinceLastTreatment": 1030,
+              "TreatmentsToDate": 0
+            },
+            "SeaLiceLoad": 0.1649746581029391,
+            "VaccinatedDay": -1,
+            "SiteId": "po3_sor",
+            "Ration": {
+              "FractionOfAppetite": 1
+            },
+            "FastingSinceDay": -1,
+            "FastingDegreeDays": 0,
+            "ColdExposure": 0.31667856207231226,
+            "GrowthPenalty": 0
+          },
+          {
+            "Id": "00000000-0000-4000-8000-00000000000a",
+            "Cohorts": [
+              {
+                "AgeDays": 441,
+                "Count": 9902,
+                "MeanWeightKg": 0.6480475030859516,
+                "Stage": "Seawater",
+                "Genetics": {
+                  "TraitValues": {
+                    "GrowthRate": 0.1,
+                    "DiseaseResistance": 0.1,
+                    "SeaLiceResistance": 0.1,
+                    "FilletQuality": 0,
+                    "FeedConversion": 0.1,
+                    "StressTolerance": 0,
+                    "LateMaturation": 0,
+                    "ColdTolerance": 0
+                  },
+                  "Generation": 0,
+                  "HasMutation": false,
+                  "MutatedTraits": [],
+                  "InbreedingCoefficient": 0
+                },
+                "Quality": "Standard",
+                "WeightCv": 0.2244712182738704
+              }
+            ],
+            "TotalCount": 9902,
+            "ZoneId": "po3_sor",
+            "HasRecentTreatment": false,
+            "TreatmentIntensity": 0,
+            "TreatmentHarm": {
+              "InjuryLoad": 0,
+              "GillDamage": 0,
+              "CumulativeWelfareCost": 0,
+              "DaysSinceLastTreatment": 1030,
+              "TreatmentsToDate": 0
+            },
+            "SeaLiceLoad": 0.1649746581029391,
+            "VaccinatedDay": -1,
+            "SiteId": "po3_sor",
+            "Ration": {
+              "FractionOfAppetite": 1
+            },
+            "FastingSinceDay": -1,
+            "FastingDegreeDays": 0,
+            "ColdExposure": 0.31667856207231226,
+            "GrowthPenalty": 0
+          }
+        ],
+        "PhysicalPens": [
+          {
+            "Id": "po3_sor/p01",
+            "Number": 1,
+            "CircumferenceM": 160,
+            "NetWallDepthM": 25,
+            "ConeDepthM": 15,
+            "VolumeM3": 61115.498147287806,
+            "PopulationId": "00000000-0000-4000-8000-000000000007"
+          },
+          {
+            "Id": "po3_sor/p02",
+            "Number": 2,
+            "CircumferenceM": 160,
+            "NetWallDepthM": 25,
+            "ConeDepthM": 15,
+            "VolumeM3": 61115.498147287806,
+            "PopulationId": "00000000-0000-4000-8000-000000000008"
+          },
+          {
+            "Id": "po3_sor/p03",
+            "Number": 3,
+            "CircumferenceM": 160,
+            "NetWallDepthM": 25,
+            "ConeDepthM": 15,
+            "VolumeM3": 61115.498147287806,
+            "PopulationId": "00000000-0000-4000-8000-000000000009"
+          },
+          {
+            "Id": "po3_sor/p04",
+            "Number": 4,
+            "CircumferenceM": 160,
+            "NetWallDepthM": 25,
+            "ConeDepthM": 15,
+            "VolumeM3": 61115.498147287806,
+            "PopulationId": "00000000-0000-4000-8000-00000000000a"
+          },
+          {
+            "Id": "po3_sor/p05",
+            "Number": 5,
+            "CircumferenceM": 160,
+            "NetWallDepthM": 25,
+            "ConeDepthM": 15,
+            "VolumeM3": 61115.498147287806,
+            "PopulationId": ""
+          },
+          {
+            "Id": "po3_sor/p06",
+            "Number": 6,
+            "CircumferenceM": 160,
+            "NetWallDepthM": 25,
+            "ConeDepthM": 15,
+            "VolumeM3": 61115.498147287806,
+            "PopulationId": ""
+          }
+        ],
+        "MABTonnes": 780,
+        "EscapesThisYear": 0,
+        "EscapeIncidents": [],
+        "IsClosedContainment": false,
+        "Containment": "OpenNet",
+        "RedZoneCreditApplied": false,
+        "WatchMode": "watch",
+        "GillScore": 100,
+        "HasBubbleCurtain": false,
+        "HasO2Diffuser": false,
+        "Barrier": "None",
+        "LastStockedDay": 0,
+        "BarrierDaysSinceCleaning": 0,
+        "NetIntegrityPct": 96.00000000000004,
+        "HasLiceSkirt": false,
+        "HasSealDeterrent": false,
+        "SludgeAccumulatedKgDs": 35.0912884355168,
+        "SludgeValorizedKgDs": 0,
+        "LastSludgeValorizationDay": -1,
+        "HasSludgeHubConnection": false,
+        "CarbonTracker": {
+          "SourceId": "",
+          "Emissions": [
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_sor",
+              "KgCO2e": 161.6458821570074,
+              "Day": 0
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_sor",
+              "KgCO2e": 3.309468830115754,
+              "Day": 0
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_sor",
+              "KgCO2e": 161.8603402230429,
+              "Day": 1
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_sor",
+              "KgCO2e": 3.311869480108689,
+              "Day": 1
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_sor",
+              "KgCO2e": 162.08120004672656,
+              "Day": 2
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_sor",
+              "KgCO2e": 3.3143417915678346,
+              "Day": 2
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_sor",
+              "KgCO2e": 162.28443586241093,
+              "Day": 3
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_sor",
+              "KgCO2e": 3.316616819355346,
+              "Day": 3
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_sor",
+              "KgCO2e": 162.4811584903122,
+              "Day": 4
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_sor",
+              "KgCO2e": 3.31881893832439,
+              "Day": 4
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_sor",
+              "KgCO2e": 162.68103201668416,
+              "Day": 5
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_sor",
+              "KgCO2e": 3.3210563285449717,
+              "Day": 5
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_sor",
+              "KgCO2e": 162.89176328163433,
+              "Day": 6
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_sor",
+              "KgCO2e": 3.3234152606153096,
+              "Day": 6
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_sor",
+              "KgCO2e": 163.0914621480228,
+              "Day": 7
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_sor",
+              "KgCO2e": 3.325650695686822,
+              "Day": 7
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_sor",
+              "KgCO2e": 163.29972850943102,
+              "Day": 8
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_sor",
+              "KgCO2e": 3.327982035553332,
+              "Day": 8
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_sor",
+              "KgCO2e": 163.50301927724217,
+              "Day": 9
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_sor",
+              "KgCO2e": 3.3302576784765914,
+              "Day": 9
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_sor",
+              "KgCO2e": 163.7172299674414,
+              "Day": 10
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_sor",
+              "KgCO2e": 3.3326555593370304,
+              "Day": 10
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_sor",
+              "KgCO2e": 163.95131107186373,
+              "Day": 11
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_sor",
+              "KgCO2e": 3.3352758702074294,
+              "Day": 11
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_sor",
+              "KgCO2e": 164.20540853526649,
+              "Day": 12
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_sor",
+              "KgCO2e": 3.3381202447977585,
+              "Day": 12
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_sor",
+              "KgCO2e": 164.45472324962196,
+              "Day": 13
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_sor",
+              "KgCO2e": 3.3409110811524845,
+              "Day": 13
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_sor",
+              "KgCO2e": 164.66363697007077,
+              "Day": 14
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_sor",
+              "KgCO2e": 3.3432496675754186,
+              "Day": 14
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_sor",
+              "KgCO2e": 164.90141214215683,
+              "Day": 15
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_sor",
+              "KgCO2e": 3.3459113299495167,
+              "Day": 15
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_sor",
+              "KgCO2e": 165.12815126880486,
+              "Day": 16
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_sor",
+              "KgCO2e": 3.3484494545015466,
+              "Day": 16
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_sor",
+              "KgCO2e": 165.37279693962486,
+              "Day": 17
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_sor",
+              "KgCO2e": 3.3511880254435615,
+              "Day": 17
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_sor",
+              "KgCO2e": 165.61910388446577,
+              "Day": 18
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_sor",
+              "KgCO2e": 3.353945192736557,
+              "Day": 18
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_sor",
+              "KgCO2e": 165.85112905563523,
+              "Day": 19
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_sor",
+              "KgCO2e": 3.3565424894287523,
+              "Day": 19
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_sor",
+              "KgCO2e": 166.09094180820267,
+              "Day": 20
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_sor",
+              "KgCO2e": 3.359226960539582,
+              "Day": 20
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_sor",
+              "KgCO2e": 166.30193194930968,
+              "Day": 21
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_sor",
+              "KgCO2e": 3.361588790477347,
+              "Day": 21
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_sor",
+              "KgCO2e": 166.51695787128452,
+              "Day": 22
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_sor",
+              "KgCO2e": 3.363995797066617,
+              "Day": 22
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_sor",
+              "KgCO2e": 166.7554214199197,
+              "Day": 23
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_sor",
+              "KgCO2e": 3.366665165148355,
+              "Day": 23
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_sor",
+              "KgCO2e": 166.9919352510312,
+              "Day": 24
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_sor",
+              "KgCO2e": 3.3693127080339313,
+              "Day": 24
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_sor",
+              "KgCO2e": 167.2357867423792,
+              "Day": 25
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_sor",
+              "KgCO2e": 3.3720423889072295,
+              "Day": 25
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_sor",
+              "KgCO2e": 167.4788505574219,
+              "Day": 26
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_sor",
+              "KgCO2e": 3.374763252508454,
+              "Day": 26
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_sor",
+              "KgCO2e": 167.69156495339942,
+              "Day": 27
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_sor",
+              "KgCO2e": 3.3771443838067094,
+              "Day": 27
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_sor",
+              "KgCO2e": 167.92231261438695,
+              "Day": 28
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_sor",
+              "KgCO2e": 3.379727380011794,
+              "Day": 28
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_sor",
+              "KgCO2e": 168.15926952521667,
+              "Day": 29
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_sor",
+              "KgCO2e": 3.3823798827449623,
+              "Day": 29
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "po3_sor",
+              "KgCO2e": 168.39493977298602,
+              "Day": 30
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "po3_sor",
+              "KgCO2e": 3.3850179825334257,
+              "Day": 30
+            }
+          ],
+          "Credits": []
+        },
+        "MaxAllowedDensity": 25,
+        "PenVolume": 50000,
+        "NumberOfPens": 4,
+        "Lice": {
+          "ChalimusPerFish": 0.14270182720380142,
+          "PreAdultPerFish": 0.021450784746405775,
+          "AdultFemalePerFish": 0.0005353707854628767,
+          "AdultMalePerFish": 0.0005353707854628767,
+          "AverageLicePerFish": 0.16522335352113293,
+          "TemperatureC": 7.300897602026858,
+          "SalinityPSU": 35,
+          "ExternalPressureMultiplier": 0.8142444831433233,
+          "CurrentSpeedMs": 0.20737643302317646,
+          "StockingDensityKgM3": 0.1274599609149875,
+          "PyrethroidResistance": 0,
+          "OrganophosphateResistance": 0,
+          "HydrogenPeroxideResistance": 0,
+          "MechanicalResistance": 0,
+          "CleanerFishEfficiency": 0,
+          "CopepodidDensity": 0.8536484750720978,
+          "PreventiveCoverage01": 0.09999999999999998
+        },
+        "LastLiceCount": 0.00046652000774470695,
+        "LastLiceCountDay": 28,
+        "ConsecutiveLiceBreaches": 0,
+        "TreatmentOrderDueDay": -1,
+        "MattilsynetDeadlineDay": -1,
+        "HasActiveMattilsynetOrder": false,
+        "MattilsynetOrderFulfilled": false
+      }
+    ],
+    "RASFacilities": [
+      {
+        "Id": "ras_1",
+        "Name": "Fixture RAS",
+        "ZoneId": "",
+        "Scale": "Small",
+        "CapacityTonnesPerYear": 5000,
+        "Tanks": [
+          {
+            "Id": "00000000-0000-4000-8000-00000000000b",
+            "Cohorts": [
+              {
+                "AgeDays": 375,
+                "Count": 19935,
+                "MeanWeightKg": 0.13107080506190563,
+                "Stage": "Seawater",
+                "Genetics": {
+                  "TraitValues": {
+                    "GrowthRate": 0.1,
+                    "DiseaseResistance": 0.1,
+                    "SeaLiceResistance": 0.1,
+                    "FilletQuality": 0,
+                    "FeedConversion": 0.1,
+                    "StressTolerance": 0,
+                    "LateMaturation": 0,
+                    "ColdTolerance": 0
+                  },
+                  "Generation": 0,
+                  "HasMutation": false,
+                  "MutatedTraits": [],
+                  "InbreedingCoefficient": 0
+                },
+                "Quality": "Standard",
+                "WeightCv": 0.1916011972773704
+              }
+            ],
+            "TotalCount": 19935,
+            "ZoneId": "",
+            "HasRecentTreatment": false,
+            "TreatmentIntensity": 0,
+            "TreatmentHarm": {
+              "InjuryLoad": 0,
+              "GillDamage": 0,
+              "CumulativeWelfareCost": 0,
+              "DaysSinceLastTreatment": 999,
+              "TreatmentsToDate": 0
+            },
+            "SeaLiceLoad": 0,
+            "VaccinatedDay": -1,
+            "SiteId": "ras_1",
+            "Ration": {
+              "FractionOfAppetite": 1
+            },
+            "FastingSinceDay": -1,
+            "FastingDegreeDays": 0,
+            "ColdExposure": 0,
+            "GrowthPenalty": 0
+          },
+          {
+            "Id": "00000000-0000-4000-8000-00000000000c",
+            "Cohorts": [
+              {
+                "AgeDays": 375,
+                "Count": 19935,
+                "MeanWeightKg": 0.13107080506190563,
+                "Stage": "Seawater",
+                "Genetics": {
+                  "TraitValues": {
+                    "GrowthRate": 0.1,
+                    "DiseaseResistance": 0.1,
+                    "SeaLiceResistance": 0.1,
+                    "FilletQuality": 0,
+                    "FeedConversion": 0.1,
+                    "StressTolerance": 0,
+                    "LateMaturation": 0,
+                    "ColdTolerance": 0
+                  },
+                  "Generation": 0,
+                  "HasMutation": false,
+                  "MutatedTraits": [],
+                  "InbreedingCoefficient": 0
+                },
+                "Quality": "Standard",
+                "WeightCv": 0.1916011972773704
+              }
+            ],
+            "TotalCount": 19935,
+            "ZoneId": "",
+            "HasRecentTreatment": false,
+            "TreatmentIntensity": 0,
+            "TreatmentHarm": {
+              "InjuryLoad": 0,
+              "GillDamage": 0,
+              "CumulativeWelfareCost": 0,
+              "DaysSinceLastTreatment": 999,
+              "TreatmentsToDate": 0
+            },
+            "SeaLiceLoad": 0,
+            "VaccinatedDay": -1,
+            "SiteId": "ras_1",
+            "Ration": {
+              "FractionOfAppetite": 1
+            },
+            "FastingSinceDay": -1,
+            "FastingDegreeDays": 0,
+            "ColdExposure": 0,
+            "GrowthPenalty": 0
+          }
+        ],
+        "TankCount": 12,
+        "TankVolumeM3": 3000,
+        "TargetWaterTemp": 12,
+        "CurrentWaterTemp": 11.86005540119049,
+        "OxygenLevel": 8.499999419356334,
+        "WaterPH": 7,
+        "CO2Level": 6.0725804583030305,
+        "BiofilterEfficiency": 0.92,
+        "UVTreatmentActive": true,
+        "OzoneTreatmentActive": true,
+        "RecirculationRate": 0.97,
+        "DailyEnergyKWh": 50000,
+        "EnergyPricePerKWh": 0.80,
+        "FCR": 1.3,
+        "CAPEX": 500000000,
+        "ConstructionProgress": 1,
+        "ConstructionDays": 20,
+        "ConstructionStartDay": 0,
+        "IsOperational": true,
+        "CarbonTracker": {
+          "SourceId": "",
+          "Emissions": [
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "ras_1",
+              "KgCO2e": 750,
+              "Day": 20
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "ras_1",
+              "KgCO2e": 750,
+              "Day": 21
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "ras_1",
+              "KgCO2e": 750,
+              "Day": 22
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "ras_1",
+              "KgCO2e": 750,
+              "Day": 23
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "ras_1",
+              "KgCO2e": 750,
+              "Day": 24
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "ras_1",
+              "KgCO2e": 750,
+              "Day": 25
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "ras_1",
+              "KgCO2e": 750,
+              "Day": 26
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "ras_1",
+              "KgCO2e": 750,
+              "Day": 27
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "ras_1",
+              "KgCO2e": 750,
+              "Day": 28
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "ras_1",
+              "KgCO2e": 750,
+              "Day": 29
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "ras_1",
+              "KgCO2e": 750,
+              "Day": 30
+            }
+          ],
+          "Credits": []
+        },
+        "DaysSinceLastMaintenance": 10,
+        "MaintenanceIntervalDays": 90,
+        "NeedsMaintenance": false,
+        "EmployeeCount": 35,
+        "EstimatedAnnualOPEX": 52350000.00
+      }
+    ],
+    "OffshoreFarms": [
+      {
+        "Id": "offshore_1",
+        "Name": "Fixture Offshore",
+        "ZoneId": "",
+        "FarmType": "SemiSubmersible",
+        "CapacityTonnes": 8000,
+        "PenCount": 6,
+        "PenVolumeM3": 40000,
+        "Pens": [
+          {
+            "Id": "00000000-0000-4000-8000-00000000000d",
+            "Cohorts": [
+              {
+                "AgeDays": 375,
+                "Count": 99655,
+                "MeanWeightKg": 0.11397042514876,
+                "Stage": "Seawater",
+                "Genetics": {
+                  "TraitValues": {
+                    "GrowthRate": 0.1,
+                    "DiseaseResistance": 0.1,
+                    "SeaLiceResistance": 0.1,
+                    "FilletQuality": 0,
+                    "FeedConversion": 0.1,
+                    "StressTolerance": 0,
+                    "LateMaturation": 0,
+                    "ColdTolerance": 0
+                  },
+                  "Generation": 0,
+                  "HasMutation": false,
+                  "MutatedTraits": [],
+                  "InbreedingCoefficient": 0
+                },
+                "Quality": "Standard",
+                "WeightCv": 0.1858563702805948
+              }
+            ],
+            "TotalCount": 99655,
+            "ZoneId": "",
+            "HasRecentTreatment": false,
+            "TreatmentIntensity": 0,
+            "TreatmentHarm": {
+              "InjuryLoad": 0,
+              "GillDamage": 0,
+              "CumulativeWelfareCost": 0,
+              "DaysSinceLastTreatment": 999,
+              "TreatmentsToDate": 0
+            },
+            "SeaLiceLoad": 0.09,
+            "VaccinatedDay": -1,
+            "SiteId": "offshore_1",
+            "Ration": {
+              "FractionOfAppetite": 1
+            },
+            "FastingSinceDay": -1,
+            "FastingDegreeDays": 0,
+            "ColdExposure": 0.15351827510938593,
+            "GrowthPenalty": 0
+          },
+          {
+            "Id": "00000000-0000-4000-8000-00000000000e",
+            "Cohorts": [
+              {
+                "AgeDays": 375,
+                "Count": 99655,
+                "MeanWeightKg": 0.11397042514876,
+                "Stage": "Seawater",
+                "Genetics": {
+                  "TraitValues": {
+                    "GrowthRate": 0.1,
+                    "DiseaseResistance": 0.1,
+                    "SeaLiceResistance": 0.1,
+                    "FilletQuality": 0,
+                    "FeedConversion": 0.1,
+                    "StressTolerance": 0,
+                    "LateMaturation": 0,
+                    "ColdTolerance": 0
+                  },
+                  "Generation": 0,
+                  "HasMutation": false,
+                  "MutatedTraits": [],
+                  "InbreedingCoefficient": 0
+                },
+                "Quality": "Standard",
+                "WeightCv": 0.1858563702805948
+              }
+            ],
+            "TotalCount": 99655,
+            "ZoneId": "",
+            "HasRecentTreatment": false,
+            "TreatmentIntensity": 0,
+            "TreatmentHarm": {
+              "InjuryLoad": 0,
+              "GillDamage": 0,
+              "CumulativeWelfareCost": 0,
+              "DaysSinceLastTreatment": 999,
+              "TreatmentsToDate": 0
+            },
+            "SeaLiceLoad": 0.09,
+            "VaccinatedDay": -1,
+            "SiteId": "offshore_1",
+            "Ration": {
+              "FractionOfAppetite": 1
+            },
+            "FastingSinceDay": -1,
+            "FastingDegreeDays": 0,
+            "ColdExposure": 0.15351827510938593,
+            "GrowthPenalty": 0
+          }
+        ],
+        "SeaLicePressure": 0.3,
+        "WaterFlowRate": 0.8,
+        "OxygenBoost": 1.5,
+        "FCR": 1.12,
+        "MaxWaveHeightM": 12,
+        "CurrentWaveHeight": 0.5,
+        "StructuralIntegrity": 1,
+        "IsStormLockdown": true,
+        "DaysSinceCrewRotation": 10,
+        "CrewRotationDays": 14,
+        "CAPEX": 700000000,
+        "ConstructionProgress": 1,
+        "ConstructionDays": 20,
+        "ConstructionStartDay": 0,
+        "IsOperational": true,
+        "EmployeeCount": 25,
+        "CarbonTracker": {
+          "SourceId": "",
+          "Emissions": [
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "offshore_1",
+              "KgCO2e": 536,
+              "Day": 20
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "offshore_1",
+              "KgCO2e": 7.5,
+              "Day": 20
+            },
+            {
+              "Category": "Scope3_Transport",
+              "Source": "offshore_1_crew",
+              "KgCO2e": 2100,
+              "Day": 20
+            },
+            {
+              "Category": "Scope3_Transport",
+              "Source": "offshore_1_vessel",
+              "KgCO2e": 411.4285714285714,
+              "Day": 20
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "offshore_1",
+              "KgCO2e": 590.2512266251657,
+              "Day": 21
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "offshore_1",
+              "KgCO2e": 8.107289850281706,
+              "Day": 21
+            },
+            {
+              "Category": "Scope3_Transport",
+              "Source": "offshore_1_vessel",
+              "KgCO2e": 411.4285714285714,
+              "Day": 21
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "offshore_1",
+              "KgCO2e": 590.9208732262773,
+              "Day": 22
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "offshore_1",
+              "KgCO2e": 8.114785894324,
+              "Day": 22
+            },
+            {
+              "Category": "Scope3_Transport",
+              "Source": "offshore_1_vessel",
+              "KgCO2e": 411.4285714285714,
+              "Day": 22
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "offshore_1",
+              "KgCO2e": 591.6651239340083,
+              "Day": 23
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "offshore_1",
+              "KgCO2e": 8.123117058962777,
+              "Day": 23
+            },
+            {
+              "Category": "Scope3_Transport",
+              "Source": "offshore_1_vessel",
+              "KgCO2e": 411.4285714285714,
+              "Day": 23
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "offshore_1",
+              "KgCO2e": 592.4167190035793,
+              "Day": 24
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "offshore_1",
+              "KgCO2e": 8.131530436607228,
+              "Day": 24
+            },
+            {
+              "Category": "Scope3_Transport",
+              "Source": "offshore_1_vessel",
+              "KgCO2e": 411.4285714285714,
+              "Day": 24
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "offshore_1",
+              "KgCO2e": 593.1839371017212,
+              "Day": 25
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "offshore_1",
+              "KgCO2e": 8.140118698899864,
+              "Day": 25
+            },
+            {
+              "Category": "Scope3_Transport",
+              "Source": "offshore_1_vessel",
+              "KgCO2e": 411.4285714285714,
+              "Day": 25
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "offshore_1",
+              "KgCO2e": 593.9518894993738,
+              "Day": 26
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "offshore_1",
+              "KgCO2e": 8.148715180963139,
+              "Day": 26
+            },
+            {
+              "Category": "Scope3_Transport",
+              "Source": "offshore_1_vessel",
+              "KgCO2e": 411.4285714285714,
+              "Day": 26
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "offshore_1",
+              "KgCO2e": 594.628162748488,
+              "Day": 27
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "offshore_1",
+              "KgCO2e": 8.156285403900984,
+              "Day": 27
+            },
+            {
+              "Category": "Scope3_Transport",
+              "Source": "offshore_1_vessel",
+              "KgCO2e": 411.4285714285714,
+              "Day": 27
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "offshore_1",
+              "KgCO2e": 595.3633852001688,
+              "Day": 28
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "offshore_1",
+              "KgCO2e": 8.16451550597204,
+              "Day": 28
+            },
+            {
+              "Category": "Scope3_Transport",
+              "Source": "offshore_1_vessel",
+              "KgCO2e": 411.4285714285714,
+              "Day": 28
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "offshore_1",
+              "KgCO2e": 596.1209554301049,
+              "Day": 29
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "offshore_1",
+              "KgCO2e": 8.172995769739979,
+              "Day": 29
+            },
+            {
+              "Category": "Scope3_Transport",
+              "Source": "offshore_1_vessel",
+              "KgCO2e": 411.4285714285714,
+              "Day": 29
+            },
+            {
+              "Category": "Scope1_Fuel",
+              "Source": "offshore_1",
+              "KgCO2e": 596.8773937695503,
+              "Day": 30
+            },
+            {
+              "Category": "Scope2_Electricity",
+              "Source": "offshore_1",
+              "KgCO2e": 8.18146336309198,
+              "Day": 30
+            },
+            {
+              "Category": "Scope3_Transport",
+              "Source": "offshore_1_vessel",
+              "KgCO2e": 411.4285714285714,
+              "Day": 30
+            }
+          ],
+          "Credits": []
+        }
+      }
+    ],
+    "PostSmoltFacilities": [
+      {
+        "Id": "postsmolt_1",
+        "Name": "Fixture Post-smolt",
+        "ZoneId": "",
+        "AnnualSmoltCapacity": 10000000,
+        "TargetTransferWeightG": 300,
+        "Batches": [
+          {
+            "Id": "postsmolt_1_batch_1",
+            "Count": 149750,
+            "AverageWeightG": 93.99301335271252,
+            "DegreeDays": 130,
+            "DaysInFacility": 10,
+            "TotalFeedConsumedKg": 1868.7734221146231,
+            "VaccinationComplete": false,
+            "IsReadyForTransfer": false,
+            "StartDay": 21
+          },
+          {
+            "Id": "postsmolt_1_batch_2",
+            "Count": 149750,
+            "AverageWeightG": 93.99301335271252,
+            "DegreeDays": 130,
+            "DaysInFacility": 10,
+            "TotalFeedConsumedKg": 1868.7734221146231,
+            "VaccinationComplete": false,
+            "IsReadyForTransfer": false,
+            "StartDay": 21
+          }
+        ],
+        "TankSections": 8,
+        "WaterTemp": 13,
+        "DailyGrowthRate": 0.015,
+        "SurvivalRate": 0.97,
+        "FCR": 0.95,
+        "PhotoperiodHours": 16,
+        "ShortDayApplied": false,
+        "ShortDayDuration": 42,
+        "VaccinationCompleted": false,
+        "VaccinationCostPerFish": 3.5,
+        "VaccinationRecoveryDays": 400,
+        "CAPEX": 250000000,
+        "ConstructionProgress": 1,
+        "ConstructionDays": 20,
+        "ConstructionStartDay": 0,
+        "IsOperational": true,
+        "EmployeeCount": 20
+      }
+    ],
+    "OwnsAIFeedingSystem": true,
+    "AIFeedingCalibration": 0.5,
+    "AIFeedingDaysSinceInstall": 0,
+    "Populations": [
+      {
+        "Id": "00000000-0000-4000-8000-000000000001",
+        "Cohorts": [
+          {
+            "AgeDays": 441,
+            "Count": 11871,
+            "MeanWeightKg": 0.7054268477901616,
+            "Stage": "Seawater",
+            "Genetics": {
+              "TraitValues": {
+                "GrowthRate": 0.05,
+                "DiseaseResistance": 0.6,
+                "SeaLiceResistance": 0.5,
+                "FilletQuality": 0,
+                "FeedConversion": 0,
+                "StressTolerance": 0,
+                "LateMaturation": 0,
+                "ColdTolerance": 0
+              },
+              "Generation": 0,
+              "HasMutation": false,
+              "MutatedTraits": [],
+              "InbreedingCoefficient": 0
+            },
+            "Quality": "Standard",
+            "WeightCv": 0.2234019449843339
+          }
+        ],
+        "TotalCount": 11871,
+        "ZoneId": "po3_nord",
+        "HasRecentTreatment": false,
+        "TreatmentIntensity": 0,
+        "TreatmentHarm": {
+          "InjuryLoad": 0,
+          "GillDamage": 0,
+          "CumulativeWelfareCost": 0,
+          "DaysSinceLastTreatment": 1030,
+          "TreatmentsToDate": 0
+        },
+        "SeaLiceLoad": 0.10017258683693213,
+        "VaccinatedDay": -1,
+        "SiteId": "po3_nord",
+        "Ration": {
+          "FractionOfAppetite": 1
+        },
+        "FastingSinceDay": -1,
+        "FastingDegreeDays": 0,
+        "ColdExposure": 0.31667856207231226,
+        "GrowthPenalty": 0
+      },
+      {
+        "Id": "00000000-0000-4000-8000-000000000002",
+        "Cohorts": [
+          {
+            "AgeDays": 441,
+            "Count": 11871,
+            "MeanWeightKg": 0.7054268477901616,
+            "Stage": "Seawater",
+            "Genetics": {
+              "TraitValues": {
+                "GrowthRate": 0.05,
+                "DiseaseResistance": 0.6,
+                "SeaLiceResistance": 0.5,
+                "FilletQuality": 0,
+                "FeedConversion": 0,
+                "StressTolerance": 0,
+                "LateMaturation": 0,
+                "ColdTolerance": 0
+              },
+              "Generation": 0,
+              "HasMutation": false,
+              "MutatedTraits": [],
+              "InbreedingCoefficient": 0
+            },
+            "Quality": "Standard",
+            "WeightCv": 0.2234019449843339
+          }
+        ],
+        "TotalCount": 11871,
+        "ZoneId": "po3_nord",
+        "HasRecentTreatment": false,
+        "TreatmentIntensity": 0,
+        "TreatmentHarm": {
+          "InjuryLoad": 0,
+          "GillDamage": 0,
+          "CumulativeWelfareCost": 0,
+          "DaysSinceLastTreatment": 1030,
+          "TreatmentsToDate": 0
+        },
+        "SeaLiceLoad": 0.10017258683693213,
+        "VaccinatedDay": -1,
+        "SiteId": "po3_nord",
+        "Ration": {
+          "FractionOfAppetite": 1
+        },
+        "FastingSinceDay": -1,
+        "FastingDegreeDays": 0,
+        "ColdExposure": 0.31667856207231226,
+        "GrowthPenalty": 0
+      },
+      {
+        "Id": "00000000-0000-4000-8000-000000000003",
+        "Cohorts": [
+          {
+            "AgeDays": 441,
+            "Count": 11871,
+            "MeanWeightKg": 0.7054268477901616,
+            "Stage": "Seawater",
+            "Genetics": {
+              "TraitValues": {
+                "GrowthRate": 0.05,
+                "DiseaseResistance": 0.6,
+                "SeaLiceResistance": 0.5,
+                "FilletQuality": 0,
+                "FeedConversion": 0,
+                "StressTolerance": 0,
+                "LateMaturation": 0,
+                "ColdTolerance": 0
+              },
+              "Generation": 0,
+              "HasMutation": false,
+              "MutatedTraits": [],
+              "InbreedingCoefficient": 0
+            },
+            "Quality": "Standard",
+            "WeightCv": 0.2234019449843339
+          }
+        ],
+        "TotalCount": 11871,
+        "ZoneId": "po3_nord",
+        "HasRecentTreatment": false,
+        "TreatmentIntensity": 0,
+        "TreatmentHarm": {
+          "InjuryLoad": 0,
+          "GillDamage": 0,
+          "CumulativeWelfareCost": 0,
+          "DaysSinceLastTreatment": 1030,
+          "TreatmentsToDate": 0
+        },
+        "SeaLiceLoad": 0.10017258683693213,
+        "VaccinatedDay": -1,
+        "SiteId": "po3_nord",
+        "Ration": {
+          "FractionOfAppetite": 1
+        },
+        "FastingSinceDay": -1,
+        "FastingDegreeDays": 0,
+        "ColdExposure": 0.31667856207231226,
+        "GrowthPenalty": 0
+      },
+      {
+        "Id": "00000000-0000-4000-8000-000000000004",
+        "Cohorts": [
+          {
+            "AgeDays": 441,
+            "Count": 11871,
+            "MeanWeightKg": 0.7054268477901616,
+            "Stage": "Seawater",
+            "Genetics": {
+              "TraitValues": {
+                "GrowthRate": 0.05,
+                "DiseaseResistance": 0.6,
+                "SeaLiceResistance": 0.5,
+                "FilletQuality": 0,
+                "FeedConversion": 0,
+                "StressTolerance": 0,
+                "LateMaturation": 0,
+                "ColdTolerance": 0
+              },
+              "Generation": 0,
+              "HasMutation": false,
+              "MutatedTraits": [],
+              "InbreedingCoefficient": 0
+            },
+            "Quality": "Standard",
+            "WeightCv": 0.2234019449843339
+          }
+        ],
+        "TotalCount": 11871,
+        "ZoneId": "po3_nord",
+        "HasRecentTreatment": false,
+        "TreatmentIntensity": 0,
+        "TreatmentHarm": {
+          "InjuryLoad": 0,
+          "GillDamage": 0,
+          "CumulativeWelfareCost": 0,
+          "DaysSinceLastTreatment": 1030,
+          "TreatmentsToDate": 0
+        },
+        "SeaLiceLoad": 0.10017258683693213,
+        "VaccinatedDay": -1,
+        "SiteId": "po3_nord",
+        "Ration": {
+          "FractionOfAppetite": 1
+        },
+        "FastingSinceDay": -1,
+        "FastingDegreeDays": 0,
+        "ColdExposure": 0.31667856207231226,
+        "GrowthPenalty": 0
+      },
+      {
+        "Id": "00000000-0000-4000-8000-000000000005",
+        "Cohorts": [
+          {
+            "AgeDays": 441,
+            "Count": 11871,
+            "MeanWeightKg": 0.7054268477901616,
+            "Stage": "Seawater",
+            "Genetics": {
+              "TraitValues": {
+                "GrowthRate": 0.05,
+                "DiseaseResistance": 0.6,
+                "SeaLiceResistance": 0.5,
+                "FilletQuality": 0,
+                "FeedConversion": 0,
+                "StressTolerance": 0,
+                "LateMaturation": 0,
+                "ColdTolerance": 0
+              },
+              "Generation": 0,
+              "HasMutation": false,
+              "MutatedTraits": [],
+              "InbreedingCoefficient": 0
+            },
+            "Quality": "Standard",
+            "WeightCv": 0.2234019449843339
+          }
+        ],
+        "TotalCount": 11871,
+        "ZoneId": "po3_nord",
+        "HasRecentTreatment": false,
+        "TreatmentIntensity": 0,
+        "TreatmentHarm": {
+          "InjuryLoad": 0,
+          "GillDamage": 0,
+          "CumulativeWelfareCost": 0,
+          "DaysSinceLastTreatment": 1030,
+          "TreatmentsToDate": 0
+        },
+        "SeaLiceLoad": 0.10017258683693213,
+        "VaccinatedDay": -1,
+        "SiteId": "po3_nord",
+        "Ration": {
+          "FractionOfAppetite": 1
+        },
+        "FastingSinceDay": -1,
+        "FastingDegreeDays": 0,
+        "ColdExposure": 0.31667856207231226,
+        "GrowthPenalty": 0
+      },
+      {
+        "Id": "00000000-0000-4000-8000-000000000006",
+        "Cohorts": [
+          {
+            "AgeDays": 441,
+            "Count": 11871,
+            "MeanWeightKg": 0.7054268477901616,
+            "Stage": "Seawater",
+            "Genetics": {
+              "TraitValues": {
+                "GrowthRate": 0.05,
+                "DiseaseResistance": 0.6,
+                "SeaLiceResistance": 0.5,
+                "FilletQuality": 0,
+                "FeedConversion": 0,
+                "StressTolerance": 0,
+                "LateMaturation": 0,
+                "ColdTolerance": 0
+              },
+              "Generation": 0,
+              "HasMutation": false,
+              "MutatedTraits": [],
+              "InbreedingCoefficient": 0
+            },
+            "Quality": "Standard",
+            "WeightCv": 0.2234019449843339
+          }
+        ],
+        "TotalCount": 11871,
+        "ZoneId": "po3_nord",
+        "HasRecentTreatment": false,
+        "TreatmentIntensity": 0,
+        "TreatmentHarm": {
+          "InjuryLoad": 0,
+          "GillDamage": 0,
+          "CumulativeWelfareCost": 0,
+          "DaysSinceLastTreatment": 1030,
+          "TreatmentsToDate": 0
+        },
+        "SeaLiceLoad": 0.10017258683693213,
+        "VaccinatedDay": -1,
+        "SiteId": "po3_nord",
+        "Ration": {
+          "FractionOfAppetite": 1
+        },
+        "FastingSinceDay": -1,
+        "FastingDegreeDays": 0,
+        "ColdExposure": 0.31667856207231226,
+        "GrowthPenalty": 0
+      },
+      {
+        "Id": "00000000-0000-4000-8000-000000000007",
+        "Cohorts": [
+          {
+            "AgeDays": 441,
+            "Count": 9902,
+            "MeanWeightKg": 0.6480475030859516,
+            "Stage": "Seawater",
+            "Genetics": {
+              "TraitValues": {
+                "GrowthRate": 0.1,
+                "DiseaseResistance": 0.1,
+                "SeaLiceResistance": 0.1,
+                "FilletQuality": 0,
+                "FeedConversion": 0.1,
+                "StressTolerance": 0,
+                "LateMaturation": 0,
+                "ColdTolerance": 0
+              },
+              "Generation": 0,
+              "HasMutation": false,
+              "MutatedTraits": [],
+              "InbreedingCoefficient": 0
+            },
+            "Quality": "Standard",
+            "WeightCv": 0.2244712182738704
+          }
+        ],
+        "TotalCount": 9902,
+        "ZoneId": "po3_sor",
+        "HasRecentTreatment": false,
+        "TreatmentIntensity": 0,
+        "TreatmentHarm": {
+          "InjuryLoad": 0,
+          "GillDamage": 0,
+          "CumulativeWelfareCost": 0,
+          "DaysSinceLastTreatment": 1030,
+          "TreatmentsToDate": 0
+        },
+        "SeaLiceLoad": 0.1649746581029391,
+        "VaccinatedDay": -1,
+        "SiteId": "po3_sor",
+        "Ration": {
+          "FractionOfAppetite": 1
+        },
+        "FastingSinceDay": -1,
+        "FastingDegreeDays": 0,
+        "ColdExposure": 0.31667856207231226,
+        "GrowthPenalty": 0
+      },
+      {
+        "Id": "00000000-0000-4000-8000-000000000008",
+        "Cohorts": [
+          {
+            "AgeDays": 441,
+            "Count": 9902,
+            "MeanWeightKg": 0.6480475030859516,
+            "Stage": "Seawater",
+            "Genetics": {
+              "TraitValues": {
+                "GrowthRate": 0.1,
+                "DiseaseResistance": 0.1,
+                "SeaLiceResistance": 0.1,
+                "FilletQuality": 0,
+                "FeedConversion": 0.1,
+                "StressTolerance": 0,
+                "LateMaturation": 0,
+                "ColdTolerance": 0
+              },
+              "Generation": 0,
+              "HasMutation": false,
+              "MutatedTraits": [],
+              "InbreedingCoefficient": 0
+            },
+            "Quality": "Standard",
+            "WeightCv": 0.2244712182738704
+          }
+        ],
+        "TotalCount": 9902,
+        "ZoneId": "po3_sor",
+        "HasRecentTreatment": false,
+        "TreatmentIntensity": 0,
+        "TreatmentHarm": {
+          "InjuryLoad": 0,
+          "GillDamage": 0,
+          "CumulativeWelfareCost": 0,
+          "DaysSinceLastTreatment": 1030,
+          "TreatmentsToDate": 0
+        },
+        "SeaLiceLoad": 0.1649746581029391,
+        "VaccinatedDay": -1,
+        "SiteId": "po3_sor",
+        "Ration": {
+          "FractionOfAppetite": 1
+        },
+        "FastingSinceDay": -1,
+        "FastingDegreeDays": 0,
+        "ColdExposure": 0.31667856207231226,
+        "GrowthPenalty": 0
+      },
+      {
+        "Id": "00000000-0000-4000-8000-000000000009",
+        "Cohorts": [
+          {
+            "AgeDays": 441,
+            "Count": 9902,
+            "MeanWeightKg": 0.6480475030859516,
+            "Stage": "Seawater",
+            "Genetics": {
+              "TraitValues": {
+                "GrowthRate": 0.1,
+                "DiseaseResistance": 0.1,
+                "SeaLiceResistance": 0.1,
+                "FilletQuality": 0,
+                "FeedConversion": 0.1,
+                "StressTolerance": 0,
+                "LateMaturation": 0,
+                "ColdTolerance": 0
+              },
+              "Generation": 0,
+              "HasMutation": false,
+              "MutatedTraits": [],
+              "InbreedingCoefficient": 0
+            },
+            "Quality": "Standard",
+            "WeightCv": 0.2244712182738704
+          }
+        ],
+        "TotalCount": 9902,
+        "ZoneId": "po3_sor",
+        "HasRecentTreatment": false,
+        "TreatmentIntensity": 0,
+        "TreatmentHarm": {
+          "InjuryLoad": 0,
+          "GillDamage": 0,
+          "CumulativeWelfareCost": 0,
+          "DaysSinceLastTreatment": 1030,
+          "TreatmentsToDate": 0
+        },
+        "SeaLiceLoad": 0.1649746581029391,
+        "VaccinatedDay": -1,
+        "SiteId": "po3_sor",
+        "Ration": {
+          "FractionOfAppetite": 1
+        },
+        "FastingSinceDay": -1,
+        "FastingDegreeDays": 0,
+        "ColdExposure": 0.31667856207231226,
+        "GrowthPenalty": 0
+      },
+      {
+        "Id": "00000000-0000-4000-8000-00000000000a",
+        "Cohorts": [
+          {
+            "AgeDays": 441,
+            "Count": 9902,
+            "MeanWeightKg": 0.6480475030859516,
+            "Stage": "Seawater",
+            "Genetics": {
+              "TraitValues": {
+                "GrowthRate": 0.1,
+                "DiseaseResistance": 0.1,
+                "SeaLiceResistance": 0.1,
+                "FilletQuality": 0,
+                "FeedConversion": 0.1,
+                "StressTolerance": 0,
+                "LateMaturation": 0,
+                "ColdTolerance": 0
+              },
+              "Generation": 0,
+              "HasMutation": false,
+              "MutatedTraits": [],
+              "InbreedingCoefficient": 0
+            },
+            "Quality": "Standard",
+            "WeightCv": 0.2244712182738704
+          }
+        ],
+        "TotalCount": 9902,
+        "ZoneId": "po3_sor",
+        "HasRecentTreatment": false,
+        "TreatmentIntensity": 0,
+        "TreatmentHarm": {
+          "InjuryLoad": 0,
+          "GillDamage": 0,
+          "CumulativeWelfareCost": 0,
+          "DaysSinceLastTreatment": 1030,
+          "TreatmentsToDate": 0
+        },
+        "SeaLiceLoad": 0.1649746581029391,
+        "VaccinatedDay": -1,
+        "SiteId": "po3_sor",
+        "Ration": {
+          "FractionOfAppetite": 1
+        },
+        "FastingSinceDay": -1,
+        "FastingDegreeDays": 0,
+        "ColdExposure": 0.31667856207231226,
+        "GrowthPenalty": 0
+      },
+      {
+        "Id": "00000000-0000-4000-8000-00000000000b",
+        "Cohorts": [
+          {
+            "AgeDays": 375,
+            "Count": 19935,
+            "MeanWeightKg": 0.13107080506190563,
+            "Stage": "Seawater",
+            "Genetics": {
+              "TraitValues": {
+                "GrowthRate": 0.1,
+                "DiseaseResistance": 0.1,
+                "SeaLiceResistance": 0.1,
+                "FilletQuality": 0,
+                "FeedConversion": 0.1,
+                "StressTolerance": 0,
+                "LateMaturation": 0,
+                "ColdTolerance": 0
+              },
+              "Generation": 0,
+              "HasMutation": false,
+              "MutatedTraits": [],
+              "InbreedingCoefficient": 0
+            },
+            "Quality": "Standard",
+            "WeightCv": 0.1916011972773704
+          }
+        ],
+        "TotalCount": 19935,
+        "ZoneId": "",
+        "HasRecentTreatment": false,
+        "TreatmentIntensity": 0,
+        "TreatmentHarm": {
+          "InjuryLoad": 0,
+          "GillDamage": 0,
+          "CumulativeWelfareCost": 0,
+          "DaysSinceLastTreatment": 999,
+          "TreatmentsToDate": 0
+        },
+        "SeaLiceLoad": 0,
+        "VaccinatedDay": -1,
+        "SiteId": "ras_1",
+        "Ration": {
+          "FractionOfAppetite": 1
+        },
+        "FastingSinceDay": -1,
+        "FastingDegreeDays": 0,
+        "ColdExposure": 0,
+        "GrowthPenalty": 0
+      },
+      {
+        "Id": "00000000-0000-4000-8000-00000000000c",
+        "Cohorts": [
+          {
+            "AgeDays": 375,
+            "Count": 19935,
+            "MeanWeightKg": 0.13107080506190563,
+            "Stage": "Seawater",
+            "Genetics": {
+              "TraitValues": {
+                "GrowthRate": 0.1,
+                "DiseaseResistance": 0.1,
+                "SeaLiceResistance": 0.1,
+                "FilletQuality": 0,
+                "FeedConversion": 0.1,
+                "StressTolerance": 0,
+                "LateMaturation": 0,
+                "ColdTolerance": 0
+              },
+              "Generation": 0,
+              "HasMutation": false,
+              "MutatedTraits": [],
+              "InbreedingCoefficient": 0
+            },
+            "Quality": "Standard",
+            "WeightCv": 0.1916011972773704
+          }
+        ],
+        "TotalCount": 19935,
+        "ZoneId": "",
+        "HasRecentTreatment": false,
+        "TreatmentIntensity": 0,
+        "TreatmentHarm": {
+          "InjuryLoad": 0,
+          "GillDamage": 0,
+          "CumulativeWelfareCost": 0,
+          "DaysSinceLastTreatment": 999,
+          "TreatmentsToDate": 0
+        },
+        "SeaLiceLoad": 0,
+        "VaccinatedDay": -1,
+        "SiteId": "ras_1",
+        "Ration": {
+          "FractionOfAppetite": 1
+        },
+        "FastingSinceDay": -1,
+        "FastingDegreeDays": 0,
+        "ColdExposure": 0,
+        "GrowthPenalty": 0
+      },
+      {
+        "Id": "00000000-0000-4000-8000-00000000000d",
+        "Cohorts": [
+          {
+            "AgeDays": 375,
+            "Count": 99655,
+            "MeanWeightKg": 0.11397042514876,
+            "Stage": "Seawater",
+            "Genetics": {
+              "TraitValues": {
+                "GrowthRate": 0.1,
+                "DiseaseResistance": 0.1,
+                "SeaLiceResistance": 0.1,
+                "FilletQuality": 0,
+                "FeedConversion": 0.1,
+                "StressTolerance": 0,
+                "LateMaturation": 0,
+                "ColdTolerance": 0
+              },
+              "Generation": 0,
+              "HasMutation": false,
+              "MutatedTraits": [],
+              "InbreedingCoefficient": 0
+            },
+            "Quality": "Standard",
+            "WeightCv": 0.1858563702805948
+          }
+        ],
+        "TotalCount": 99655,
+        "ZoneId": "",
+        "HasRecentTreatment": false,
+        "TreatmentIntensity": 0,
+        "TreatmentHarm": {
+          "InjuryLoad": 0,
+          "GillDamage": 0,
+          "CumulativeWelfareCost": 0,
+          "DaysSinceLastTreatment": 999,
+          "TreatmentsToDate": 0
+        },
+        "SeaLiceLoad": 0.09,
+        "VaccinatedDay": -1,
+        "SiteId": "offshore_1",
+        "Ration": {
+          "FractionOfAppetite": 1
+        },
+        "FastingSinceDay": -1,
+        "FastingDegreeDays": 0,
+        "ColdExposure": 0.15351827510938593,
+        "GrowthPenalty": 0
+      },
+      {
+        "Id": "00000000-0000-4000-8000-00000000000e",
+        "Cohorts": [
+          {
+            "AgeDays": 375,
+            "Count": 99655,
+            "MeanWeightKg": 0.11397042514876,
+            "Stage": "Seawater",
+            "Genetics": {
+              "TraitValues": {
+                "GrowthRate": 0.1,
+                "DiseaseResistance": 0.1,
+                "SeaLiceResistance": 0.1,
+                "FilletQuality": 0,
+                "FeedConversion": 0.1,
+                "StressTolerance": 0,
+                "LateMaturation": 0,
+                "ColdTolerance": 0
+              },
+              "Generation": 0,
+              "HasMutation": false,
+              "MutatedTraits": [],
+              "InbreedingCoefficient": 0
+            },
+            "Quality": "Standard",
+            "WeightCv": 0.1858563702805948
+          }
+        ],
+        "TotalCount": 99655,
+        "ZoneId": "",
+        "HasRecentTreatment": false,
+        "TreatmentIntensity": 0,
+        "TreatmentHarm": {
+          "InjuryLoad": 0,
+          "GillDamage": 0,
+          "CumulativeWelfareCost": 0,
+          "DaysSinceLastTreatment": 999,
+          "TreatmentsToDate": 0
+        },
+        "SeaLiceLoad": 0.09,
+        "VaccinatedDay": -1,
+        "SiteId": "offshore_1",
+        "Ration": {
+          "FractionOfAppetite": 1
+        },
+        "FastingSinceDay": -1,
+        "FastingDegreeDays": 0,
+        "ColdExposure": 0.15351827510938593,
+        "GrowthPenalty": 0
+      },
+      {
+        "Id": "00000000-0000-4000-8000-00000000000f",
+        "Cohorts": [
+          {
+            "AgeDays": 10,
+            "Count": 49470,
+            "MeanWeightKg": 0.00011155705978031097,
+            "Stage": "Egg",
+            "Genetics": {
+              "TraitValues": {
+                "GrowthRate": 0.1,
+                "DiseaseResistance": 0.1,
+                "SeaLiceResistance": 0.1,
+                "FilletQuality": 0,
+                "FeedConversion": 0.1,
+                "StressTolerance": 0,
+                "LateMaturation": 0,
+                "ColdTolerance": 0
+              },
+              "Generation": 0,
+              "HasMutation": false,
+              "MutatedTraits": [],
+              "InbreedingCoefficient": 0
+            },
+            "Quality": "Standard",
+            "WeightCv": 0.1849308281833001
+          }
+        ],
+        "TotalCount": 49470,
+        "ZoneId": "",
+        "HasRecentTreatment": false,
+        "TreatmentIntensity": 0,
+        "TreatmentHarm": {
+          "InjuryLoad": 0,
+          "GillDamage": 0,
+          "CumulativeWelfareCost": 0,
+          "DaysSinceLastTreatment": 999,
+          "TreatmentsToDate": 0
+        },
+        "SeaLiceLoad": 0.3,
+        "VaccinatedDay": -1,
+        "SiteId": "",
+        "Ration": {
+          "FractionOfAppetite": 1
+        },
+        "FastingSinceDay": -1,
+        "FastingDegreeDays": 0,
+        "ColdExposure": 0.15351827510938593,
+        "GrowthPenalty": 0
+      }
+    ],
+    "GrowthState": {},
+    "MortalityState": {
+      "DiseaseRates": {
+        "00000000-0000-4000-8000-000000000001": 8.526291769117567E-05,
+        "00000000-0000-4000-8000-000000000002": 8.526291769117567E-05,
+        "00000000-0000-4000-8000-000000000003": 8.526291769117567E-05,
+        "00000000-0000-4000-8000-000000000004": 8.526291769117567E-05,
+        "00000000-0000-4000-8000-000000000005": 8.526291769117567E-05,
+        "00000000-0000-4000-8000-000000000006": 8.526291769117567E-05,
+        "00000000-0000-4000-8000-000000000007": 8.526291769117567E-05,
+        "00000000-0000-4000-8000-000000000008": 8.526291769117567E-05,
+        "00000000-0000-4000-8000-000000000009": 8.526291769117567E-05,
+        "00000000-0000-4000-8000-00000000000a": 8.526291769117567E-05,
+        "00000000-0000-4000-8000-00000000000b": 8.526291769117567E-05,
+        "00000000-0000-4000-8000-00000000000c": 8.526291769117567E-05,
+        "00000000-0000-4000-8000-00000000000d": 8.526291769117567E-05,
+        "00000000-0000-4000-8000-00000000000e": 8.526291769117567E-05,
+        "00000000-0000-4000-8000-00000000000f": 8.526291769117567E-05
+      },
+      "StressStates": {},
+      "Ledger": {
+        "Day": 31,
+        "PriceNokPerKg": 88,
+        "Deaths": [
+          {
+            "Key": "baseline_anchor",
+            "Fish": 2434,
+            "Kg": 606.849917180603,
+            "ValueNok": 53499.154901006874320646017929
+          },
+          {
+            "Key": "disease",
+            "Fish": 532,
+            "Kg": 208.2436318298586,
+            "ValueNok": 18362.205810370388648702824208
+          },
+          {
+            "Key": "storm",
+            "Fish": 50,
+            "Kg": 30.688361366388143,
+            "ValueNok": 2700.575800242154384
+          }
+        ],
+        "Removed": [],
+        "Sites": [
+          {
+            "SiteId": "",
+            "Deaths": [
+              {
+                "Key": "baseline_anchor",
+                "Fish": 490,
+                "Kg": 0.0515075747037989,
+                "ValueNok": 4.53266657393430232
+              },
+              {
+                "Key": "disease",
+                "Fish": 40,
+                "Kg": 0.004204699975820318,
+                "ValueNok": 0.370013597872188072
+              }
+            ],
+            "Removed": []
+          },
+          {
+            "SiteId": "offshore_1",
+            "Deaths": [
+              {
+                "Key": "baseline_anchor",
+                "Fish": 530,
+                "Kg": 55.961531721396604,
+                "ValueNok": 4924.61479148290256
+              },
+              {
+                "Key": "disease",
+                "Fish": 160,
+                "Kg": 16.987177240465538,
+                "ValueNok": 1494.871597160966992
+              }
+            ],
+            "Removed": []
+          },
+          {
+            "SiteId": "po3_nord",
+            "Deaths": [
+              {
+                "Key": "baseline_anchor",
+                "Fish": 558,
+                "Kg": 352.094010348182,
+                "ValueNok": 31052.762221924266440594853118
+              },
+              {
+                "Key": "disease",
+                "Fish": 186,
+                "Kg": 117.36467011606058,
+                "ValueNok": 10350.920740641417935765241805
+              },
+              {
+                "Key": "storm",
+                "Fish": 30,
+                "Kg": 19.075897194457923,
+                "ValueNok": 1678.678953112296432
+              }
+            ],
+            "Removed": []
+          },
+          {
+            "SiteId": "po3_sor",
+            "Deaths": [
+              {
+                "Key": "baseline_anchor",
+                "Fish": 248,
+                "Kg": 142.83340513250073,
+                "ValueNok": 12597.212529489583737731164809
+              },
+              {
+                "Key": "disease",
+                "Fish": 124,
+                "Kg": 71.41670256625036,
+                "ValueNok": 6298.6062647447926208655824042
+              },
+              {
+                "Key": "storm",
+                "Fish": 20,
+                "Kg": 11.612464171930204,
+                "ValueNok": 1021.896847129857952
+              }
+            ],
+            "Removed": []
+          },
+          {
+            "SiteId": "postsmolt_1",
+            "Deaths": [
+              {
+                "Key": "baseline_anchor",
+                "Fish": 500,
+                "Kg": 43.755076368289664,
+                "ValueNok": 3850.44672040949184
+              }
+            ],
+            "Removed": []
+          },
+          {
+            "SiteId": "ras_1",
+            "Deaths": [
+              {
+                "Key": "baseline_anchor",
+                "Fish": 108,
+                "Kg": 12.154386035530628,
+                "ValueNok": 1069.585971126695440
+              },
+              {
+                "Key": "disease",
+                "Fish": 22,
+                "Kg": 2.470877207106126,
+                "ValueNok": 217.437194225338912
+              }
+            ],
+            "Removed": []
+          }
+        ],
+        "History": [
+          {
+            "Day": 1,
+            "Deaths": [
+              {
+                "Key": "baseline_anchor",
+                "Fish": 26,
+                "Kg": 14.263818097243764,
+                "ValueNok": 1169.633083973988320
+              },
+              {
+                "Key": "disease",
+                "Fish": 10,
+                "Kg": 5.437348778793839,
+                "ValueNok": 445.8625998610945520
+              }
+            ],
+            "Removed": []
+          },
+          {
+            "Day": 2,
+            "Deaths": [
+              {
+                "Key": "baseline_anchor",
+                "Fish": 26,
+                "Kg": 14.36735405398896,
+                "ValueNok": 1234.0193661074575274790315270
+              },
+              {
+                "Key": "disease",
+                "Fish": 10,
+                "Kg": 5.477032903830413,
+                "ValueNok": 470.42514903834891508883748021
+              }
+            ],
+            "Removed": []
+          },
+          {
+            "Day": 3,
+            "Deaths": [
+              {
+                "Key": "baseline_anchor",
+                "Fish": 26,
+                "Kg": 14.478319942871362,
+                "ValueNok": 1274.09215497268144
+              },
+              {
+                "Key": "disease",
+                "Fish": 10,
+                "Kg": 5.519566012373057,
+                "ValueNok": 485.721809088828928
+              }
+            ],
+            "Removed": []
+          },
+          {
+            "Day": 4,
+            "Deaths": [
+              {
+                "Key": "baseline_anchor",
+                "Fish": 26,
+                "Kg": 14.592517292888555,
+                "ValueNok": 1284.14152177418976
+              },
+              {
+                "Key": "disease",
+                "Fish": 10,
+                "Kg": 5.563338995466092,
+                "ValueNok": 489.573831601016272
+              }
+            ],
+            "Removed": []
+          },
+          {
+            "Day": 5,
+            "Deaths": [
+              {
+                "Key": "baseline_anchor",
+                "Fish": 26,
+                "Kg": 14.697977975868655,
+                "ValueNok": 1293.42206187644208
+              },
+              {
+                "Key": "disease",
+                "Fish": 10,
+                "Kg": 5.603764249766359,
+                "ValueNok": 493.131253979439328
+              }
+            ],
+            "Removed": []
+          },
+          {
+            "Day": 6,
+            "Deaths": [
+              {
+                "Key": "baseline_anchor",
+                "Fish": 26,
+                "Kg": 14.80023554849937,
+                "ValueNok": 1302.42072826794368
+              },
+              {
+                "Key": "disease",
+                "Fish": 10,
+                "Kg": 5.642962705393385,
+                "ValueNok": 496.580718074617968
+              }
+            ],
+            "Removed": []
+          },
+          {
+            "Day": 7,
+            "Deaths": [
+              {
+                "Key": "baseline_anchor",
+                "Fish": 26,
+                "Kg": 14.904104746355843,
+                "ValueNok": 1311.56121767931392
+              },
+              {
+                "Key": "disease",
+                "Fish": 10,
+                "Kg": 5.682779964417802,
+                "ValueNok": 500.084636868766576
+              }
+            ],
+            "Removed": []
+          },
+          {
+            "Day": 8,
+            "Deaths": [
+              {
+                "Key": "baseline_anchor",
+                "Fish": 26,
+                "Kg": 15.01342690424354,
+                "ValueNok": 1321.18156757343328
+              },
+              {
+                "Key": "disease",
+                "Fish": 10,
+                "Kg": 5.7246886612486305,
+                "ValueNok": 503.772602189879616
+              },
+              {
+                "Key": "storm",
+                "Fish": 10,
+                "Kg": 5.76450721886145,
+                "ValueNok": 507.276635259807424
+              }
+            ],
+            "Removed": []
+          },
+          {
+            "Day": 9,
+            "Deaths": [
+              {
+                "Key": "baseline_anchor",
+                "Fish": 26,
+                "Kg": 15.11729407247033,
+                "ValueNok": 1467.3385654668004591681437932
+              },
+              {
+                "Key": "disease",
+                "Fish": 10,
+                "Kg": 5.76450721886145,
+                "ValueNok": 559.52366293850548762976845873
+              }
+            ],
+            "Removed": []
+          },
+          {
+            "Day": 10,
+            "Deaths": [
+              {
+                "Key": "baseline_anchor",
+                "Fish": 26,
+                "Kg": 15.226938715728142,
+                "ValueNok": 1339.97060698407808
+              },
+              {
+                "Key": "disease",
+                "Fish": 10,
+                "Kg": 5.806541713802977,
+                "ValueNok": 510.975670814662240
+              }
+            ],
+            "Removed": []
+          },
+          {
+            "Day": 11,
+            "Deaths": [
+              {
+                "Key": "baseline_anchor",
+                "Fish": 26,
+                "Kg": 15.332692957694077,
+                "ValueNok": 1349.27698027707728
+              },
+              {
+                "Key": "disease",
+                "Fish": 10,
+                "Kg": 5.847085787954604,
+                "ValueNok": 514.543549340005152
+              }
+            ],
+            "Removed": []
+          },
+          {
+            "Day": 12,
+            "Deaths": [
+              {
+                "Key": "baseline_anchor",
+                "Fish": 26,
+                "Kg": 15.443935219843436,
+                "ValueNok": 1359.06629934622096
+              },
+              {
+                "Key": "disease",
+                "Fish": 10,
+                "Kg": 5.889734955184127,
+                "ValueNok": 518.296676056203088
+              }
+            ],
+            "Removed": []
+          },
+          {
+            "Day": 13,
+            "Deaths": [
+              {
+                "Key": "baseline_anchor",
+                "Fish": 26,
+                "Kg": 15.56513045352913,
+                "ValueNok": 1369.73147991056256
+              },
+              {
+                "Key": "disease",
+                "Fish": 10,
+                "Kg": 5.936201257620062,
+                "ValueNok": 522.385710670565456
+              },
+              {
+                "Key": "storm",
+                "Fish": 10,
+                "Kg": 5.9865139926643005,
+                "ValueNok": 526.813231354458224
+              }
+            ],
+            "Removed": []
+          },
+          {
+            "Day": 14,
+            "Deaths": [
+              {
+                "Key": "baseline_anchor",
+                "Fish": 26,
+                "Kg": 15.696354261809775,
+                "ValueNok": 1381.27917503926064
+              },
+              {
+                "Key": "disease",
+                "Fish": 10,
+                "Kg": 5.9865139926643005,
+                "ValueNok": 526.813231354458224
+              }
+            ],
+            "Removed": []
+          },
+          {
+            "Day": 15,
+            "Deaths": [
+              {
+                "Key": "baseline_anchor",
+                "Fish": 26,
+                "Kg": 15.826767193807116,
+                "ValueNok": 1392.75551305502656
+              },
+              {
+                "Key": "disease",
+                "Fish": 10,
+                "Kg": 6.036517329305922,
+                "ValueNok": 531.213524978920960
+              },
+              {
+                "Key": "storm",
+                "Fish": 10,
+                "Kg": 6.0782337609603125,
+                "ValueNok": 534.884570964507280
+              }
+            ],
+            "Removed": []
+          },
+          {
+            "Day": 16,
+            "Deaths": [
+              {
+                "Key": "baseline_anchor",
+                "Fish": 26,
+                "Kg": 15.935564221523096,
+                "ValueNok": 1477.5658527454265916788426047
+              },
+              {
+                "Key": "disease",
+                "Fish": 10,
+                "Kg": 6.0782337609603125,
+                "ValueNok": 563.58159180014019391221826943
+              }
+            ],
+            "Removed": []
+          },
+          {
+            "Day": 17,
+            "Deaths": [
+              {
+                "Key": "baseline_anchor",
+                "Fish": 26,
+                "Kg": 16.06035392073686,
+                "ValueNok": 1413.31114502484544
+              },
+              {
+                "Key": "disease",
+                "Fish": 10,
+                "Kg": 6.126083575815955,
+                "ValueNok": 539.095354671803952
+              }
+            ],
+            "Removed": []
+          },
+          {
+            "Day": 18,
+            "Deaths": [
+              {
+                "Key": "baseline_anchor",
+                "Fish": 26,
+                "Kg": 16.178148644644523,
+                "ValueNok": 1423.67708072871952
+              },
+              {
+                "Key": "disease",
+                "Fish": 10,
+                "Kg": 6.1712524315661526,
+                "ValueNok": 543.070213977821728
+              }
+            ],
+            "Removed": []
+          },
+          {
+            "Day": 19,
+            "Deaths": [
+              {
+                "Key": "baseline_anchor",
+                "Fish": 26,
+                "Kg": 16.30492654507444,
+                "ValueNok": 1434.83353596654896
+              },
+              {
+                "Key": "disease",
+                "Fish": 10,
+                "Kg": 6.219867232131347,
+                "ValueNok": 547.348316427558448
+              }
+            ],
+            "Removed": []
+          },
+          {
+            "Day": 20,
+            "Deaths": [
+              {
+                "Key": "baseline_anchor",
+                "Fish": 26,
+                "Kg": 16.432583194182826,
+                "ValueNok": 1446.06732108808992
+              },
+              {
+                "Key": "disease",
+                "Fish": 10,
+                "Kg": 6.268820359913295,
+                "ValueNok": 551.656191672369872
+              }
+            ],
+            "Removed": []
+          },
+          {
+            "Day": 21,
+            "Deaths": [
+              {
+                "Key": "baseline_anchor",
+                "Fish": 26,
+                "Kg": 16.553161996015454,
+                "ValueNok": 1456.67825564935872
+              },
+              {
+                "Key": "disease",
+                "Fish": 10,
+                "Kg": 6.315060549785508,
+                "ValueNok": 555.725328381124528
+              },
+              {
+                "Key": "storm",
+                "Fish": 10,
+                "Kg": 6.36281147731259,
+                "ValueNok": 559.927410003507920
+              }
+            ],
+            "Removed": []
+          },
+          {
+            "Day": 22,
+            "Deaths": [
+              {
+                "Key": "baseline_anchor",
+                "Fish": 241,
+                "Kg": 32.347577029484356,
+                "ValueNok": 2846.58677859462192
+              },
+              {
+                "Key": "disease",
+                "Fish": 34,
+                "Kg": 8.363211477312591,
+                "ValueNok": 735.962610003507920
+              }
+            ],
+            "Removed": []
+          },
+          {
+            "Day": 23,
+            "Deaths": [
+              {
+                "Key": "baseline_anchor",
+                "Fish": 183,
+                "Kg": 26.815184325032448,
+                "ValueNok": 2359.73622060285591504
+              },
+              {
+                "Key": "disease",
+                "Fish": 32,
+                "Kg": 8.232176782538732,
+                "ValueNok": 724.431556863408107648
+              }
+            ],
+            "Removed": []
+          },
+          {
+            "Day": 24,
+            "Deaths": [
+              {
+                "Key": "baseline_anchor",
+                "Fish": 183,
+                "Kg": 27.085454309155757,
+                "ValueNok": 2383.51997920570613640
+              },
+              {
+                "Key": "disease",
+                "Fish": 32,
+                "Kg": 8.301608638439543,
+                "ValueNok": 730.541560182680095080
+              },
+              {
+                "Key": "storm",
+                "Fish": 10,
+                "Kg": 6.496294916589469,
+                "ValueNok": 571.673952659873536
+              }
+            ],
+            "Removed": []
+          },
+          {
+            "Day": 25,
+            "Deaths": [
+              {
+                "Key": "baseline_anchor",
+                "Fish": 183,
+                "Kg": 27.375749862226577,
+                "ValueNok": 2409.06598787594217456
+              },
+              {
+                "Key": "disease",
+                "Fish": 32,
+                "Kg": 8.377881752125479,
+                "ValueNok": 737.253594187042610832
+              }
+            ],
+            "Removed": []
+          },
+          {
+            "Day": 26,
+            "Deaths": [
+              {
+                "Key": "baseline_anchor",
+                "Fish": 183,
+                "Kg": 27.669443689575107,
+                "ValueNok": 2434.91104468261218272
+              },
+              {
+                "Key": "disease",
+                "Fish": 32,
+                "Kg": 8.454843082391285,
+                "ValueNok": 744.026191250432628824
+              }
+            ],
+            "Removed": []
+          },
+          {
+            "Day": 27,
+            "Deaths": [
+              {
+                "Key": "baseline_anchor",
+                "Fish": 183,
+                "Kg": 27.967659726285632,
+                "ValueNok": 2461.1540559131372616
+              },
+              {
+                "Key": "disease",
+                "Fish": 32,
+                "Kg": 8.533056955005819,
+                "ValueNok": 750.909012040512114768
+              }
+            ],
+            "Removed": []
+          },
+          {
+            "Day": 28,
+            "Deaths": [
+              {
+                "Key": "baseline_anchor",
+                "Fish": 183,
+                "Kg": 28.267990586961112,
+                "ValueNok": 2487.58317165258009648
+              },
+              {
+                "Key": "disease",
+                "Fish": 32,
+                "Kg": 8.611418166853138,
+                "ValueNok": 757.804798683076502864
+              }
+            ],
+            "Removed": []
+          },
+          {
+            "Day": 29,
+            "Deaths": [
+              {
+                "Key": "baseline_anchor",
+                "Fish": 183,
+                "Kg": 28.546262506362236,
+                "ValueNok": 2512.07110055987727928
+              },
+              {
+                "Key": "disease",
+                "Fish": 32,
+                "Kg": 8.681271526419971,
+                "ValueNok": 763.951894324957301216
+              }
+            ],
+            "Removed": []
+          },
+          {
+            "Day": 30,
+            "Deaths": [
+              {
+                "Key": "baseline_anchor",
+                "Fish": 183,
+                "Kg": 28.84079800338014,
+                "ValueNok": 2537.99022429745096216
+              },
+              {
+                "Key": "disease",
+                "Fish": 32,
+                "Kg": 8.756515952807462,
+                "ValueNok": 770.573403847056735552
+              }
+            ],
+            "Removed": []
+          },
+          {
+            "Day": 31,
+            "Deaths": [
+              {
+                "Key": "baseline_anchor",
+                "Fish": 183,
+                "Kg": 29.14219118312075,
+                "ValueNok": 2564.51282411462469408
+              },
+              {
+                "Key": "disease",
+                "Fish": 32,
+                "Kg": 8.8337450591089,
+                "ValueNok": 777.369565201583147288
+              }
+            ],
+            "Removed": []
+          }
+        ]
+      }
+    },
+    "Broodstock": [],
+    "ProcessingSnapshots": [],
+    "EventLog": [
+      {
+        "Day": 0,
+        "Id": "",
+        "Name": "RAS-anlegg under bygging",
+        "Category": "Equipment",
+        "Description": "Fixture RAS er under bygging (5\u00A0000 t per \u00E5r)",
+        "BalanceChange": -500000000
+      },
+      {
+        "Day": 0,
+        "Id": "",
+        "Name": "Havmerd under bygging",
+        "Category": "Equipment",
+        "Description": "Fixture Offshore er under bygging (8\u00A0000 t kapasitet)",
+        "BalanceChange": -700000000
+      },
+      {
+        "Day": 0,
+        "Id": "",
+        "Name": "Postsmoltanlegg under bygging",
+        "Category": "Equipment",
+        "Description": "Fixture Post-smolt er under bygging (10\u00A0000\u00A0000 smolt per \u00E5r)",
+        "BalanceChange": -250000000
+      },
+      {
+        "Day": 7,
+        "Id": "",
+        "Name": "Trafikklys: gr\u00F8nn",
+        "Category": "Regulation",
+        "Description": "PO3 Nord \u2192 gr\u00F8nn (lus 0,10 per fisk, MTB \u00D71,06)",
+        "BalanceChange": 0
+      },
+      {
+        "Day": 7,
+        "Id": "",
+        "Name": "Trafikklys: gr\u00F8nn",
+        "Category": "Regulation",
+        "Description": "PO3 S\u00F8r \u2192 gr\u00F8nn (lus 0,15 per fisk, MTB \u00D71,06)",
+        "BalanceChange": 0
+      },
+      {
+        "Day": 8,
+        "Id": "",
+        "Name": "Storm Damage",
+        "Category": "Weather",
+        "Description": "Stormen skadet merdene og fort\u00F8yningene",
+        "BalanceChange": -31250
+      },
+      {
+        "Day": 13,
+        "Id": "",
+        "Name": "Storm Damage",
+        "Category": "Weather",
+        "Description": "Stormen skadet merdene og fort\u00F8yningene",
+        "BalanceChange": -31250
+      },
+      {
+        "Day": 15,
+        "Id": "",
+        "Name": "Storm Damage",
+        "Category": "Weather",
+        "Description": "Ekstremv\u00E6ret skadet merdene og fort\u00F8yningene",
+        "BalanceChange": -31250
+      },
+      {
+        "Day": 20,
+        "Id": "disease-impact",
+        "Name": "Sykdom i bestanden",
+        "Category": "Disease",
+        "Description": "Sykdomsutbrudd i en fiskegruppe. Anslagsvis 3\u00A0495 fisk er utsatt.",
+        "BalanceChange": 0
+      },
+      {
+        "Day": 20,
+        "Id": "disease-outbreak",
+        "Name": "Sykdomsutbrudd",
+        "Category": "Disease",
+        "Description": "En smittsom sykdom sprer seg mellom merdene \u2014 du m\u00E5 bestemme hvordan du svarer.",
+        "BalanceChange": -50000
+      },
+      {
+        "Day": 21,
+        "Id": "",
+        "Name": "Storm Damage",
+        "Category": "Weather",
+        "Description": "Stormen skadet merdene og fort\u00F8yningene",
+        "BalanceChange": -31250
+      },
+      {
+        "Day": 21,
+        "Id": "",
+        "Name": "Utsett av smolt",
+        "Category": "Equipment",
+        "Description": "Satte ut 20\u00A0000 smolt (Standard S1) i Fixture RAS",
+        "BalanceChange": -240000
+      },
+      {
+        "Day": 21,
+        "Id": "",
+        "Name": "Utsett av smolt",
+        "Category": "Equipment",
+        "Description": "Satte ut 20\u00A0000 smolt (Standard S1) i Fixture RAS",
+        "BalanceChange": -240000
+      },
+      {
+        "Day": 21,
+        "Id": "",
+        "Name": "Utsett av smolt",
+        "Category": "Equipment",
+        "Description": "Satte ut 100\u00A0000 smolt (Standard S1) i Fixture Offshore",
+        "BalanceChange": -1200000
+      },
+      {
+        "Day": 21,
+        "Id": "",
+        "Name": "Utsett av smolt",
+        "Category": "Equipment",
+        "Description": "Satte ut 100\u00A0000 smolt (Standard S1) i Fixture Offshore",
+        "BalanceChange": -1200000
+      },
+      {
+        "Day": 21,
+        "Id": "",
+        "Name": "Ny postsmoltgruppe",
+        "Category": "Equipment",
+        "Description": "Fixture Post-smolt: ny gruppe med 150\u00A0000 smolt",
+        "BalanceChange": -1800000
+      },
+      {
+        "Day": 21,
+        "Id": "",
+        "Name": "Ny postsmoltgruppe",
+        "Category": "Equipment",
+        "Description": "Fixture Post-smolt: ny gruppe med 150\u00A0000 smolt",
+        "BalanceChange": -1800000
+      },
+      {
+        "Day": 24,
+        "Id": "",
+        "Name": "Storm Damage",
+        "Category": "Weather",
+        "Description": "Stormen skadet merdene og fort\u00F8yningene",
+        "BalanceChange": -31250
+      }
+    ],
+    "DailySnapshots": [
+      {
+        "Day": 0,
+        "FishCount": 111964,
+        "TotalBiomassKg": 61577.06114400259,
+        "AvgWeightKg": 0.5499719654889302,
+        "TemperatureC": 7.339865263376447,
+        "MarketPriceNok": 85.89050993455834,
+        "BalanceNok": 2561974343.544164,
+        "FCR": 1.0737207244838038,
+        "LicePerFish": 0,
+        "SustainabilityScore": 0,
+        "MortalityRate": 0,
+        "ExternalLicePressure": 0,
+        "ExternalDiseasePressure": 0,
+        "ExternalBiomassUtilization": 0,
+        "ExternalMarketSupport": 0,
+        "ExternalWarningCount": 0,
+        "ExternalCompositeRisk": 0,
+        "ProfitLossNok": -25656.45583562331,
+        "FeedCostNok": 10703.716109595915,
+        "DissolvedOxygen": 9.57282982671806
+      },
+      {
+        "Day": 1,
+        "FishCount": 111928,
+        "TotalBiomassKg": 62034.040188070605,
+        "AvgWeightKg": 0.5542316505974431,
+        "TemperatureC": 7.823128134299688,
+        "MarketPriceNok": 88,
+        "BalanceNok": 2561947954.0319724,
+        "FCR": 1.0707899410769524,
+        "LicePerFish": 0,
+        "SustainabilityScore": 0,
+        "MortalityRate": 0.000321531920974599,
+        "ExternalLicePressure": 0,
+        "ExternalDiseasePressure": 0,
+        "ExternalBiomassUtilization": 0,
+        "ExternalMarketSupport": 0,
+        "ExternalWarningCount": 0,
+        "ExternalCompositeRisk": 0,
+        "ProfitLossNok": 3999947954.0319724,
+        "FeedCostNok": 22140.48857554873,
+        "DissolvedOxygen": 9.468691725339612
+      },
+      {
+        "Day": 2,
+        "FishCount": 111892,
+        "TotalBiomassKg": 62504.600989708604,
+        "AvgWeightKg": 0.5586154594583045,
+        "TemperatureC": 8.004456068088217,
+        "MarketPriceNok": 88,
+        "BalanceNok": 2561921243.150409,
+        "FCR": 1.0700785096271552,
+        "LicePerFish": 0,
+        "SustainabilityScore": 0,
+        "MortalityRate": 0.00032163533700235866,
+        "ExternalLicePressure": 0,
+        "ExternalDiseasePressure": 0,
+        "ExternalBiomassUtilization": 0,
+        "ExternalMarketSupport": 0,
+        "ExternalWarningCount": 0,
+        "ExternalCompositeRisk": 0,
+        "ProfitLossNok": 3999921243.150409,
+        "FeedCostNok": 33898.630412904764,
+        "DissolvedOxygen": 9.430120489417725
+      },
+      {
+        "Day": 3,
+        "FishCount": 111856,
+        "TotalBiomassKg": 62937.33448143292,
+        "AvgWeightKg": 0.5626639114703987,
+        "TemperatureC": 7.3502882416811754,
+        "MarketPriceNok": 88,
+        "BalanceNok": 2561895381.083174,
+        "FCR": 1.075433306894027,
+        "LicePerFish": 0,
+        "SustainabilityScore": 0,
+        "MortalityRate": 0.00032173881957601975,
+        "ExternalLicePressure": 0,
+        "ExternalDiseasePressure": 0,
+        "ExternalBiomassUtilization": 0,
+        "ExternalMarketSupport": 0,
+        "ExternalWarningCount": 0,
+        "ExternalCompositeRisk": 0,
+        "ProfitLossNok": 3999895381.0831747,
+        "FeedCostNok": 44807.95792139732,
+        "DissolvedOxygen": 9.570591650606477
+      },
+      {
+        "Day": 4,
+        "FishCount": 111820,
+        "TotalBiomassKg": 63356.03133808959,
+        "AvgWeightKg": 0.566589441406632,
+        "TemperatureC": 7.088639992894635,
+        "MarketPriceNok": 88,
+        "BalanceNok": 2561869829.620287,
+        "FCR": 1.077896065596564,
+        "LicePerFish": 0,
+        "SustainabilityScore": 0,
+        "MortalityRate": 0.00032184236875983406,
+        "ExternalLicePressure": 0,
+        "ExternalDiseasePressure": 0,
+        "ExternalBiomassUtilization": 0,
+        "ExternalMarketSupport": 0,
+        "ExternalWarningCount": 0,
+        "ExternalCompositeRisk": 0,
+        "ProfitLossNok": 3999869829.620287,
+        "FeedCostNok": 55406.68108296127,
+        "DissolvedOxygen": 9.627861074872
+      },
+      {
+        "Day": 5,
+        "FishCount": 111784,
+        "TotalBiomassKg": 63781.36797095386,
+        "AvgWeightKg": 0.5705768980440301,
+        "TemperatureC": 7.161768687524573,
+        "MarketPriceNok": 88,
+        "BalanceNok": 2561844114.496977,
+        "FCR": 1.0779113376547762,
+        "LicePerFish": 0,
+        "SustainabilityScore": 0,
+        "MortalityRate": 0.0003219459846181363,
+        "ExternalLicePressure": 0,
+        "ExternalDiseasePressure": 0,
+        "ExternalBiomassUtilization": 0,
+        "ExternalMarketSupport": 0,
+        "ExternalWarningCount": 0,
+        "ExternalCompositeRisk": 0,
+        "ProfitLossNok": 3999844114.496977,
+        "FeedCostNok": 66169.06466677385,
+        "DissolvedOxygen": 9.611824953190713
+      },
+      {
+        "Day": 6,
+        "FishCount": 111748,
+        "TotalBiomassKg": 64229.818967020416,
+        "AvgWeightKg": 0.5747737674680569,
+        "TemperatureC": 7.4961156683418295,
+        "MarketPriceNok": 88,
+        "BalanceNok": 2561817857.792341,
+        "FCR": 1.0760351085297142,
+        "LicePerFish": 0,
+        "SustainabilityScore": 0,
+        "MortalityRate": 0.0003220496672153439,
+        "ExternalLicePressure": 0,
+        "ExternalDiseasePressure": 0,
+        "ExternalBiomassUtilization": 0,
+        "ExternalMarketSupport": 0,
+        "ExternalWarningCount": 0,
+        "ExternalCompositeRisk": 0,
+        "ProfitLossNok": 3999817857.7923417,
+        "FeedCostNok": 77473.02957664263,
+        "DissolvedOxygen": 9.538952604693723
+      },
+      {
+        "Day": 7,
+        "FishCount": 111712,
+        "TotalBiomassKg": 64654.577047778715,
+        "AvgWeightKg": 0.578761252576077,
+        "TemperatureC": 7.082700046823148,
+        "MarketPriceNok": 97.06357225258492,
+        "BalanceNok": 2561672132.98626,
+        "FCR": 1.0796114994630401,
+        "LicePerFish": 0.11786021197364652,
+        "SustainabilityScore": 83,
+        "MortalityRate": 0.0003221534166159573,
+        "ExternalLicePressure": 0,
+        "ExternalDiseasePressure": 0,
+        "ExternalBiomassUtilization": 0,
+        "ExternalMarketSupport": 0,
+        "ExternalWarningCount": 0,
+        "ExternalCompositeRisk": 0,
+        "ProfitLossNok": 3999672132.98626,
+        "FeedCostNok": 88245.09593150328,
+        "DissolvedOxygen": 9.629178925462654
+      },
+      {
+        "Day": 8,
+        "FishCount": 111666,
+        "TotalBiomassKg": 65098.01984869456,
+        "AvgWeightKg": 0.582970822351428,
+        "TemperatureC": 7.435256536723799,
+        "MarketPriceNok": 88,
+        "BalanceNok": 2561614584.992319,
+        "FCR": 1.0775933896000935,
+        "LicePerFish": 0.11870432652949607,
+        "SustainabilityScore": 83,
+        "MortalityRate": 0.00041177313090804926,
+        "ExternalLicePressure": 0,
+        "ExternalDiseasePressure": 0,
+        "ExternalBiomassUtilization": 0,
+        "ExternalMarketSupport": 0,
+        "ExternalWarningCount": 0,
+        "ExternalCompositeRisk": 0,
+        "ProfitLossNok": 3999614584.992319,
+        "FeedCostNok": 99590.35014652822,
+        "DissolvedOxygen": 9.55218120986785
+      },
+      {
+        "Day": 9,
+        "FishCount": 111630,
+        "TotalBiomassKg": 65530.255769871335,
+        "AvgWeightKg": 0.5870308677763266,
+        "TemperatureC": 7.1314025012337865,
+        "MarketPriceNok": 88,
+        "BalanceNok": 2561588664.956844,
+        "FCR": 1.080370724875808,
+        "LicePerFish": 0.11951521189423428,
+        "SustainabilityScore": 83,
+        "MortalityRate": 0.0003223899844178174,
+        "ExternalLicePressure": 0,
+        "ExternalDiseasePressure": 0,
+        "ExternalBiomassUtilization": 0,
+        "ExternalMarketSupport": 0,
+        "ExternalWarningCount": 0,
+        "ExternalCompositeRisk": 0,
+        "ProfitLossNok": 3999588664.956844,
+        "FeedCostNok": 110557.64589597698,
+        "DissolvedOxygen": 9.618479360383615
+      },
+      {
+        "Day": 10,
+        "FishCount": 111594,
+        "TotalBiomassKg": 65985.72006391115,
+        "AvgWeightKg": 0.5913016834588881,
+        "TemperatureC": 7.459332560179326,
+        "MarketPriceNok": 88,
+        "BalanceNok": 2561562199.2049174,
+        "FCR": 1.07853145736063,
+        "LicePerFish": 0.120203644305572,
+        "SustainabilityScore": 83,
+        "MortalityRate": 0.0003224939532383768,
+        "ExternalLicePressure": 0,
+        "ExternalDiseasePressure": 0,
+        "ExternalBiomassUtilization": 0,
+        "ExternalMarketSupport": 0,
+        "ExternalWarningCount": 0,
+        "ExternalCompositeRisk": 0,
+        "ProfitLossNok": 3999562199.204917,
+        "FeedCostNok": 122070.65809667546,
+        "DissolvedOxygen": 9.546946031792892
+      },
+      {
+        "Day": 11,
+        "FishCount": 111558,
+        "TotalBiomassKg": 66483.51627098722,
+        "AvgWeightKg": 0.5959547165688451,
+        "TemperatureC": 8.078379554106105,
+        "MarketPriceNok": 88,
+        "BalanceNok": 2561534753.246358,
+        "FCR": 1.0745957473569057,
+        "LicePerFish": 0.1207007223903046,
+        "SustainabilityScore": 83,
+        "MortalityRate": 0.00032259798913920104,
+        "ExternalLicePressure": 0,
+        "ExternalDiseasePressure": 0,
+        "ExternalBiomassUtilization": 0,
+        "ExternalMarketSupport": 0,
+        "ExternalWarningCount": 0,
+        "ExternalCompositeRisk": 0,
+        "ProfitLossNok": 3999534753.246358,
+        "FeedCostNok": 134563.8769295954,
+        "DissolvedOxygen": 9.41450041314262
+      },
+      {
+        "Day": 12,
+        "FishCount": 111522,
+        "TotalBiomassKg": 67023.92867830452,
+        "AvgWeightKg": 0.6009928864107936,
+        "TemperatureC": 8.691141495560897,
+        "MarketPriceNok": 88,
+        "BalanceNok": 2561506326.3877726,
+        "FCR": 1.0707471968982236,
+        "LicePerFish": 0.12095478768605024,
+        "SustainabilityScore": 83,
+        "MortalityRate": 0.000322702092185231,
+        "ExternalLicePressure": 0,
+        "ExternalDiseasePressure": 0,
+        "ExternalBiomassUtilization": 0,
+        "ExternalMarketSupport": 0,
+        "ExternalWarningCount": 0,
+        "ExternalCompositeRisk": 0,
+        "ProfitLossNok": 3999506326.387772,
+        "FeedCostNok": 148037.99578934687,
+        "DissolvedOxygen": 9.286639886647531
+      },
+      {
+        "Day": 13,
+        "FishCount": 111476,
+        "TotalBiomassKg": 67554.47934546755,
+        "AvgWeightKg": 0.6060002094214679,
+        "TemperatureC": 8.580856141282952,
+        "MarketPriceNok": 88,
+        "BalanceNok": 2561446720.1662197,
+        "FCR": 1.072206648237663,
+        "LicePerFish": 0.1212021455981694,
+        "SustainabilityScore": 83,
+        "MortalityRate": 0.00041247466867523895,
+        "ExternalLicePressure": 0,
+        "ExternalDiseasePressure": 0,
+        "ExternalBiomassUtilization": 0,
+        "ExternalMarketSupport": 0,
+        "ExternalWarningCount": 0,
+        "ExternalCompositeRisk": 0,
+        "ProfitLossNok": 3999446720.1662197,
+        "FeedCostNok": 161441.4776157595,
+        "DissolvedOxygen": 9.309416177992805
+      },
+      {
+        "Day": 14,
+        "FishCount": 111440,
+        "TotalBiomassKg": 67998.16757154891,
+        "AvgWeightKg": 0.6101773830899938,
+        "TemperatureC": 7.115144626199636,
+        "MarketPriceNok": 92.7212762727143,
+        "BalanceNok": 2561300471.1307006,
+        "FCR": 1.0835388932277497,
+        "LicePerFish": 0.12170047338297392,
+        "SustainabilityScore": 86,
+        "MortalityRate": 0.0003229394667910582,
+        "ExternalLicePressure": 0,
+        "ExternalDiseasePressure": 0,
+        "ExternalBiomassUtilization": 0,
+        "ExternalMarketSupport": 0,
+        "ExternalWarningCount": 0,
+        "ExternalCompositeRisk": 0,
+        "ProfitLossNok": 3999300471.1307006,
+        "FeedCostNok": 172737.77340905464,
+        "DissolvedOxygen": 9.622077280424307
+      },
+      {
+        "Day": 15,
+        "FishCount": 111394,
+        "TotalBiomassKg": 68503.84804569713,
+        "AvgWeightKg": 0.6149689215370409,
+        "TemperatureC": 8.112554573151167,
+        "MarketPriceNok": 88,
+        "BalanceNok": 2561241397.4832144,
+        "FCR": 1.0768057209805502,
+        "LicePerFish": 0.12196551389070581,
+        "SustainabilityScore": 86,
+        "MortalityRate": 0.00041277817659727205,
+        "ExternalLicePressure": 0,
+        "ExternalDiseasePressure": 0,
+        "ExternalBiomassUtilization": 0,
+        "ExternalMarketSupport": 0,
+        "ExternalWarningCount": 0,
+        "ExternalCompositeRisk": 0,
+        "ProfitLossNok": 3999241397.4832144,
+        "FeedCostNok": 185608.68116907153,
+        "DissolvedOxygen": 9.407263494592563
+      },
+      {
+        "Day": 16,
+        "FishCount": 111358,
+        "TotalBiomassKg": 68985.35830309568,
+        "AvgWeightKg": 0.6194917141390441,
+        "TemperatureC": 7.610951373840568,
+        "MarketPriceNok": 88,
+        "BalanceNok": 2561214251.117539,
+        "FCR": 1.0810789967415566,
+        "LicePerFish": 0.12228956372481055,
+        "SustainabilityScore": 86,
+        "MortalityRate": 0.0003231771908720398,
+        "ExternalLicePressure": 0,
+        "ExternalDiseasePressure": 0,
+        "ExternalBiomassUtilization": 0,
+        "ExternalMarketSupport": 0,
+        "ExternalWarningCount": 0,
+        "ExternalCompositeRisk": 0,
+        "ProfitLossNok": 3999214251.117539,
+        "FeedCostNok": 197802.30711852573,
+        "DissolvedOxygen": 9.514205153846028
+      },
+      {
+        "Day": 17,
+        "FishCount": 111322,
+        "TotalBiomassKg": 69504.95059325088,
+        "AvgWeightKg": 0.6243595209684597,
+        "TemperatureC": 8.141008905728494,
+        "MarketPriceNok": 88,
+        "BalanceNok": 2561186219.1434994,
+        "FCR": 1.0777849354295468,
+        "LicePerFish": 0.12243347543917515,
+        "SustainabilityScore": 86,
+        "MortalityRate": 0.00032328166813340756,
+        "ExternalLicePressure": 0,
+        "ExternalDiseasePressure": 0,
+        "ExternalBiomassUtilization": 0,
+        "ExternalMarketSupport": 0,
+        "ExternalWarningCount": 0,
+        "ExternalCompositeRisk": 0,
+        "ProfitLossNok": 3999186219.1434994,
+        "FeedCostNok": 210881.54143189953,
+        "DissolvedOxygen": 9.401273777376105
+      },
+      {
+        "Day": 18,
+        "FishCount": 111286,
+        "TotalBiomassKg": 70027.95541923784,
+        "AvgWeightKg": 0.6292611417360481,
+        "TemperatureC": 8.145495781916658,
+        "MarketPriceNok": 88,
+        "BalanceNok": 2561158093.7641573,
+        "FCR": 1.0783657166808593,
+        "LicePerFish": 0.12251679426508062,
+        "SustainabilityScore": 86,
+        "MortalityRate": 0.0003233862129677871,
+        "ExternalLicePressure": 0,
+        "ExternalDiseasePressure": 0,
+        "ExternalBiomassUtilization": 0,
+        "ExternalMarketSupport": 0,
+        "ExternalWarningCount": 0,
+        "ExternalCompositeRisk": 0,
+        "ProfitLossNok": 3999158093.764157,
+        "FeedCostNok": 224054.18104829345,
+        "DissolvedOxygen": 9.400314584137453
+      },
+      {
+        "Day": 19,
+        "FishCount": 111250,
+        "TotalBiomassKg": 70520.37765817858,
+        "AvgWeightKg": 0.6338910351296951,
+        "TemperatureC": 7.646198977652869,
+        "MarketPriceNok": 88,
+        "BalanceNok": 2561130653.6750717,
+        "FCR": 1.0826288170148655,
+        "LicePerFish": 0.122696102617472,
+        "SustainabilityScore": 86,
+        "MortalityRate": 0.00032349082544075623,
+        "ExternalLicePressure": 0,
+        "ExternalDiseasePressure": 0,
+        "ExternalBiomassUtilization": 0,
+        "ExternalMarketSupport": 0,
+        "ExternalWarningCount": 0,
+        "ExternalCompositeRisk": 0,
+        "ProfitLossNok": 3999130653.6750717,
+        "FeedCostNok": 236541.5304078156,
+        "DissolvedOxygen": 9.50658337615308
+      },
+      {
+        "Day": 20,
+        "FishCount": 111214,
+        "TotalBiomassKg": 71029.28422976959,
+        "AvgWeightKg": 0.6386721476591939,
+        "TemperatureC": 7.847490159330267,
+        "MarketPriceNok": 88,
+        "BalanceNok": 2561052820.851284,
+        "FCR": 1.0817337199801882,
+        "LicePerFish": 0.12280259643526821,
+        "SustainabilityScore": 86,
+        "MortalityRate": 0.00032359550561797753,
+        "ExternalLicePressure": 0,
+        "ExternalDiseasePressure": 0,
+        "ExternalBiomassUtilization": 0,
+        "ExternalMarketSupport": 0,
+        "ExternalWarningCount": 0,
+        "ExternalCompositeRisk": 0,
+        "ProfitLossNok": 3999052820.8512845,
+        "FeedCostNok": 249421.6144692577,
+        "DissolvedOxygen": 9.463493686486137
+      },
+      {
+        "Day": 21,
+        "FishCount": 400979,
+        "TotalBiomassKg": 95837.37946250555,
+        "AvgWeightKg": 0.2390084754126913,
+        "TemperatureC": 7.004373792412488,
+        "MarketPriceNok": 88,
+        "BalanceNok": 2553990373.875257,
+        "FCR": 1.2190001551587741,
+        "LicePerFish": 0.12302583734324932,
+        "SustainabilityScore": 86,
+        "MortalityRate": 0,
+        "ExternalLicePressure": 0,
+        "ExternalDiseasePressure": 0,
+        "ExternalBiomassUtilization": 0,
+        "ExternalMarketSupport": 0,
+        "ExternalWarningCount": 0,
+        "ExternalCompositeRisk": 0,
+        "ProfitLossNok": 3991990373.8752565,
+        "FeedCostNok": 269098.757879625,
+        "DissolvedOxygen": 9.646455802188308
+      },
+      {
+        "Day": 22,
+        "FishCount": 400814,
+        "TotalBiomassKg": 96658.85644383088,
+        "AvgWeightKg": 0.24115638786028154,
+        "TemperatureC": 6.99261201377307,
+        "MarketPriceNok": 88,
+        "BalanceNok": 2553558923.680998,
+        "FCR": 1.2190965452870266,
+        "LicePerFish": 0.12322389243949886,
+        "SustainabilityScore": 86,
+        "MortalityRate": 0.0004114928711977435,
+        "ExternalLicePressure": 0,
+        "ExternalDiseasePressure": 0,
+        "ExternalBiomassUtilization": 0,
+        "ExternalMarketSupport": 0,
+        "ExternalWarningCount": 0,
+        "ExternalCompositeRisk": 0,
+        "ProfitLossNok": 3991558923.6809983,
+        "FeedCostNok": 288934.3087400191,
+        "DissolvedOxygen": 9.649001671320882
+      },
+      {
+        "Day": 23,
+        "FishCount": 400649,
+        "TotalBiomassKg": 97559.73286939393,
+        "AvgWeightKg": 0.24350424653348426,
+        "TemperatureC": 7.679075984455663,
+        "MarketPriceNok": 88,
+        "BalanceNok": 2553127087.879962,
+        "FCR": 1.2134708357578916,
+        "LicePerFish": 0.12327502761567152,
+        "SustainabilityScore": 86,
+        "MortalityRate": 0.00041166226728607286,
+        "ExternalLicePressure": 0,
+        "ExternalDiseasePressure": 0,
+        "ExternalBiomassUtilization": 0,
+        "ExternalMarketSupport": 0,
+        "ExternalWarningCount": 0,
+        "ExternalCompositeRisk": 0,
+        "ProfitLossNok": 3991127087.879962,
+        "FeedCostNok": 310569.8052803022,
+        "DissolvedOxygen": 9.499508690550144
+      },
+      {
+        "Day": 24,
+        "FishCount": 400474,
+        "TotalBiomassKg": 98462.93630323025,
+        "AvgWeightKg": 0.2458659895604465,
+        "TemperatureC": 7.677371117007242,
+        "MarketPriceNok": 88,
+        "BalanceNok": 2552663701.3454423,
+        "FCR": 1.213484807487592,
+        "LicePerFish": 0.12329098400428337,
+        "SustainabilityScore": 86,
+        "MortalityRate": 0.00043679130610584327,
+        "ExternalLicePressure": 0,
+        "ExternalDiseasePressure": 0,
+        "ExternalBiomassUtilization": 0,
+        "ExternalMarketSupport": 0,
+        "ExternalWarningCount": 0,
+        "ExternalCompositeRisk": 0,
+        "ProfitLossNok": 3990663701.3454423,
+        "FeedCostNok": 332430.70312817633,
+        "DissolvedOxygen": 9.499915602670555
+      },
+      {
+        "Day": 25,
+        "FishCount": 400309,
+        "TotalBiomassKg": 99386.39504523075,
+        "AvgWeightKg": 0.24827419579682383,
+        "TemperatureC": 7.756450659206362,
+        "MarketPriceNok": 88,
+        "BalanceNok": 2552231325.6840234,
+        "FCR": 1.212836734823757,
+        "LicePerFish": 0.12325312802716114,
+        "SustainabilityScore": 86,
+        "MortalityRate": 0.0004120117660572222,
+        "ExternalLicePressure": 0,
+        "ExternalDiseasePressure": 0,
+        "ExternalBiomassUtilization": 0,
+        "ExternalMarketSupport": 0,
+        "ExternalWarningCount": 0,
+        "ExternalCompositeRisk": 0,
+        "ProfitLossNok": 3990231325.684023,
+        "FeedCostNok": 354629.03024268715,
+        "DissolvedOxygen": 9.482932298782051
+      },
+      {
+        "Day": 26,
+        "FishCount": 400144,
+        "TotalBiomassKg": 100313.04708004849,
+        "AvgWeightKg": 0.2506923684474801,
+        "TemperatureC": 7.687676900216911,
+        "MarketPriceNok": 88,
+        "BalanceNok": 2551798629.986497,
+        "FCR": 1.21340034953308,
+        "LicePerFish": 0.12320399528113954,
+        "SustainabilityScore": 86,
+        "MortalityRate": 0.0004121815897219398,
+        "ExternalLicePressure": 0,
+        "ExternalDiseasePressure": 0,
+        "ExternalBiomassUtilization": 0,
+        "ExternalMarketSupport": 0,
+        "ExternalWarningCount": 0,
+        "ExternalCompositeRisk": 0,
+        "ProfitLossNok": 3989798629.9864974,
+        "FeedCostNok": 376924.6637423992,
+        "DissolvedOxygen": 9.497667854994514
+      },
+      {
+        "Day": 27,
+        "FishCount": 399979,
+        "TotalBiomassKg": 101141.00292062908,
+        "AvgWeightKg": 0.25286578275516736,
+        "TemperatureC": 6.729264618898027,
+        "MarketPriceNok": 88,
+        "BalanceNok": 2551365974.1973753,
+        "FCR": 1.2212547298561947,
+        "LicePerFish": 0.12331617375122253,
+        "SustainabilityScore": 86,
+        "MortalityRate": 0.0004123515534407613,
+        "ExternalLicePressure": 0,
+        "ExternalDiseasePressure": 0,
+        "ExternalBiomassUtilization": 0,
+        "ExternalMarketSupport": 0,
+        "ExternalWarningCount": 0,
+        "ExternalCompositeRisk": 0,
+        "ProfitLossNok": 3989365974.197375,
+        "FeedCostNok": 397032.2167816418,
+        "DissolvedOxygen": 9.707475014699384
+      },
+      {
+        "Day": 28,
+        "FishCount": 399814,
+        "TotalBiomassKg": 102031.89469220611,
+        "AvgWeightKg": 0.2551984039883699,
+        "TemperatureC": 7.234954359008523,
+        "MarketPriceNok": 88,
+        "BalanceNok": 2550812894.790536,
+        "FCR": 1.2171105013005477,
+        "LicePerFish": 0.12332945561242119,
+        "SustainabilityScore": 86,
+        "MortalityRate": 0.00041252165738701283,
+        "ExternalLicePressure": 0,
+        "ExternalDiseasePressure": 0,
+        "ExternalBiomassUtilization": 0,
+        "ExternalMarketSupport": 0,
+        "ExternalWarningCount": 0,
+        "ExternalCompositeRisk": 0,
+        "ProfitLossNok": 3988812894.7905364,
+        "FeedCostNok": 418580.8475302011,
+        "DissolvedOxygen": 9.595774908867433
+      },
+      {
+        "Day": 29,
+        "FishCount": 399649,
+        "TotalBiomassKg": 102945.9444918723,
+        "AvgWeightKg": 0.2575908972420106,
+        "TemperatureC": 7.380211053304285,
+        "MarketPriceNok": 88,
+        "BalanceNok": 2550379504.19953,
+        "FCR": 1.2159200936401835,
+        "LicePerFish": 0.12330289252452785,
+        "SustainabilityScore": 86,
+        "MortalityRate": 0.00041269190173430644,
+        "ExternalLicePressure": 0,
+        "ExternalDiseasePressure": 0,
+        "ExternalBiomassUtilization": 0,
+        "ExternalMarketSupport": 0,
+        "ExternalWarningCount": 0,
+        "ExternalCompositeRisk": 0,
+        "ProfitLossNok": 3988379504.19953,
+        "FeedCostNok": 440677.2850489724,
+        "DissolvedOxygen": 9.564097406731102
+      },
+      {
+        "Day": 30,
+        "FishCount": 399484,
+        "TotalBiomassKg": 103859.35532489531,
+        "AvgWeightKg": 0.25998376737214834,
+        "TemperatureC": 7.300897602026858,
+        "MarketPriceNok": 88,
+        "BalanceNok": 1672597763.922326,
+        "FCR": 1.216570083235701,
+        "LicePerFish": 0.12327027958700097,
+        "SustainabilityScore": 86,
+        "MortalityRate": 0.0004128622866565411,
+        "ExternalLicePressure": 0,
+        "ExternalDiseasePressure": 0,
+        "ExternalBiomassUtilization": 0,
+        "ExternalMarketSupport": 0,
+        "ExternalWarningCount": 0,
+        "ExternalCompositeRisk": 0,
+        "ProfitLossNok": 3110597763.922326,
+        "FeedCostNok": 462785.76778630953,
+        "DissolvedOxygen": 9.581395526462055
+      }
+    ],
+    "UnlockedResearchIds": [
+      "sensor-networks",
+      "deep-sea-farming"
+    ],
+    "ActiveResearchId": null,
+    "ResearchProgress": 0,
+    "ExportMarkets": [],
+    "AcquisitionCount": 0,
+    "ContractActive": false,
+    "OwnsFeedMill": false,
+    "OwnsHatchery": false,
+    "OwnsProcessingPlant": false,
+    "ProcessingTier": "",
+    "RecipeProteinPct": 42,
+    "RecipeReplacePct": 20,
+    "RecipeAstaxPpm": 50,
+    "NightShiftPolicy": "Standard",
+    "HasASCCertification": false,
+    "BestFCR": 1.7976931348623157E+308,
+    "BestGrowthBreedingValue": 0,
+    "BestDiseaseResistanceBreedingValue": 0,
+    "MinimumBalanceEver": 79228162514264337593543950335,
+    "FeedSustainabilityRating": 0.7,
+    "SustainabilityScore": 86,
+    "SustainabilityCertification": "OrganicCertified",
+    "ExternalAquacultureSnapshot": null,
+    "ExternalDataAnalytics": {
+      "SnapshotYear": 0,
+      "SnapshotWeek": 0,
+      "SourceSummary": "No external aquaculture snapshot loaded",
+      "SourceFreshnessDays": 0,
+      "DataConfidence": 0,
+      "NationalBiomassUtilization": 0,
+      "IndustryLicePressure": 0,
+      "DiseasePressureIndex": 0,
+      "EscapeRiskIndex": 0,
+      "EnvironmentalComplianceIndex": 0,
+      "TemperatureAnomalyIndex": 0,
+      "TreatmentIntensityIndex": 0,
+      "MortalityStressIndex": 0,
+      "MarketPriceSupportIndex": 0,
+      "ActiveSourceFlags": "",
+      "RiskBand": "Offline",
+      "RegionalProfileCount": 0
+    },
+    "ExternalHealthWarnings": [],
+    "ExternalHealthCrisis": {
+      "CrisisType": "none",
+      "Severity": "normal",
+      "GrowthPenaltyMultiplier": 1,
+      "MortalityPenaltyMultiplier": 1,
+      "DelousingCostMultiplier": 1,
+      "MarketPriceSupportMultiplier": 1,
+      "EnvironmentalStressMultiplier": 1,
+      "RecommendedIntervention": "Monitor health indicators"
+    },
+    "ExternalHealthAnalytics": {
+      "Headline": "",
+      "RiskBand": "Offline",
+      "WarningCount": 0,
+      "RecommendedAction": "",
+      "CompositeRiskScore": 0,
+      "Warnings": []
+    },
+    "UnlockedAchievementIds": [
+      "super-smolt",
+      "speedrun-millionaire",
+      "hundred-million",
+      "crisis-survivor",
+      "first-smolt"
+    ],
+    "ActiveScenarioId": "po3_red_sone",
+    "HomeProductionArea": 3,
+    "ScenarioIsWon": false,
+    "ScenarioIsLost": false,
+    "ScenarioLossReason": "",
+    "ScenarioStartDay": 0,
+    "SolvencyWarningPeak": 0,
+    "BankruptDay": null,
+    "TutorialCurrentStepIndex": 5,
+    "CompletedTutorialStepIds": [
+      "welcome",
+      "setup-sea-site",
+      "stock-smolts",
+      "manage-feed",
+      "monitor-health"
+    ],
+    "CompetitorCompanies": [
+      {
+        "Id": "mowier",
+        "Name": "Mowier ASA",
+        "Revenue": 52000000000,
+        "EBITDA": 12000000000,
+        "MarketCap": 120000000000,
+        "DebtLevel": 25000000000,
+        "CashReserves": 3000000000,
+        "LicenseCount": 180,
+        "TotalMABTonnes": 250000,
+        "SiteCount": 55,
+        "MarketShareNorway": 0.2,
+        "MarketShareGlobal": 0.08,
+        "WeeklyHarvestTonnes": 4800,
+        "IsDistressed": false,
+        "IsAcquisitionTarget": false,
+        "AcquisitionPrice": 0
+      },
+      {
+        "Id": "salmax",
+        "Name": "SalMax Group ASA",
+        "Revenue": 28000000000,
+        "EBITDA": 8400000000,
+        "MarketCap": 95000000000,
+        "DebtLevel": 15000000000,
+        "CashReserves": 5000000000,
+        "LicenseCount": 110,
+        "TotalMABTonnes": 170000,
+        "SiteCount": 38,
+        "MarketShareNorway": 0.14,
+        "MarketShareGlobal": 0.05,
+        "WeeklyHarvestTonnes": 3300,
+        "IsDistressed": false,
+        "IsAcquisitionTarget": false,
+        "AcquisitionPrice": 0
+      },
+      {
+        "Id": "heroy",
+        "Name": "Her\u00F8y Seafood AS",
+        "Revenue": 30000000000,
+        "EBITDA": 6000000000,
+        "MarketCap": 65000000000,
+        "DebtLevel": 10000000000,
+        "CashReserves": 2500000000,
+        "LicenseCount": 95,
+        "TotalMABTonnes": 130000,
+        "SiteCount": 32,
+        "MarketShareNorway": 0.1,
+        "MarketShareGlobal": 0.04,
+        "WeeklyHarvestTonnes": 2500,
+        "IsDistressed": false,
+        "IsAcquisitionTarget": false,
+        "AcquisitionPrice": 0
+      },
+      {
+        "Id": "greed_gregarious",
+        "Name": "Greed Gregarious ASA",
+        "Revenue": 14000000000,
+        "EBITDA": 2800000000,
+        "MarketCap": 22000000000,
+        "DebtLevel": 8000000000,
+        "CashReserves": 1200000000,
+        "LicenseCount": 60,
+        "TotalMABTonnes": 80000,
+        "SiteCount": 22,
+        "MarketShareNorway": 0.06,
+        "MarketShareGlobal": 0.03,
+        "WeeklyHarvestTonnes": 1500,
+        "IsDistressed": false,
+        "IsAcquisitionTarget": true,
+        "AcquisitionPrice": 28000000000
+      },
+      {
+        "Id": "offshore_optimists",
+        "Name": "Offshore Optimists AS",
+        "Revenue": 2000000000,
+        "EBITDA": -500000000,
+        "MarketCap": 15000000000,
+        "DebtLevel": 6000000000,
+        "CashReserves": 3000000000,
+        "LicenseCount": 8,
+        "TotalMABTonnes": 15000,
+        "SiteCount": 3,
+        "MarketShareNorway": 0.01,
+        "MarketShareGlobal": 0.005,
+        "WeeklyHarvestTonnes": 280,
+        "IsDistressed": false,
+        "IsAcquisitionTarget": true,
+        "AcquisitionPrice": 18000000000
+      },
+      {
+        "Id": "nordlaks_nord",
+        "Name": "NordLaks Nord AS",
+        "Revenue": 8000000000,
+        "EBITDA": 2000000000,
+        "MarketCap": 18000000000,
+        "DebtLevel": 3500000000,
+        "CashReserves": 1800000000,
+        "LicenseCount": 40,
+        "TotalMABTonnes": 55000,
+        "SiteCount": 15,
+        "MarketShareNorway": 0.04,
+        "MarketShareGlobal": 0.015,
+        "WeeklyHarvestTonnes": 1050,
+        "IsDistressed": false,
+        "IsAcquisitionTarget": true,
+        "AcquisitionPrice": 22000000000
+      }
+    ],
+    "EmpireProgression": {
+      "CurrentPhase": "SmallFarmer",
+      "UnlockedFeatures": [
+        "ipo_preparation"
+      ],
+      "UnlockedMilestoneIds": [
+        "first_license",
+        "first_billion"
+      ],
+      "AchievedVictoryIds": []
+    },
+    "StockMarket": {
+      "Status": "Private",
+      "SharePrice": 0,
+      "PriceHistory": [],
+      "OutstandingShares": 1000000
+    },
+    "BrandReputation": {
+      "BrandName": "Lakskongen",
+      "Strategy": "Premium",
+      "QualityReputation": 50.000000000000,
+      "SustainabilityReputation": 50.000000000000,
+      "Certifications": []
+    },
+    "ActiveCrises": [],
+    "DistressedAssets": [],
+    "VerticalIntegration": {
+      "OwnsFeedMill": false,
+      "OwnsHatchery": false,
+      "OwnsProcessing": false,
+      "OwnsColdChain": false,
+      "OwnsDistribution": false,
+      "IntegrationScore": 0
+    },
+    "ActiveLoans": [],
+    "TaxHistory": [],
+    "InvestorSystem": {
+      "OutstandingShares": 1000000,
+      "OutstandingBondPrincipal": 0,
+      "Investors": []
+    },
+    "CorporateFinance": {
+      "LossCarryForward": 0,
+      "CurrentPeriod": 0,
+      "CurrentYear": 1,
+      "TotalTaxPaid": 0,
+      "ResourceRentTaxPaid": 0,
+      "Events": [],
+      "Covenants": [],
+      "IPO": {
+        "Stage": "Private",
+        "OfferPricePerShare": 0,
+        "SharesOutstanding": 0,
+        "SharePriceNOK": 0,
+        "QuartersSinceIPO": 0,
+        "MarketCap": 0,
+        "GuidanceHistory": [],
+        "SharePriceHistory": [],
+        "GuidanceRecords": []
+      }
+    },
+    "Acquisitions": [],
+    "Licenses": [],
+    "LicenseAuctions": [],
+    "CapacityRules": "LicencesV1",
+    "LicenceHoldings": [
+      {
+        "Id": "tl_3_1",
+        "PooledArea": 3,
+        "MtbTonnes": 780,
+        "RegisteredSiteId": "po3_nord",
+        "GrantedDay": 0,
+        "Origin": "scenario",
+        "PricePaidNok": 0
+      },
+      {
+        "Id": "tl_3_2",
+        "PooledArea": 3,
+        "MtbTonnes": 780,
+        "RegisteredSiteId": "po3_sor",
+        "GrantedDay": 0,
+        "Origin": "scenario",
+        "PricePaidNok": 0
+      }
+    ],
+    "LicencesGranted": 2,
+    "CapacityBreaches": [],
+    "FactionRelations": {
+      "MATTILSYNET": 0.1,
+      "FISKERIDIREKTORATET": 0,
+      "ENVIRONMENTAL_NGOS": -0.2,
+      "LOCAL_COMMUNITIES": 0,
+      "INDUSTRY_ASSOCIATION": 0.3,
+      "FINANCIAL_SECTOR": 0.1
+    },
+    "RecentMarketReports": [],
+    "FishWelfareCondition": 1,
+    "WellboatJobs": [],
+    "WellboatJobsBooked": 0,
+    "HarvestOrders": [],
+    "HarvestOrdersPlaced": 0,
+    "HarvestReports": [],
+    "HarvestBatchesSold": 0,
+    "TotalHarvestedHogKg": 0,
+    "TotalHarvestedLiveKg": 0,
+    "Crew": [],
+    "ActiveBlooms": [],
+    "AchievedVisualMilestones": [],
+    "InsurancePolicies": [],
+    "BloomMitigations": [],
+    "EnableResourceRentTax": true,
+    "ResourceRentPaid": 0,
+    "TotalSalesRevenueNok": 0,
+    "TotalHarvestRevenueNok": 0,
+    "OpeningBalanceNok": 12000000,
+    "HarvestedKgThisTaxYear": 0,
+    "ResourceRentHarvestValueThisTaxYear": 0,
+    "HarvestCostThisTaxYear": 0,
+    "PenPriceCouncilLastValue": 88,
+    "Runtime": {
+      "WeatherEdgeState": "Storm",
+      "StormEpisodePeakSeverity": 0.5,
+      "EventsEnabled": true,
+      "InDayClocks": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        28,
+        0,
+        28,
+        28,
+        0,
+        28,
+        30,
+        30,
+        0,
+        30,
+        28,
+        28,
+        28,
+        30,
+        0,
+        30
+      ],
+      "ClocksBySystem": {
+        "StockMarketTickSystem": 0,
+        "SustainabilityTickSystem": 28,
+        "SludgeValorizationTickSystem": 0,
+        "TrafficLightTickSystem": 28,
+        "BrandReputationTickSystem": 28,
+        "CompetitorAITickSystem": 0,
+        "EmpireProgressionTickSystem": 28,
+        "CrisisCapitalismTickSystem": 30,
+        "VerticalIntegrationTickSystem": 30,
+        "CorporateFinanceTickSystem": 0,
+        "InvestorTickSystem": 30,
+        "BloomDeckTickSystem": 28,
+        "MarketIntelligenceTickSystem": 28,
+        "ContractExpiryTickSystem": 28,
+        "ProductMixOptimizerTickSystem": 30,
+        "NightShiftPolicyTickSystem": 30
+      },
+      "RngPositions": null,
+      "SimStreamPositions": {
+        "storyteller\u0001engine": 7078739105728900130,
+        "weather\u0001": 3177719125071786559,
+        "growth\u0001": 12736042484050301193,
+        "stochastic_disease\u0001": 15903607338547917279,
+        "stochastic_disease\u0001lod": 4779432994303044834,
+        "genetics\u0001": 18290782281683351184,
+        "competitor_ai\u0001": 7384657806066806521,
+        "market\u0001": 14386629444039627186,
+        "intelligence\u0001market_inner": 4425556370666438953,
+        "market\u0001contracts": 17800941442476616314,
+        "storyteller\u0001": 595925917647814634,
+        "plankton_bloom\u0001": 3010297383872596972,
+        "stock_market\u0001": 10227385197422707072,
+        "crisis_capitalism\u0001": 7792370168221386234,
+        "corporate_finance\u0001": 966684952201981612,
+        "ai_feeding\u0001": 7894570851135311156,
+        "acquisition\u0001": 3318715681026744450,
+        "license_auction\u0001": 7714337307612581177,
+        "factions\u0001": 16803510206457518286,
+        "intelligence\u0001": 18194541802063096106,
+        "currency\u0001": 16834044245374611041,
+        "ras_facility\u0001ras_1": 10551461491344013721,
+        "offshore_farm\u0001offshore_1": 16234255939314015855
+      },
+      "PriceCouncilSpots": [
+        88,
+        88,
+        88,
+        88
+      ],
+      "PriceCouncilMonthly": 88,
+      "StorytellerLastEventDay": 20,
+      "StorytellerCooldowns": {
+        "disease-outbreak": 80
+      },
+      "CurrencyStatePresent": true,
+      "CurrencyDay": 31,
+      "CurrencyEur": 10.302905789944892443534797924,
+      "CurrencyUsd": 9.658393648141980067340725075,
+      "CurrencyJpy": 0.10,
+      "CurrencyGbp": 11.863350985718913584888708055,
+      "CurrencyBankRate": 2.5,
+      "FinRevenue": 4000000000.0000000000000000000,
+      "FinCogs": 6942785.76778630953415044,
+      "FinOpex": 5111363.0497442237775178082188,
+      "FinInterest": 0,
+      "FinTaxes": 877348087.2601432826714329854,
+      "FinCash": 0,
+      "FinAssets": 1450000000,
+      "FinLiabilities": 0,
+      "FinBiomassInventoryValue": 0,
+      "FinCurrentPeriod": 0,
+      "FinEvents": [
+        "Buy asset 500000000",
+        "Buy asset 700000000",
+        "Buy asset 250000000",
+        "COGS -1164,93063180909922",
+        "COGS -1164,93063180909922",
+        "COGS -1164,93063180909922",
+        "COGS -1164,93063180909922",
+        "COGS -1164,93063180909922",
+        "COGS -1164,93063180909922",
+        "COGS -928,53307968532962",
+        "COGS -928,53307968532962",
+        "COGS -928,53307968532962",
+        "COGS -928,53307968532962",
+        "OpEx -14952,739726027397260273972603",
+        "Revenue \u002B4000000000,0000000000000000000",
+        "COGS -1244,55352179556084",
+        "COGS -1244,55352179556084",
+        "COGS -1244,55352179556084",
+        "COGS -1244,55352179556084",
+        "COGS -1244,55352179556084",
+        "COGS -1244,55352179556084",
+        "COGS -992,36283379486303",
+        "COGS -992,36283379486303",
+        "COGS -992,36283379486303",
+        "COGS -992,36283379486303",
+        "OpEx -14952,739726027397260273972603",
+        "COGS -1279,35573244329909",
+        "COGS -1279,35573244329909",
+        "COGS -1279,35573244329909",
+        "COGS -1279,35573244329909",
+        "COGS -1279,35573244329909",
+        "COGS -1279,35573244329909",
+        "COGS -1020,50186067406051",
+        "COGS -1020,50186067406051",
+        "COGS -1020,50186067406051",
+        "COGS -1020,50186067406051",
+        "OpEx -14952,739726027397260273972603",
+        "COGS -1186,84677695055373",
+        "COGS -1186,84677695055373",
+        "COGS -1186,84677695055373",
+        "COGS -1186,84677695055373",
+        "COGS -1186,84677695055373",
+        "COGS -1186,84677695055373",
+        "COGS -947,06171169730707",
+        "COGS -947,06171169730707",
+        "COGS -947,06171169730707",
+        "COGS -947,06171169730707",
+        "OpEx -14952,739726027397260273972603",
+        "COGS -1152,91584627270742",
+        "COGS -1152,91584627270742",
+        "COGS -1152,91584627270742",
+        "COGS -1152,91584627270742",
+        "COGS -1152,91584627270742",
+        "COGS -1152,91584627270742",
+        "COGS -920,3070209819269",
+        "COGS -920,3070209819269",
+        "COGS -920,3070209819269",
+        "COGS -920,3070209819269",
+        "OpEx -14952,739726027397260273972603",
+        "COGS -1170,57921675356434",
+        "COGS -1170,57921675356434",
+        "COGS -1170,57921675356434",
+        "COGS -1170,57921675356434",
+        "COGS -1170,57921675356434",
+        "COGS -1170,57921675356434",
+        "COGS -934,72707082279823",
+        "COGS -934,72707082279823",
+        "COGS -934,72707082279823",
+        "COGS -934,72707082279823",
+        "OpEx -14952,739726027397260273972603",
+        "COGS -1229,3352866559956",
+        "COGS -1229,3352866559956",
+        "COGS -1229,3352866559956",
+        "COGS -1229,3352866559956",
+        "COGS -1229,3352866559956",
+        "COGS -1229,3352866559956",
+        "COGS -981,98829748320074",
+        "COGS -981,98829748320074",
+        "COGS -981,98829748320074",
+        "COGS -981,98829748320074",
+        "OpEx -14952,739726027397260273972603",
+        "COGS -1171,34809796306246",
+        "COGS -1171,34809796306246",
+        "COGS -1171,34809796306246",
+        "COGS -1171,34809796306246",
+        "COGS -1171,34809796306246",
+        "COGS -1171,34809796306246",
+        "COGS -935,99444177057256",
+        "COGS -935,99444177057256",
+        "COGS -935,99444177057256",
+        "COGS -935,99444177057256",
+        "OpEx -14952,739726027397260273972603",
+        "OpEx -120000",
+        "OpEx -31250",
+        "COGS -1233,53569443630462",
+        "COGS -1233,53569443630462",
+        "COGS -1233,53569443630462",
+        "COGS -1233,53569443630462",
+        "COGS -1233,53569443630462",
+        "COGS -1233,53569443630462",
+        "COGS -986,01001210177573",
+        "COGS -986,01001210177573",
+        "COGS -986,01001210177573",
+        "COGS -986,01001210177573",
+        "OpEx -14952,739726027397260273972603",
+        "COGS -1192,29815044576075",
+        "COGS -1192,29815044576075",
+        "COGS -1192,29815044576075",
+        "COGS -1192,29815044576075",
+        "COGS -1192,29815044576075",
+        "COGS -1192,29815044576075",
+        "COGS -953,37671169354635",
+        "COGS -953,37671169354635",
+        "COGS -953,37671169354635",
+        "COGS -953,37671169354635",
+        "OpEx -14952,739726027397260273972603",
+        "COGS -1251,47560179731156",
+        "COGS -1251,47560179731156",
+        "COGS -1251,47560179731156",
+        "COGS -1251,47560179731156",
+        "COGS -1251,47560179731156",
+        "COGS -1251,47560179731156",
+        "COGS -1001,03964747865398",
+        "COGS -1001,03964747865398",
+        "COGS -1001,03964747865398",
+        "COGS -1001,03964747865398",
+        "OpEx -14952,739726027397260273972603",
+        "COGS -1357,8540788220641",
+        "COGS -1357,8540788220641",
+        "COGS -1357,8540788220641",
+        "COGS -1357,8540788220641",
+        "COGS -1357,8540788220641",
+        "COGS -1357,8540788220641",
+        "COGS -1086,52358999688612",
+        "COGS -1086,52358999688612",
+        "COGS -1086,52358999688612",
+        "COGS -1086,52358999688612",
+        "OpEx -14952,739726027397260273972603",
+        "COGS -1464,26851098020264",
+        "COGS -1464,26851098020264",
+        "COGS -1464,26851098020264",
+        "COGS -1464,26851098020264",
+        "COGS -1464,26851098020264",
+        "COGS -1464,26851098020264",
+        "COGS -1172,12694846756852",
+        "COGS -1172,12694846756852",
+        "COGS -1172,12694846756852",
+        "COGS -1172,12694846756852",
+        "OpEx -14952,739726027397260273972603",
+        "OpEx -31250",
+        "COGS -1456,39946189093948",
+        "COGS -1456,39946189093948",
+        "COGS -1456,39946189093948",
+        "COGS -1456,39946189093948",
+        "COGS -1456,39946189093948",
+        "COGS -1456,39946189093948",
+        "COGS -1166,2712637667464",
+        "COGS -1166,2712637667464",
+        "COGS -1166,2712637667464",
+        "COGS -1166,2712637667464",
+        "OpEx -14952,739726027397260273972603",
+        "COGS -1227,28025786783096",
+        "COGS -1227,28025786783096",
+        "COGS -1227,28025786783096",
+        "COGS -1227,28025786783096",
+        "COGS -1227,28025786783096",
+        "COGS -1227,28025786783096",
+        "COGS -983,15356152203641",
+        "COGS -983,15356152203641",
+        "COGS -983,15356152203641",
+        "COGS -983,15356152203641",
+        "OpEx -14952,739726027397260273972603",
+        "OpEx -120000",
+        "OpEx -31250",
+        "COGS -1398,19130896939052",
+        "COGS -1398,19130896939052",
+        "COGS -1398,19130896939052",
+        "COGS -1398,19130896939052",
+        "COGS -1398,19130896939052",
+        "COGS -1398,19130896939052",
+        "COGS -1120,43997655013379",
+        "COGS -1120,43997655013379",
+        "COGS -1120,43997655013379",
+        "COGS -1120,43997655013379",
+        "OpEx -14952,739726027397260273972603",
+        "COGS -1324,45029073140533",
+        "COGS -1324,45029073140533",
+        "COGS -1324,45029073140533",
+        "COGS -1324,45029073140533",
+        "COGS -1324,45029073140533",
+        "COGS -1324,45029073140533",
+        "COGS -1061,7310512664475",
+        "COGS -1061,7310512664475",
+        "COGS -1061,7310512664475",
+        "COGS -1061,7310512664475",
+        "OpEx -14952,739726027397260273972603",
+        "COGS -1420,46613452651624",
+        "COGS -1420,46613452651624",
+        "COGS -1420,46613452651624",
+        "COGS -1420,46613452651624",
+        "COGS -1420,46613452651624",
+        "COGS -1420,46613452651624",
+        "COGS -1139,10937655368155",
+        "COGS -1139,10937655368155",
+        "COGS -1139,10937655368155",
+        "COGS -1139,10937655368155",
+        "OpEx -14952,739726027397260273972603",
+        "COGS -1430,42636260050998",
+        "COGS -1430,42636260050998",
+        "COGS -1430,42636260050998",
+        "COGS -1430,42636260050998",
+        "COGS -1430,42636260050998",
+        "COGS -1430,42636260050998",
+        "COGS -1147,52036019771362",
+        "COGS -1147,52036019771362",
+        "COGS -1147,52036019771362",
+        "COGS -1147,52036019771362",
+        "OpEx -14952,739726027397260273972603",
+        "COGS -1355,84069794839266",
+        "COGS -1355,84069794839266",
+        "COGS -1355,84069794839266",
+        "COGS -1355,84069794839266",
+        "COGS -1355,84069794839266",
+        "COGS -1355,84069794839266",
+        "COGS -1088,07629295793848",
+        "COGS -1088,07629295793848",
+        "COGS -1088,07629295793848",
+        "COGS -1088,07629295793848",
+        "OpEx -14952,739726027397260273972603",
+        "COGS -1398,31207909600402",
+        "COGS -1398,31207909600402",
+        "COGS -1398,31207909600402",
+        "COGS -1398,31207909600402",
+        "COGS -1398,31207909600402",
+        "COGS -1398,31207909600402",
+        "COGS -1122,55289671652851",
+        "COGS -1122,55289671652851",
+        "COGS -1122,55289671652851",
+        "COGS -1122,55289671652851",
+        "OpEx -50000,0000000000000000000",
+        "OpEx -14952,739726027397260273972603",
+        "OpEx -31250",
+        "COGS -240000",
+        "COGS -240000",
+        "COGS -1200000",
+        "COGS -1200000",
+        "COGS -1800000",
+        "COGS -1800000",
+        "COGS -1262,70278467838492",
+        "COGS -1262,70278467838492",
+        "COGS -1262,70278467838492",
+        "COGS -1262,70278467838492",
+        "COGS -1262,70278467838492",
+        "COGS -1262,70278467838492",
+        "COGS -1014,01247503980152",
+        "COGS -1014,01247503980152",
+        "COGS -1014,01247503980152",
+        "COGS -1014,01247503980152",
+        "COGS -1218,12494525578111",
+        "COGS -1218,12494525578111",
+        "COGS -2803,5939610816957",
+        "COGS -2803,5939610816957",
+        "COGS -1,4389894628093792",
+        "OpEx -411519,83261677024054520547945",
+        "OpEx -120000",
+        "COGS -1267,94050485449984",
+        "COGS -1267,94050485449984",
+        "COGS -1267,94050485449984",
+        "COGS -1267,94050485449984",
+        "COGS -1267,94050485449984",
+        "COGS -1267,94050485449984",
+        "COGS -1018,54234315959481",
+        "COGS -1018,54234315959481",
+        "COGS -1018,54234315959481",
+        "COGS -1018,54234315959481",
+        "COGS -1248,28534780452091",
+        "COGS -1248,28534780452091",
+        "COGS -2827,8603502963161",
+        "COGS -2827,8603502963161",
+        "COGS -1,44706242703134325",
+        "OpEx -411614,64339872017874520547945",
+        "COGS -1394,28293980536292",
+        "COGS -1394,28293980536292",
+        "COGS -1394,28293980536292",
+        "COGS -1394,28293980536292",
+        "COGS -1394,28293980536292",
+        "COGS -1394,28293980536292",
+        "COGS -1120,40264860912379",
+        "COGS -1120,40264860912379",
+        "COGS -1120,40264860912379",
+        "COGS -1120,40264860912379",
+        "COGS -1269,16915569858263",
+        "COGS -1269,16915569858263",
+        "COGS -3124,1281209854921",
+        "COGS -3124,1281209854921",
+        "COGS -1,59375364628290673",
+        "OpEx -410200,30449556150984520547945",
+        "OpEx -31250",
+        "COGS -1402,59557530591114",
+        "COGS -1402,59557530591114",
+        "COGS -1402,59557530591114",
+        "COGS -1402,59557530591114",
+        "COGS -1402,59557530591114",
+        "COGS -1402,59557530591114",
+        "COGS -1127,45060924984026",
+        "COGS -1127,45060924984026",
+        "COGS -1127,45060924984026",
+        "COGS -1127,45060924984026",
+        "COGS -1308,62991233401242",
+        "COGS -1308,62991233401242",
+        "COGS -3158,3280569013239",
+        "COGS -3158,3280569013239",
+        "COGS -1,60602056864222424",
+        "OpEx -410275,63667179467334520547945",
+        "COGS -1425,20156699804903",
+        "COGS -1425,20156699804903",
+        "COGS -1425,20156699804903",
+        "COGS -1425,20156699804903",
+        "COGS -1425,20156699804903",
+        "COGS -1425,20156699804903",
+        "COGS -1146,01577630441573",
+        "COGS -1146,01577630441573",
+        "COGS -1146,01577630441573",
+        "COGS -1146,01577630441573",
+        "COGS -1305,86398538448314",
+        "COGS -1305,86398538448314",
+        "COGS -3224,846027181",
+        "COGS -3224,846027181",
+        "COGS -1,63458217385614127",
+        "OpEx -410177,33430466730574520547945",
+        "COGS -1422,14584135155039",
+        "COGS -1422,14584135155039",
+        "COGS -1422,14584135155039",
+        "COGS -1422,14584135155039",
+        "COGS -1422,14584135155039",
+        "COGS -1422,14584135155039",
+        "COGS -1143,95098282391486",
+        "COGS -1143,95098282391486",
+        "COGS -1143,95098282391486",
+        "COGS -1143,95098282391486",
+        "COGS -1359,13618504899566",
+        "COGS -1359,13618504899566",
+        "COGS -3233,5242131554006",
+        "COGS -3233,5242131554006",
+        "COGS -1,63372389835429616",
+        "OpEx -410400,06402641662034520547945",
+        "COGS -1260,42455159284226",
+        "COGS -1260,42455159284226",
+        "COGS -1260,42455159284226",
+        "COGS -1260,42455159284226",
+        "COGS -1260,42455159284226",
+        "COGS -1260,42455159284226",
+        "COGS -1014,19270460980915",
+        "COGS -1014,19270460980915",
+        "COGS -1014,19270460980915",
+        "COGS -1014,19270460980915",
+        "COGS -1364,60470004355052",
+        "COGS -1364,60470004355052",
+        "COGS -2878,7877537694318",
+        "COGS -2878,7877537694318",
+        "COGS -1,45000362038971386",
+        "OpEx -412548,23608253980254520547945",
+        "COGS -1358,38783381464663",
+        "COGS -1358,38783381464663",
+        "COGS -1358,38783381464663",
+        "COGS -1358,38783381464663",
+        "COGS -1358,38783381464663",
+        "COGS -1358,38783381464663",
+        "COGS -1093,35771342649994",
+        "COGS -1093,35771342649994",
+        "COGS -1093,35771342649994",
+        "COGS -1093,35771342649994",
+        "COGS -1395,71839464320853",
+        "COGS -1395,71839464320853",
+        "COGS -3115,9356136869775",
+        "COGS -3115,9356136869775",
+        "COGS -1,56487530499936796",
+        "OpEx -411530,77609054454004520547945",
+        "OpEx -120000",
+        "COGS -1392,68670831475293",
+        "COGS -1392,68670831475293",
+        "COGS -1392,68670831475293",
+        "COGS -1392,68670831475293",
+        "COGS -1392,68670831475293",
+        "COGS -1392,68670831475293",
+        "COGS -1121,3270543407031",
+        "COGS -1121,3270543407031",
+        "COGS -1121,3270543407031",
+        "COGS -1121,3270543407031",
+        "COGS -1417,68487467186535",
+        "COGS -1417,68487467186535",
+        "COGS -3209,0162818352037",
+        "COGS -3209,0162818352037",
+        "COGS -1,60673850583127399",
+        "OpEx -411294,15348698823594520547945",
+        "COGS -1386,85709309861652",
+        "COGS -1386,85709309861652",
+        "COGS -1386,85709309861652",
+        "COGS -1386,85709309861652",
+        "COGS -1386,85709309861652",
+        "COGS -1386,85709309861652",
+        "COGS -1116,99519092430503",
+        "COGS -1116,99519092430503",
+        "COGS -1116,99519092430503",
+        "COGS -1116,99519092430503",
+        "COGS -1448,87549346339797",
+        "COGS -1448,87549346339797",
+        "COGS -3210,0030436540751",
+        "COGS -3210,0030436540751",
+        "COGS -1,60234081325994378",
+        "OpEx -411544,53432364532794520547945",
+        "Tax -877348087,2601432826714329854"
+      ],
+      "FinCostBreakdown": {
+        "containment": 480000,
+        "events": 50000.0000000000000000000,
+        "feed": 462785.76778630953415044,
+        "operations": 4425113.0497442237775178082188,
+        "smolts": 6480000,
+        "storm_repairs": 156250,
+        "tax": 877348087.2601432826714329854
+      },
+      "FinRevenueBreakdown": {
+        "unclassified": 4000000000.0000000000000000000
+      },
+      "FinLifetime": {
+        "Revenue": 4000000000.0000000000000000000,
+        "Cogs": 6942785.76778630953415044,
+        "Opex": 5111363.0497442237775178082188,
+        "Interest": 0,
+        "Taxes": 877348087.2601432826714329854,
+        "Capex": 1450000000,
+        "LiabilitiesIncurred": 0,
+        "LiabilitiesRepaid": 0,
+        "EquityRaised": 0
+      },
+      "MktBase": 85.9289854865844,
+      "MktPrice": 88,
+      "MktWeeklyAvg": 88,
+      "MktLongMean": 82,
+      "MktMeanRev": 0.012,
+      "MktVol": 5.0,
+      "MktCertMult": 1.15,
+      "MktSupplyIdx": 0.978622093482539,
+      "MktDemandIdx": 1,
+      "MktLastR2": "NaN",
+      "MktLastObs": 0,
+      "MktSimDay": 31,
+      "MktHistory": [],
+      "MktPlayerPressure": 0,
+      "MktShockDays": 0,
+      "MktSupplyOffset": 0.372414765120774,
+      "SustainabilityLiveScore": 86,
+      "SustainabilityLiveLevel": "OrganicCertified",
+      "IntelWeek": 4,
+      "IntelActive": [],
+      "IntelHistory": [],
+      "IntelCompetitors": [
+        {
+          "Name": "Mowier ASA",
+          "Country": "Norway",
+          "WeeklyHarvestTonnes": 7711.3887087579415,
+          "BaseWeeklyHarvestTonnes": 8500,
+          "DisruptionFactor": 1
+        },
+        {
+          "Name": "SalMax",
+          "Country": "Norway",
+          "WeeklyHarvestTonnes": 5515.70950390483,
+          "BaseWeeklyHarvestTonnes": 6200,
+          "DisruptionFactor": 1
+        },
+        {
+          "Name": "NordLaks",
+          "Country": "Norway",
+          "WeeklyHarvestTonnes": 3413.9938726383693,
+          "BaseWeeklyHarvestTonnes": 3800,
+          "DisruptionFactor": 1
+        },
+        {
+          "Name": "Kermak",
+          "Country": "Norway/Chile",
+          "WeeklyHarvestTonnes": 3772.9865024975843,
+          "BaseWeeklyHarvestTonnes": 4500,
+          "DisruptionFactor": 1
+        },
+        {
+          "Name": "Multiport Foods",
+          "Country": "Chile",
+          "WeeklyHarvestTonnes": 2680.7211367525883,
+          "BaseWeeklyHarvestTonnes": 3200,
+          "DisruptionFactor": 1
+        },
+        {
+          "Name": "Bakkafrysk",
+          "Country": "Faroe Islands",
+          "WeeklyHarvestTonnes": 2356.821506595151,
+          "BaseWeeklyHarvestTonnes": 2800,
+          "DisruptionFactor": 1
+        },
+        {
+          "Name": "Mowier Scotland",
+          "Country": "Scotland",
+          "WeeklyHarvestTonnes": 2166.7983296706116,
+          "BaseWeeklyHarvestTonnes": 2400,
+          "DisruptionFactor": 1
+        }
+      ],
+      "IntelPriceHistory": [
+        89.6950833186975,
+        87.1745127293622,
+        86.5086619825226,
+        88.5353814823528
+      ],
+      "IntelBrandScore": 24.599999999999994,
+      "PlanktonBloomStates": {
+        "po3_nord": {
+          "Intensity": 0,
+          "IsActive": false,
+          "IsCrashing": false,
+          "StartDay": -1,
+          "CrashDay": -1,
+          "PeakIntensity": 0
+        },
+        "po3_sor": {
+          "Intensity": 0,
+          "IsActive": false,
+          "IsCrashing": false,
+          "StartDay": -1,
+          "CrashDay": -1,
+          "PeakIntensity": 0
+        }
+      },
+      "AiFeedInstalled": false,
+      "AiFeedCalibration": 0.5,
+      "AiFeedDays": 0,
+      "AiFeedCameraUptime": 1,
+      "AiFeedAppetite": 0.7,
+      "AiFeedWaste": 0.05,
+      "AiFeedSavings": 0,
+      "AiFeedFcrMult": 1,
+      "AiFeedHistory": [],
+      "IntelBrandGood": 0,
+      "IntelBrandTotal": 0,
+      "TrafficLightColors": {
+        "po3_nord": "Green",
+        "po3_sor": "Green"
+      },
+      "WeatherStatePresent": true,
+      "WeatherDay": 31,
+      "WeatherTempC": 7.300897602026858,
+      "WeatherWindMs": 13.156500466145005,
+      "WeatherWaveM": 0.5,
+      "WeatherStateName": "Storm",
+      "WeatherSeaAnomalyC": 1.4506720044344739,
+      "WeatherEventAnomalyC": 0,
+      "WeatherDailyFluctuationC": -0.36028287698388767,
+      "WeatherStormCoolingC": 0,
+      "FeedFcr": 1.216570083235701,
+      "FeedUsedKg": 20752.725012838993,
+      "FeedGrowthKg": 19504.653291653292,
+      "FeedLastAppetite": 1,
+      "FeedSustainabilityRating": 0.64
+    },
+    "Contracts": {
+      "ActiveContracts": [],
+      "CompletedContracts": [],
+      "CurrentWeek": 4,
+      "NextContractNumber": 1,
+      "OfferDay": -1,
+      "CurrentOffers": []
+    },
+    "CompetitorAI": {
+      "Competitors": [
+        {
+          "Id": "mowier",
+          "Name": "Mowier ASA",
+          "ParodyOf": "the global market leader",
+          "Tagline": "Leading the Blue Revolution\u2122 (to the bank)",
+          "Headquarters": "Bergen, Vestland",
+          "Strategy": "CostLeader",
+          "Positioning": "VolumeLeader",
+          "Revenue": 52000000000,
+          "EBITDA": 12000000000,
+          "MarketCap": 120000000000,
+          "DebtLevel": 25000000000,
+          "CashReserves": 3000000000,
+          "IsPubliclyListed": true,
+          "LicenseCount": 180,
+          "TotalMABTonnes": 250000,
+          "SiteCount": 55,
+          "MarketShareNorway": 0.2,
+          "MarketShareGlobal": 0.08,
+          "WeeklyHarvestTonnes": 4800,
+          "ProductionCostPerKg": 48,
+          "ExpansionAppetite": 0.85,
+          "AcquisitionAggression": 0.9,
+          "PriceWarWillingness": 0.7,
+          "LobbyingPower": 0.95,
+          "BrandStrength": 0.75,
+          "FinancialHealth": 0.88,
+          "OperatingRegions": [
+            "Norway",
+            "Scotland",
+            "Chile",
+            "Canada",
+            "Ireland"
+          ],
+          "HasInternationalOperations": true,
+          "RecentActions": [],
+          "QuartersSinceLastAcquisition": 0,
+          "IsDistressed": false,
+          "IsAcquisitionTarget": false,
+          "AcquisitionPrice": 0,
+          "LeverageRatio": 2.0833333333333333333333333333,
+          "EBITDAMargin": 0.2307692307692307692307692308,
+          "EnterpriseValue": 142000000000
+        },
+        {
+          "Id": "salmax",
+          "Name": "SalMax Group ASA",
+          "ParodyOf": "the innovative number two",
+          "Tagline": "Passion for Profit",
+          "Headquarters": "Fr\u00F8ya, Tr\u00F8ndelag",
+          "Strategy": "Consolidator",
+          "Positioning": "VolumeLeader",
+          "Revenue": 28000000000,
+          "EBITDA": 8400000000,
+          "MarketCap": 95000000000,
+          "DebtLevel": 15000000000,
+          "CashReserves": 5000000000,
+          "IsPubliclyListed": true,
+          "LicenseCount": 110,
+          "TotalMABTonnes": 170000,
+          "SiteCount": 38,
+          "MarketShareNorway": 0.14,
+          "MarketShareGlobal": 0.05,
+          "WeeklyHarvestTonnes": 3300,
+          "ProductionCostPerKg": 42,
+          "ExpansionAppetite": 0.9,
+          "AcquisitionAggression": 0.95,
+          "PriceWarWillingness": 0.6,
+          "LobbyingPower": 0.8,
+          "BrandStrength": 0.65,
+          "FinancialHealth": 0.92,
+          "OperatingRegions": [
+            "Norway",
+            "Iceland"
+          ],
+          "HasInternationalOperations": true,
+          "RecentActions": [],
+          "QuartersSinceLastAcquisition": 0,
+          "IsDistressed": false,
+          "IsAcquisitionTarget": false,
+          "AcquisitionPrice": 0,
+          "LeverageRatio": 1.7857142857142857142857142857,
+          "EBITDAMargin": 0.3,
+          "EnterpriseValue": 105000000000
+        },
+        {
+          "Id": "heroy",
+          "Name": "Her\u00F8y Seafood AS",
+          "ParodyOf": "the integrated seafood group",
+          "Tagline": "Lords of the Fjords",
+          "Headquarters": "Bergen, Vestland",
+          "Strategy": "PremiumSpecialist",
+          "Positioning": "PremiumSpecialist",
+          "Revenue": 30000000000,
+          "EBITDA": 6000000000,
+          "MarketCap": 65000000000,
+          "DebtLevel": 10000000000,
+          "CashReserves": 2500000000,
+          "IsPubliclyListed": true,
+          "LicenseCount": 95,
+          "TotalMABTonnes": 130000,
+          "SiteCount": 32,
+          "MarketShareNorway": 0.1,
+          "MarketShareGlobal": 0.04,
+          "WeeklyHarvestTonnes": 2500,
+          "ProductionCostPerKg": 55,
+          "ExpansionAppetite": 0.5,
+          "AcquisitionAggression": 0.45,
+          "PriceWarWillingness": 0.2,
+          "LobbyingPower": 0.7,
+          "BrandStrength": 0.92,
+          "FinancialHealth": 0.82,
+          "OperatingRegions": [
+            "Norway"
+          ],
+          "HasInternationalOperations": false,
+          "RecentActions": [],
+          "QuartersSinceLastAcquisition": 0,
+          "IsDistressed": false,
+          "IsAcquisitionTarget": false,
+          "AcquisitionPrice": 0,
+          "LeverageRatio": 1.6666666666666666666666666667,
+          "EBITDAMargin": 0.2,
+          "EnterpriseValue": 72500000000
+        },
+        {
+          "Id": "greed_gregarious",
+          "Name": "Greed Gregarious ASA",
+          "ParodyOf": "the listed west-coast farmer",
+          "Tagline": "Growth at Any Cost",
+          "Headquarters": "Bergen, Vestland",
+          "Strategy": "Consolidator",
+          "Positioning": "Diversified",
+          "Revenue": 14000000000,
+          "EBITDA": 2800000000,
+          "MarketCap": 22000000000,
+          "DebtLevel": 8000000000,
+          "CashReserves": 1200000000,
+          "IsPubliclyListed": true,
+          "LicenseCount": 60,
+          "TotalMABTonnes": 80000,
+          "SiteCount": 22,
+          "MarketShareNorway": 0.06,
+          "MarketShareGlobal": 0.03,
+          "WeeklyHarvestTonnes": 1500,
+          "ProductionCostPerKg": 52,
+          "ExpansionAppetite": 0.75,
+          "AcquisitionAggression": 0.8,
+          "PriceWarWillingness": 0.55,
+          "LobbyingPower": 0.6,
+          "BrandStrength": 0.5,
+          "FinancialHealth": 0.65,
+          "OperatingRegions": [
+            "Norway",
+            "Canada",
+            "Scotland"
+          ],
+          "HasInternationalOperations": true,
+          "RecentActions": [],
+          "QuartersSinceLastAcquisition": 0,
+          "IsDistressed": false,
+          "IsAcquisitionTarget": true,
+          "AcquisitionPrice": 28000000000,
+          "LeverageRatio": 2.8571428571428571428571428571,
+          "EBITDAMargin": 0.2,
+          "EnterpriseValue": 28800000000
+        },
+        {
+          "Id": "offshore_optimists",
+          "Name": "Offshore Optimists AS",
+          "ParodyOf": "offshore farming start-ups",
+          "Tagline": "The Future is Offshore (we promise, this time it\u0027s different)",
+          "Headquarters": "Trondheim, Tr\u00F8ndelag",
+          "Strategy": "TechDisruptor",
+          "Positioning": "PremiumSpecialist",
+          "Revenue": 2000000000,
+          "EBITDA": -500000000,
+          "MarketCap": 15000000000,
+          "DebtLevel": 6000000000,
+          "CashReserves": 3000000000,
+          "IsPubliclyListed": true,
+          "LicenseCount": 8,
+          "TotalMABTonnes": 15000,
+          "SiteCount": 3,
+          "MarketShareNorway": 0.01,
+          "MarketShareGlobal": 0.005,
+          "WeeklyHarvestTonnes": 280,
+          "ProductionCostPerKg": 85,
+          "ExpansionAppetite": 0.95,
+          "AcquisitionAggression": 0.3,
+          "PriceWarWillingness": 0.1,
+          "LobbyingPower": 0.4,
+          "BrandStrength": 0.6,
+          "FinancialHealth": 0.45,
+          "OperatingRegions": [
+            "Norway"
+          ],
+          "HasInternationalOperations": false,
+          "RecentActions": [],
+          "QuartersSinceLastAcquisition": 0,
+          "IsDistressed": false,
+          "IsAcquisitionTarget": true,
+          "AcquisitionPrice": 18000000000,
+          "LeverageRatio": 79228162514264337593543950335,
+          "EBITDAMargin": -0.25,
+          "EnterpriseValue": 18000000000
+        },
+        {
+          "Id": "nordlaks_nord",
+          "Name": "NordLaks Nord AS",
+          "ParodyOf": "the northern regional farmer",
+          "Tagline": "Arctic Excellence, Royal Ambitions",
+          "Headquarters": "Stokmarknes, Nordland",
+          "Strategy": "Conservative",
+          "Positioning": "Diversified",
+          "Revenue": 8000000000,
+          "EBITDA": 2000000000,
+          "MarketCap": 18000000000,
+          "DebtLevel": 3500000000,
+          "CashReserves": 1800000000,
+          "IsPubliclyListed": false,
+          "LicenseCount": 40,
+          "TotalMABTonnes": 55000,
+          "SiteCount": 15,
+          "MarketShareNorway": 0.04,
+          "MarketShareGlobal": 0.015,
+          "WeeklyHarvestTonnes": 1050,
+          "ProductionCostPerKg": 50,
+          "ExpansionAppetite": 0.35,
+          "AcquisitionAggression": 0.25,
+          "PriceWarWillingness": 0.3,
+          "LobbyingPower": 0.45,
+          "BrandStrength": 0.7,
+          "FinancialHealth": 0.85,
+          "OperatingRegions": [
+            "Norway"
+          ],
+          "HasInternationalOperations": false,
+          "RecentActions": [],
+          "QuartersSinceLastAcquisition": 0,
+          "IsDistressed": false,
+          "IsAcquisitionTarget": true,
+          "AcquisitionPrice": 22000000000,
+          "LeverageRatio": 1.75,
+          "EBITDAMargin": 0.25,
+          "EnterpriseValue": 19700000000
+        }
+      ],
+      "CurrentQuarter": 0,
+      "CurrentYear": 0,
+      "PendingActions": [],
+      "ActionHistory": []
+    },
+    "DiseasePrevalence": {
+      "00000000-0000-4000-8000-000000000001": 0.75,
+      "00000000-0000-4000-8000-000000000002": 0.75,
+      "00000000-0000-4000-8000-000000000003": 0.75,
+      "00000000-0000-4000-8000-000000000004": 0.75,
+      "00000000-0000-4000-8000-000000000005": 0.75,
+      "00000000-0000-4000-8000-000000000006": 0.75,
+      "00000000-0000-4000-8000-000000000007": 0.75,
+      "00000000-0000-4000-8000-000000000008": 0.75,
+      "00000000-0000-4000-8000-000000000009": 0.75,
+      "00000000-0000-4000-8000-00000000000a": 0.75,
+      "00000000-0000-4000-8000-00000000000b": 0.75,
+      "00000000-0000-4000-8000-00000000000c": 0.75,
+      "00000000-0000-4000-8000-00000000000d": 0.75,
+      "00000000-0000-4000-8000-00000000000e": 0.75,
+      "00000000-0000-4000-8000-00000000000f": 0.75
+    },
+    "CompanyLice": {
+      "ChalimusPerFish": 0,
+      "PreAdultPerFish": 0,
+      "AdultFemalePerFish": 0,
+      "AdultMalePerFish": 0,
+      "TemperatureC": 7.302541437643296,
+      "SalinityPSU": 34,
+      "ExternalPressureMultiplier": 0.8142444831433233,
+      "CurrentSpeedMs": 0.15,
+      "StockingDensityKgM3": 20,
+      "PyrethroidResistance": 0,
+      "OrganophosphateResistance": 0,
+      "HydrogenPeroxideResistance": 0,
+      "MechanicalResistance": 0,
+      "CleanerFishEfficiency": 0,
+      "CopepodidDensity": 0,
+      "PreventiveCoverage01": 0.5916290372026762
+    },
+    "Tax": {
+      "LossCarryForward": 0,
+      "Period": 0
+    }
+  }
+}

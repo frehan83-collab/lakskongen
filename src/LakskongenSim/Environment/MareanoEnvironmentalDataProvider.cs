@@ -170,10 +170,11 @@ namespace LakskongenSim.Environment
             var riskProfile = NorwegianZoneEnvironmentalProfile.GetRiskProfile(zoneId);
             
             // Set Zone's water chemistry from environmental data
-            zone.WaterChemistry.Temperature = data.TemperatureAtCageDepth;
+            // The data layer's temperature is the zone's own (it no longer
+            // follows the shared sea temperature, S1-01).
+            zone.SetTemperature(data.TemperatureAtCageDepth);
             zone.WaterChemistry.OxygenO2 = data.OxygenAtCageDepth;
             zone.WaterChemistry.pH = data.pH;
-            zone.WaterChemistry.SetTemperature(data.TemperatureAtCageDepth);
             
             // Set current speed (affects water flow and nutrient dilution)
             zone.CurrentSpeed = data.CurrentSpeedAtCageDepth;
@@ -286,7 +287,7 @@ namespace LakskongenSim.Environment
             
             for (int i = 1; i <= days; i++)
             {
-                int forecastDay = ((forecastStartDay + i - 1) % 365) + 1;
+                int forecastDay = LakskongenSim.Core.SimCalendar.DayOfYear(forecastStartDay + i - 1) + 1;
                 var profile = NorwegianZoneEnvironmentalProfile.GetProfileForDay(zoneId, forecastDay);
                 profile.Timestamp = _currentDate.AddDays(i);
                 _forecastCache[zoneId].Enqueue(profile);

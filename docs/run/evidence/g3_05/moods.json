@@ -1,0 +1,395 @@
+{
+	"failures": [],
+	"goldens": {
+		"blaatime": {
+			"cloud_base_m": 0.0,
+			"composed_mood": "blaatime",
+			"exposure": 3.69388413593666,
+			"fog_light": [
+				0.0769652724266052,
+				0.0964071154594421,
+				0.159345105290413
+			],
+			"mist": 0.0,
+			"mist_banks": 106,
+			"phash": "c1c0ecfdabae8381",
+			"sky_de": 7.78042480461607,
+			"sky_hex": "6f768d",
+			"sky_lab": [
+				49.7287559509277,
+				3.03857707977295,
+				-13.552433013916
+			],
+			"sun_elevation": -1.65214851242729,
+			"visibility_m": 59999.9999999998,
+			"water_de": 6.81887452613367,
+			"water_hex": "212d41",
+			"water_lab": [
+				18.3310146331787,
+				1.17073893547058,
+				-14.2191791534424
+			]
+		},
+		"frostroyk": {
+			"cloud_base_m": 0.0,
+			"composed_mood": "frostroyk",
+			"exposure": 0.948432446122433,
+			"fog_light": [
+				0.585667490959167,
+				0.68718010187149,
+				0.739280939102173
+			],
+			"mist": 0.0,
+			"mist_banks": 106,
+			"phash": "94c1fdbd6f0a2868",
+			"sky_de": 7.51349338003089,
+			"sky_hex": "a6abad",
+			"sky_lab": [
+				69.7364044189453,
+				-1.47981476783752,
+				-1.27378439903259
+			],
+			"smoke_de": 21.0392030686085,
+			"smoke_lab": [
+				61.2171974182129,
+				-2.6769757270813,
+				-3.35239934921265
+			],
+			"smoke_share_of_frame": 0.0552469119429588,
+			"sun_elevation": 5.91370376503073,
+			"visibility_m": 60000.0,
+			"water_de": 8.57933870619544,
+			"water_hex": "4a5357",
+			"water_lab": [
+				34.5190620422363,
+				-2.50972771644592,
+				-3.45252060890198
+			]
+		},
+		"graavaer": {
+			"cloud_base_m": 200.0,
+			"composed_mood": "graavaer",
+			"exposure": 1.63366118753603,
+			"fog_light": [
+				0.231805577874184,
+				0.275438487529755,
+				0.301157802343369
+			],
+			"mist": 1.0,
+			"mist_banks": 106,
+			"phash": "80d5fdfdaf2b2020",
+			"sky_de": 3.55719754464899,
+			"sky_hex": "a0a8ac",
+			"sky_lab": [
+				68.2639617919922,
+				-2.01616883277893,
+				-3.04053330421448
+			],
+			"sun_elevation": 20.1003869756209,
+			"visibility_m": 8929.36141213818,
+			"water_de": 3.64800236173164,
+			"water_hex": "676f73",
+			"water_lab": [
+				46.3432731628418,
+				-2.33365678787231,
+				-3.32787752151489
+			]
+		},
+		"hoest": {
+			"cloud_base_m": 0.0,
+			"composed_mood": "hoest",
+			"exposure": 0.890050045561752,
+			"fog_light": [
+				0.747803032398224,
+				0.814919173717499,
+				0.804110407829285
+			],
+			"mist": 0.0,
+			"mist_banks": 106,
+			"phash": "c5c0f8fdaf2f0a08",
+			"sky_de": 8.37334119542981,
+			"sky_hex": "bebfbf",
+			"sky_lab": [
+				77.4034957885742,
+				-0.465496003627777,
+				0.163571417331696
+			],
+			"sun_elevation": 9.63482820363313,
+			"visibility_m": 60000.0,
+			"water_de": 7.25714815664404,
+			"water_hex": "394651",
+			"water_lab": [
+				29.0211086273193,
+				-2.25981593132019,
+				-8.0719051361084
+			]
+		},
+		"midnattssol": {
+			"cloud_base_m": 0.0,
+			"composed_mood": "midnattssol",
+			"exposure": 1.8549302908869,
+			"fog_light": [
+				0.707178831100464,
+				0.531373083591461,
+				0.329052954912186
+			],
+			"mist": 0.0,
+			"mist_banks": 106,
+			"phash": "d580a5bd2aeb2a2b",
+			"sky_de": 8.44296455628033,
+			"sky_hex": "d1bfa5",
+			"sky_lab": [
+				78.0649032592773,
+				2.35609817504883,
+				15.4513959884644
+			],
+			"sun_elevation": 3.26218484567936,
+			"visibility_m": 60000.0,
+			"water_de": 9.59773835504359,
+			"water_hex": "4a4e52",
+			"water_lab": [
+				33.0984916687012,
+				-0.81255966424942,
+				-2.49001264572144
+			]
+		},
+		"nordlys": {
+			"cloud_base_m": 0.0,
+			"composed_mood": "nordlys",
+			"exposure": 8.0,
+			"fog_light": [
+				0.00114446831867099,
+				0.0024912403896451,
+				0.0059037241153419
+			],
+			"lamp_fraction": 0.0147395833333333,
+			"mist": 0.0,
+			"mist_banks": 106,
+			"phash": "c0e0f0f99fe6e0e0",
+			"sky_de": 5.99271598382026,
+			"sky_hex": "162533",
+			"sky_lab": [
+				14.0551881790161,
+				-1.29359591007233,
+				-11.4084224700928
+			],
+			"sun_elevation": -38.2133832244755,
+			"visibility_m": 60000.0,
+			"water_de": 6.35979896880946,
+			"water_hex": "071317",
+			"water_lab": [
+				5.29466962814331,
+				-3.22253608703613,
+				-3.77634763717651
+			]
+		},
+		"sommerdag": {
+			"cloud_base_m": 0.0,
+			"composed_mood": "sommerdag",
+			"exposure": 0.90125046261083,
+			"fog_light": [
+				0.767839848995209,
+				0.980671405792236,
+				1.10514163970947
+			],
+			"mist": 0.0,
+			"mist_banks": 106,
+			"phash": "8180f4ff2faf5062",
+			"shadow_motion": "(0.78765, 0.195426)",
+			"sky_de": 4.78860925018647,
+			"sky_hex": "c1c8cc",
+			"sky_lab": [
+				80.2774505615234,
+				-1.82015013694763,
+				-2.5314724445343
+			],
+			"sun_elevation": 51.5477274147289,
+			"visibility_m": 60000.0,
+			"water_de": 8.11543029457189,
+			"water_hex": "3b577c",
+			"water_lab": [
+				36.4534683227539,
+				0.899503946304321,
+				-24.133113861084
+			]
+		},
+		"storm": {
+			"cloud_base_m": 220.0,
+			"composed_mood": "storm",
+			"exposed_hs": 2.5846721400123,
+			"exposed_hs_weakest_storm": 2.10004611375999,
+			"exposure": 2.72805034614158,
+			"fog_light": [
+				0.0271152686327696,
+				0.034096572548151,
+				0.0394177585840225
+			],
+			"mist": 0.15,
+			"mist_banks": 106,
+			"phash": "80c1f5f0bdaf2a2a",
+			"sky_de": 5.46040027811098,
+			"sky_hex": "7c8890",
+			"sky_lab": [
+				56.1130294799805,
+				-2.94335794448853,
+				-5.69472026824951
+			],
+			"skyline_dl": 15.9674503827336,
+			"skyline_sky_land_l": "(58.36631, 42.76684)",
+			"sun_elevation": 10.6752512408128,
+			"visibility_m": 1652.63476545649,
+			"water_de": 7.60209133567444,
+			"water_hex": "424c53",
+			"water_lab": [
+				31.8391819000244,
+				-2.63255071640015,
+				-5.23139190673828
+			]
+		}
+	},
+	"min_phash": 12,
+	"phash_pairs": [
+		[
+			12,
+			"blaatime",
+			"hoest"
+		],
+		[
+			12,
+			"graavaer",
+			"frostroyk"
+		],
+		[
+			14,
+			"graavaer",
+			"hoest"
+		],
+		[
+			14,
+			"graavaer",
+			"storm"
+		],
+		[
+			16,
+			"frostroyk",
+			"hoest"
+		],
+		[
+			16,
+			"sommerdag",
+			"graavaer"
+		],
+		[
+			16,
+			"storm",
+			"hoest"
+		],
+		[
+			16,
+			"sommerdag",
+			"hoest"
+		],
+		[
+			18,
+			"blaatime",
+			"nordlys"
+		],
+		[
+			18,
+			"storm",
+			"frostroyk"
+		],
+		[
+			18,
+			"graavaer",
+			"blaatime"
+		],
+		[
+			18,
+			"midnattssol",
+			"hoest"
+		],
+		[
+			18,
+			"midnattssol",
+			"frostroyk"
+		],
+		[
+			18,
+			"sommerdag",
+			"nordlys"
+		],
+		[
+			18,
+			"sommerdag",
+			"blaatime"
+		],
+		[
+			18,
+			"sommerdag",
+			"storm"
+		],
+		[
+			20,
+			"midnattssol",
+			"blaatime"
+		],
+		[
+			20,
+			"graavaer",
+			"nordlys"
+		],
+		[
+			20,
+			"midnattssol",
+			"storm"
+		],
+		[
+			20,
+			"storm",
+			"nordlys"
+		],
+		[
+			20,
+			"sommerdag",
+			"frostroyk"
+		],
+		[
+			20,
+			"nordlys",
+			"hoest"
+		],
+		[
+			20,
+			"sommerdag",
+			"midnattssol"
+		],
+		[
+			22,
+			"midnattssol",
+			"graavaer"
+		],
+		[
+			22,
+			"storm",
+			"blaatime"
+		],
+		[
+			24,
+			"blaatime",
+			"frostroyk"
+		],
+		[
+			24,
+			"nordlys",
+			"frostroyk"
+		],
+		[
+			28,
+			"midnattssol",
+			"nordlys"
+		]
+	],
+	"step": 8,
+	"water_reach_m": 2000.0
+}

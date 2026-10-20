@@ -1,0 +1,342 @@
+[
+  {
+    "id": "first-smolt",
+    "name": "First Smolt Release",
+    "description": "Stock your first pen with smolts",
+    "icon": "🐟",
+    "category": "milestone",
+    "hidden": false,
+    "medal": "bronze",
+    "condition_key": "HasAnyPopulations"
+  },
+  {
+    "id": "survive-year-one",
+    "name": "Year One Survivor",
+    "description": "Survive your first year without bankruptcy",
+    "icon": "🎂",
+    "category": "milestone",
+    "hidden": false,
+    "medal": "bronze",
+    "condition_key": "SurvivedYearOne"
+  },
+  {
+    "id": "first-harvest",
+    "name": "First Harvest",
+    "description": "Harvest your first salmon cohort",
+    "icon": "🎣",
+    "category": "production",
+    "hidden": false,
+    "medal": "bronze",
+    "condition_key": "HasHarvestedCohort"
+  },
+  {
+    "id": "profitable-quarter",
+    "name": "Profitable Quarter",
+    "description": "End a quarter with positive cash flow",
+    "icon": "💰",
+    "category": "finance",
+    "hidden": false,
+    "medal": "bronze",
+    "condition_key": "ProfitableQuarter"
+  },
+  {
+    "id": "million-revenue",
+    "name": "Million NOK Revenue",
+    "description": "Achieve cumulative revenue of 1M NOK",
+    "icon": "💵",
+    "category": "finance",
+    "hidden": false,
+    "medal": "bronze",
+    "condition_key": "MillionRevenue"
+  },
+  {
+    "id": "100k-harvest",
+    "name": "100,000 Fish Harvested",
+    "description": "Harvest 100,000 fish total",
+    "icon": "🏭",
+    "category": "production",
+    "hidden": false,
+    "medal": "bronze",
+    "condition_key": "Harvested100KFish"
+  },
+  {
+    "id": "fcr-excellence",
+    "name": "FCR Excellence",
+    "description": "Achieve FCR below 1.15 for a full year",
+    "icon": "📊",
+    "category": "production",
+    "hidden": false,
+    "medal": "bronze",
+    "condition_key": "FCRExcellence"
+  },
+  {
+    "id": "disease-free-year",
+    "name": "Disease-Free Year",
+    "description": "Go 365 days without a disease outbreak",
+    "icon": "🛡️",
+    "category": "sustainability",
+    "hidden": false,
+    "medal": "bronze",
+    "condition_key": "DiseaseFreeYear"
+  },
+  {
+    "id": "asc-certified",
+    "name": "ASC Certification",
+    "description": "Achieve ASC certification status",
+    "icon": "🏅",
+    "category": "sustainability",
+    "hidden": false,
+    "medal": "silver",
+    "condition_key": "ASCCertified"
+  },
+  {
+    "id": "five-million-revenue",
+    "name": "5 Million NOK Revenue",
+    "description": "Reach 5M NOK cumulative revenue",
+    "icon": "💎",
+    "category": "finance",
+    "hidden": false,
+    "medal": "silver",
+    "condition_key": "FiveMillionRevenue"
+  },
+  {
+    "id": "genetic-superiority",
+    "name": "Genetic Superiority",
+    "description": "Breed a strain with +2.0 breeding value in growth",
+    "icon": "🧬",
+    "category": "genetics",
+    "hidden": false,
+    "medal": "silver",
+    "condition_key": "GeneticSuperiority"
+  },
+  {
+    "id": "crisis-survivor",
+    "name": "Crisis Survivor",
+    "description": "Survive a major crisis (ISA, storm, market crash) without bankruptcy",
+    "icon": "⚡",
+    "category": "milestone",
+    "hidden": false,
+    "medal": "silver",
+    "condition_key": "CrisisSurvivor"
+  },
+  {
+    "id": "multi-site-operator",
+    "name": "Multi-Site Operator",
+    "description": "Operate 3+ sea sites simultaneously",
+    "icon": "🗺️",
+    "category": "milestone",
+    "hidden": false,
+    "medal": "silver",
+    "condition_key": "MultiSiteOperator"
+  },
+  {
+    "id": "sustainability-leader",
+    "name": "Sustainability Leader",
+    "description": "Achieve 95+ sustainability score",
+    "icon": "🌿",
+    "category": "sustainability",
+    "hidden": false,
+    "medal": "gold",
+    "condition_key": "SustainabilityLeader"
+  },
+  {
+    "id": "ten-million-revenue",
+    "name": "10 Million NOK Empire",
+    "description": "Build a 10M NOK salmon empire",
+    "icon": "👑",
+    "category": "finance",
+    "hidden": false,
+    "medal": "gold",
+    "condition_key": "TenMillionRevenue"
+  },
+  {
+    "id": "vertical-integration",
+    "name": "Vertical Integration Master",
+    "description": "Own feed mill, hatchery, farms, and processing plant",
+    "icon": "🏗️",
+    "category": "milestone",
+    "hidden": false,
+    "medal": "gold",
+    "condition_key": "VerticalIntegration"
+  },
+  {
+    "id": "acquisition-spree",
+    "name": "Acquisition Spree",
+    "description": "Acquire 3 competitor farms during crises",
+    "icon": "🦈",
+    "category": "finance",
+    "hidden": false,
+    "medal": "silver",
+    "condition_key": "AcquisitionSpree"
+  },
+  {
+    "id": "global-exporter",
+    "name": "Global Exporter",
+    "description": "Export to all 6 major markets (EU, USA, China, Japan, UK, Middle East)",
+    "icon": "🌍",
+    "category": "production",
+    "hidden": false,
+    "medal": "gold",
+    "condition_key": "GlobalExporter"
+  },
+  {
+    "id": "hundred-million",
+    "name": "Salmon Billionaire",
+    "description": "Reach 100M NOK net worth",
+    "icon": "🤑",
+    "category": "finance",
+    "hidden": false,
+    "medal": "platinum",
+    "condition_key": "HundredMillionNetWorth"
+  },
+  {
+    "id": "perfect-fcr",
+    "name": "Perfect FCR",
+    "description": "Achieve FCR of 1.05 or better",
+    "icon": "⭐",
+    "category": "production",
+    "hidden": false,
+    "medal": "gold",
+    "condition_key": "PerfectFCR"
+  },
+  {
+    "id": "zero-escapes",
+    "name": "Zero Escapes",
+    "description": "Go 5 years without a single fish escape",
+    "icon": "🔒",
+    "category": "sustainability",
+    "hidden": false,
+    "medal": "platinum",
+    "condition_key": "ZeroEscapes"
+  },
+  {
+    "id": "disease-resistance",
+    "name": "Disease Resistance Breakthrough",
+    "description": "Breed ISA-resistant strain (0.5+ BV in disease resistance)",
+    "icon": "🧪",
+    "category": "genetics",
+    "hidden": false,
+    "medal": "gold",
+    "condition_key": "DiseaseResistance"
+  },
+  {
+    "id": "industry-leader",
+    "name": "Industry Leader",
+    "description": "Become Norway's #1 salmon producer",
+    "icon": "🏆",
+    "category": "milestone",
+    "hidden": false,
+    "medal": "platinum",
+    "condition_key": "IndustryLeader"
+  },
+  {
+    "id": "perfect-storm",
+    "name": "The Perfect Storm",
+    "description": "Survive ISA outbreak + market crash + storm damage in same year",
+    "icon": "🌪️",
+    "category": "hidden",
+    "hidden": true,
+    "medal": "platinum",
+    "condition_key": "PerfectStorm"
+  },
+  {
+    "id": "speedrun-millionaire",
+    "name": "Speedrun Millionaire",
+    "description": "Reach 1M NOK profit in under 500 days",
+    "icon": "🚀",
+    "category": "hidden",
+    "hidden": true,
+    "medal": "gold",
+    "condition_key": "SpeedrunMillionaire"
+  },
+  {
+    "id": "bankruptcy-recovery",
+    "name": "Phoenix Rising",
+    "description": "Recover from bankruptcy (balance below 0) to profitability",
+    "icon": "🔥",
+    "category": "hidden",
+    "hidden": true,
+    "medal": "silver",
+    "condition_key": "BankruptcyRecovery"
+  },
+  {
+    "id": "self-insured",
+    "name": "Self-insured",
+    "description": "Hold cover for all four catastrophes (mortality, bloom, storm, ISA)",
+    "icon": "🛡️",
+    "category": "finance",
+    "hidden": false,
+    "medal": "silver",
+    "condition_key": "AllCatastrophePoliciesActive"
+  },
+  {
+    "id": "closed-loop",
+    "name": "Closed loop",
+    "description": "Upgrade a red-zone site to closed containment and claim the biomass credit",
+    "icon": "🔒",
+    "category": "sustainability",
+    "hidden": false,
+    "medal": "silver",
+    "condition_key": "ClosedLoopUpgrade"
+  },
+  {
+    "id": "genomicist",
+    "name": "Genomicist",
+    "description": "Complete two generations of genomic selection in your broodstock",
+    "icon": "🧬",
+    "category": "genetics",
+    "hidden": false,
+    "medal": "silver",
+    "condition_key": "GenomicSelectionCompleted"
+  },
+  {
+    "id": "weatherproof",
+    "name": "Weatherproof",
+    "description": "Survive an algal bloom with mitigation installed and stay solvent",
+    "icon": "🌊",
+    "category": "sustainability",
+    "hidden": false,
+    "medal": "silver",
+    "condition_key": "WeatherproofBloom"
+  },
+  {
+    "id": "tax-planner",
+    "name": "Tax planner",
+    "description": "Stay profitable through the resource-rent tax transition",
+    "icon": "🧾",
+    "category": "finance",
+    "hidden": false,
+    "medal": "silver",
+    "condition_key": "ResourceRentProfitable"
+  },
+  {
+    "id": "precision",
+    "name": "Precision",
+    "description": "Reach a feed conversion ratio of 1.12 or better",
+    "icon": "🎯",
+    "category": "production",
+    "hidden": false,
+    "medal": "silver",
+    "condition_key": "PrecisionFCR"
+  },
+  {
+    "id": "super-smolt",
+    "name": "SuperSmolt",
+    "description": "Stock a post-smolt facility and raise large, sea-ready smolts",
+    "icon": "🐟",
+    "category": "production",
+    "hidden": false,
+    "medal": "silver",
+    "condition_key": "SuperSmoltStocked"
+  },
+  {
+    "id": "bloom-ready",
+    "name": "Bloom Ready",
+    "description": "Install bloom countermeasures (bubble curtain or O2 diffuser) at a site",
+    "icon": "🫧",
+    "category": "sustainability",
+    "hidden": false,
+    "medal": "silver",
+    "condition_key": "BloomMitigationInstalled"
+  }
+]

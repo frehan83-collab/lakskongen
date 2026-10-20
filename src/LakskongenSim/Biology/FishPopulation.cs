@@ -23,6 +23,23 @@ namespace LakskongenSim.Biology
             public LifeStage Stage { get; set; }
             public Genome? Genetics { get; set; }
 
+            /// <summary>
+            /// Smolt/post-smolt quality carryover tier, stamped at sea transfer.
+            /// Additive field; defaults to <see cref="Farm.SmoltQualityTier.Standard"/>
+            /// so existing saves and new cohorts keep baseline behaviour.
+            /// </summary>
+            public Farm.SmoltQualityTier Quality { get; set; } = Farm.SmoltQualityTier.Standard;
+
+            /// <summary>
+            /// Coefficient of variation of the fish weights in this cohort (S2-03):
+            /// the size spread harvest grading and the weight histogram read. The
+            /// growth law moves it toward the spread the feeding sets as the fish
+            /// grow. 0 = not yet known (a cohort just stocked, or one loaded from a
+            /// pre-S2-03 save): the first growth day sets it from the weight
+            /// (<see cref="TgcGrowthLaw.InitialWeightCv"/>).
+            /// </summary>
+            public double WeightCv { get; set; }
+
             // Constructor for easy initialization, matching the original record's constructor
             public Cohort(int ageDays, int count, double meanWeightKg, LifeStage stage, Genome? genetics = null)
             {
@@ -63,8 +80,54 @@ namespace LakskongenSim.Biology
         /// <summary>Treatment intensity (0.0-1.0) from last treatment.</summary>
         public double TreatmentIntensity { get; set; }
 
+        /// <summary>Accumulated delousing injury/welfare load (P4). Compounds
+        /// on repeat treatments, decays daily in the tick. Initialized with a
+        /// long-ago last treatment so the first real treatment is unamplified.</summary>
+        public Health.DelousingInjuryState TreatmentHarm { get; set; } =
+            new Health.DelousingInjuryState { DaysSinceLastTreatment = 999 };
+
         /// <summary>Sea lice load (average lice per fish) for this population.</summary>
         public double SeaLiceLoad { get; set; } = 0.3;
+
+        /// <summary>Vaccination day index (Phase 5.1, ulcer/CMS, 12-mo protection). -1 = never.</summary>
+        public int VaccinatedDay { get; set; } = -1;
+
+        /// <summary>Site ID this population belongs to (for O(1) lookup instead of O(n) search).</summary>
+        public string SiteId { get; set; } = "";
+
+        /// <summary>
+        /// How much of their appetite these fish are fed (S2-03): the input the
+        /// feeding plan (U2-04) sets per pen, tank or offshore pen. Saves from
+        /// before S2-03 load with full appetite.
+        /// </summary>
+        public Farm.RationPolicy Ration { get; set; } = Farm.RationPolicy.FullAppetite;
+
+        /// <summary>
+        /// Day these fish stopped being fed before slaughter (S2-04 harvest
+        /// pipeline), -1 when they are not fasting. While fasting the growth law
+        /// feeds them nothing whatever <see cref="Ration"/> says. Saves from
+        /// before S2-04 load with -1.
+        /// </summary>
+        public int FastingSinceDay { get; set; } = -1;
+
+        /// <summary>
+        /// Degree-days (°C × days of their own water) these fish have fasted
+        /// (S2-04): slaughter waits until the gut is empty
+        /// (<c>HarvestCalibration.FastingDegreeDays</c>).
+        /// </summary>
+        public double FastingDegreeDays { get; set; }
+
+        /// <summary>
+        /// Memory of cold water (0-1, S2-04): an exponential average of the days
+        /// the fish spent below the winter-wound temperature. Winter wounds
+        /// downgrade a harvest; a land tank at a controlled temperature never
+        /// builds any. Saves from before S2-04 load with 0.
+        /// </summary>
+        public double ColdExposure { get; set; }
+
+        /// <summary>True while these fish fast before slaughter (S2-04).</summary>
+        [JsonIgnore]
+        public bool IsFasting => FastingSinceDay >= 0;
 
         /// <summary>Growth penalty multiplier from disease resistance fitness cost. Serialized for save/load.</summary>
         public double GrowthPenalty { get => _growthPenalty; set => _growthPenalty = value; }
@@ -103,6 +166,39 @@ namespace LakskongenSim.Biology
             OnPopulationChanged?.Invoke();
         }
 
+        /// <summary>
+        /// Remove <paramref name="count"/> dead fish from <paramref name="cohort"/>
+        /// (a cohort of this population) and book them to <paramref name="cause"/>
+        /// on the mortality ledger (S2-05). Every death in the simulation goes
+        /// through here, so the deaths of a cohort on a day equal the sum of its
+        /// deaths by cause. Clamped to the fish the cohort holds; returns the
+        /// number removed. A population without injected models (a bare unit-test
+        /// population) removes the fish and books nothing.
+        /// </summary>
+        public int RemoveDead(Cohort cohort, int count, MortalityCause cause)
+        {
+            int dead = Math.Clamp(count, 0, Math.Max(0, cohort.Count));
+            if (dead == 0) return 0;
+            _mortality?.Ledger.BookDeaths(this, cohort, dead, cause);
+            cohort.Count -= dead;
+            return dead;
+        }
+
+        /// <summary>
+        /// Remove <paramref name="count"/> live fish from <paramref name="cohort"/>
+        /// (escape, harvest, forced harvest, transfer out) and book them on the
+        /// mortality ledger as a removal, not a death. Clamped like
+        /// <see cref="RemoveDead"/>; returns the number removed.
+        /// </summary>
+        public int RemoveAlive(Cohort cohort, int count, FishRemoval removal)
+        {
+            int moved = Math.Clamp(count, 0, Math.Max(0, cohort.Count));
+            if (moved == 0) return 0;
+            _mortality?.Ledger.BookRemoval(this, cohort, moved, removal);
+            cohort.Count -= moved;
+            return moved;
+        }
+
         /// <summary>Triggers the OnPopulationChanged event. Used by external systems that modify cohorts directly.</summary>
         public void TriggerOnPopulationChanged()
         {
@@ -110,11 +206,13 @@ namespace LakskongenSim.Biology
         }
 
         /// <summary>Advance the population by days: age, apply growth and mortality.
-        /// Optimized: in-place updates with no list allocations (T56).</summary>
-        public void AdvanceDays(int days, bool skipGrowth = false)
+        /// Optimized: in-place updates with no list allocations (T56).
+        /// <paramref name="anchorHazardMultiplier"/> scales the baseline anchor hazard
+        /// (the F2 hooks UnitMortalityTerms and QualityMortalityMultiplier; 1 = the calibrated anchor).</summary>
+        public void AdvanceDays(int days, bool skipGrowth = false, double mortalityReduction = 0.0, double diseaseResistanceBonus = 0.0,
+            double anchorHazardMultiplier = 1.0)
         {
             if (days <= 0) return;
-            var populationId = this.Id; // Cache to avoid repeated property access
 
             for (int i = 0; i < Cohorts.Count; i++)
             {
@@ -125,7 +223,7 @@ namespace LakskongenSim.Biology
                 {
                     cohort.MeanWeightKg = _growth.ApplyGrowth(cohort.MeanWeightKg, days, cohort.Stage);
                 }
-                cohort.Count = _mortality.ApplyMortality(cohort.Count, days, cohort.Stage, populationId);
+                _mortality.ApplyMortality(this, cohort, days, mortalityReduction, diseaseResistanceBonus, anchorHazardMultiplier);
                 cohort.Stage = DetermineStage(cohort.AgeDays);
             }
 

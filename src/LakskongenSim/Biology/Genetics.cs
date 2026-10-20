@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using LakskongenSim.Data;
 
+using LakskongenSim.Core;
 namespace LakskongenSim.Biology
 {
     /// <summary>
@@ -39,11 +40,17 @@ namespace LakskongenSim.Biology
             [(GeneticTrait.LateMaturation, GeneticTrait.GrowthRate)] = -0.15,
         };
 
-        private readonly Random _rng;
+        private readonly SimRngStream _rng;
+        internal SimRngStream RngForSnapshot => _rng;
+
+        public Genetics(SimRngStream rng)
+        {
+            _rng = rng ?? throw new ArgumentNullException(nameof(rng));
+        }
 
         public Genetics(int? seed = null)
+            : this((seed.HasValue ? new SimRng(seed.Value) : SimRng.CreateUnseeded()).Stream(SimRngStreams.Genetics))
         {
-            _rng = seed.HasValue ? new Random(seed.Value) : new Random();
         }
 
         /// <summary>
@@ -222,6 +229,14 @@ namespace LakskongenSim.Biology
         public int Generation { get; set; } = 0;
         public bool HasMutation { get; set; } = false;
         public List<GeneticTrait> MutatedTraits { get; set; } = new();
+
+        /// <summary>
+        /// Cumulative inbreeding coefficient proxy for this genome's lineage (0..1).
+        /// Additive, opt-in field: defaults to 0.0, so existing genomes and saves
+        /// are unaffected until a breeding programme records a value. Only a value
+        /// &gt; 0 triggers growth depression in the biology loop.
+        /// </summary>
+        public double InbreedingCoefficient { get; set; } = 0.0;
 
         public Genome()
         {

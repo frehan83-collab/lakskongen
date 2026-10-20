@@ -1,0 +1,36 @@
+{
+  "asset": "feed_silo_land",
+  "atlas": "godot/assets/models/facility_kit/textures/facility_atlas.png",
+  "bbox_size": [
+    9.0,
+    12.0,
+    9.0
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "silo_diameter_m": 0.0,
+    "silo_height_m": 14.0,
+    "silos": 4
+  },
+  "file": "feed_silo_land_LOD2.glb",
+  "lod": "LOD2",
+  "material_count": 1,
+  "materials": [
+    "LK_FacilityKit"
+  ],
+  "part_strips": {
+    "Silos": "silo"
+  },
+  "parts": {
+    "Silos": 10
+  },
+  "surfaces": 1,
+  "swatches": {
+    "Silos": {
+      "hex": "#8B9097",
+      "spec": "#8A8F96",
+      "strip": "silo"
+    }
+  },
+  "tri_count": 10
+}

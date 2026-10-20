@@ -12,6 +12,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
+using LakskongenSim.Core;
 namespace LakskongenSim.Market
 {
     /// <summary>
@@ -104,6 +105,13 @@ namespace LakskongenSim.Market
         /// <summary>Total deliveries made.</summary>
         public int TotalDeliveries { get; private set; } = 0;
 
+        internal (double Score, int Good, int Total) ExportState() => (Score, ConsecutiveGoodDeliveries, TotalDeliveries);
+
+        internal void ImportState((double Score, int Good, int Total) s)
+        {
+            Score = s.Score; ConsecutiveGoodDeliveries = s.Good; TotalDeliveries = s.Total;
+        }
+
         public event Action<double>? OnReputationChanged;
 
         /// <summary>
@@ -144,23 +152,67 @@ namespace LakskongenSim.Market
             OnReputationChanged?.Invoke(Score);
         }
 
+        /// <summary>Reputation points lost each week without deliveries.</summary>
+        public const double WeeklyDecayPoints = 0.1;
+
         /// <summary>Natural reputation decay over time (call weekly).</summary>
         public void WeeklyDecay()
         {
-            Score = Math.Max(0, Score - 0.1);
+            Score = Math.Max(0, Score - WeeklyDecayPoints);
         }
     }
 
     /// <summary>
     /// Market intelligence system providing forecasting, news, and competitor tracking.
     /// </summary>
-    public class MarketIntelligenceSystem
+    public partial class MarketIntelligenceSystem
     {
         private readonly List<MarketNewsEvent> _activeEvents = new();
         private readonly List<MarketNewsEvent> _eventHistory = new();
         private readonly List<CompetitorProducer> _competitors = new();
         private readonly Queue<decimal> _priceHistory = new();
-        private readonly Random _rng = new();
+        private SimRngStream _rng = SimRng.CreateUnseeded().Stream(SimRngStreams.Intelligence);
+        internal SimRngStream RngForSnapshot => _rng;
+
+        /// <summary>Persistence (Phase 1 wave 6): weekly news/competitor state.</summary>
+        internal (int Week, System.Collections.Generic.List<MarketNewsEvent> Active, System.Collections.Generic.List<MarketNewsEvent> History,
+            System.Collections.Generic.List<CompetitorProducer> Competitors, System.Collections.Generic.List<decimal> PriceHistory,
+            double BrandScore, int BrandGood, int BrandTotal) ExportState()
+            => (_currentWeek, new System.Collections.Generic.List<MarketNewsEvent>(_activeEvents),
+                new System.Collections.Generic.List<MarketNewsEvent>(_eventHistory),
+                _competitors.Select(c => new CompetitorProducer
+                {
+                    Name = c.Name, Country = c.Country, WeeklyHarvestTonnes = c.WeeklyHarvestTonnes,
+                    BaseWeeklyHarvestTonnes = c.BaseWeeklyHarvestTonnes, DisruptionFactor = c.DisruptionFactor
+                }).ToList(),
+                new System.Collections.Generic.List<decimal>(_priceHistory),
+                PlayerReputation.ExportState().Score, PlayerReputation.ExportState().Good, PlayerReputation.ExportState().Total);
+
+        internal void ImportState((int Week, System.Collections.Generic.List<MarketNewsEvent> Active, System.Collections.Generic.List<MarketNewsEvent> History,
+            System.Collections.Generic.List<CompetitorProducer> Competitors, System.Collections.Generic.List<decimal> PriceHistory,
+            double BrandScore, int BrandGood, int BrandTotal) s)
+        {
+            _currentWeek = s.Week;
+            _activeEvents.Clear(); _activeEvents.AddRange(s.Active);
+            // Shared-reference restore (like GameStateRelinker for Pens):
+            // at runtime Active and History hold the SAME event objects, but
+            // JSON persists two arrays. Re-unify by identity (template events
+            // never stack, so headline+trigger week is unique) or the weekly
+            // decrement would move only the Active copy.
+            _eventHistory.Clear();
+            foreach (var h in s.History)
+            {
+                var live = _activeEvents.FirstOrDefault(a =>
+                    a.Headline == h.Headline &&
+                    a.TriggeredAtWeek == h.TriggeredAtWeek &&
+                    a.Category == h.Category);
+                _eventHistory.Add(live ?? h);
+            }
+            _competitors.Clear(); _competitors.AddRange(s.Competitors);
+            _priceHistory.Clear();
+            foreach (var p in s.PriceHistory) _priceHistory.Enqueue(p);
+            PlayerReputation.ImportState((s.BrandScore, s.BrandGood, s.BrandTotal));
+        }
         private int _currentWeek = 0;
 
         public MarketBrandReputation PlayerReputation { get; } = new();
@@ -206,22 +258,45 @@ namespace LakskongenSim.Market
             ("🌡️ Record sea temperatures", "Warm water causes stress and slower growth across industry.", MarketNewsCategory.Weather, 0.97, 1.0, 0m, 8, 0.04),
         };
 
-        public MarketIntelligenceSystem()
+        public MarketIntelligenceSystem(SimRngStream rng)
         {
+            _rng = rng ?? throw new ArgumentNullException(nameof(rng));
             InitializeCompetitors();
         }
 
+        public MarketIntelligenceSystem()
+            : this(SimRng.CreateUnseeded().Stream(SimRngStreams.Intelligence))
+        {
+        }
+
+        /// <summary>
+        /// Create the intelligence system with a deterministic seed so news
+        /// events, competitor variation and forecasts are reproducible under a
+        /// seeded engine.
+        /// </summary>
+        public MarketIntelligenceSystem(int seed)
+            : this(new SimRng(seed).Stream(SimRngStreams.Intelligence))
+        {
+        }
+
+        /// <summary>
+        /// Replace the RNG stream. Used by <see cref="MarketSimulation"/>
+        /// when the engine supplies named streams.
+        /// </summary>
+        public void Reseed(SimRngStream rng) => _rng = rng ?? throw new ArgumentNullException(nameof(rng));
+
         private void InitializeCompetitors()
         {
+            // Parody producers only (roadmap D17: no real company names).
             _competitors.AddRange(new[]
             {
                 new CompetitorProducer { Name = "Mowier ASA", Country = "Norway", BaseWeeklyHarvestTonnes = 8500, WeeklyHarvestTonnes = 8500 },
                 new CompetitorProducer { Name = "SalMax", Country = "Norway", BaseWeeklyHarvestTonnes = 6200, WeeklyHarvestTonnes = 6200 },
                 new CompetitorProducer { Name = "NordLaks", Country = "Norway", BaseWeeklyHarvestTonnes = 3800, WeeklyHarvestTonnes = 3800 },
-                new CompetitorProducer { Name = "Cermaq", Country = "Norway/Chile", BaseWeeklyHarvestTonnes = 4500, WeeklyHarvestTonnes = 4500 },
-                new CompetitorProducer { Name = "Multiexport Foods", Country = "Chile", BaseWeeklyHarvestTonnes = 3200, WeeklyHarvestTonnes = 3200 },
-                new CompetitorProducer { Name = "Bakkafrost", Country = "Faroe Islands", BaseWeeklyHarvestTonnes = 2800, WeeklyHarvestTonnes = 2800 },
-                new CompetitorProducer { Name = "Mowi Scotland", Country = "Scotland", BaseWeeklyHarvestTonnes = 2400, WeeklyHarvestTonnes = 2400 },
+                new CompetitorProducer { Name = "Kermak", Country = "Norway/Chile", BaseWeeklyHarvestTonnes = 4500, WeeklyHarvestTonnes = 4500 },
+                new CompetitorProducer { Name = "Multiport Foods", Country = "Chile", BaseWeeklyHarvestTonnes = 3200, WeeklyHarvestTonnes = 3200 },
+                new CompetitorProducer { Name = "Bakkafrysk", Country = "Faroe Islands", BaseWeeklyHarvestTonnes = 2800, WeeklyHarvestTonnes = 2800 },
+                new CompetitorProducer { Name = "Mowier Scotland", Country = "Scotland", BaseWeeklyHarvestTonnes = 2400, WeeklyHarvestTonnes = 2400 },
             });
         }
 
@@ -273,7 +348,7 @@ namespace LakskongenSim.Market
             // Update competitor volumes (seasonal + random variation)
             foreach (var comp in _competitors)
             {
-                var seasonalFactor = 1.0 + 0.15 * Math.Sin(2.0 * Math.PI * (_currentWeek - 13) / 52.0);
+                var seasonalFactor = CompetitorSeasonalFactor(_currentWeek);
                 var randomFactor = 0.95 + _rng.NextDouble() * 0.10;
                 comp.WeeklyHarvestTonnes = comp.BaseWeeklyHarvestTonnes * seasonalFactor * randomFactor * comp.DisruptionFactor;
             }
@@ -285,6 +360,10 @@ namespace LakskongenSim.Market
         /// <summary>
         /// Get aggregate supply/demand impact from all active events.
         /// </summary>
+        /// <summary>The rivals' seasonal harvest factor in week <paramref name="week"/> (±15 %, peaking in the autumn).</summary>
+        internal static double CompetitorSeasonalFactor(int week)
+            => 1.0 + 0.15 * Math.Sin(2.0 * Math.PI * (week - 13) / 52.0);
+
         public (double supplyFactor, double demandFactor, decimal priceShock) GetActiveEventImpacts()
         {
             double supply = 1.0;
@@ -334,9 +413,14 @@ namespace LakskongenSim.Market
 
                 var predicted = currentPrice + meanPull + trendComponent + eventComponent;
 
-                // Add deliberate forecasting noise (±5-15% uncertainty)
+                // Add deliberate forecasting noise (±5-15% uncertainty). It is a
+                // hash of the week and horizon, not a draw: the Intelligence stream
+                // also rolls the weekly news and rival volumes, so every forecast
+                // read by the UI changed the economy (and the same forecast changed
+                // between refreshes).
                 var noiseRange = weeklyVolatility * (decimal)Math.Sqrt(w);
-                var noise = ((decimal)_rng.NextDouble() - 0.5m) * noiseRange * 0.3m;
+                double unit = StableHash.Unit01(StableHash.Of("price-forecast", _currentWeek * 8 + w));
+                var noise = ((decimal)unit - 0.5m) * noiseRange * 0.3m;
                 predicted += noise;
 
                 // Confidence decreases with horizon

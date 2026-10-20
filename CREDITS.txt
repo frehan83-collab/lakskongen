@@ -28,7 +28,6 @@ Files:
 - panel_close.wav
 - error.wav
 - disease_alert.wav
-- harvest_ready.wav
 
 -------------------------------------------------------------------------------
 

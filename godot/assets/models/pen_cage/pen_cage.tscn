@@ -1,0 +1,32 @@
+[gd_scene load_steps=8 format=3 uid="uid://pen_cage_001"]
+
+[ext_resource type="PackedScene" path="res://assets/models/pen_cage/pen_cage_LOD0.glb" id="1_lod0"]
+[ext_resource type="PackedScene" path="res://assets/models/pen_cage/pen_cage_LOD1.glb" id="2_lod1"]
+[ext_resource type="PackedScene" path="res://assets/models/pen_cage/pen_cage_LOD2.glb" id="3_lod2"]
+[ext_resource type="Script" path="res://scripts/environment/PenCage.gd" id="4_pen_cage_script"]
+[ext_resource type="Material" path="res://assets/models/pen_cage/pen_health_ring_material.tres" id="5_health_ring_mat"]
+
+[sub_resource type="SphereShape3D" id="6_click_shape"]
+radius = 18.0
+
+[sub_resource type="PlaneMesh" id="7_ring_plane"]
+size = Vector2(78, 78)
+
+[node name="PenCage" instance=ExtResource("1_lod0")]
+script = ExtResource("4_pen_cage_script")
+
+[node name="LOD1" parent="." instance=ExtResource("2_lod1")]
+
+[node name="LOD2" parent="." instance=ExtResource("3_lod2")]
+
+[node name="HealthRing" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, 0)
+cast_shadow = 0
+mesh = SubResource("7_ring_plane")
+material_override = ExtResource("5_health_ring_mat")
+
+[node name="ClickArea" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -10, 0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="ClickArea"]
+shape = SubResource("6_click_shape")

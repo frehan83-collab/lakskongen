@@ -1,0 +1,19 @@
+[gd_resource type="ShaderMaterial" load_steps=4 format=3 uid="uid://vessel_glass_mat_001"]
+
+[ext_resource type="Shader" path="res://shaders/vessel_paint.gdshader" id="1_shader"]
+[ext_resource type="Texture2D" path="res://assets/models/vessel_kit/textures/vessel_weathering.png" id="2_weather"]
+[ext_resource type="Texture2D" path="res://assets/models/vessel_kit/textures/vessel_plates_normal.png" id="3_normal"]
+
+[resource]
+resource_name = "LK_VGlass"
+shader = ExtResource("1_shader")
+shader_parameter/albedo_color = Color(0.086275, 0.137255, 0.168627, 1)
+shader_parameter/roughness = 0.06
+shader_parameter/metallic = 0.45
+shader_parameter/weathering = ExtResource("2_weather")
+shader_parameter/plates_normal = ExtResource("3_normal")
+shader_parameter/grime = 0.15
+shader_parameter/streaks = 0.0
+shader_parameter/normal_strength = 0.0
+shader_parameter/ao_strength = 0.0
+shader_parameter/window_light = Color(1, 0.851, 0.627, 1)

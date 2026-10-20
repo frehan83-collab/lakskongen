@@ -47,9 +47,9 @@ func _ready():
 	
 	# Connect to GameBridge signals
 	if game_bridge:
-		game_bridge.game_started.connect(_on_game_started)
-		game_bridge.game_ended.connect(_on_game_ended)
-		game_bridge.simulation_ticked.connect(_on_simulation_ticked)
+		game_bridge.GameStarted.connect(_on_game_started)
+		game_bridge.GameEnded.connect(_on_game_ended)
+		game_bridge.SimulationTicked.connect(_on_simulation_ticked)
 	
 	print("EventLog initialized")
 
@@ -121,8 +121,9 @@ func add_log_entry(text: String, event_type: String = "info", show_timestamp: bo
 	
 	# Format timestamp
 	var timestamp = ""
-	if show_timestamp and game_bridge and game_bridge.GameState:
-		var day = game_bridge.GameState.CurrentDay
+	var sim_bridge = get_node_or_null("/root/SimBridge")
+	if show_timestamp and sim_bridge:
+		var day = int(sim_bridge.get("current_day") or 0)
 		timestamp = "[color=gray][Day %d][/color] " % day
 	
 	# Get color for event type
@@ -198,7 +199,7 @@ func _on_game_started():
 	add_log_entry("New game started! Welcome to Lakskongen.", "system")
 
 func _on_game_ended(reason: String):
-	add_log_entry("Game ended: " + reason, "system")
+	add_log_entry("Spillet er over: " + tr(reason), "system")
 
 func _on_simulation_ticked(day: int):
 	# Don't log every tick to avoid spam
@@ -207,8 +208,10 @@ func _on_simulation_ticked(day: int):
 # === EventBus Signal Handlers ===
 
 func _on_day_advanced(day: int, season: String):
-	if day % 30 == 1:  # Log month transitions
-		add_log_entry("Month %d begins (%s season)" % [(day - 1) / 30 + 1, season], "info")
+	# Log month transitions on the sim calendar (real month lengths, S2-02).
+	var date := SimFormatters.date_for_day(day)
+	if int(date["day"]) == 1:
+		add_log_entry("Month %d begins (%s season)" % [int(date["month"]), season], "info")
 
 func _on_time_speed_changed(speed: float):
 	var speed_text = "%.0fx" % speed
@@ -305,6 +308,4 @@ func _on_inspection_scheduled(farm_id: int, inspection_type: String, days_until:
 
 func _on_compliance_issue(farm_id: int, issue: String, fine: int):
 	add_log_entry("Compliance issue at Farm %d: %s - Fine: %s" % 
-		[farm_id, issue, _format_currency(fine)], "danger")tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
-    if event.is_action_pressed("ui_cancel"):
-        get_tree().call_group_flags(2, "tooltips", "hide")
+		[farm_id, issue, _format_currency(fine)], "danger")

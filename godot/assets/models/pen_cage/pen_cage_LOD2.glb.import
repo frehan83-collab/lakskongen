@@ -1,0 +1,108 @@
+[remap]
+
+importer="scene"
+importer_version=1
+type="PackedScene"
+uid="uid://buwkwr858xfqo"
+path="res://.godot/imported/pen_cage_LOD2.glb-e6e14c80ad70ba55ed55195a30981d27.scn"
+
+[deps]
+
+source_file="res://assets/models/pen_cage/pen_cage_LOD2.glb"
+dest_files=["res://.godot/imported/pen_cage_LOD2.glb-e6e14c80ad70ba55ed55195a30981d27.scn"]
+
+[params]
+
+nodes/root_type=""
+nodes/root_name=""
+nodes/root_script=null
+mesh_library/use_node_names_as_mesh_names=false
+array_mesh/deduplicate_surfaces=true
+nodes/apply_root_scale=true
+nodes/root_scale=1.0
+nodes/import_as_skeleton_bones=false
+nodes/use_name_suffixes=true
+nodes/use_node_type_suffixes=true
+meshes/ensure_tangents=true
+meshes/generate_lods=false
+meshes/create_shadow_meshes=true
+meshes/light_baking=1
+meshes/lightmap_texel_size=0.2
+meshes/force_disable_compression=false
+skins/use_named_skins=true
+animation/import=true
+animation/fps=30
+animation/trimming=false
+animation/remove_immutable_tracks=true
+animation/import_rest_as_RESET=false
+import_script/path=""
+materials/extract=0
+materials/extract_format=0
+materials/extract_path=""
+_subresources={
+"materials": {
+"LK_Band": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://assets/models/pen_cage/pen_band_material.tres",
+"use_external/path": "res://assets/models/pen_cage/pen_band_material.tres"
+},
+"LK_BirdNet": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://assets/models/pen_cage/pen_bird_net_material.tres",
+"use_external/path": "res://assets/models/pen_cage/pen_bird_net_material.tres"
+},
+"LK_BirdNetGreen": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://assets/models/pen_cage/pen_bird_net_green_material.tres",
+"use_external/path": "res://assets/models/pen_cage/pen_bird_net_green_material.tres"
+},
+"LK_HDPE": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://assets/models/pen_cage/pen_collar_material.tres",
+"use_external/path": "res://assets/models/pen_cage/pen_collar_material.tres"
+},
+"LK_Hose": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://assets/models/pen_cage/pen_hose_material.tres",
+"use_external/path": "res://assets/models/pen_cage/pen_hose_material.tres"
+},
+"LK_Marker": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://assets/models/pen_cage/pen_marker_material.tres",
+"use_external/path": "res://assets/models/pen_cage/pen_marker_material.tres"
+},
+"LK_Net": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://assets/models/pen_cage/pen_net_material.tres",
+"use_external/path": "res://assets/models/pen_cage/pen_net_material.tres"
+},
+"LK_NetAbove": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://assets/models/pen_cage/pen_net_above_material.tres",
+"use_external/path": "res://assets/models/pen_cage/pen_net_above_material.tres"
+},
+"LK_PoleBlue": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://assets/models/pen_cage/pen_pole_blue_material.tres",
+"use_external/path": "res://assets/models/pen_cage/pen_pole_blue_material.tres"
+},
+"LK_Skirt": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://assets/models/pen_cage/pen_skirt_material.tres",
+"use_external/path": "res://assets/models/pen_cage/pen_skirt_material.tres"
+},
+"LK_Spreader": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://assets/models/pen_cage/pen_spreader_material.tres",
+"use_external/path": "res://assets/models/pen_cage/pen_spreader_material.tres"
+},
+"LK_Walkway": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://assets/models/pen_cage/pen_walkway_material.tres",
+"use_external/path": "res://assets/models/pen_cage/pen_walkway_material.tres"
+}
+}
+}
+gltf/naming_version=2
+gltf/embedded_image_handling=1
+gltf/texture_map_mode=1

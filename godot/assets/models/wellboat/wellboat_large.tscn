@@ -1,0 +1,18 @@
+[gd_scene load_steps=5 format=3 uid="uid://wellboat_large_scene_001"]
+
+[ext_resource type="PackedScene" path="res://assets/models/wellboat/wellboat_large_LOD0.glb" id="1_lod0"]
+[ext_resource type="PackedScene" path="res://assets/models/wellboat/wellboat_large_LOD1.glb" id="2_lod1"]
+[ext_resource type="PackedScene" path="res://assets/models/wellboat/wellboat_large_LOD2.glb" id="3_lod2"]
+[ext_resource type="Script" path="res://scripts/visual/VesselModel.gd" id="4_vessel"]
+
+[node name="WellboatLarge" instance=ExtResource("1_lod0")]
+script = ExtResource("4_vessel")
+asset_id = "wellboat_large"
+length_m = 116.0
+beam_m = 23.0
+air_draught_m = 26.744
+lod_switch = Vector2(380.0, 1400.0)
+
+[node name="LOD1" parent="." instance=ExtResource("2_lod1")]
+
+[node name="LOD2" parent="." instance=ExtResource("3_lod2")]

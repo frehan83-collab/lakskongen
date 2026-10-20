@@ -1,0 +1,51 @@
+{
+  "asset": "tank_pregrow",
+  "atlas": "godot/assets/models/facility_kit/textures/facility_atlas.png",
+  "bbox_size": [
+    16.0,
+    10.2,
+    15.2169
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "shell_diameter_m": 16.0,
+    "shell_height_m": 8.7
+  },
+  "file": "tank_pregrow_LOD2.glb",
+  "lod": "LOD2",
+  "material_count": 1,
+  "materials": [
+    "LK_FacilityKit"
+  ],
+  "part_strips": {
+    "Band": "tank_band",
+    "Feeder": "feeder",
+    "Lid": "tank_lid",
+    "Wall": "tank_wall"
+  },
+  "parts": {
+    "Band": 20,
+    "Feeder": 12,
+    "Lid": 10,
+    "Wall": 20
+  },
+  "surfaces": 1,
+  "swatches": {
+    "Band": {
+      "hex": "#5E7969",
+      "spec": "#5E7A6A",
+      "strip": "tank_band"
+    },
+    "Lid": {
+      "hex": "#2A3036",
+      "spec": "#2A3036",
+      "strip": "tank_lid"
+    },
+    "Wall": {
+      "hex": "#C8CDD0",
+      "spec": "#C9CED1",
+      "strip": "tank_wall"
+    }
+  },
+  "tri_count": 62
+}

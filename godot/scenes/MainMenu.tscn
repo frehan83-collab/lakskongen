@@ -1,32 +1,239 @@
-[gd_scene load_steps=4 format=3 uid="uid://bq1xkm2v4p3n8"]
+[gd_scene format=3 uid="uid://bq1xkm2v4p3n8"]
 
-[ext_resource type="Script" path="res://scripts/ui/MainMenu.gd" id="1_mainmenu"]
-[ext_resource type="Script" path="res://scripts/ui/SettingsMenu.gd" id="2_settings"]
-[ext_resource type="Script" path="res://scripts/ui/SaveLoadMenu.gd" id="3_saveload"]
+[ext_resource type="Script" uid="uid://dqm7n86kmu3rs" path="res://scripts/ui/MainMenu.gd" id="1_mainmenu"]
+[ext_resource type="PackedScene" uid="uid://dc5j8wp6nvlqx" path="res://scenes/ui/SettingsMenu.tscn" id="2_settings"]
+[ext_resource type="PackedScene" path="res://scenes/ui/SaveLoadMenu.tscn" id="3_saveload"]
+[ext_resource type="Script" path="res://scripts/ui/MenuBackdrop.gd" id="4_backdrop"]
+[ext_resource type="Shader" path="res://shaders/menu_vignette.gdshader" id="5_vignette"]
+[ext_resource type="Shader" path="res://shaders/menu_glass.gdshader" id="6_glass"]
+[ext_resource type="Texture2D" path="res://assets/brand/lakskongen_mark.svg" id="7_mark"]
+[ext_resource type="Texture2D" path="res://assets/brand/lakskongen_wordmark.svg" id="8_wordmark"]
 
-[node name="MainMenu" type="Control"]
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_vignette"]
+shader = ExtResource("5_vignette")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_glass"]
+shader = ExtResource("6_glass")
+
+[node name="MainMenu" type="Control" unique_id=195540674]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 script = ExtResource("1_mainmenu")
 
-[node name="SettingsMenu" type="Control" parent="."]
+[node name="Backdrop" type="Node3D" parent="."]
 unique_name_in_owner = true
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-visible = false
-script = ExtResource("2_settings")
+script = ExtResource("4_backdrop")
 
-[node name="SaveLoadMenu" type="Control" parent="."]
+[node name="Vignette" type="ColorRect" parent="."]
+unique_name_in_owner = true
+material = SubResource("ShaderMaterial_vignette")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0)
+
+[node name="Veil" type="ColorRect" parent="."]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.027451, 0.121569, 0.168627, 1)
+
+[node name="Center" type="Control" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 9
+anchor_bottom = 1.0
+offset_right = 460.0
+grow_vertical = 2
+
+[node name="Glass" type="ColorRect" parent="Center"]
+unique_name_in_owner = true
+material = SubResource("ShaderMaterial_glass")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.043137, 0.164706, 0.227451, 0.9)
+
+[node name="Margin" type="MarginContainer" parent="Center"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 40
+theme_override_constants/margin_top = 96
+theme_override_constants/margin_right = 40
+theme_override_constants/margin_bottom = 36
+
+[node name="MenuVBox" type="VBoxContainer" parent="Center/Margin"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="Lockup" type="MarginContainer" parent="Center/Margin/MenuVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 22
+
+[node name="LockupBox" type="VBoxContainer" parent="Center/Margin/MenuVBox/Lockup"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 14
+
+[node name="BrandMark" type="TextureRect" parent="Center/Margin/MenuVBox/Lockup/LockupBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(64, 48)
+layout_mode = 2
+size_flags_horizontal = 0
+mouse_filter = 2
+texture = ExtResource("7_mark")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Wordmark" type="TextureRect" parent="Center/Margin/MenuVBox/Lockup/LockupBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(340, 44)
+layout_mode = 2
+size_flags_horizontal = 0
+mouse_filter = 2
+texture = ExtResource("8_wordmark")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SubtitleRow" type="HBoxContainer" parent="Center/Margin/MenuVBox/Lockup/LockupBox"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="Rule" type="ColorRect" parent="Center/Margin/MenuVBox/Lockup/LockupBox/SubtitleRow"]
+custom_minimum_size = Vector2(28, 2)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+color = Color(0.94902, 0.529412, 0.415686, 1)
+
+[node name="SubtitleLabel" type="Label" parent="Center/Margin/MenuVBox/Lockup/LockupBox/SubtitleRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"OverlineMuted"
+text = "Norsk lakseoppdrettssimulator"
+uppercase = true
+
+[node name="LockupSpacer" type="Control" parent="Center/Margin/MenuVBox"]
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="BtnContinue" type="Button" parent="Center/Margin/MenuVBox"]
+unique_name_in_owner = true
 visible = false
-script = ExtResource("3_saveload")
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_type_variation = &"LargePrimaryButton"
+text = "UI_BUTTON_CONTINUE"
+alignment = 0
+
+[node name="ContinueCaption" type="Label" parent="Center/Margin/MenuVBox"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_type_variation = &"SmallMuted"
+text = "–"
+
+[node name="BtnNewGame" type="Button" parent="Center/Margin/MenuVBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_type_variation = &"LargePrimaryButton"
+text = "Nytt spill"
+alignment = 0
+
+[node name="BtnLoad" type="Button" parent="Center/Margin/MenuVBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_type_variation = &"LargeGhostButton"
+text = "Last inn spill"
+alignment = 0
+
+[node name="BtnSettings" type="Button" parent="Center/Margin/MenuVBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_type_variation = &"LargeGhostButton"
+text = "Innstillinger"
+alignment = 0
+
+[node name="BtnCredits" type="Button" parent="Center/Margin/MenuVBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_type_variation = &"LargeGhostButton"
+text = "UI_BUTTON_CREDITS"
+alignment = 0
+
+[node name="QuitSpacer" type="Control" parent="Center/Margin/MenuVBox"]
+custom_minimum_size = Vector2(0, 14)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="BtnQuit" type="Button" parent="Center/Margin/MenuVBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_type_variation = &"LargeGhostButton"
+text = "Avslutt"
+alignment = 0
+
+[node name="Filler" type="Control" parent="Center/Margin/MenuVBox"]
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+
+[node name="VersionLabel" type="Label" parent="Center/Margin/MenuVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"SmallMuted"
+text = "–"
+
+[node name="Marker" type="ColorRect" parent="Center"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(3, 24)
+layout_mode = 0
+offset_right = 3.0
+offset_bottom = 24.0
+mouse_filter = 2
+color = Color(0.94902, 0.529412, 0.415686, 1)
+
+[node name="SettingsMenu" parent="." unique_id=2006515767 instance=ExtResource("2_settings")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+
+[node name="SaveLoadMenu" parent="." unique_id=1938219603 instance=ExtResource("3_saveload")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1

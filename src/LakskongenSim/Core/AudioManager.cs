@@ -156,7 +156,7 @@ namespace LakskongenSim.Core
 
         private static string DayToSeason(int day)
         {
-            int doy = day % 365;
+            int doy = SimCalendar.DayOfYear(day);
             // Norwegian calendar: Winter Dec–Feb (0–59, 335+), Spring Mar–May (60–151),
             // Summer Jun–Aug (152–243), Autumn Sep–Nov (244–334)
             if (doy < 60 || doy >= 335) return "winter";

@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -13,20 +11,16 @@ using LakskongenSim.Environment;
 namespace LakskongenSim.Core
 {
     /// <summary>
-    /// Secure client configuration for BarentsWatch Fishhealth API access.
-    /// Supports bearer-token auth and an offline/local snapshot mode for deterministic testing.
+    /// Where the offline BarentsWatch Fishhealth snapshot lives. Roadmap D18:
+    /// the simulation reads offline snapshots only; it never calls the API
+    /// (the bearer-token fetch made two machines with and without a token play
+    /// different games). A fresh snapshot is exported outside the game and
+    /// bundled as a file.
     /// </summary>
     public class BarentsWatchClientOptions
     {
-        public string BaseUrl { get; set; } = "https://www.barentswatch.no";
-        public string FishHealthPath { get; set; } = "/api/fishhealth/v1/snapshot";
-        public string? BearerToken { get; set; }
+        /// <summary>Path of the bundled raw snapshot (JSON); null when there is none.</summary>
         public string? LocalSnapshotPath { get; set; }
-        public int TimeoutSeconds { get; set; } = 20;
-        public string UserAgent { get; set; } = "LakskongenSim/1.0";
-
-        [JsonIgnore]
-        public bool HasToken => !string.IsNullOrWhiteSpace(BearerToken);
     }
 
     /// <summary>
@@ -112,7 +106,8 @@ namespace LakskongenSim.Core
     }
 
     /// <summary>
-    /// Minimal secure client for fetching Fishhealth payloads from BarentsWatch or local fallback files.
+    /// Reads a Fishhealth snapshot from an offline file (roadmap D18: no network
+    /// I/O in the simulation; the API fetch and its bearer token are gone).
     /// </summary>
     public class BarentsWatchFishHealthClient
     {
@@ -123,46 +118,23 @@ namespace LakskongenSim.Core
             _options = options ?? throw new ArgumentNullException(nameof(options));
         }
 
+        /// <summary>
+        /// The offline snapshot. Its retrieval time is the one written in the
+        /// file (it used to be overwritten with the wall clock, so two reads of
+        /// one file differed). Throws when no snapshot file is configured.
+        /// </summary>
         public BarentsWatchFishHealthRawSnapshot FetchLatest()
         {
-            if (!string.IsNullOrWhiteSpace(_options.LocalSnapshotPath) && File.Exists(_options.LocalSnapshotPath))
-            {
-                var json = File.ReadAllText(_options.LocalSnapshotPath);
-                var local = JsonSerializer.Deserialize<BarentsWatchFishHealthRawSnapshot>(json, JsonOptions())
-                            ?? new BarentsWatchFishHealthRawSnapshot();
-                local.SourceMode = "offline-file";
-                local.SourceUrl = _options.LocalSnapshotPath!;
-                local.RetrievedAtUtc = DateTime.UtcNow;
-                return local;
-            }
+            if (string.IsNullOrWhiteSpace(_options.LocalSnapshotPath) || !File.Exists(_options.LocalSnapshotPath))
+                throw new InvalidOperationException(
+                    "No offline BarentsWatch snapshot: set LocalSnapshotPath to a bundled snapshot file (the simulation never fetches live data, roadmap D18).");
 
-            if (!_options.HasToken)
-                throw new InvalidOperationException("BarentsWatch bearer token missing. Configure LocalSnapshotPath for offline mode or provide token for API mode.");
-
-            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(Math.Clamp(_options.TimeoutSeconds, 5, 120)) };
-            http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _options.BearerToken);
-            http.DefaultRequestHeaders.UserAgent.ParseAdd(_options.UserAgent);
-
-            var url = BuildUrl();
-            var response = http.GetAsync(url).GetAwaiter().GetResult();
-            response.EnsureSuccessStatusCode();
-
-            var jsonString = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-            var payload = JsonSerializer.Deserialize<BarentsWatchFishHealthRawSnapshot>(jsonString, JsonOptions())
-                          ?? throw new InvalidOperationException("Unable to deserialize BarentsWatch fishhealth response.");
-            payload.SourceMode = "api";
-            payload.SourceUrl = url;
-            payload.RetrievedAtUtc = DateTime.UtcNow;
-            return payload;
-        }
-
-        private string BuildUrl()
-        {
-            var baseUrl = (_options.BaseUrl ?? string.Empty).TrimEnd('/');
-            var path = (_options.FishHealthPath ?? string.Empty).Trim();
-            if (!path.StartsWith("/", StringComparison.Ordinal))
-                path = "/" + path;
-            return baseUrl + path;
+            var json = File.ReadAllText(_options.LocalSnapshotPath);
+            var local = JsonSerializer.Deserialize<BarentsWatchFishHealthRawSnapshot>(json, JsonOptions())
+                        ?? new BarentsWatchFishHealthRawSnapshot();
+            local.SourceMode = "offline-file";
+            local.SourceUrl = _options.LocalSnapshotPath!;
+            return local;
         }
 
         private static JsonSerializerOptions JsonOptions() => new()
@@ -436,7 +408,7 @@ namespace LakskongenSim.Core
     }
 
     /// <summary>
-    /// End-to-end data pipeline: fetch → normalize → analyze → persist.
+    /// Offline data pipeline: read → normalize → analyze (→ persist, for tools).
     /// </summary>
     public class BarentsWatchFishHealthPipeline
     {
@@ -449,9 +421,22 @@ namespace LakskongenSim.Core
             _repository = repository;
         }
 
+        /// <summary>Read, normalize and analyze the offline snapshot and persist it in the repository.</summary>
         public BarentsWatchStoredSnapshot IngestLatest()
         {
-            var raw = _client.FetchLatest();
+            var stored = ReadOffline(_client);
+            _repository.Save(stored);
+            return stored;
+        }
+
+        /// <summary>
+        /// Read, normalize and analyze the offline snapshot without writing
+        /// anything: what the engine does at <c>Initialize</c> (D18).
+        /// </summary>
+        public static BarentsWatchStoredSnapshot ReadOffline(BarentsWatchFishHealthClient client)
+        {
+            if (client == null) throw new ArgumentNullException(nameof(client));
+            var raw = client.FetchLatest();
             var normalized = BarentsWatchFishHealthNormalizer.Normalize(raw);
             var warnings = BarentsWatchHealthCrisisEngine.BuildWarnings(normalized);
             var analytics = AquacultureDataIntegration.BuildAnalyticsSummary(new GameState
@@ -459,7 +444,7 @@ namespace LakskongenSim.Core
                 ExternalAquacultureSnapshot = normalized
             });
 
-            var stored = new BarentsWatchStoredSnapshot
+            return new BarentsWatchStoredSnapshot
             {
                 Source = raw.SourceName,
                 RetrievedAtUtc = raw.RetrievedAtUtc,
@@ -468,9 +453,6 @@ namespace LakskongenSim.Core
                 Analytics = analytics,
                 Warnings = warnings
             };
-
-            _repository.Save(stored);
-            return stored;
         }
 
         public BarentsWatchStoredSnapshot? LoadLatest() => _repository.LoadLatest();

@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "_doc": "Campaign progression (roadmap U2-03). A scenario is open from the start or unlocked by winning any scenario that lists it under 'unlocks'. 'order' is the campaign's reading order (the picker's 'next scenario'). Mod scenarios are outside the campaign and always open. Progress lives in user://campaign.json (CampaignProgress.gd).",
+  "order": [
+    "forste_sesong",
+    "barekraft_mester",
+    "lofoten_eventyr",
+    "ressursrente",
+    "laksebaronene",
+    "po3_red_sone",
+    "algekatastrofe",
+    "krise_manager",
+    "isa_utbrudd"
+  ],
+  "open_from_start": ["forste_sesong", "barekraft_mester"],
+  "unlocks": {
+    "forste_sesong": ["lofoten_eventyr", "ressursrente"],
+    "barekraft_mester": ["lofoten_eventyr", "ressursrente"],
+    "lofoten_eventyr": ["laksebaronene", "po3_red_sone"],
+    "ressursrente": ["laksebaronene", "po3_red_sone"],
+    "laksebaronene": ["algekatastrofe", "krise_manager", "isa_utbrudd"],
+    "po3_red_sone": ["algekatastrofe", "krise_manager", "isa_utbrudd"]
+  }
+}

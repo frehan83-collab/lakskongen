@@ -1,0 +1,204 @@
+{
+  "version": 1,
+  "git_sha": "fd254ae",
+  "timestamp": "2026-10-13T21:14:02.494394+00:00",
+  "threshold": 25,
+  "shots": {
+    "01_main_menu": {
+      "phash": "f38ccca37322768c",
+      "size": [
+        1920,
+        1080
+      ]
+    },
+    "02_scenario_selection": {
+      "phash": "eae09d9de01a2fe0",
+      "size": [
+        1920,
+        1080
+      ]
+    },
+    "03_dashboard": {
+      "phash": "d1165a56564b366b",
+      "size": [
+        1920,
+        1080
+      ]
+    },
+    "03b_scale80_dashboard": {
+      "phash": "d156565956564b36",
+      "size": [
+        1920,
+        1080
+      ]
+    },
+    "03c_scale125_dashboard": {
+      "phash": "d15a52535a2d3e2d",
+      "size": [
+        1920,
+        1080
+      ]
+    },
+    "04_telemetry": {
+      "phash": "d55656577a522a2a",
+      "size": [
+        1920,
+        1080
+      ]
+    },
+    "05_map_overlay": {
+      "phash": "d05a6b253f385ad2",
+      "size": [
+        1920,
+        1080
+      ]
+    },
+    "06_finance": {
+      "phash": "9717707a077f2f00",
+      "size": [
+        1920,
+        1080
+      ]
+    },
+    "06b_finance_trends": {
+      "phash": "955f0754037a3e78",
+      "size": [
+        1920,
+        1080
+      ]
+    },
+    "07_genetics": {
+      "phash": "dd7f05040b7a2e78",
+      "size": [
+        1920,
+        1080
+      ]
+    },
+    "07b_crew": {
+      "phash": "d55554565e6e2a2a",
+      "size": [
+        1920,
+        1080
+      ]
+    },
+    "07c_contracts": {
+      "phash": "94145b4b5f35352d",
+      "size": [
+        1920,
+        1080
+      ]
+    },
+    "07d_offshore": {
+      "phash": "d1532b2f55526a2d",
+      "size": [
+        1920,
+        1080
+      ]
+    },
+    "07e_carbon_ledger": {
+      "phash": "c1515f4a4a54757d",
+      "size": [
+        1920,
+        1080
+      ]
+    },
+    "07f_pen_management": {
+      "phash": "f303437c7c5c5c1c",
+      "size": [
+        1920,
+        1080
+      ]
+    },
+    "07g_attention_inbox": {
+      "phash": "db21204e7274de9e",
+      "size": [
+        1920,
+        1080
+      ]
+    },
+    "08_fjord_day": {
+      "phash": "c5ed0ca52da33b92",
+      "size": [
+        1920,
+        1080
+      ]
+    },
+    "08a_fjord_live_sync": {
+      "phash": "d58502ab1fb12bd6",
+      "size": [
+        1920,
+        1080
+      ]
+    },
+    "08b_fjord_farm": {
+      "phash": "e0858d131e5f0fce",
+      "size": [
+        1920,
+        1080
+      ]
+    },
+    "09_fjord_night_aurora": {
+      "phash": "80da56565b5e554b",
+      "size": [
+        1920,
+        1080
+      ]
+    },
+    "10_fjord_storm": {
+      "phash": "c4a112b51fa32b77",
+      "size": [
+        1920,
+        1080
+      ]
+    },
+    "11_fjord_underwater": {
+      "phash": "b59312388bc16dcf",
+      "size": [
+        1920,
+        1080
+      ]
+    },
+    "12_fjord_lice_red_zone": {
+      "phash": "e1879506535e4b76",
+      "size": [
+        1920,
+        1080
+      ]
+    },
+    "13_fjord_no_bloom": {
+      "phash": "c5ee14b51b933256",
+      "size": [
+        1920,
+        1080
+      ]
+    },
+    "13b_fjord_bloom": {
+      "phash": "d5d612f25a526a56",
+      "size": [
+        1920,
+        1080
+      ]
+    },
+    "14_diag_no_tilt": {
+      "phash": "d535a8a1a3abaad4",
+      "size": [
+        1920,
+        1080
+      ]
+    },
+    "15_diag_no_underwater": {
+      "phash": "d53509a12bab6ad6",
+      "size": [
+        1920,
+        1080
+      ]
+    },
+    "16_diag_no_farm": {
+      "phash": "d53509a12fab6ad4",
+      "size": [
+        1920,
+        1080
+      ]
+    }
+  }
+}

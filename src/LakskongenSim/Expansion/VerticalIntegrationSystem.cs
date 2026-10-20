@@ -49,6 +49,9 @@ namespace LakskongenSim.Expansion
     
     public class VerticalIntegrationSystem
     {
+        /// <summary>Raised when construction CAPEX was deducted (the engine books it as an asset).</summary>
+        public event Action<decimal>? OnCapexPaid;
+
         private readonly FinanceManager _financeManager;
         private readonly List<IntegrationAsset> _allAssets;
         private readonly List<IntegrationAsset> _ownedAssets;
@@ -75,6 +78,25 @@ namespace LakskongenSim.Expansion
                 .Where(asset => !asset.IsOwned && IsUnlocked(asset))
                 .OrderBy(asset => asset.CapexNOK)
                 .ToList();
+        }
+
+        /// <summary>Owned tiers for save serialization.</summary>
+        public List<IntegrationTier> GetOwnedTiers()
+        {
+            return _ownedAssets.Select(a => a.Tier).Distinct().ToList();
+        }
+
+        /// <summary>
+        /// Restore a saved owned tier without charging CAPEX or firing events
+        /// (load path only — BuildAsset is the live path). No-op if the asset
+        /// catalogue does not contain the tier (data not loaded / modded).
+        /// </summary>
+        public void RestoreOwnedTier(IntegrationTier tier)
+        {
+            var asset = _allAssets.FirstOrDefault(a => a.Tier == tier);
+            if (asset == null || asset.IsOwned) return;
+            asset.IsOwned = true;
+            _ownedAssets.Add(asset);
         }
         
         private bool IsUnlocked(IntegrationAsset asset)
@@ -145,8 +167,17 @@ namespace LakskongenSim.Expansion
                 };
             }
             
-            // Process construction
-            _financeManager.DeductCapital(asset.CapexNOK);
+            // Process construction (checked spend — failures can no longer go silent)
+            if (!_financeManager.TryDeductCapital(asset.CapexNOK))
+            {
+                return new IntegrationResult
+                {
+                    Success = false,
+                    Message = $"Insufficient funds. Need NOK {asset.CapexNOK:N0}.",
+                    Asset = asset
+                };
+            }
+            OnCapexPaid?.Invoke((decimal)asset.CapexNOK); // the exact amount TryDeductCapital spent
             asset.IsOwned = true;
             asset.ConstructionStarted = DateTime.Now; // In real game, use game time
             asset.ConstructionCompleted = asset.ConstructionStarted.Value.AddMonths(asset.ConstructionTimeMonths);

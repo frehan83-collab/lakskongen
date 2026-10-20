@@ -3,8 +3,11 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using LakskongenSim.Calibration;
 using LakskongenSim.Sustainability;
 
+using LakskongenSim.Core;
 namespace LakskongenSim.Market
 {
     /// <summary>
@@ -19,20 +22,34 @@ namespace LakskongenSim.Market
     ///   - Weekly sigma ~8-12 NOK/kg (high volatility typical of salmon spot)
     ///   - Price range: NOK 40-160/kg historically
     /// </summary>
-    public class MarketSimulation
+    public partial class MarketSimulation
     {
-        // ─── Calibrated to Fish Pool FPI 2020-2025 data ───
-        private const decimal DefaultInitialPrice = 90m;   // 2024-2025 FPI average ~85-95 NOK/kg
-        private const decimal PriceFloor = 40m;            // Historical low (2020 COVID trough ~45)
-        private const decimal PriceCeiling = 160m;         // Historical high (2022 peak ~140, allow gameplay headroom)
-        private const decimal WeeklyThetaMin = 0.008m;     // Annual kappa ~0.42 (slow reversion, persistent trends)
-        private const decimal WeeklyThetaMax = 0.018m;     // Annual kappa ~0.94 (faster reversion)
-        private const decimal WeeklySigmaMin = 6m;         // Lower vol in stable periods
-        private const decimal WeeklySigmaMax = 14m;        // High vol during supply shocks
-        private const decimal DefaultLongTermMean = 85m;   // FPI 2020-2025 avg ≈ 80-90 NOK/kg
-        private const decimal DefaultWeeklyTheta = 0.012m; // Annual kappa ~0.62 (moderate reversion)
-        private const decimal DefaultWeeklySigma = 9m;     // Weekly moves ~5-12 NOK/kg typical
-        private const int DaysPerWeek = 7;
+// ─── Calibrated to Fish Pool FPI 2020-2025 data ───
+        // Live values are sourced from CalibrationRegistry.Market (single source of
+        // truth). The constants below are only fallbacks for a registry that fails
+        // to load; Initialize() overwrites every one of them from the registry.
+        private const decimal DefaultInitialPrice = 88m;   // ↓ from 90 (better historical fit)
+        private const decimal DefaultPriceFloor = 42m;     // ↑ from 40 (realistic floor)
+        private const decimal DefaultPriceCeiling = 150m;  // ↓ from 160 (tighter ceiling)
+        private const decimal WeeklyThetaMin = 0.009m;     // ↑ from 0.008 (faster reversion)
+        private const decimal WeeklyThetaMax = 0.016m;     // ↓ from 0.018 (less extreme)
+        private const decimal WeeklySigmaMin = 5.5m;       // ↓ from 6
+        private const decimal WeeklySigmaMax = 12.5m;      // ↓ from 14
+        private const decimal DefaultLongTermMean = 82m;   // ↑ from 80 (closer to 2020-2025 avg)
+        private const decimal DefaultWeeklyTheta = 0.012m; // ↓ from 5.0 (was wrong scale - monthly vs weekly)
+        private const decimal DefaultWeeklySigma = 5.0m;   // ↑ from 4.2 (better volatility)
+        private const int DefaultDaysPerWeek = 7;          // ↓ from 30 (daily discretization for better fit)
+
+        // ─── Live calibration (sourced from CalibrationRegistry.Market) ───
+        private decimal _initialPrice = DefaultInitialPrice;
+        private decimal _priceFloor = DefaultPriceFloor;
+        private decimal _priceCeiling = DefaultPriceCeiling;
+        private int _daysPerWeek = DefaultDaysPerWeek;
+        private decimal[] _monthlySeasonalOffsets =
+        {
+            3.2m, 4.1m, -1.8m, -3.5m, -2.1m, 0.8m,
+            1.2m, -0.5m, -2.8m, -1.9m, 0.3m, 1.7m
+        };
 
         private static readonly string HistoricalPriceMarkdownPath = Path.GetFullPath(
             Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "research", "real-salmon-prices.md"));
@@ -46,26 +63,47 @@ namespace LakskongenSim.Market
         public decimal LongTermMean { get; private set; } = DefaultLongTermMean;
         public decimal MeanReversionSpeedWeekly { get; private set; } = DefaultWeeklyTheta;
         public decimal VolatilityWeekly { get; private set; } = DefaultWeeklySigma;
-        public decimal PriceFloorPerKg => PriceFloor;
-        public decimal PriceCeilingPerKg => PriceCeiling;
+
+        /// <summary>
+        /// Scenario market rule: scales daily price noise and the market-shock
+        /// probability (an "easy market" halves both). Set from the active
+        /// scenario on start and on load, so it is not saved.
+        /// </summary>
+        public double VolatilityScale { get; set; } = 1.0;
+        public decimal PriceFloorPerKg => _priceFloor;
+        public decimal PriceCeilingPerKg => _priceCeiling;
         public IReadOnlyList<HistoricalPrice> HistoricalSeries => _historicalSeries;
+
+        /// <summary>Persistence (Phase 1 wave 6): the full price-trajectory
+        /// state must survive a save or post-load prices diverge.</summary>
+        internal (decimal Base, decimal Price, decimal WeeklyAvg, decimal LongMean, decimal MeanRev, decimal Vol,
+            double SupplyIdx, double DemandIdx, decimal CertMult, double LastR2, int LastObs, int SimDay,
+            System.Collections.Generic.List<HistoricalPrice> History) ExportState()
+            => (BasePricePerKg, PricePerKg, WeeklyAvgPrice, LongTermMean, MeanReversionSpeedWeekly, VolatilityWeekly,
+                GlobalSupplyIndex, GlobalDemandIndex, _certificationMultiplier, LastCalibrationR2, LastCalibrationObservationCount,
+                _simulationDay, new System.Collections.Generic.List<HistoricalPrice>(_historicalSeries));
+
+        internal void ImportState((decimal Base, decimal Price, decimal WeeklyAvg, decimal LongMean, decimal MeanRev, decimal Vol,
+            double SupplyIdx, double DemandIdx, decimal CertMult, double LastR2, int LastObs, int SimDay,
+            System.Collections.Generic.List<HistoricalPrice> History) s)
+        {
+            BasePricePerKg = s.Base; PricePerKg = s.Price; WeeklyAvgPrice = s.WeeklyAvg;
+            LongTermMean = s.LongMean; MeanReversionSpeedWeekly = s.MeanRev; VolatilityWeekly = s.Vol;
+            GlobalSupplyIndex = s.SupplyIdx; GlobalDemandIndex = s.DemandIdx;
+            _certificationMultiplier = s.CertMult; LastCalibrationR2 = s.LastR2;
+            LastCalibrationObservationCount = s.LastObs; _simulationDay = s.SimDay;
+            _historicalSeries.Clear(); _historicalSeries.AddRange(s.History);
+        }
         public string CalibrationSummary { get; private set; } = "Using default market calibration";
 
         // ─── Seasonal parameters (Norwegian/global salmon market) ───
-        // Based on Fish Pool FPI seasonal decomposition 2018-2025:
+        // Sourced from CalibrationRegistry.Market.MonthlySeasonalOffsets in
+        // Initialize(); the field default above mirrors the registry.
         // - Jan/Feb: Chinese New Year demand spike (Jan peak)
         // - Mar-May: post-winter recovery, Easter demand
         // - Jun-Aug: BBQ/grilling season peak (strongest seasonal signal)
         // - Sep-Oct: post-summer dip as harvest volumes increase
         // - Nov-Dec: Christmas/holiday demand recovery
-        // Amplitude ~8-12 NOK/kg based on Fish Pool seasonal decomposition.
-        private static readonly decimal[] MonthlySeasonalOffsets =
-        {
-              5m, -2m, -5m,  // Jan (CNY), Feb (post-CNY dip), Mar (low)
-             -3m,  2m,  8m,  // Apr (Easter variable), May (rising), Jun (BBQ starts)
-             12m, 10m,  3m,  // Jul (peak BBQ), Aug (still high), Sep (harvest surge → drop)
-             -4m, -2m,  6m   // Oct (oversupply), Nov (stable), Dec (Christmas demand)
-        };
 
         // ─── Supply/demand ───
         public double GlobalSupplyIndex { get; private set; } = 1.0;
@@ -74,17 +112,129 @@ namespace LakskongenSim.Market
         // ─── Market access ───
         private HashSet<string> _accessibleMarkets = new() { "Domestic", "EU", "USA" };
         private decimal _certificationMultiplier = 1.0m;
+        private decimal _researchPriceMultiplier = 1.0m;
 
         // ─── Price history (for charts/analytics) ───
         private readonly Queue<decimal> _priceHistory = new();
         private const int MaxHistoryLength = 365;
 
+        /// <summary>
+        /// The daily realized prices the weekly mean and the price chart read
+        /// (at most a year), oldest first. Saved since F2-05: a loaded game
+        /// started the queue afresh, so its weekly mean was the mean of one or
+        /// two days for a week and the chart lost its history.
+        /// </summary>
+        internal List<decimal> ExportDailyPrices() => _priceHistory.ToList();
+
+        /// <summary>Restore the daily prices of a save (the newest <see cref="MaxHistoryLength"/>).</summary>
+        internal void ImportDailyPrices(IEnumerable<decimal> prices)
+        {
+            _priceHistory.Clear();
+            foreach (var price in prices.TakeLast(MaxHistoryLength))
+                _priceHistory.Enqueue(price);
+        }
+
         // ─── Calibration data ───
         private readonly List<HistoricalPrice> _historicalSeries = new();
 
+        // ─── Goodness-of-fit harness (fidelity metric only — no price rebalancing) ───
+        /// <summary>Most recent calibration R² (NaN until <see cref="ComputeCalibrationFit(int)"/> runs).</summary>
+        public double LastCalibrationR2 { get; private set; } = double.NaN;
+        /// <summary>Observation count backing <see cref="LastCalibrationR2"/>.</summary>
+        public int LastCalibrationObservationCount { get; private set; }
+
         // ─── Random ───
-        private readonly Random _rng = new();
+        /// <summary>Named RNG stream for market simulation (O-U process, shocks, seasonality).</summary>
+        private readonly SimRngStream _rng;
+
+        /// <summary>Persistence (Phase 1 wave 6): the shock-window countdown
+        /// and the decaying supply/demand offset decide whether the
+        /// reference-band clamp engages — must survive a save.</summary>
+
+
+        internal (int ShockDays, double SupplyOffset) ExportShockState()
+            => (_shockDaysRemaining, _supplyDemandOffsetNok);
+
+        internal void ImportShockState((int ShockDays, double SupplyOffset) s)
+        {
+            _shockDaysRemaining = s.ShockDays;
+            _supplyDemandOffsetNok = s.SupplyOffset;
+        }
         private int _simulationDay;
+
+        // ─── Daily-tick tuning (extracted literals; values unchanged) ───
+        private const double EventBlendRetention = 0.9; // 90% old index, 10% event impact
+        private const double EventBlendNewWeight = 0.1;
+        private const decimal ShockAbsorptionFactor = 0.15m; // share of a news shock absorbed per week
+        private const double CompetitorSupplySensitivity = 0.05; // 5% sensitivity to supply deviation
+        private const double SupplyDemandPriceGain = 2.25; // NOK/kg per unit of (demand − supply)
+        private const double DailyShockProbability = 0.02; // 2% chance of a market shock per day
+        private const double NormalCompetitorSupplyTonnesPerWeek = 31400.0; // sum of base weekly harvests
+
+        // ─── Shock-table tuning (TriggerMarketShock; probabilities and multipliers) ───
+        private const double ShockChileBloomUpper = 0.3;
+        private const double ShockHarvestSurplusUpper = 0.5;
+        private const double ShockSushiDemandUpper = 0.7;
+        private const double ShockTariffUpper = 0.85;
+        private const double ShockSupplyTightenFactor = 0.95; // Chile algae bloom
+        private const double ShockSupplyGlutFactor = 1.03; // Norwegian harvest surplus
+        private const double ShockDemandSurgeFactor = 1.04; // Asian sushi demand
+        private const double ShockDemandDropFactor = 0.96; // EU tariffs
+        private const double ShockCurrencyHalfRange = 0.035; // ±1.75% NOK swing
+        private const double ShockIndexDecay = 0.95; // indices relax toward 1.0 after a shock
+        private const double IndexClampMin = 0.5;
+        private const double IndexClampMax = 2.0;
+        // Daily relaxation of supply/demand indices toward neutral 1.0 (half-life ~35d)
+        // and a bounded per-day supply/demand price contribution, so a persistent
+        // news/competitor bias cannot compound into a ceiling-climbing drift.
+        private const double IndexMeanReversionDaily = 0.02;
+        private const double MaxSupplyDemandEffectNok = 4.0;
+        // Supply/demand imbalance is a transient price offset that decays each
+        // day, preventing a persistent index bias from compounding to the ceiling.
+        private const double SupplyDemandOffsetDecay = 0.90;
+        private double _supplyDemandOffsetNok = 0.0;
+
+        // Soft normal-play band around the long-term mean (the 74-90 NOK/kg
+        // reference band = 82 ±8). Outside a shock window the spot is clamped to
+        // this band; shocks open a temporary window during which the wider
+        // floor/ceiling applies so they can land.
+        private const double NormalBandHalfWidthNok = 8.0;
+        private const double RealizedBandUpperHalfWidthNok = 6.0;
+        private const int ShockWindowDays = 30;
+        private int _shockDaysRemaining = 0;
+
+        // ─── Industry-signal tuning (ApplyIndustrySignals) ───
+        private const double HighBiomassThreshold = 0.90;
+        private const double HighBiomassSupplyFactor = 1.03;
+        private const double LowBiomassThreshold = 0.70;
+        private const double LowBiomassSupplyFactor = 0.98;
+        private const double StressSignalThreshold = 1.10;
+        private const double StressSupplyFactor = 0.97;
+        private const double MarketSupportGain = 0.30;
+        private const double MarketDragGain = 0.20;
+
+        // ─── P15: Player supply market impact (Fish-Pool-style tension) ───
+        /// <summary>
+        /// Player supply impact model. A large player harvest adds downward
+        /// pressure relative to the national weekly baseline
+        /// (<see cref="PlayerSupplyImpact.NationalWeeklyBaselineTonnes"/>,
+        /// 31,400 t/week — same baseline as <c>NormalCompetitorSupplyTonnesPerWeek</c>).
+        /// </summary>
+        public PlayerSupplyImpact PlayerSupply { get; } = new();
+
+        /// <summary>
+        /// Current player-supply pressure, 0 (no effect) to 1 (saturated,
+        /// price capped at −8%). Read-only view for UI/testing.
+        /// </summary>
+        public double PlayerSupplyPressure => PlayerSupply.Pressure;
+
+        /// <summary>
+        /// Register the player's harvest volume (tonnes) so it moves the market.
+        /// Safe to call on every harvest: pressure accumulates proportional to the
+        /// harvest relative to the national baseline, is capped at −8% price
+        /// impact, and decays gradually in <see cref="AdvanceDays"/>.
+        /// </summary>
+        public void ApplyPlayerHarvest(double tonnes) => PlayerSupply.ApplyHarvest(tonnes);
 
         // ─── Integrated subsystems (T77 expansion) ───
         /// <summary>Sales channel system with spot, export, direct retail channels.</summary>
@@ -97,22 +247,37 @@ namespace LakskongenSim.Market
         public event Action<HashSet<string>>? OnMarketAccessChanged;
         public event Action<string>? OnMarketEvent;
 
-        public MarketSimulation()
+        public MarketSimulation(SimRngStream rng, SimRngStream? intelligenceRng = null)
         {
+            _rng = rng ?? throw new ArgumentNullException(nameof(rng));
+            Intelligence.Reseed(intelligenceRng ?? SimRng.CreateUnseeded().Stream(SimRngStreams.Intelligence));
             Initialize();
         }
 
+        public MarketSimulation() : this(SimRng.CreateUnseeded().Stream(SimRngStreams.Market))
+        {
+        }
+
         /// <summary>
-        /// Load historical price anchors and initialize the O-U model with calibrated parameters.
+        /// Apply the calibrated market parameters and initialize live price state.
         /// Safe to call multiple times.
         /// </summary>
         public void Initialize()
         {
             CalibrateOUParameters();
+            ApplyRegistryCalibration();
 
+            // Start at the calibrated long-term mean so the price is centred on
+            // the reference band from day one (the O-U target is the mean, not
+            // the registry's illustrative initial print).
             BasePricePerKg = ClampPrice(LongTermMean);
             PricePerKg = BasePricePerKg * _certificationMultiplier;
             WeeklyAvgPrice = PricePerKg;
+
+            GlobalSupplyIndex = 1.0;
+            GlobalDemandIndex = 1.0;
+            _supplyDemandOffsetNok = 0.0;
+            _shockDaysRemaining = 0;
 
             _priceHistory.Clear();
             _priceHistory.Enqueue(PricePerKg);
@@ -120,55 +285,50 @@ namespace LakskongenSim.Market
         }
 
         /// <summary>
-        /// Calibrate O-U parameters from the bundled markdown research file.
-        /// The calibration is intentionally conservative: observed data sets the center and scale,
-        /// while gameplay clamps keep output inside realistic historical salmon ranges.
+        /// Push <see cref="CalibrationRegistry.Market"/> into the live O-U model.
+        /// The registry is the single source of truth (long-term mean ~82 NOK/kg,
+        /// weekly theta/sigma and the 42-150 price band); without this the model
+        /// drifted to its hardcoded ceiling on an unclamped supply/demand bias.
+        /// </summary>
+        private void ApplyRegistryCalibration()
+        {
+            var m = CalibrationRegistry.Default.Market;
+            LongTermMean = m.LongTermMeanNOKPerKg;
+            MeanReversionSpeedWeekly = m.MeanReversionSpeedWeekly;
+            VolatilityWeekly = m.VolatilityWeekly;
+            _priceFloor = m.PriceFloorNOKPerKg;
+            _priceCeiling = m.PriceCeilingNOKPerKg;
+            _initialPrice = m.InitialPriceNOKPerKg;
+            _daysPerWeek = m.DaysPerWeek > 0 ? m.DaysPerWeek : DefaultDaysPerWeek;
+            if (m.MonthlySeasonalOffsets is { Length: 12 })
+                _monthlySeasonalOffsets = m.MonthlySeasonalOffsets;
+        }
+
+        /// <summary>
+        /// Load the bundled historical price anchors for the goodness-of-fit
+        /// harness. Live O-U parameters come from <see cref="CalibrationRegistry.Market"/>
+        /// (via <see cref="ApplyRegistryCalibration"/>), not from this file.
         /// </summary>
         public void CalibrateOUParameters()
         {
             _historicalSeries.Clear();
             _historicalSeries.AddRange(HistoricalPrice.LoadFromMarkdown(HistoricalPriceMarkdownPath));
 
-            if (_historicalSeries.Count == 0)
-            {
-                LongTermMean = DefaultLongTermMean;
-                MeanReversionSpeedWeekly = DefaultWeeklyTheta;
-                VolatilityWeekly = DefaultWeeklySigma;
-                CalibrationSummary = string.Format(
+            var m = CalibrationRegistry.Default.Market;
+            CalibrationSummary = _historicalSeries.Count == 0
+                ? string.Format(
                     CultureInfo.InvariantCulture,
-                    "Fallback calibration: μ={0:F2}, θ={1:F2}, σ={2:F2}",
-                    LongTermMean,
-                    MeanReversionSpeedWeekly,
-                    VolatilityWeekly);
-                return;
-            }
-
-            var observed = _historicalSeries.Select(p => p.PricePerKg).ToList();
-            var diffs = new List<decimal>();
-            for (var i = 1; i < observed.Count; i++)
-                diffs.Add(Math.Abs(observed[i] - observed[i - 1]));
-
-            var mean = observed.Average();
-            var sampleStdDev = CalculateStdDev(observed);
-            var avgWeeklyMove = diffs.Count == 0 ? 0m : diffs.Average();
-            var minObserved = observed.Min();
-            var maxObserved = observed.Max();
-            var range = Math.Max(1m, maxObserved - minObserved);
-            var normalizedReversion = 0.15m + (avgWeeklyMove / range) * 0.10m;
-
-            LongTermMean = ClampToBand(mean, 75m, 100m); // Fish Pool FPI 2020-2025 avg range (lower during COVID, higher 2022-2024)
-            MeanReversionSpeedWeekly = ClampToBand(normalizedReversion, WeeklyThetaMin, WeeklyThetaMax);
-            VolatilityWeekly = ClampToBand(sampleStdDev, WeeklySigmaMin, WeeklySigmaMax);
-
-            CalibrationSummary = string.Format(
-                CultureInfo.InvariantCulture,
-                "Calibrated from {0} observations: μ={1:F2} NOK/kg, θ={2:F2}/week, σ={3:F2} NOK/kg/√week (observed range {4:F2}-{5:F2})",
-                _historicalSeries.Count,
-                LongTermMean,
-                MeanReversionSpeedWeekly,
-                VolatilityWeekly,
-                minObserved,
-                maxObserved);
+                    "Registry calibration: μ={0:F2}, θ={1:F2}, σ={2:F2}",
+                    m.LongTermMeanNOKPerKg,
+                    m.MeanReversionSpeedWeekly,
+                    m.VolatilityWeekly)
+                : string.Format(
+                    CultureInfo.InvariantCulture,
+                    "Registry calibration: μ={0:F2}, θ={1:F2}, σ={2:F2} ({3} historical obs loaded)",
+                    m.LongTermMeanNOKPerKg,
+                    m.MeanReversionSpeedWeekly,
+                    m.VolatilityWeekly,
+                    _historicalSeries.Count);
         }
 
         /// <summary>
@@ -182,8 +342,11 @@ namespace LakskongenSim.Market
             {
                 _simulationDay++;
 
-                // Weekly intelligence tick (every 7 days)
-                if (_simulationDay % DaysPerWeek == 0)
+                // P15: player supply pressure is absorbed gradually between harvests.
+                PlayerSupply.AdvanceDays(1);
+
+                // Weekly intelligence tick (every 30 days with monthly discretization)
+                if (_simulationDay % _daysPerWeek == 0)
                 {
                     Intelligence.AdvanceWeek(BasePricePerKg);
                     Channels.ResetWeeklyVolumes();
@@ -193,28 +356,39 @@ namespace LakskongenSim.Market
                     if (Math.Abs(supFactor - 1.0) > 0.001 || Math.Abs(demFactor - 1.0) > 0.001)
                     {
                         // Blend event impacts gradually (don't shock instantly)
-                        GlobalSupplyIndex = GlobalSupplyIndex * 0.9 + (GlobalSupplyIndex * supFactor) * 0.1;
-                        GlobalDemandIndex = GlobalDemandIndex * 0.9 + (GlobalDemandIndex * demFactor) * 0.1;
+                        GlobalSupplyIndex = GlobalSupplyIndex * EventBlendRetention + (GlobalSupplyIndex * supFactor) * EventBlendNewWeight;
+                        GlobalDemandIndex = GlobalDemandIndex * EventBlendRetention + (GlobalDemandIndex * demFactor) * EventBlendNewWeight;
                     }
                     if (priceShock != 0m)
                     {
-                        BasePricePerKg = ClampPrice(BasePricePerKg + priceShock * 0.15m);  // Gradual price shock absorption
+                        BasePricePerKg = ClampPrice(BasePricePerKg + priceShock * ShockAbsorptionFactor);  // Gradual price shock absorption
                     }
 
                     // Competitor supply affects global supply index
                     var competitorSupply = Intelligence.GetTotalCompetitorSupplyTonnes();
-                    var normalSupply = 31400.0;  // Sum of all base weekly harvests
+                    var normalSupply = NormalCompetitorSupplyTonnesPerWeek;
                     if (normalSupply > 0)
                     {
                         var supplyDeviation = (competitorSupply - normalSupply) / normalSupply;
-                        GlobalSupplyIndex *= 1.0 + supplyDeviation * 0.05;  // 5% sensitivity
+                        GlobalSupplyIndex *= 1.0 + supplyDeviation * CompetitorSupplySensitivity;
                     }
                 }
 
+                // Supply/demand indices relax toward neutral (1.0) so a persistent
+                // news/competitor bias cannot compound into a ceiling-climbing
+                // drift. Without this the O-U mean reversion is too weak to hold
+                // the price near the calibrated ~82 NOK/kg mean.
+                GlobalSupplyIndex = Math.Clamp(
+                    GlobalSupplyIndex + (1.0 - GlobalSupplyIndex) * IndexMeanReversionDaily,
+                    IndexClampMin, IndexClampMax);
+                GlobalDemandIndex = Math.Clamp(
+                    GlobalDemandIndex + (1.0 - GlobalDemandIndex) * IndexMeanReversionDaily,
+                    IndexClampMin, IndexClampMax);
+
                 var seasonalTarget = LongTermMean + GetSeasonalOffsetForSimulationDay(_simulationDay);
                 var currentPrice = (double)BasePricePerKg;
-                var thetaDaily = (double)MeanReversionSpeedWeekly / DaysPerWeek;
-                var sigmaDaily = (double)VolatilityWeekly / Math.Sqrt(DaysPerWeek);
+                var thetaDaily = (double)MeanReversionSpeedWeekly / _daysPerWeek;
+                var sigmaDaily = (double)VolatilityWeekly / Math.Sqrt(_daysPerWeek) * VolatilityScale;
 
                 double u1 = Math.Max(1e-10, _rng.NextDouble());
                 double u2 = _rng.NextDouble();
@@ -222,21 +396,48 @@ namespace LakskongenSim.Market
 
                 var drift = thetaDaily * ((double)seasonalTarget - currentPrice);
                 var diffusion = sigmaDaily * normalShock;
-                var supplyDemandEffect = (GlobalDemandIndex - GlobalSupplyIndex) * 2.25;
+                // Bounded supply/demand pressure applied as a *decaying* price
+                // offset (not a per-day additive drift): neutral play therefore
+                // contributes no permanent drift, while shocks still move price.
+                _supplyDemandOffsetNok = _supplyDemandOffsetNok * SupplyDemandOffsetDecay
+                    + Math.Clamp(
+                        (GlobalDemandIndex - GlobalSupplyIndex) * SupplyDemandPriceGain,
+                        -MaxSupplyDemandEffectNok, MaxSupplyDemandEffectNok);
 
-                var newPrice = currentPrice + drift + diffusion + supplyDemandEffect;
+                var newPrice = currentPrice + drift + diffusion + _supplyDemandOffsetNok;
+
+                // Normal-play band (reference 74-90 NOK/kg = mean ±8). Outside a
+                // shock window both the spot and the realized price are clamped
+                // into the band so weak mean reversion cannot park at the 150
+                // ceiling; during a shock window the wider floor/ceiling
+                // (42-150) applies so shocks can land.
+                bool shockActive = _shockDaysRemaining > 0;
+                if (shockActive) _shockDaysRemaining--;
+                double bandLow = (double)LongTermMean - NormalBandHalfWidthNok;
+                double bandHigh = (double)LongTermMean + NormalBandHalfWidthNok;
+                if (!shockActive)
+                    newPrice = Math.Clamp(newPrice, bandLow, bandHigh);
                 BasePricePerKg = ClampPrice((decimal)newPrice);
 
-                // Apply brand reputation premium
-                PricePerKg = BasePricePerKg * _certificationMultiplier * Intelligence.PlayerReputation.PremiumMultiplier;
-
+                // Apply brand reputation premium, P15 player-supply pressure, AND research/vertical integration bonus.
+                decimal rawPrice = BasePricePerKg * _certificationMultiplier * _researchPriceMultiplier * Intelligence.PlayerReputation.PremiumMultiplier * (decimal)PlayerSupply.PriceMultiplier;
+                if (!shockActive)
+                {
+                    // Certification/brand premiums are applied on top of the spot
+                    // band; cap the realized price a little inside the 90 ceiling
+                    // so a certified farm sits in-band rather than pinned at 90.
+                    rawPrice = Math.Clamp(rawPrice,
+                        (decimal)bandLow,
+                        LongTermMean + (decimal)RealizedBandUpperHalfWidthNok);
+                }
+                PricePerKg = rawPrice;
                 _priceHistory.Enqueue(PricePerKg);
                 if (_priceHistory.Count > MaxHistoryLength)
                     _priceHistory.Dequeue();
 
-                WeeklyAvgPrice = _priceHistory.TakeLast(Math.Min(DaysPerWeek, _priceHistory.Count)).Average();
+                WeeklyAvgPrice = _priceHistory.TakeLast(Math.Min(_daysPerWeek, _priceHistory.Count)).Average();
 
-                if (_rng.NextDouble() < 0.02)
+                if (_rng.NextDouble() < DailyShockProbability * VolatilityScale)
                     TriggerMarketShock();
             }
 
@@ -245,43 +446,43 @@ namespace LakskongenSim.Market
 
         private decimal GetSeasonalOffsetForSimulationDay(int simulationDay)
         {
-            int month = ((simulationDay / 30) % 12 + 12) % 12;
-            return MonthlySeasonalOffsets[month];
+            int month = LakskongenSim.Core.SimCalendar.MonthIndex(simulationDay);
+            return _monthlySeasonalOffsets[month];
         }
 
         private void TriggerMarketShock()
         {
             double roll = _rng.NextDouble();
 
-            if (roll < 0.3)
+            if (roll < ShockChileBloomUpper)
             {
-                GlobalSupplyIndex *= 0.95;
+                GlobalSupplyIndex *= ShockSupplyTightenFactor;
                 OnMarketEvent?.Invoke("📰 Chile reports major algae bloom — global supply tightens");
             }
-            else if (roll < 0.5)
+            else if (roll < ShockHarvestSurplusUpper)
             {
-                GlobalSupplyIndex *= 1.03;
+                GlobalSupplyIndex *= ShockSupplyGlutFactor;
                 OnMarketEvent?.Invoke("📰 Norwegian harvest volumes exceed expectations");
             }
-            else if (roll < 0.7)
+            else if (roll < ShockSushiDemandUpper)
             {
-                GlobalDemandIndex *= 1.04;
+                GlobalDemandIndex *= ShockDemandSurgeFactor;
                 OnMarketEvent?.Invoke("📰 Asian sushi market demand surges — salmon prices rise");
             }
-            else if (roll < 0.85)
+            else if (roll < ShockTariffUpper)
             {
-                GlobalDemandIndex *= 0.96;
+                GlobalDemandIndex *= ShockDemandDropFactor;
                 OnMarketEvent?.Invoke("📰 EU imposes new tariffs on Norwegian salmon imports");
             }
             else
             {
-                double currencyShift = (_rng.NextDouble() - 0.5) * 0.035;
+                double currencyShift = (_rng.NextDouble() - 0.5) * ShockCurrencyHalfRange;
                 BasePricePerKg = ClampPrice(BasePricePerKg * (1.0m + (decimal)currencyShift));
                 OnMarketEvent?.Invoke($"📰 NOK {(currencyShift > 0 ? "weakens" : "strengthens")} — export {(currencyShift > 0 ? "revenues up" : "revenues down")}");
             }
 
-            GlobalSupplyIndex = 1.0 + (GlobalSupplyIndex - 1.0) * 0.95;
-            GlobalDemandIndex = 1.0 + (GlobalDemandIndex - 1.0) * 0.95;
+            GlobalSupplyIndex = 1.0 + (GlobalSupplyIndex - 1.0) * ShockIndexDecay;
+            GlobalDemandIndex = 1.0 + (GlobalDemandIndex - 1.0) * ShockIndexDecay;
         }
 
         public void ApplyExternalShock(double supplyFactor, double demandFactor)
@@ -289,8 +490,13 @@ namespace LakskongenSim.Market
             if (supplyFactor != 1.0) GlobalSupplyIndex *= supplyFactor;
             if (demandFactor != 1.0) GlobalDemandIndex *= demandFactor;
 
-            GlobalSupplyIndex = Math.Clamp(GlobalSupplyIndex, 0.5, 2.0);
-            GlobalDemandIndex = Math.Clamp(GlobalDemandIndex, 0.5, 2.0);
+            GlobalSupplyIndex = Math.Clamp(GlobalSupplyIndex, IndexClampMin, IndexClampMax);
+            GlobalDemandIndex = Math.Clamp(GlobalDemandIndex, IndexClampMin, IndexClampMax);
+
+            // Only material external shocks open a shock window; the engine's
+            // routine daily profitability nudge (±4%) must not disable the band.
+            if (Math.Abs(supplyFactor - 1.0) > 0.05 || Math.Abs(demandFactor - 1.0) > 0.05)
+                _shockDaysRemaining = Math.Max(_shockDaysRemaining, ShockWindowDays);
 
             OnPriceChanged?.Invoke(PricePerKg);
         }
@@ -300,18 +506,18 @@ namespace LakskongenSim.Market
             var supplyFactor = 1.0;
             var demandFactor = 1.0;
 
-            if (biomassUtilization > 0.90)
-                supplyFactor *= 1.03;
-            else if (biomassUtilization < 0.70)
-                supplyFactor *= 0.98;
+            if (biomassUtilization > HighBiomassThreshold)
+                supplyFactor *= HighBiomassSupplyFactor;
+            else if (biomassUtilization < LowBiomassThreshold)
+                supplyFactor *= LowBiomassSupplyFactor;
 
-            if (diseasePressure > 1.10 || mortalityStress > 1.10)
-                supplyFactor *= 0.97;
+            if (diseasePressure > StressSignalThreshold || mortalityStress > StressSignalThreshold)
+                supplyFactor *= StressSupplyFactor;
 
             if (marketSupport > 1.0)
-                demandFactor *= 1.0 + ((marketSupport - 1.0) * 0.30);
+                demandFactor *= 1.0 + ((marketSupport - 1.0) * MarketSupportGain);
             else if (marketSupport < 1.0)
-                demandFactor *= 1.0 - ((1.0 - marketSupport) * 0.20);
+                demandFactor *= 1.0 - ((1.0 - marketSupport) * MarketDragGain);
 
             ApplyExternalShock(supplyFactor, demandFactor);
         }
@@ -320,11 +526,20 @@ namespace LakskongenSim.Market
         {
             _certificationMultiplier = priceMultiplier;
             _accessibleMarkets = GetAccessibleMarkets(level);
-            PricePerKg = BasePricePerKg * _certificationMultiplier;
+            PricePerKg = BasePricePerKg * _certificationMultiplier * _researchPriceMultiplier;
 
             OnPriceChanged?.Invoke(PricePerKg);
             OnMarketAccessChanged?.Invoke(_accessibleMarkets);
         }
+
+        /// <summary>
+        /// Set the research + vertical-integration price multiplier (floored at
+        /// 1). It is applied by the next <see cref="AdvanceDays"/> inside the
+        /// realized price band, like the certification and brand premiums; the
+        /// engine sets it every day before advancing the market (review F1003).
+        /// </summary>
+        public void SetResearchPriceMultiplier(double multiplier)
+            => _researchPriceMultiplier = (decimal)Math.Max(1.0, multiplier);
 
         private HashSet<string> GetAccessibleMarkets(CertificationLevel level)
         {
@@ -351,6 +566,113 @@ namespace LakskongenSim.Market
         public bool CanAccessMarket(string marketName) => _accessibleMarkets.Contains(marketName);
         public HashSet<string> GetAccessibleMarkets() => new(_accessibleMarkets);
         public decimal[] GetPriceHistory() => _priceHistory.ToArray();
+
+        /// <summary>
+        /// Coefficient of determination R² = 1 − SS_res/SS_tot for paired
+        /// observed vs simulated series. Pure math helper; no model state.
+        /// Guards: empty or length-mismatched input throws
+        /// <see cref="ArgumentException"/>; a constant observed series yields
+        /// 1.0 for a perfect prediction, 0.0 otherwise.
+        /// </summary>
+        public static double ComputeRSquared(IReadOnlyList<double> observed, IReadOnlyList<double> simulated)
+        {
+            if (observed == null) throw new ArgumentNullException(nameof(observed));
+            if (simulated == null) throw new ArgumentNullException(nameof(simulated));
+            if (observed.Count == 0 || observed.Count != simulated.Count)
+                throw new ArgumentException("Observed and simulated series must be non-empty and equal length.");
+
+            double mean = 0.0;
+            foreach (var v in observed) mean += v;
+            mean /= observed.Count;
+
+            double ssTot = 0.0, ssRes = 0.0;
+            for (int i = 0; i < observed.Count; i++)
+            {
+                ssTot += (observed[i] - mean) * (observed[i] - mean);
+                ssRes += (observed[i] - simulated[i]) * (observed[i] - simulated[i]);
+            }
+
+            if (ssTot == 0.0) return ssRes == 0.0 ? 1.0 : 0.0;
+            return 1.0 - ssRes / ssTot;
+        }
+
+        /// <summary>
+        /// Goodness-of-fit harness: rolls the calibrated Ornstein-Uhlenbeck
+        /// process forward (seeded, side-effect-free) and scores weekly mean
+        /// prices against the Fish Pool calibration series
+        /// (<see cref="HistoricalSeries"/>) with R².
+        ///
+        /// Characterization only: uses neutral supply/demand (1.0), starts at
+        /// the calibrated long-term mean, and never touches live price state
+        /// or O-U parameters — no price rebalancing. Result is cached on
+        /// <see cref="LastCalibrationR2"/> /
+        /// <see cref="LastCalibrationObservationCount"/> for UI/query use.
+        /// With fewer than 2 calibration observations the report carries NaN.
+        /// </summary>
+        /// <param name="seed">Deterministic seed so the harness is reproducible.</param>
+        public CalibrationFitReport ComputeCalibrationFit(int seed = 42)
+            => ComputeCalibrationFit(_historicalSeries, seed);
+
+        /// <summary>
+        /// Overload scoring an explicit calibration series (e.g. a fixed
+        /// Fish Pool reference slice in tests). Same side-effect-free
+        /// semantics as <see cref="ComputeCalibrationFit(int)"/>.
+        /// </summary>
+        public CalibrationFitReport ComputeCalibrationFit(
+            IReadOnlyList<HistoricalPrice> calibrationSeries, int seed = 42)
+        {
+            var observed = calibrationSeries.Select(p => (double)p.PricePerKg).ToList();
+            var report = new CalibrationFitReport { ObservationCount = observed.Count };
+
+            if (observed.Count < 2)
+            {
+                report.RSquared = double.NaN;
+                LastCalibrationR2 = report.RSquared;
+                LastCalibrationObservationCount = report.ObservationCount;
+                return report;
+            }
+
+            double sumObs = 0.0;
+            foreach (var v in observed) sumObs += v;
+            report.ObservedMean = sumObs / observed.Count;
+
+            // Side-effect-free OU rollout mirroring AdvanceDays() drift/diffusion
+            // (seasonal target + daily mean reversion + Gaussian shock), but with
+            // a local seeded stream and neutral supply/demand so live state is
+            // untouched. SplitMix core: cross-runtime stable (System.Random is
+            // implementation-defined).
+            var rng = new SimRng(seed).Stream(SimRngStreams.Market, "calibration");
+            double price = (double)LongTermMean;
+            double thetaDaily = (double)MeanReversionSpeedWeekly / _daysPerWeek;
+            double sigmaDaily = (double)VolatilityWeekly / Math.Sqrt(_daysPerWeek);
+            var simulated = new List<double>(observed.Count);
+            double sumSim = 0.0;
+
+            for (int w = 0; w < observed.Count; w++)
+            {
+                double weekSum = 0.0;
+                for (int d = 0; d < _daysPerWeek; d++)
+                {
+                    int simDay = w * _daysPerWeek + d + 1;
+                    double seasonalTarget = (double)(LongTermMean + _monthlySeasonalOffsets[LakskongenSim.Core.SimCalendar.MonthIndex(simDay)]);
+                    double u1 = Math.Max(1e-10, rng.NextDouble());
+                    double u2 = rng.NextDouble();
+                    double shock = Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Cos(2.0 * Math.PI * u2);
+                    price += thetaDaily * (seasonalTarget - price) + sigmaDaily * shock;
+                    price = Math.Clamp(price, (double)_priceFloor, (double)_priceCeiling);
+                    weekSum += price;
+                }
+                double weekMean = weekSum / _daysPerWeek;
+                simulated.Add(weekMean);
+                sumSim += weekMean;
+            }
+
+            report.SimulatedMean = sumSim / simulated.Count;
+            report.RSquared = ComputeRSquared(observed, simulated);
+            LastCalibrationR2 = report.RSquared;
+            LastCalibrationObservationCount = report.ObservationCount;
+            return report;
+        }
 
         // ─── T77: Quality-aware selling ───
 
@@ -389,29 +711,32 @@ namespace LakskongenSim.Market
             LongTermMean = LongTermMean,
             MeanReversionSpeedWeekly = MeanReversionSpeedWeekly,
             VolatilityWeekly = VolatilityWeekly,
-            PriceFloor = PriceFloor,
-            PriceCeiling = PriceCeiling,
+            PriceFloor = _priceFloor,
+            PriceCeiling = _priceCeiling,
             BrandReputation = Intelligence.PlayerReputation.Score,
             BrandPremiumMultiplier = Intelligence.PlayerReputation.PremiumMultiplier,
             ActiveNewsEvents = Intelligence.ActiveEvents.Count,
             CompetitorSupplyTonnesPerWeek = Intelligence.GetTotalCompetitorSupplyTonnes()
         };
 
-        private static decimal CalculateStdDev(IReadOnlyList<decimal> values)
-        {
-            if (values.Count <= 1)
-                return 0m;
+        private decimal ClampPrice(decimal value)
+            => Math.Clamp(value, _priceFloor, _priceCeiling);
+    }
 
-            var mean = values.Average();
-            var variance = values.Sum(v => (v - mean) * (v - mean)) / (values.Count - 1);
-            return (decimal)Math.Sqrt((double)variance);
-        }
-
-        private static decimal ClampToBand(decimal value, decimal min, decimal max)
-            => Math.Clamp(value, min, max);
-
-        private static decimal ClampPrice(decimal value)
-            => Math.Clamp(value, PriceFloor, PriceCeiling);
+    /// <summary>
+    /// Goodness-of-fit report for the Fish Pool calibration harness.
+    /// See <see cref="MarketSimulation.ComputeCalibrationFit(int)"/>.
+    /// </summary>
+    public sealed class CalibrationFitReport
+    {
+        /// <summary>R² of simulated weekly means vs calibration series (NaN if fewer than 2 observations).</summary>
+        public double RSquared { get; set; } = double.NaN;
+        /// <summary>Number of calibration observations scored.</summary>
+        public int ObservationCount { get; set; }
+        /// <summary>Mean of the observed calibration series (NOK/kg).</summary>
+        public double ObservedMean { get; set; }
+        /// <summary>Mean of the simulated weekly series (NOK/kg).</summary>
+        public double SimulatedMean { get; set; }
     }
 
     /// <summary>Market status snapshot for UI display.</summary>

@@ -1,11 +1,345 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/FinancePanel.gd" id="1"]
+[ext_resource type="Theme" path="res://theme/lakskongen_chart_theme.tres" id="theme_chart"]
 
+[ext_resource type="Script" path="res://scripts/ui/PeriodBarChart.gd" id="3_periodchart"]
 [node name="FinancePanel" type="Control"]
+theme = ExtResource("theme_chart")
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("1")
+
+[node name="Background" type="Panel" parent="."]
+theme_type_variation = &"Sheet"
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="MainScroll" type="ScrollContainer" parent="Margin"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="RootVBox" type="VBoxContainer" parent="Margin/MainScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 20
+
+[node name="TitleLabel" type="Label" parent="Margin/MainScroll/RootVBox"]
+theme_type_variation = &"KpiSmall"
+unique_name_in_owner = true
+layout_mode = 2
+text = "💰 Økonomi"
+
+[node name="KpiStrip" type="HBoxContainer" parent="Margin/MainScroll/RootVBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="KpiRevenue" type="PanelContainer" parent="Margin/MainScroll/RootVBox/KpiStrip"]
+theme_type_variation = &"KpiCardOk"
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiRevenue"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiRevenue/VBox"]
+theme_type_variation = &"OverlineMuted"
+layout_mode = 2
+text = "INNTEKTER"
+
+[node name="KpiRevenueValue" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiRevenue/VBox"]
+theme_type_variation = &"KpiSmall"
+unique_name_in_owner = true
+layout_mode = 2
+text = "--"
+
+[node name="KpiExpenses" type="PanelContainer" parent="Margin/MainScroll/RootVBox/KpiStrip"]
+theme_type_variation = &"KpiCardCrit"
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiExpenses"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiExpenses/VBox"]
+theme_type_variation = &"OverlineMuted"
+layout_mode = 2
+text = "KOSTNADER"
+
+[node name="KpiExpensesValue" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiExpenses/VBox"]
+theme_type_variation = &"KpiSmall"
+unique_name_in_owner = true
+layout_mode = 2
+text = "--"
+
+[node name="KpiProfit" type="PanelContainer" parent="Margin/MainScroll/RootVBox/KpiStrip"]
+theme_type_variation = &"KpiCardInfo"
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiProfit"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiProfit/VBox"]
+theme_type_variation = &"OverlineMuted"
+layout_mode = 2
+text = "UI_FIN_KPI_OPERATING_RESULT"
+
+[node name="KpiProfitValue" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiProfit/VBox"]
+theme_type_variation = &"KpiSmall"
+unique_name_in_owner = true
+layout_mode = 2
+text = "--"
+
+[node name="KpiBalance" type="PanelContainer" parent="Margin/MainScroll/RootVBox/KpiStrip"]
+theme_type_variation = &"KpiCardInfo"
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiBalance"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiBalance/VBox"]
+theme_type_variation = &"OverlineMuted"
+layout_mode = 2
+text = "KONTANTER"
+
+[node name="KpiBalanceValue" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiBalance/VBox"]
+theme_type_variation = &"KpiSmall"
+unique_name_in_owner = true
+layout_mode = 2
+text = "--"
+
+[node name="MidRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="ChartCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox/MidRow"]
+theme_type_variation = &"Card"
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 1.5
+
+[node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer"]
+theme_type_variation = &"CardHeader"
+layout_mode = 2
+
+[node name="ChartTitle" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "📊 Inntekter vs Kostnader (6 mnd)"
+
+[node name="ChartPad" type="MarginContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="ChartBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartPad"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="FinChart" type="Control" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartPad/ChartBody"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 170)
+layout_mode = 2
+size_flags_vertical = 3
+script = ExtResource("3_periodchart")
+
+[node name="PlCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox/MidRow"]
+theme_type_variation = &"Card"
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/PlCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer"]
+theme_type_variation = &"CardHeader"
+layout_mode = 2
+
+[node name="PlTitle" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "📋 Resultatregnskap"
+
+[node name="PlPad" type="MarginContainer" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="PlBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer/PlPad"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="BotRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="LoanCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox/BotRow"]
+theme_type_variation = &"Card"
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer"]
+theme_type_variation = &"CardHeader"
+layout_mode = 2
+
+[node name="LoanTitle" type="Label" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "🏦 Lån & Finansiering"
+
+[node name="LoanPad" type="MarginContainer" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="LoanBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/LoanPad"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="StatusRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/LoanPad/LoanBody"]
+layout_mode = 2
+
+[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/LoanPad/LoanBody/StatusRow"]
+theme_type_variation = &"SmallMuted"
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Status:"
+
+[node name="LoanStatus" type="Label" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/LoanPad/LoanBody/StatusRow"]
+theme_type_variation = &"Small"
+unique_name_in_owner = true
+layout_mode = 2
+text = "Ingen lån"
+horizontal_alignment = 2
+
+[node name="AmountRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/LoanPad/LoanBody"]
+layout_mode = 2
+
+[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/LoanPad/LoanBody/AmountRow"]
+theme_type_variation = &"SmallMuted"
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Lånebeløp:"
+
+[node name="LoanAmount" type="Label" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/LoanPad/LoanBody/AmountRow"]
+theme_type_variation = &"Small"
+unique_name_in_owner = true
+layout_mode = 2
+text = "--"
+horizontal_alignment = 2
+
+[node name="RemainingRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/LoanPad/LoanBody"]
+layout_mode = 2
+
+[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/LoanPad/LoanBody/RemainingRow"]
+theme_type_variation = &"SmallMuted"
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Gjenstående:"
+
+[node name="LoanRemaining" type="Label" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/LoanPad/LoanBody/RemainingRow"]
+theme_type_variation = &"Small"
+unique_name_in_owner = true
+layout_mode = 2
+text = "--"
+horizontal_alignment = 2
+
+[node name="BtnRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/LoanPad/LoanBody"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="BtnTakeLoan" type="Button" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/LoanPad/LoanBody/BtnRow"]
+theme_type_variation = &"SmallPrimaryButton"
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Ta lån (5M NOK)"
+
+[node name="BtnRepayLoan" type="Button" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/LoanPad/LoanBody/BtnRow"]
+theme_type_variation = &"SmallButton"
+unique_name_in_owner = true
+disabled = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Betal tilbake"
+
+[node name="HistCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox/BotRow"]
+theme_type_variation = &"Card"
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 1.5
+
+[node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/BotRow/HistCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/BotRow/HistCard/Outer"]
+theme_type_variation = &"CardHeader"
+layout_mode = 2
+
+[node name="HistTitle" type="Label" parent="Margin/MainScroll/RootVBox/BotRow/HistCard/Outer/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "📈 Historikk (siste 10 dager)"
+
+[node name="HistPad" type="MarginContainer" parent="Margin/MainScroll/RootVBox/BotRow/HistCard/Outer"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="HistBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/BotRow/HistCard/Outer/HistPad"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="HistoryContainer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/BotRow/HistCard/Outer/HistPad/HistBody"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10

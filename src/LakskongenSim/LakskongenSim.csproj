@@ -1,14 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <LangVersion>12.0</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\LakskongenSim.xml</DocumentationFile>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <WarningsNotAsErrors>CS1591</WarningsNotAsErrors> <!-- Missing XML comments -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn> <!-- Missing XML comments not enforced; XML doc file still generated for consumers -->
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -22,10 +22,27 @@
     <DebugType>pdbonly</DebugType>
   </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="System.Text.Json" Version="8.0.5" />
-  </ItemGroup>
-
   <!-- This is a pure C# library - NO Godot dependencies! -->
+
+  <!--
+    Phase A — Calibration Spine.
+    Embed the canonical balancing data so the library, unit tests, headless tools
+    and the exported game all load the SAME values with no working-directory
+    assumptions. A live godot/data/calibration.json still takes precedence at
+    runtime for hot-fixes/modding (see CalibrationRegistry.Load).
+  -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\godot\data\calibration.json"
+                      Link="Calibration\calibration.json"
+                      LogicalName="LakskongenSim.Calibration.calibration.json" />
+    <!-- F2-04: the facilities include files (one per lane; CalibrationIncludes). -->
+    <EmbeddedResource Include="..\..\godot\data\calibration\*.json"
+                      Link="Calibration\Includes\%(Filename)%(Extension)"
+                      LogicalName="LakskongenSim.Calibration.Includes.%(Filename)%(Extension)" />
+    <!-- F2-03: the farm-type plots' gameplay attributes (SitePlotCatalog). -->
+    <EmbeddedResource Include="..\..\godot\data\site_plots.json"
+                      Link="Farm\site_plots.json"
+                      LogicalName="LakskongenSim.Farm.site_plots.json" />
+  </ItemGroup>
 
 </Project>

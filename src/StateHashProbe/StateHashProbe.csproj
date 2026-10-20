@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Cross-process determinism probe (review F453/F1073). Runs a seeded career
+    and prints the hash of its save. LakskongenSim.Tests runs it in separate OS
+    processes: per-process randomized hashing (HashCode, string.GetHashCode)
+    makes same-seed runs differ between processes, which no in-process test
+    can observe.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\LakskongenSim\LakskongenSim.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,5 @@
+[gd_resource type="StandardMaterial3D" format=3 uid="uid://pen_marker_mat_001"]
+
+[resource]
+albedo_color = Color(0.909804, 0.72549, 0.164706, 1)
+roughness = 0.45

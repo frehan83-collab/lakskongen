@@ -1,0 +1,233 @@
+{
+  "token_file": "godot/theme/tokens.json",
+  "contrast": [
+    {
+      "fg": "#2E3440",
+      "bg": "#ECEFF4",
+      "label": "body text on app background",
+      "ratio": 10.84,
+      "min": 4.5,
+      "pass": true
+    },
+    {
+      "fg": "#2E3440",
+      "bg": "#FFFFFF",
+      "label": "body text on cards",
+      "ratio": 12.49,
+      "min": 4.5,
+      "pass": true
+    },
+    {
+      "fg": "#4C566A",
+      "bg": "#FFFFFF",
+      "label": "secondary text on cards",
+      "ratio": 7.38,
+      "min": 4.5,
+      "pass": true
+    },
+    {
+      "fg": "#7B8794",
+      "bg": "#FFFFFF",
+      "label": "muted/meta text on cards",
+      "ratio": 3.66,
+      "min": 3.0,
+      "pass": true
+    },
+    {
+      "fg": "#ECEFF4",
+      "bg": "#0A4D68",
+      "label": "text on primary buttons",
+      "ratio": 8.01,
+      "min": 4.5,
+      "pass": true
+    },
+    {
+      "fg": "#A54E56",
+      "bg": "#FFFFFF",
+      "label": "danger badge text (NotificationCenter)",
+      "ratio": 5.49,
+      "min": 4.5,
+      "pass": true
+    },
+    {
+      "fg": "#9A444C",
+      "bg": "#F1DCDE",
+      "label": "critical priority badge (AttentionInbox)",
+      "ratio": 4.85,
+      "min": 4.5,
+      "pass": true
+    },
+    {
+      "fg": "#7A6118",
+      "bg": "#FBF4E5",
+      "label": "high priority badge (AttentionInbox)",
+      "ratio": 5.4,
+      "min": 4.5,
+      "pass": true
+    },
+    {
+      "fg": "#33526F",
+      "bg": "#E3EAF1",
+      "label": "medium priority badge (AttentionInbox)",
+      "ratio": 6.71,
+      "min": 4.5,
+      "pass": true
+    },
+    {
+      "fg": "#4C566A",
+      "bg": "#E2E5E7",
+      "label": "low priority badge (AttentionInbox)",
+      "ratio": 5.83,
+      "min": 4.5,
+      "pass": true
+    },
+    {
+      "fg": "#7A6118",
+      "bg": "#FFFFFF",
+      "label": "warning badge text (NotificationCenter)",
+      "ratio": 5.91,
+      "min": 4.5,
+      "pass": true
+    },
+    {
+      "fg": "#0A4D68",
+      "bg": "#FFFFFF",
+      "label": "info badge text / headings",
+      "ratio": 9.23,
+      "min": 4.5,
+      "pass": true
+    },
+    {
+      "fg": "#ECEFF4",
+      "bg": "#492528",
+      "label": "toast critical: white on darkened fill",
+      "ratio": 11.54,
+      "min": 4.5,
+      "pass": true
+    },
+    {
+      "fg": "#ECEFF4",
+      "bg": "#594D35",
+      "label": "toast warning: white on darkened fill",
+      "ratio": 7.18,
+      "min": 4.5,
+      "pass": true
+    },
+    {
+      "fg": "#ECEFF4",
+      "bg": "#34494F",
+      "label": "toast info: white on darkened fill",
+      "ratio": 8.24,
+      "min": 4.5,
+      "pass": true
+    },
+    {
+      "fg": "#ECEFF4",
+      "bg": "#3E4835",
+      "label": "toast success: white on darkened fill",
+      "ratio": 8.35,
+      "min": 4.5,
+      "pass": true
+    },
+    {
+      "fg": "#BF616A",
+      "bg": "#FFFFFF",
+      "label": "critical accent rail/icon (non-text)",
+      "ratio": 4.09,
+      "min": 3.0,
+      "pass": true
+    }
+  ],
+  "cvd": [
+    {
+      "a": "success",
+      "b": "warning",
+      "worst": 26.5,
+      "protanopia": 27.0,
+      "deuteranopia": 31.6,
+      "tritanopia": 26.5,
+      "pass": true
+    },
+    {
+      "a": "success",
+      "b": "danger",
+      "worst": 16.3,
+      "protanopia": 16.3,
+      "deuteranopia": 24.2,
+      "tritanopia": 38.6,
+      "pass": true
+    },
+    {
+      "a": "success",
+      "b": "info",
+      "worst": 24.2,
+      "protanopia": 36.5,
+      "deuteranopia": 37.1,
+      "tritanopia": 24.2,
+      "pass": true
+    },
+    {
+      "a": "success",
+      "b": "accent",
+      "worst": 22.2,
+      "protanopia": 48.7,
+      "deuteranopia": 47.2,
+      "tritanopia": 22.2,
+      "pass": true
+    },
+    {
+      "a": "warning",
+      "b": "danger",
+      "worst": 23.2,
+      "protanopia": 27.3,
+      "deuteranopia": 23.2,
+      "tritanopia": 24.4,
+      "pass": true
+    },
+    {
+      "a": "warning",
+      "b": "info",
+      "worst": 47.2,
+      "protanopia": 61.2,
+      "deuteranopia": 66.6,
+      "tritanopia": 47.2,
+      "pass": true
+    },
+    {
+      "a": "warning",
+      "b": "accent",
+      "worst": 48.6,
+      "protanopia": 75.5,
+      "deuteranopia": 78.7,
+      "tritanopia": 48.6,
+      "pass": true
+    },
+    {
+      "a": "danger",
+      "b": "info",
+      "worst": 49.6,
+      "protanopia": 49.6,
+      "deuteranopia": 60.6,
+      "tritanopia": 62.4,
+      "pass": true
+    },
+    {
+      "a": "danger",
+      "b": "accent",
+      "worst": 57.0,
+      "protanopia": 57.4,
+      "deuteranopia": 67.5,
+      "tritanopia": 57.0,
+      "pass": true
+    },
+    {
+      "a": "info",
+      "b": "accent",
+      "worst": 17.4,
+      "protanopia": 20.5,
+      "deuteranopia": 19.1,
+      "tritanopia": 17.4,
+      "pass": true
+    }
+  ]
+}

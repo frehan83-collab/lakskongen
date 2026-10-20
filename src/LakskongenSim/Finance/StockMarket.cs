@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
+using LakskongenSim.Core;
 namespace LakskongenSim.Finance
 {
     // =========================================================================
@@ -155,8 +156,27 @@ namespace LakskongenSim.Finance
         public List<StockPriceEvent> PriceHistory { get; } = new();
         public List<EarningsReport> EarningsHistory { get; } = new();
 
+        /// <summary>
+        /// Exact state restore from save (no cash side effects, no events).
+        /// Institutional registry is session-built (analyst coverage events)
+        /// and intentionally not persisted.
+        /// </summary>
+        public void RestoreState(OwnershipStatus status, decimal sharePrice, decimal totalShares, IEnumerable<decimal>? priceHistory = null)
+        {
+            Status = status;
+            if (sharePrice > 0) SharePrice = sharePrice;
+            if (totalShares > 0) TotalShares = totalShares;
+            if (priceHistory != null)
+            {
+                PriceHistory.Clear();
+                foreach (var price in priceHistory)
+                    PriceHistory.Add(new StockPriceEvent { OldPrice = price, NewPrice = price, Reason = "Save restore", Timestamp = DateTime.Now });
+            }
+        }
+
         // Private state
-        private readonly Random _rng;
+        private readonly SimRngStream _rng;
+        internal SimRngStream RngForSnapshot => _rng;
         private decimal _lastEPS;
         private decimal _annualDividendPerShare;
         private decimal _consensusGrowthRate = 0.10m;  // 10% expected growth
@@ -177,9 +197,14 @@ namespace LakskongenSim.Finance
         public event Action<string>? OnInvestorAction;
         public event Action<IPOResult>? OnIPOCompleted;
 
-        public StockMarketSystem(int? seed = null)
+        public StockMarketSystem(SimRngStream rng)
         {
-            _rng = seed.HasValue ? new Random(seed.Value) : new Random();
+            _rng = rng ?? throw new ArgumentNullException(nameof(rng));
+        }
+
+        public StockMarketSystem(int? seed = null)
+            : this((seed.HasValue ? new SimRng(seed.Value) : SimRng.CreateUnseeded()).Stream(SimRngStreams.StockMarket))
+        {
         }
 
         /// <summary>
@@ -224,7 +249,7 @@ namespace LakskongenSim.Finance
             }
 
             // Determine exchange
-            string exchange = valuation >= OSE_UPGRADE_VALUATION ? "Oslo Børs (OSE)" : "Euronext Growth Oslo";
+            string exchange = valuation >= OSE_UPGRADE_VALUATION ? "hovedlisten" : "vekstlisten";
             Status = valuation >= OSE_UPGRADE_VALUATION ? OwnershipStatus.OsloBoers : OwnershipStatus.EuronextGrowth;
 
             // Calculate IPO pricing
@@ -426,7 +451,7 @@ namespace LakskongenSim.Finance
         public (bool Eligible, string Reason) CheckOSEUpgradeEligibility()
         {
             if (Status != OwnershipStatus.EuronextGrowth)
-                return (false, "Must be listed on Euronext Growth first");
+                return (false, "Selskapet må først være notert på vekstlisten");
             if (MarketCap < OSE_UPGRADE_VALUATION)
                 return (false, $"Market cap too low: {MarketCap / 1_000_000_000:F2}B NOK (need {OSE_UPGRADE_VALUATION / 1_000_000_000:F0}B NOK)");
             if (_quartersSinceListing < 8)
@@ -454,7 +479,7 @@ namespace LakskongenSim.Finance
             {
                 OldPrice = oldPrice,
                 NewPrice = SharePrice,
-                Reason = "Upgraded to Oslo Børs main list — increased institutional interest",
+                Reason = "Flyttet til hovedlisten — større interesse fra institusjonelle investorer",
                 Timestamp = DateTime.Now
             });
 

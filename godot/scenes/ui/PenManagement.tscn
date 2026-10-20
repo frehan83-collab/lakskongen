@@ -1,0 +1,655 @@
+[gd_scene load_steps=4 format=3 uid="uid://dpx7fmb1qnf3q"]
+
+[ext_resource type="Script" path="res://scripts/ui/PenManagement.gd" id="1"]
+[ext_resource type="Theme" path="res://theme/lakskongen_chart_theme.tres" id="theme_chart"]
+[ext_resource type="PackedScene" path="res://scenes/ui/FeedPlanCard.tscn" id="2_feedplan"]
+
+[node name="PenManagement" type="Control"]
+theme = ExtResource("theme_chart")
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1")
+
+[node name="Background" type="Panel" parent="."]
+theme_type_variation = &"Sheet"
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="MainSplit" type="HBoxContainer" parent="Margin"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 16
+
+[node name="LeftCard" type="PanelContainer" parent="Margin/MainSplit"]
+theme_type_variation = &"Card"
+custom_minimum_size = Vector2(250, 0)
+layout_mode = 2
+
+[node name="LeftOuter" type="VBoxContainer" parent="Margin/MainSplit/LeftCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="LeftHeader" type="PanelContainer" parent="Margin/MainSplit/LeftCard/LeftOuter"]
+theme_type_variation = &"CardHeaderCompact"
+layout_mode = 2
+
+[node name="LeftTitle" type="Label" parent="Margin/MainSplit/LeftCard/LeftOuter/LeftHeader"]
+theme_type_variation = &"BodySmall"
+unique_name_in_owner = true
+layout_mode = 2
+text = "🐟 Merder"
+
+[node name="LeftPad" type="MarginContainer" parent="Margin/MainSplit/LeftCard/LeftOuter"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="LeftBody" type="VBoxContainer" parent="Margin/MainSplit/LeftCard/LeftOuter/LeftPad"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="ListScroll" type="ScrollContainer" parent="Margin/MainSplit/LeftCard/LeftOuter/LeftPad/LeftBody"]
+custom_minimum_size = Vector2(0, 120)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="PenList" type="VBoxContainer" parent="Margin/MainSplit/LeftCard/LeftOuter/LeftPad/LeftBody/ListScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="NoPenLabel" type="Label" parent="Margin/MainSplit"]
+theme_type_variation = &"BodyMuted"
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+text = "Velg en merd for detaljer"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="DetailScroll" type="ScrollContainer" parent="Margin/MainSplit"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="DetailRoot" type="VBoxContainer" parent="Margin/MainSplit/DetailScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 16
+
+[node name="DetailHeader" type="HBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot"]
+layout_mode = 2
+
+[node name="HeaderLeft" type="VBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/DetailHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="DetailName" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/DetailHeader/HeaderLeft"]
+theme_type_variation = &"KpiSmall"
+unique_name_in_owner = true
+layout_mode = 2
+text = "Merd 1"
+
+[node name="DetailSubtitle" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/DetailHeader/HeaderLeft"]
+theme_type_variation = &"SmallMuted"
+unique_name_in_owner = true
+layout_mode = 2
+text = "--"
+
+[node name="KpiRow" type="HBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="CountCard" type="PanelContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow"]
+theme_type_variation = &"CardCompact"
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VBox" type="VBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/CountCard"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Title" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/CountCard/VBox"]
+theme_type_variation = &"OverlineMuted"
+layout_mode = 2
+text = "ANTALL FISK"
+
+[node name="DetCount" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/CountCard/VBox"]
+theme_type_variation = &"Heading"
+unique_name_in_owner = true
+layout_mode = 2
+text = "--"
+
+[node name="WeightCard" type="PanelContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow"]
+theme_type_variation = &"CardCompact"
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VBox" type="VBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/WeightCard"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Title" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/WeightCard/VBox"]
+theme_type_variation = &"OverlineMuted"
+layout_mode = 2
+text = "SNITTVEKT"
+
+[node name="DetWeight" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/WeightCard/VBox"]
+theme_type_variation = &"Heading"
+unique_name_in_owner = true
+layout_mode = 2
+text = "--"
+
+[node name="BiomassCard" type="PanelContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow"]
+theme_type_variation = &"CardCompact"
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VBox" type="VBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/BiomassCard"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Title" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/BiomassCard/VBox"]
+theme_type_variation = &"OverlineMuted"
+layout_mode = 2
+text = "BIOMASSE"
+
+[node name="DetBiomass" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/BiomassCard/VBox"]
+theme_type_variation = &"Heading"
+unique_name_in_owner = true
+layout_mode = 2
+text = "--"
+
+[node name="FcrCard" type="PanelContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow"]
+theme_type_variation = &"CardCompact"
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VBox" type="VBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/FcrCard"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Title" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/FcrCard/VBox"]
+theme_type_variation = &"OverlineMuted"
+layout_mode = 2
+text = "FCR (AKTUELL)"
+
+[node name="DetFcr" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/FcrCard/VBox"]
+theme_type_variation = &"Heading"
+unique_name_in_owner = true
+layout_mode = 2
+text = "--"
+
+[node name="DetailActions" type="HFlowContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/h_separation = 10
+theme_override_constants/v_separation = 8
+
+[node name="DetailBadge" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/DetailHeader"]
+theme_type_variation = &"SmallOk"
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 4
+text = "● Frisk"
+
+[node name="BtnDelouse" type="Button" parent="Margin/MainSplit/DetailScroll/DetailRoot/DetailActions"]
+theme_type_variation = &"SmallButton"
+unique_name_in_owner = true
+layout_mode = 2
+text = "🧪 Avlus"
+
+[node name="DelouseOption" type="OptionButton" parent="Margin/MainSplit/DetailScroll/DetailRoot/DetailActions"]
+theme_type_variation = &"SmallOptionButton"
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "Behandlingsmetode: effekt vs dødelighet vs resistens"
+
+[node name="BtnHarvest" type="Button" parent="Margin/MainSplit/DetailScroll/DetailRoot/DetailActions"]
+theme_type_variation = &"SmallSuccessButton"
+unique_name_in_owner = true
+layout_mode = 2
+text = "📦 Høst"
+
+[node name="BtnHarvestReport" type="Button" parent="Margin/MainSplit/DetailScroll/DetailRoot/DetailActions"]
+theme_type_variation = &"SmallGhostButton"
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+text = "Siste slakterapport"
+
+[node name="BtnRepair" type="Button" parent="Margin/MainSplit/DetailScroll/DetailRoot/DetailActions"]
+theme_type_variation = &"SmallPrimaryButton"
+unique_name_in_owner = true
+layout_mode = 2
+text = "🔧 Reparer nøter"
+
+[node name="BtnSkirt" type="Button" parent="Margin/MainSplit/DetailScroll/DetailRoot/DetailActions"]
+theme_type_variation = &"SmallButton"
+unique_name_in_owner = true
+layout_mode = 2
+text = "⚪ Luseskjørt"
+tooltip_text = "Luseskjørt: 500k installasjon + 2k/dag. Reduserer luspåslag ~70% ved full dekning."
+
+[node name="BtnDeterrent" type="Button" parent="Margin/MainSplit/DetailScroll/DetailRoot/DetailActions"]
+theme_type_variation = &"SmallButton"
+unique_name_in_owner = true
+layout_mode = 2
+text = "⚪ Selskremme"
+tooltip_text = "Seldeterrent: 200k installasjon + 1k/dag. Beskytter mot selpredasjon."
+
+[node name="BtnROV" type="Button" parent="Margin/MainSplit/DetailScroll/DetailRoot/DetailActions"]
+theme_type_variation = &"SmallButton"
+unique_name_in_owner = true
+layout_mode = 2
+text = "🤖 ROV"
+tooltip_text = "ROV-inspeksjon: 75k, 2 dager. Renser nøter (+15%) + funnrapport."
+
+[node name="StockCard" type="PanelContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot"]
+theme_type_variation = &"Card"
+layout_mode = 2
+
+[node name="Outer" type="VBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/StockCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="PanelContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/StockCard/Outer"]
+theme_type_variation = &"CardHeaderCompact"
+layout_mode = 2
+
+[node name="StockTitle" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/StockCard/Outer/Header"]
+theme_type_variation = &"BodySmall"
+unique_name_in_owner = true
+layout_mode = 2
+text = "🐟 Merder og utsett"
+
+[node name="StockPad" type="MarginContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/StockCard/Outer"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="StockBody" type="VBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/StockCard/Outer/StockPad"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="PenChips" type="HFlowContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/StockCard/Outer/StockPad/StockBody"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/h_separation = 14
+theme_override_constants/v_separation = 4
+
+[node name="StockRow" type="HBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/StockCard/Outer/StockPad/StockBody"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="PenOption" type="OptionButton" parent="Margin/MainSplit/DetailScroll/DetailRoot/StockCard/Outer/StockPad/StockBody/StockRow"]
+theme_type_variation = &"SmallOptionButton"
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="CountSpin" type="SpinBox" parent="Margin/MainSplit/DetailScroll/DetailRoot/StockCard/Outer/StockPad/StockBody/StockRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+min_value = 1000
+max_value = 200000
+step = 1000
+value = 10000
+suffix = " smolt"
+
+[node name="StrainOption" type="OptionButton" parent="Margin/MainSplit/DetailScroll/DetailRoot/StockCard/Outer/StockPad/StockBody/StockRow"]
+theme_type_variation = &"SmallOptionButton"
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="BtnStock" type="Button" parent="Margin/MainSplit/DetailScroll/DetailRoot/StockCard/Outer/StockPad/StockBody/StockRow"]
+theme_type_variation = &"SmallButton"
+unique_name_in_owner = true
+layout_mode = 2
+text = "🐣 Sett ut"
+tooltip_text = "Sett ut smolt av valgt stamme og kvalitet i valgt merd"
+
+[node name="StockPreview" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/StockCard/Outer/StockPad/StockBody"]
+theme_type_variation = &"SmallMuted"
+unique_name_in_owner = true
+layout_mode = 2
+autowrap_mode = 3
+text = "--"
+
+[node name="FeedPlanCard" parent="Margin/MainSplit/DetailScroll/DetailRoot" instance=ExtResource("2_feedplan")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="BottomRow" type="HBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="WaterCard" type="PanelContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow"]
+theme_type_variation = &"Card"
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Outer" type="VBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/WaterCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="PanelContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/WaterCard/Outer"]
+theme_type_variation = &"CardHeaderCompact"
+layout_mode = 2
+
+[node name="WaterTitle" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/WaterCard/Outer/Header"]
+theme_type_variation = &"BodySmall"
+unique_name_in_owner = true
+layout_mode = 2
+text = "🌊 Miljø"
+
+[node name="WaterPad" type="MarginContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/WaterCard/Outer"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="WaterBody" type="VBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/WaterCard/Outer/WaterPad"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TempRow" type="HBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/WaterCard/Outer/WaterPad/WaterBody"]
+layout_mode = 2
+
+[node name="Lbl" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/WaterCard/Outer/WaterPad/WaterBody/TempRow"]
+theme_type_variation = &"SmallMuted"
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Temperatur"
+
+[node name="DetTemp" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/WaterCard/Outer/WaterPad/WaterBody/TempRow"]
+theme_type_variation = &"Small"
+unique_name_in_owner = true
+layout_mode = 2
+text = "--"
+horizontal_alignment = 2
+
+[node name="OxygenRow" type="HBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/WaterCard/Outer/WaterPad/WaterBody"]
+layout_mode = 2
+
+[node name="Lbl" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/WaterCard/Outer/WaterPad/WaterBody/OxygenRow"]
+theme_type_variation = &"SmallMuted"
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Oksygen"
+
+[node name="DetOxygen" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/WaterCard/Outer/WaterPad/WaterBody/OxygenRow"]
+theme_type_variation = &"Small"
+unique_name_in_owner = true
+layout_mode = 2
+text = "--"
+horizontal_alignment = 2
+
+[node name="CurrentRow" type="HBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/WaterCard/Outer/WaterPad/WaterBody"]
+layout_mode = 2
+
+[node name="Lbl" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/WaterCard/Outer/WaterPad/WaterBody/CurrentRow"]
+theme_type_variation = &"SmallMuted"
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Appetitt"
+
+[node name="DetCurrent" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/WaterCard/Outer/WaterPad/WaterBody/CurrentRow"]
+theme_type_variation = &"Small"
+unique_name_in_owner = true
+layout_mode = 2
+text = "--"
+horizontal_alignment = 2
+
+[node name="VisibilityRow" type="HBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/WaterCard/Outer/WaterPad/WaterBody"]
+layout_mode = 2
+
+[node name="Lbl" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/WaterCard/Outer/WaterPad/WaterBody/VisibilityRow"]
+theme_type_variation = &"SmallMuted"
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Sikt"
+
+[node name="DetVisibility" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/WaterCard/Outer/WaterPad/WaterBody/VisibilityRow"]
+theme_type_variation = &"Small"
+unique_name_in_owner = true
+layout_mode = 2
+text = "--"
+horizontal_alignment = 2
+
+[node name="AlgaeRow" type="HBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/WaterCard/Outer/WaterPad/WaterBody"]
+layout_mode = 2
+
+[node name="Lbl" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/WaterCard/Outer/WaterPad/WaterBody/AlgaeRow"]
+theme_type_variation = &"SmallMuted"
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Algevekst"
+
+[node name="DetAlgae" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/WaterCard/Outer/WaterPad/WaterBody/AlgaeRow"]
+theme_type_variation = &"Small"
+unique_name_in_owner = true
+layout_mode = 2
+text = "--"
+horizontal_alignment = 2
+
+[node name="HealthCard" type="PanelContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow"]
+theme_type_variation = &"Card"
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Outer" type="VBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/HealthCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="PanelContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/HealthCard/Outer"]
+theme_type_variation = &"CardHeaderCompact"
+layout_mode = 2
+
+[node name="HealthTitle" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/HealthCard/Outer/Header"]
+theme_type_variation = &"BodySmall"
+unique_name_in_owner = true
+layout_mode = 2
+text = "💀 Helse"
+
+[node name="HealthPad" type="MarginContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/HealthCard/Outer"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="HealthBody" type="VBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/HealthCard/Outer/HealthPad"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="LiceRow" type="HBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/HealthCard/Outer/HealthPad/HealthBody"]
+layout_mode = 2
+
+[node name="Lbl" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/HealthCard/Outer/HealthPad/HealthBody/LiceRow"]
+theme_type_variation = &"SmallMuted"
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Lusetall"
+
+[node name="DetLice" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/HealthCard/Outer/HealthPad/HealthBody/LiceRow"]
+theme_type_variation = &"Small"
+unique_name_in_owner = true
+layout_mode = 2
+text = "--"
+horizontal_alignment = 2
+
+[node name="DiseaseRow" type="HBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/HealthCard/Outer/HealthPad/HealthBody"]
+layout_mode = 2
+
+[node name="Lbl" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/HealthCard/Outer/HealthPad/HealthBody/DiseaseRow"]
+theme_type_variation = &"SmallMuted"
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Resistens"
+
+[node name="DetDisease" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/HealthCard/Outer/HealthPad/HealthBody/DiseaseRow"]
+theme_type_variation = &"Small"
+unique_name_in_owner = true
+layout_mode = 2
+text = "--"
+horizontal_alignment = 2
+
+[node name="MortalityRow" type="HBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/HealthCard/Outer/HealthPad/HealthBody"]
+layout_mode = 2
+
+[node name="Lbl" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/HealthCard/Outer/HealthPad/HealthBody/MortalityRow"]
+theme_type_variation = &"SmallMuted"
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Dødelighet (uke)"
+
+[node name="DetMortality" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/HealthCard/Outer/HealthPad/HealthBody/MortalityRow"]
+theme_type_variation = &"Small"
+unique_name_in_owner = true
+layout_mode = 2
+text = "--"
+horizontal_alignment = 2
+
+[node name="MortalityTotalRow" type="HBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/HealthCard/Outer/HealthPad/HealthBody"]
+layout_mode = 2
+
+[node name="Lbl" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/HealthCard/Outer/HealthPad/HealthBody/MortalityTotalRow"]
+theme_type_variation = &"SmallMuted"
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Dødelighet (total)"
+
+[node name="DetMortalityTotal" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/HealthCard/Outer/HealthPad/HealthBody/MortalityTotalRow"]
+theme_type_variation = &"Small"
+unique_name_in_owner = true
+layout_mode = 2
+text = "--"
+horizontal_alignment = 2
+
+[node name="GeneCard" type="PanelContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow"]
+theme_type_variation = &"Card"
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Outer" type="VBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/GeneCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="PanelContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/GeneCard/Outer"]
+theme_type_variation = &"CardHeaderCompact"
+layout_mode = 2
+
+[node name="GeneTitle" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/GeneCard/Outer/Header"]
+theme_type_variation = &"BodySmall"
+unique_name_in_owner = true
+layout_mode = 2
+text = "🧬 Genetikk"
+
+[node name="GenePad" type="MarginContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/GeneCard/Outer"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="GeneBody" type="VBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/GeneCard/Outer/GenePad"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="GrowthRow" type="HBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/GeneCard/Outer/GenePad/GeneBody"]
+layout_mode = 2
+
+[node name="Lbl" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/GeneCard/Outer/GenePad/GeneBody/GrowthRow"]
+theme_type_variation = &"SmallMuted"
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Veksthastighet"
+
+[node name="DetGeneGrowth" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/GeneCard/Outer/GenePad/GeneBody/GrowthRow"]
+theme_type_variation = &"Small"
+unique_name_in_owner = true
+layout_mode = 2
+text = "--"
+horizontal_alignment = 2
+
+[node name="LiceResRow" type="HBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/GeneCard/Outer/GenePad/GeneBody"]
+layout_mode = 2
+
+[node name="Lbl" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/GeneCard/Outer/GenePad/GeneBody/LiceResRow"]
+theme_type_variation = &"SmallMuted"
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Luseresistens"
+
+[node name="DetGeneLice" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/GeneCard/Outer/GenePad/GeneBody/LiceResRow"]
+theme_type_variation = &"Small"
+unique_name_in_owner = true
+layout_mode = 2
+text = "--"
+horizontal_alignment = 2
+
+[node name="DiseaseResRow" type="HBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/GeneCard/Outer/GenePad/GeneBody"]
+layout_mode = 2
+
+[node name="Lbl" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/GeneCard/Outer/GenePad/GeneBody/DiseaseResRow"]
+theme_type_variation = &"SmallMuted"
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Sykdomsresistens"
+
+[node name="DetGeneDisease" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/GeneCard/Outer/GenePad/GeneBody/DiseaseResRow"]
+theme_type_variation = &"Small"
+unique_name_in_owner = true
+layout_mode = 2
+text = "--"
+horizontal_alignment = 2
+
+[node name="FilletRow" type="HBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/GeneCard/Outer/GenePad/GeneBody"]
+layout_mode = 2
+
+[node name="Lbl" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/GeneCard/Outer/GenePad/GeneBody/FilletRow"]
+theme_type_variation = &"SmallMuted"
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Filetkvalitet"
+
+[node name="DetGeneFillet" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/GeneCard/Outer/GenePad/GeneBody/FilletRow"]
+theme_type_variation = &"Small"
+unique_name_in_owner = true
+layout_mode = 2
+text = "--"
+horizontal_alignment = 2

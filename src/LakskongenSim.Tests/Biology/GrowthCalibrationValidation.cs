@@ -1,7 +1,10 @@
 using System;
+using System.Collections.Generic;
+using System.Text;
 using Xunit;
 using Xunit.Abstractions;
 using LakskongenSim.Biology;
+using LakskongenSim.Core;
 using LakskongenSim.Data;
 
 namespace LakskongenSim.Tests.Biology
@@ -115,6 +118,82 @@ namespace LakskongenSim.Tests.Biology
                 if (weight <= 0.01) weight = 0.01;
             }
             return weight;
+        }
+
+        // ─── TD: ±5% growth validation ─────────────────────────────────────
+        //
+        // Norwegian reference anchors (NOT model-derived — industry sources):
+        // - Sea transfer: 0.10 kg traditional smolt (docs/REALISM_CHECKLIST.md:
+        //   "Trad 100g, avg 155g" per Fiskeridir smolt stats).
+        // - Harvest at ~540 days (18 months) sea: 5.0 kg midpoint of 4.5-5.5 kg
+        //   live weight (docs/REALISM_CHECKLIST.md: Mowi Handbook, SalMar).
+        //
+        // Model outputs under test (model constants are NOT changed here):
+        // - SDEGrowthModel expected trajectory: the documented
+        //   Von Bertalanffy-Gompertz hybrid, baseline genetics, optimal 11°C,
+        //   sigma = 0 (expected value — fully deterministic, no seed lottery).
+        // - VB closed-form reference curve from GameConstants
+        //   (W(t) = Linf * (1 - exp(-k * (t - t0)))^3, t = days since transfer).
+        //
+        // Every checkpoint is evaluated and reported; a single assert at the
+        // end carries the full deviation table so a failure shows ALL
+        // deviations at once. If any checkpoint exceeds ±5%, report the table
+        // — do NOT loosen the tolerance or move the reference points.
+
+        private const double TransferReferenceKg = 0.10;
+        private const double HarvestReferenceKg = 5.00;
+        private const int HarvestDay = 540;
+        private const double TightTolerance = 0.05; // ±5%
+
+        private static double VbClosedFormKg(int daysSinceTransfer)
+        {
+            // W(t) = Linf * (1 - exp(-k * (t - t0)))^3 ; t0 = -45 so (t - t0) = t + 45
+            double exponent = -LakskongenSim.Core.GameConstants.VB_k_per_day * (daysSinceTransfer - LakskongenSim.Core.GameConstants.VB_t0_days);
+            double weight_g = LakskongenSim.Core.GameConstants.VB_Linf_g * Math.Pow(1.0 - Math.Exp(exponent), 3.0);
+            return weight_g / 1000.0;
+        }
+
+        private static double SdeExpectedWeightKg(int days)
+        {
+            // SDEGrowthModel.Baseline* constants are the documented Norwegian
+            // baseline; sigma = 0 isolates the expected (deterministic) path.
+            var sde = new SDEGrowthModel(seed: 42);
+            return sde.ApplySDEGrowthMultipleDays(
+                initialWeight: TransferReferenceKg,
+                days: days,
+                temperature: SDEGrowthModel.OptimalTemperature,
+                asymptoticWeight: SDEGrowthModel.BaselineAsymptoticWeight,
+                maxGrowthRate: SDEGrowthModel.BaselineGrowthCoefficient,
+                stochasticVariance: 0.0);
+        }
+
+        [Fact]
+        public void VBGompertz_Trajectory_Within5Percent_OfNorwegianReference()
+        {
+            var rows = new List<(string checkpoint, double modelKg, double refKg)>
+            {
+                ("SDE mean @transfer (d0) vs 100g smolt anchor", SdeExpectedWeightKg(0), TransferReferenceKg),
+                ("SDE mean @harvest (d540) vs 5.0kg harvest anchor", SdeExpectedWeightKg(HarvestDay), HarvestReferenceKg),
+                ("VB closed-form @transfer (d0) vs 100g smolt anchor", VbClosedFormKg(0), TransferReferenceKg),
+                ("VB closed-form @harvest (d540) vs 5.0kg harvest anchor", VbClosedFormKg(HarvestDay), HarvestReferenceKg),
+            };
+
+            var sb = new StringBuilder();
+            sb.AppendLine("VB-Gompertz ±5% validation (model constants unchanged):");
+            bool allWithin = true;
+            foreach (var (checkpoint, modelKg, refKg) in rows)
+            {
+                double deviation = (modelKg - refKg) / refKg; // signed relative error
+                bool ok = Math.Abs(deviation) <= TightTolerance;
+                allWithin &= ok;
+                sb.AppendLine($"  [{(ok ? "PASS" : "FAIL")}] {checkpoint}: model={modelKg:F3} kg ref={refKg:F3} kg deviation={deviation * 100.0:+0.00;-0.00}%");
+                _output.WriteLine($"{checkpoint}: model={modelKg:F3} ref={refKg:F3} dev={deviation * 100.0:F2}% {(ok ? "PASS" : "FAIL")}");
+            }
+
+            Assert.True(allWithin,
+                "VB-Gompertz output exceeds ±5% of Norwegian reference at one or more checkpoints. " +
+                "Report the deviations — do NOT loosen tolerance, move references, or retune constants. " +
+                System.Environment.NewLine + sb.ToString());
         }
     }
 }

@@ -1,0 +1,153 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/CarbonLedgerPanel.gd" id="1_carbon"]
+[ext_resource type="Theme" path="res://theme/lakskongen_chart_theme.tres" id="theme_chart"]
+
+[node name="CarbonLedgerPanel" type="PanelContainer"]
+theme = ExtResource("theme_chart")
+theme_type_variation = &"Card"
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_carbon")
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="MainScroll" type="ScrollContainer" parent="Margin"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="RootVBox" type="VBoxContainer" parent="Margin/MainScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="CarbonTitle" type="Label" parent="Margin/MainScroll/RootVBox"]
+theme_type_variation = &"Heading"
+unique_name_in_owner = true
+layout_mode = 2
+text = "Klimaregnskap"
+
+[node name="CarbonStatus" type="Label" parent="Margin/MainScroll/RootVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = ""
+
+[node name="CarbonIntensity" type="Label" parent="Margin/MainScroll/RootVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Karbonintensitet: –"
+
+[node name="KPIRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Scope1Box" type="PanelContainer" parent="Margin/MainScroll/RootVBox/KPIRow"]
+theme_type_variation = &"Tile"
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Scope1Value" type="Label" parent="Margin/MainScroll/RootVBox/KPIRow/Scope1Box"]
+theme_type_variation = &"Heading"
+unique_name_in_owner = true
+layout_mode = 2
+text = "-- t"
+
+[node name="Scope2Box" type="PanelContainer" parent="Margin/MainScroll/RootVBox/KPIRow"]
+theme_type_variation = &"Tile"
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Scope2Value" type="Label" parent="Margin/MainScroll/RootVBox/KPIRow/Scope2Box"]
+theme_type_variation = &"Heading"
+unique_name_in_owner = true
+layout_mode = 2
+text = "-- t"
+
+[node name="Scope3Box" type="PanelContainer" parent="Margin/MainScroll/RootVBox/KPIRow"]
+theme_type_variation = &"Tile"
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Scope3Value" type="Label" parent="Margin/MainScroll/RootVBox/KPIRow/Scope3Box"]
+theme_type_variation = &"Heading"
+unique_name_in_owner = true
+layout_mode = 2
+text = "-- t"
+
+[node name="KPIRow2" type="HBoxContainer" parent="Margin/MainScroll/RootVBox"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="CreditsBox" type="PanelContainer" parent="Margin/MainScroll/RootVBox/KPIRow2"]
+theme_type_variation = &"Tile"
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CreditsValue" type="Label" parent="Margin/MainScroll/RootVBox/KPIRow2/CreditsBox"]
+theme_type_variation = &"HeadingOk"
+unique_name_in_owner = true
+layout_mode = 2
+text = "-- t"
+
+[node name="NetBox" type="PanelContainer" parent="Margin/MainScroll/RootVBox/KPIRow2"]
+theme_type_variation = &"Tile"
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="NetValue" type="Label" parent="Margin/MainScroll/RootVBox/KPIRow2/NetBox"]
+theme_type_variation = &"Heading"
+unique_name_in_owner = true
+layout_mode = 2
+text = "-- t"
+
+[node name="BtnRefresh" type="Button" parent="Margin/MainScroll/RootVBox/KPIRow2"]
+theme_type_variation = &"SmallButton"
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 1
+text = "Oppdater"
+
+[node name="SitesHeader" type="Label" parent="Margin/MainScroll/RootVBox"]
+layout_mode = 2
+text = "🌊 Kystlokaliteter"
+
+[node name="SitesList" type="VBoxContainer" parent="Margin/MainScroll/RootVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="OffshoreHeader" type="Label" parent="Margin/MainScroll/RootVBox"]
+layout_mode = 2
+text = "🌊 Offshoreanlegg"
+
+[node name="OffshoreList" type="VBoxContainer" parent="Margin/MainScroll/RootVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="RasHeader" type="Label" parent="Margin/MainScroll/RootVBox"]
+layout_mode = 2
+text = "🏭 RAS-anlegg"
+
+[node name="RasList" type="VBoxContainer" parent="Margin/MainScroll/RootVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ProcessingHeader" type="Label" parent="Margin/MainScroll/RootVBox"]
+layout_mode = 2
+text = "🏭 Foredlingsanlegg"
+
+[node name="ProcessingInfo" type="VBoxContainer" parent="Margin/MainScroll/RootVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8

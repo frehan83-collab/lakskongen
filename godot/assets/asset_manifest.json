@@ -1,0 +1,1122 @@
+{
+  "version": 1,
+  "generated_by": "blender_asset_pipeline",
+  "assets": {
+    "salmon_LOD0": {
+      "path": "godot/assets/models/fish/salmon_LOD0.glb",
+      "sha256": "bf1c1e7acee685377ef6e32b45348fa47f484f65d5c9fdae42cbdbe00722c11d",
+      "size": 45660,
+      "tri_count": 1564,
+      "material_count": 1,
+      "bbox_size": [
+        0.1528,
+        0.3214,
+        0.9416
+      ]
+    },
+    "salmon_LOD1": {
+      "path": "godot/assets/models/fish/salmon_LOD1.glb",
+      "sha256": "7eabe4a2f935ce2520a63708b515f40d0cbe1b4d55bdb5056535ed4a434c9bde",
+      "size": 8384,
+      "tri_count": 270,
+      "material_count": 1,
+      "bbox_size": [
+        0.1528,
+        0.2906,
+        0.9344
+      ]
+    },
+    "salmon_LOD2": {
+      "path": "godot/assets/models/fish/salmon_LOD2.glb",
+      "sha256": "5c427d683a93921bea7a16c98df76efa3eecb993ecdf71520cfb3684b4353399",
+      "size": 2592,
+      "tri_count": 42,
+      "material_count": 1,
+      "bbox_size": [
+        0.1144,
+        0.228,
+        0.9344
+      ]
+    },
+    "pen_cage_LOD0": {
+      "path": "godot/assets/models/pen_cage/pen_cage_LOD0.glb",
+      "sha256": "48a4c890df2da9563c089f5e3063e707135c720b01db674ef81ac303f1dd2ec8",
+      "size": 1776716,
+      "tri_count": 54772,
+      "material_count": 12,
+      "bbox_size": [
+        57.0362,
+        46.0,
+        54.0696
+      ]
+    },
+    "pen_cage_LOD1": {
+      "path": "godot/assets/models/pen_cage/pen_cage_LOD1.glb",
+      "sha256": "9d80fee1c42a503052db037580686d76f4601f07c057e78e148f4b8bb6782ae7",
+      "size": 527948,
+      "tri_count": 13940,
+      "material_count": 12,
+      "bbox_size": [
+        56.8546,
+        46.0,
+        53.7074
+      ]
+    },
+    "pen_cage_LOD2": {
+      "path": "godot/assets/models/pen_cage/pen_cage_LOD2.glb",
+      "sha256": "c1f0a9911513fbab5712c6faa1081afa5f697a1e4842fc9b3cbf09a14903f58d",
+      "size": 61792,
+      "tri_count": 1910,
+      "material_count": 12,
+      "bbox_size": [
+        56.8223,
+        45.5,
+        53.6296
+      ]
+    },
+    "mooring_buoy_LOD0": {
+      "path": "godot/assets/models/site_kit/mooring_buoy_LOD0.glb",
+      "sha256": "ee12f56d4fc54064f15b9f73cb967a23e6890107134ca545de8e055cc605fdf6",
+      "size": 28328,
+      "tri_count": 1080,
+      "material_count": 2,
+      "bbox_size": [
+        1.3,
+        1.822,
+        1.3
+      ]
+    },
+    "mooring_buoy_LOD1": {
+      "path": "godot/assets/models/site_kit/mooring_buoy_LOD1.glb",
+      "sha256": "6d8484579fc80d10d112dbc089e4cb58e42ea8c356be27bb4b4fbcf9fed63dad",
+      "size": 8708,
+      "tri_count": 244,
+      "material_count": 2,
+      "bbox_size": [
+        1.25,
+        1.822,
+        1.1888
+      ]
+    },
+    "mooring_buoy_LOD2": {
+      "path": "godot/assets/models/site_kit/mooring_buoy_LOD2.glb",
+      "sha256": "e47607c58ab1476dd32a20762bc22cafad51904cd031c65fad9def2fdfc4e341",
+      "size": 5484,
+      "tri_count": 110,
+      "material_count": 2,
+      "bbox_size": [
+        1.1306,
+        1.7874,
+        1.1888
+      ]
+    },
+    "mooring_light_LOD0": {
+      "path": "godot/assets/models/site_kit/mooring_light_LOD0.glb",
+      "sha256": "018b2a7192c185c6f836faf85c95e0dfa0662aa269a197718588a40f5949de47",
+      "size": 9620,
+      "tri_count": 208,
+      "material_count": 3,
+      "bbox_size": [
+        0.22,
+        1.26,
+        0.22
+      ]
+    },
+    "mooring_light_LOD1": {
+      "path": "godot/assets/models/site_kit/mooring_light_LOD1.glb",
+      "sha256": "3829fcca3a9079216a549332d3d0c7bd13235f61b5443c210ad2606b53a8b5ef",
+      "size": 6100,
+      "tri_count": 86,
+      "material_count": 3,
+      "bbox_size": [
+        0.199,
+        1.26,
+        0.2092
+      ]
+    },
+    "mooring_light_LOD2": {
+      "path": "godot/assets/models/site_kit/mooring_light_LOD2.glb",
+      "sha256": "c092bf7c37cb5fc51d703320099f7e0e50b383960e5252f0bf2b577e71732f39",
+      "size": 5728,
+      "tri_count": 72,
+      "material_count": 3,
+      "bbox_size": [
+        0.22,
+        1.26,
+        0.22
+      ]
+    },
+    "hose_float_LOD0": {
+      "path": "godot/assets/models/site_kit/hose_float_LOD0.glb",
+      "sha256": "901c2aec7a8a70603f1ed295129e7c89851e32af758ea28c0c44f7a9e92cf459",
+      "size": 9152,
+      "tri_count": 236,
+      "material_count": 2,
+      "bbox_size": [
+        0.724,
+        0.565,
+        0.7058
+      ]
+    },
+    "hose_float_LOD1": {
+      "path": "godot/assets/models/site_kit/hose_float_LOD1.glb",
+      "sha256": "ab5b1d591de86c54652da60930f85638ef94a8abac50055d41990a0d92ea032d",
+      "size": 4372,
+      "tri_count": 70,
+      "material_count": 2,
+      "bbox_size": [
+        0.6882,
+        0.52,
+        0.7058
+      ]
+    },
+    "hose_float_LOD2": {
+      "path": "godot/assets/models/site_kit/hose_float_LOD2.glb",
+      "sha256": "367303dc2b54d61a688f751bb1e627e227e5522c3a1fe0ae78ed653a076c868d",
+      "size": 4088,
+      "tri_count": 60,
+      "material_count": 2,
+      "bbox_size": [
+        0.724,
+        0.52,
+        0.627
+      ]
+    },
+    "workboat_LOD0": {
+      "path": "godot/assets/models/workboat/workboat_LOD0.glb",
+      "sha256": "4efcc9014232c4de397d4ac60688c4338fefeb3aebce80a12b29a2572b0a51f0",
+      "size": 410084,
+      "tri_count": 9060,
+      "material_count": 8,
+      "bbox_size": [
+        10.6371,
+        9.41,
+        15.02
+      ]
+    },
+    "workboat_LOD1": {
+      "path": "godot/assets/models/workboat/workboat_LOD1.glb",
+      "sha256": "661e4975ad2a5d8d91e50e28fc38aaa1964b665699a6bcb391bc0e2062c41a39",
+      "size": 91452,
+      "tri_count": 1718,
+      "material_count": 7,
+      "bbox_size": [
+        10.0,
+        9.3805,
+        15.02
+      ]
+    },
+    "workboat_LOD2": {
+      "path": "godot/assets/models/workboat/workboat_LOD2.glb",
+      "sha256": "c0885dfd5f527118652f17539f0f87b0b51b05292908a73dc874e984b7e5a920",
+      "size": 32476,
+      "tri_count": 464,
+      "material_count": 5,
+      "bbox_size": [
+        10.0,
+        6.25,
+        15.02
+      ]
+    },
+    "feed_barge_LOD0": {
+      "path": "godot/assets/models/feed_barge/feed_barge_LOD0.glb",
+      "sha256": "f856bb8831a1d00447f04f8e31baaacec92f637735cc878cf02865d8c47b8461",
+      "size": 723800,
+      "tri_count": 15108,
+      "material_count": 8,
+      "bbox_size": [
+        18.0453,
+        16.16,
+        37.05
+      ]
+    },
+    "feed_barge_LOD1": {
+      "path": "godot/assets/models/feed_barge/feed_barge_LOD1.glb",
+      "sha256": "746cce6923ff1bf0d13b0b4e3690cbc3bd551a953ffe58dd7d98444c4f4b9d44",
+      "size": 101888,
+      "tri_count": 1916,
+      "material_count": 7,
+      "bbox_size": [
+        17.9763,
+        15.26,
+        37.0
+      ]
+    },
+    "feed_barge_LOD2": {
+      "path": "godot/assets/models/feed_barge/feed_barge_LOD2.glb",
+      "sha256": "da26d45906f8ee4c701c7d3e44f71e55d8e605b4f4bee6c037a7993fa1d8bc25",
+      "size": 17812,
+      "tri_count": 204,
+      "material_count": 5,
+      "bbox_size": [
+        11.2,
+        11.4,
+        37.0
+      ]
+    },
+    "feed_barge_large_LOD0": {
+      "path": "godot/assets/models/feed_barge/feed_barge_large_LOD0.glb",
+      "sha256": "73fe2722eae41b7dccbfd2a5c6858fe92e2ee9918e420b323a91ad5f155ec09e",
+      "size": 602852,
+      "tri_count": 12993,
+      "material_count": 7,
+      "bbox_size": [
+        19.8506,
+        21.76,
+        65.0858
+      ]
+    },
+    "feed_barge_large_LOD1": {
+      "path": "godot/assets/models/feed_barge/feed_barge_large_LOD1.glb",
+      "sha256": "6dc49a83ec4e9a7c09b453cd0fc21016fb1c78c5f38b35f7ae33a6778cb47360",
+      "size": 166356,
+      "tri_count": 3099,
+      "material_count": 7,
+      "bbox_size": [
+        19.8433,
+        20.86,
+        65.0858
+      ]
+    },
+    "feed_barge_large_LOD2": {
+      "path": "godot/assets/models/feed_barge/feed_barge_large_LOD2.glb",
+      "sha256": "57e1190cd2386ac1272038da9ac074e72a2d08e4e3305244cdbb102667709136",
+      "size": 28708,
+      "tri_count": 354,
+      "material_count": 5,
+      "bbox_size": [
+        13.0,
+        15.5,
+        64.8
+      ]
+    },
+    "wellboat_LOD0": {
+      "path": "godot/assets/models/wellboat/wellboat_LOD0.glb",
+      "sha256": "705df41d4697b21c950b39be7f613af73d37597bfc97fb7d8538b609ae5a3d1c",
+      "size": 1065696,
+      "tri_count": 22951,
+      "material_count": 8,
+      "bbox_size": [
+        18.504,
+        25.22,
+        76.96
+      ]
+    },
+    "wellboat_LOD1": {
+      "path": "godot/assets/models/wellboat/wellboat_LOD1.glb",
+      "sha256": "a11e5458d2aac4777e1d027daa33dc2203f25a4fdd64909f240e677d85acba82",
+      "size": 216816,
+      "tri_count": 4117,
+      "material_count": 7,
+      "bbox_size": [
+        18.504,
+        24.32,
+        76.96
+      ]
+    },
+    "wellboat_LOD2": {
+      "path": "godot/assets/models/wellboat/wellboat_LOD2.glb",
+      "sha256": "f5124962df588004253943ad04f0ac4ed50fd2b46702e9e67f53f10e7bb70e72",
+      "size": 47752,
+      "tri_count": 576,
+      "material_count": 5,
+      "bbox_size": [
+        17.8,
+        19.1,
+        76.96
+      ]
+    },
+    "wellboat_large_LOD0": {
+      "path": "godot/assets/models/wellboat/wellboat_large_LOD0.glb",
+      "sha256": "3d1045bd8503add8b16d5fd424e24d59a6fa8853ef94d1e8d1d56610083c1af2",
+      "size": 1496084,
+      "tri_count": 32413,
+      "material_count": 8,
+      "bbox_size": [
+        23.704,
+        32.9437,
+        116.0
+      ]
+    },
+    "wellboat_large_LOD1": {
+      "path": "godot/assets/models/wellboat/wellboat_large_LOD1.glb",
+      "sha256": "ab122001611f416f80912ff8307cb994cda7feb9cd3c075b133833f391d221ff",
+      "size": 329220,
+      "tri_count": 6863,
+      "material_count": 7,
+      "bbox_size": [
+        23.704,
+        32.0437,
+        116.0
+      ]
+    },
+    "wellboat_large_LOD2": {
+      "path": "godot/assets/models/wellboat/wellboat_large_LOD2.glb",
+      "sha256": "a6ee49945572786059f5932febab0621f352e11b1c4020a7a83e39a7e481b9f2",
+      "size": 61352,
+      "tri_count": 734,
+      "material_count": 5,
+      "bbox_size": [
+        23.0,
+        23.78,
+        116.0
+      ]
+    },
+    "rib_LOD0": {
+      "path": "godot/assets/models/rib/rib_LOD0.glb",
+      "sha256": "f0ed74d145fc4148cf2c43afa9dffe215d5072982f2d6a491a341cbd7681bf5b",
+      "size": 152732,
+      "tri_count": 3865,
+      "material_count": 6,
+      "bbox_size": [
+        2.937,
+        3.73,
+        8.7502
+      ]
+    },
+    "rib_LOD1": {
+      "path": "godot/assets/models/rib/rib_LOD1.glb",
+      "sha256": "555df2f9bfa12095b460e1b4464b7a2cd4ae9686e5132e55921d83043faa6d40",
+      "size": 59836,
+      "tri_count": 1183,
+      "material_count": 6,
+      "bbox_size": [
+        2.887,
+        3.73,
+        8.7118
+      ]
+    },
+    "rib_LOD2": {
+      "path": "godot/assets/models/rib/rib_LOD2.glb",
+      "sha256": "c5f51cebd053db2721d0ff767d9168f02792f121e1c628ef731ef0db1e8cdc47",
+      "size": 17548,
+      "tri_count": 263,
+      "material_count": 3,
+      "bbox_size": [
+        2.8856,
+        2.22,
+        8.4729
+      ]
+    },
+    "spruce_LOD0": {
+      "path": "godot/assets/models/vegetation/spruce_LOD0.glb",
+      "sha256": "9155aaf16dc4c040d801cb20aa0a84cf938a97f153a0bcb3a71c86bfd350184e",
+      "size": 4304,
+      "tri_count": 116,
+      "material_count": 1,
+      "bbox_size": [
+        5.1697,
+        16.4,
+        5.6815
+      ]
+    },
+    "spruce_LOD1": {
+      "path": "godot/assets/models/vegetation/spruce_LOD1.glb",
+      "sha256": "42d57e655a74d21420d636f12914e8c7d4acb200b87af8209b0cfe2075d8de7d",
+      "size": 1496,
+      "tri_count": 12,
+      "material_count": 1,
+      "bbox_size": [
+        5.0,
+        14.6,
+        4.3301
+      ]
+    },
+    "birch_LOD0": {
+      "path": "godot/assets/models/vegetation/birch_LOD0.glb",
+      "sha256": "86112c8a0bfe7b1d5c841d71eb537adce8476ef1cc684f795c8e41822bc4062b",
+      "size": 5580,
+      "tri_count": 170,
+      "material_count": 1,
+      "bbox_size": [
+        5.9404,
+        11.2441,
+        6.3853
+      ]
+    },
+    "birch_LOD1": {
+      "path": "godot/assets/models/vegetation/birch_LOD1.glb",
+      "sha256": "d11d3f388c3a5d9aa473f40175c97c68ef609e160eff0f1af93f6f7c9ba61d7f",
+      "size": 1952,
+      "tri_count": 26,
+      "material_count": 1,
+      "bbox_size": [
+        5.2946,
+        10.9457,
+        5.4704
+      ]
+    },
+    "naust_LOD0": {
+      "path": "godot/assets/models/shore/naust_LOD0.glb",
+      "sha256": "0a947e68e8cd72683fcc0e8e2369614b9cb512bf643fc7dffb7c8902b1ee9372",
+      "size": 5396,
+      "tri_count": 38,
+      "material_count": 4,
+      "bbox_size": [
+        5.8,
+        7.22,
+        9.6
+      ]
+    },
+    "shore_quay_LOD0": {
+      "path": "godot/assets/models/shore/shore_quay_LOD0.glb",
+      "sha256": "df133bc84202f1456c8eb00072388ecd687678b8b8838b3fce6ad8ca61a86587",
+      "size": 17172,
+      "tri_count": 302,
+      "material_count": 4,
+      "bbox_size": [
+        6.48,
+        6.15,
+        22.24
+      ]
+    },
+    "tank_growout_LOD0": {
+      "path": "godot/assets/models/land_kit/tank_growout_LOD0.glb",
+      "sha256": "c7766a42ef8a3d8bccc65e07affae4dab229bd538cf25d270d9a0ad7c34d4a4d",
+      "size": 120552,
+      "tri_count": 2144,
+      "material_count": 1,
+      "bbox_size": [
+        30.775,
+        15.186,
+        32.728
+      ]
+    },
+    "tank_growout_LOD1": {
+      "path": "godot/assets/models/land_kit/tank_growout_LOD1.glb",
+      "sha256": "aa4acb912363fb0032b84b378a76d97f6f3bfce51c459238662087cebd8aff06",
+      "size": 31436,
+      "tri_count": 500,
+      "material_count": 1,
+      "bbox_size": [
+        30.6,
+        14.45,
+        32.75
+      ]
+    },
+    "tank_growout_LOD2": {
+      "path": "godot/assets/models/land_kit/tank_growout_LOD2.glb",
+      "sha256": "bf35cd57ebac53239ff5ef132da8e45685383ae0d0087a3fa8d467bcc025f273",
+      "size": 5188,
+      "tri_count": 72,
+      "material_count": 1,
+      "bbox_size": [
+        28.0,
+        14.2,
+        28.0
+      ]
+    },
+    "tank_pregrow_LOD0": {
+      "path": "godot/assets/models/land_kit/tank_pregrow_LOD0.glb",
+      "sha256": "3e0cdac5da2ef958a2b349ae6c9f3d0698c666956c38f67ffa15bd769ef40fe2",
+      "size": 88780,
+      "tri_count": 1556,
+      "material_count": 1,
+      "bbox_size": [
+        18.775,
+        10.922,
+        20.5853
+      ]
+    },
+    "tank_pregrow_LOD1": {
+      "path": "godot/assets/models/land_kit/tank_pregrow_LOD1.glb",
+      "sha256": "21c35491e739b20bad9ca741af3dc9545185d2dbb0368e7c21134453846610fa",
+      "size": 22520,
+      "tri_count": 348,
+      "material_count": 1,
+      "bbox_size": [
+        18.6445,
+        10.45,
+        20.6223
+      ]
+    },
+    "tank_pregrow_LOD2": {
+      "path": "godot/assets/models/land_kit/tank_pregrow_LOD2.glb",
+      "sha256": "e7940e0d3b6188dd72e0a98982ac2d13a7445727acdf27f00f96fa0c65081fe4",
+      "size": 4756,
+      "tri_count": 62,
+      "material_count": 1,
+      "bbox_size": [
+        16.0,
+        10.2,
+        15.2169
+      ]
+    },
+    "tank_feeder_LOD0": {
+      "path": "godot/assets/models/land_kit/tank_feeder_LOD0.glb",
+      "sha256": "7bb474dee7423de7ccff3d9205034cc2ea8c5da95136631c62fcdfd591e1f321",
+      "size": 12668,
+      "tri_count": 174,
+      "material_count": 1,
+      "bbox_size": [
+        3.819,
+        1.2,
+        1.75
+      ]
+    },
+    "tank_feeder_LOD1": {
+      "path": "godot/assets/models/land_kit/tank_feeder_LOD1.glb",
+      "sha256": "ea0fb2c496e3b9f47125e81f8247859dfb54a8717626d07d296378d51489ca48",
+      "size": 4292,
+      "tri_count": 50,
+      "material_count": 1,
+      "bbox_size": [
+        1.6,
+        0.9,
+        1.75
+      ]
+    },
+    "process_hall_bay_LOD0": {
+      "path": "godot/assets/models/land_kit/process_hall_bay_LOD0.glb",
+      "sha256": "4de5e08636a3f34cc54438b9a56156824f740f544d8545b2575584add0955bce",
+      "size": 59972,
+      "tri_count": 680,
+      "material_count": 1,
+      "bbox_size": [
+        30.6,
+        11.32,
+        21.04
+      ]
+    },
+    "process_hall_bay_LOD1": {
+      "path": "godot/assets/models/land_kit/process_hall_bay_LOD1.glb",
+      "sha256": "b974c255a03df0e0083bf0aa2d985fa1aacb8fb7179529b13c46fac13e1ee08a",
+      "size": 9904,
+      "tri_count": 98,
+      "material_count": 1,
+      "bbox_size": [
+        30.6,
+        11.2,
+        20.6
+      ]
+    },
+    "process_hall_bay_LOD2": {
+      "path": "godot/assets/models/land_kit/process_hall_bay_LOD2.glb",
+      "sha256": "e6c467f9b3663eda8b664e7f6dcc9809048c6f888c37b417abe854630dd20d13",
+      "size": 2348,
+      "tri_count": 12,
+      "material_count": 1,
+      "bbox_size": [
+        30.0,
+        9.98,
+        20.0
+      ]
+    },
+    "harvest_hall_LOD0": {
+      "path": "godot/assets/models/land_kit/harvest_hall_LOD0.glb",
+      "sha256": "8a945d4a06694df0e2e38b0aa889900a23b9abe873d83492792e2bb95bd07bd2",
+      "size": 255408,
+      "tri_count": 2984,
+      "material_count": 1,
+      "bbox_size": [
+        125.05,
+        18.0,
+        74.25
+      ]
+    },
+    "harvest_hall_LOD1": {
+      "path": "godot/assets/models/land_kit/harvest_hall_LOD1.glb",
+      "sha256": "e1b93d86ac59f06bbfcc0c28b4d3e6f65bcb87476173063159f5d1d636df3e6d",
+      "size": 38660,
+      "tri_count": 434,
+      "material_count": 1,
+      "bbox_size": [
+        120.0,
+        15.8,
+        74.25
+      ]
+    },
+    "harvest_hall_LOD2": {
+      "path": "godot/assets/models/land_kit/harvest_hall_LOD2.glb",
+      "sha256": "44638a7f4a8d202075e97930b8cd4c4e40117e13f2976e84b05312cd309d3516",
+      "size": 3016,
+      "tri_count": 20,
+      "material_count": 1,
+      "bbox_size": [
+        120.0,
+        15.0,
+        74.0
+      ]
+    },
+    "pipe_bridge_span_LOD0": {
+      "path": "godot/assets/models/land_kit/pipe_bridge_span_LOD0.glb",
+      "sha256": "2873f621015d242af2f45e1b81b0b03fa003be2fc1042388204c226b11fa4025",
+      "size": 52624,
+      "tri_count": 618,
+      "material_count": 1,
+      "bbox_size": [
+        25.92,
+        13.5,
+        4.58
+      ]
+    },
+    "pipe_bridge_span_LOD1": {
+      "path": "godot/assets/models/land_kit/pipe_bridge_span_LOD1.glb",
+      "sha256": "13882ddfa93733ce1e064d810e3b2985cffd346ec7bec3e35aa1fbb94aa09412",
+      "size": 15364,
+      "tri_count": 174,
+      "material_count": 1,
+      "bbox_size": [
+        25.45,
+        13.5,
+        3.5
+      ]
+    },
+    "pipe_bridge_span_LOD2": {
+      "path": "godot/assets/models/land_kit/pipe_bridge_span_LOD2.glb",
+      "sha256": "f2f26f17bb0daaf2b6eef2be4b195993770cdb775a5d448856f9ffe9ca181f56",
+      "size": 3224,
+      "tri_count": 22,
+      "material_count": 1,
+      "bbox_size": [
+        25.3,
+        13.5,
+        3.5
+      ]
+    },
+    "quay_LOD0": {
+      "path": "godot/assets/models/land_kit/quay_LOD0.glb",
+      "sha256": "905a0a178e8ead933fdab2c54ab086abd377b28a068819fdf3a170759a5ae3d2",
+      "size": 76368,
+      "tri_count": 1118,
+      "material_count": 1,
+      "bbox_size": [
+        120.0,
+        19.35,
+        25.7
+      ]
+    },
+    "quay_LOD1": {
+      "path": "godot/assets/models/land_kit/quay_LOD1.glb",
+      "sha256": "5d3c10e05407cf408cd3c50b6256a68671fb5fe1122dd08307e5934c9c87ece2",
+      "size": 30744,
+      "tri_count": 342,
+      "material_count": 1,
+      "bbox_size": [
+        120.0,
+        19.35,
+        25.7
+      ]
+    },
+    "quay_LOD2": {
+      "path": "godot/assets/models/land_kit/quay_LOD2.glb",
+      "sha256": "acd74708034fef0e2b2de00da7fe393c52f3abe5d20246d6c110074d6e4f3385",
+      "size": 2140,
+      "tri_count": 10,
+      "material_count": 1,
+      "bbox_size": [
+        120.0,
+        9.0,
+        25.0
+      ]
+    },
+    "intake_basin_LOD0": {
+      "path": "godot/assets/models/land_kit/intake_basin_LOD0.glb",
+      "sha256": "26e88fded27d9e6a7858f6fc8ea70139726b765604407cbcea7a1dbbf436550a",
+      "size": 137148,
+      "tri_count": 1650,
+      "material_count": 1,
+      "bbox_size": [
+        86.4517,
+        21.82,
+        66.48
+      ]
+    },
+    "intake_basin_LOD1": {
+      "path": "godot/assets/models/land_kit/intake_basin_LOD1.glb",
+      "sha256": "b535cc0479a6dc120a3a00bbe80cf4ed9d457ebb5fd998bdd915a965db7fffdd",
+      "size": 16544,
+      "tri_count": 192,
+      "material_count": 1,
+      "bbox_size": [
+        86.4517,
+        21.7,
+        66.3
+      ]
+    },
+    "intake_basin_LOD2": {
+      "path": "godot/assets/models/land_kit/intake_basin_LOD2.glb",
+      "sha256": "9f64eeb412706e6dd5c789c28c001aa7b346d3a5f8c0500d970bd101d0b68ce3",
+      "size": 4460,
+      "tri_count": 36,
+      "material_count": 1,
+      "bbox_size": [
+        86.4517,
+        20.58,
+        66.0
+      ]
+    },
+    "river_intake_LOD0": {
+      "path": "godot/assets/models/land_kit/river_intake_LOD0.glb",
+      "sha256": "0d5b79105986e4208a273469f6400217999a57dc52a400f53aa9747347c37979",
+      "size": 43600,
+      "tri_count": 490,
+      "material_count": 1,
+      "bbox_size": [
+        30.7,
+        8.0,
+        8.96
+      ]
+    },
+    "river_intake_LOD1": {
+      "path": "godot/assets/models/land_kit/river_intake_LOD1.glb",
+      "sha256": "96c78afc8b1f3ffab6e6919047f6f907e9a04c06300a921ae16fe431b4bccc97",
+      "size": 9704,
+      "tri_count": 96,
+      "material_count": 1,
+      "bbox_size": [
+        30.7,
+        8.0,
+        8.6
+      ]
+    },
+    "river_intake_LOD2": {
+      "path": "godot/assets/models/land_kit/river_intake_LOD2.glb",
+      "sha256": "98852c222b8daba324c45b2667be3130e8ad88bfbbb82fa9b66c18383f89fc3d",
+      "size": 2340,
+      "tri_count": 12,
+      "material_count": 1,
+      "bbox_size": [
+        30.0,
+        6.1,
+        8.0
+      ]
+    },
+    "lox_tank_LOD0": {
+      "path": "godot/assets/models/land_kit/lox_tank_LOD0.glb",
+      "sha256": "827a51cffcd2ae652a23bd6802b702ee8f68290da695b091fa674c36748d2fc7",
+      "size": 22888,
+      "tri_count": 404,
+      "material_count": 1,
+      "bbox_size": [
+        5.5,
+        11.55,
+        3.2
+      ]
+    },
+    "lox_tank_LOD1": {
+      "path": "godot/assets/models/land_kit/lox_tank_LOD1.glb",
+      "sha256": "0a7a7f8f668878ca96e7297e8d794dde75ce674e85d518b9c82020ece5fee64e",
+      "size": 5984,
+      "tri_count": 88,
+      "material_count": 1,
+      "bbox_size": [
+        3.58,
+        11.4,
+        3.2
+      ]
+    },
+    "lox_tank_LOD2": {
+      "path": "godot/assets/models/land_kit/lox_tank_LOD2.glb",
+      "sha256": "eeafe4f02e4f56c8568cddf0a5f2f62ea8730823a6eec15b2a5af2b333eb5a3e",
+      "size": 2276,
+      "tri_count": 12,
+      "material_count": 1,
+      "bbox_size": [
+        3.2,
+        9.1,
+        3.2
+      ]
+    },
+    "genset_container_LOD0": {
+      "path": "godot/assets/models/land_kit/genset_container_LOD0.glb",
+      "sha256": "47e1505d16d60062d46b7c376f47f90a6dd8473b567276e94064f554071e1ba9",
+      "size": 9236,
+      "tri_count": 110,
+      "material_count": 1,
+      "bbox_size": [
+        12.19,
+        5.0,
+        2.44
+      ]
+    },
+    "genset_container_LOD1": {
+      "path": "godot/assets/models/land_kit/genset_container_LOD1.glb",
+      "sha256": "1e04bc8f27ee22f171dc12b5d96db941f525c9fc5774f3e2aff73402e873f469",
+      "size": 2936,
+      "tri_count": 22,
+      "material_count": 1,
+      "bbox_size": [
+        12.19,
+        5.0,
+        2.44
+      ]
+    },
+    "genset_container_LOD2": {
+      "path": "godot/assets/models/land_kit/genset_container_LOD2.glb",
+      "sha256": "56e08495b54c68c8a10bc7ae29754286cfcc4a29596912ff5787dc63ad19277f",
+      "size": 2236,
+      "tri_count": 10,
+      "material_count": 1,
+      "bbox_size": [
+        12.19,
+        2.9,
+        2.44
+      ]
+    },
+    "substation_LOD0": {
+      "path": "godot/assets/models/land_kit/substation_LOD0.glb",
+      "sha256": "dbc4826906617647150264cdeba10be3c883c3c1eb9d587b58fab60372af4295",
+      "size": 56576,
+      "tri_count": 664,
+      "material_count": 1,
+      "bbox_size": [
+        18.07,
+        5.945,
+        10.07
+      ]
+    },
+    "substation_LOD1": {
+      "path": "godot/assets/models/land_kit/substation_LOD1.glb",
+      "sha256": "93d94db378db3953181c5e99aa76d7b5e77a2ce5c27a1feaebad9d27ffd4b148",
+      "size": 9980,
+      "tri_count": 100,
+      "material_count": 1,
+      "bbox_size": [
+        18.05,
+        5.945,
+        10.05
+      ]
+    },
+    "substation_LOD2": {
+      "path": "godot/assets/models/land_kit/substation_LOD2.glb",
+      "sha256": "57cb239368ae4340a9fa3feca4c5c8088fb0185bdf6089017aff241c235c89ef",
+      "size": 2160,
+      "tri_count": 10,
+      "material_count": 1,
+      "bbox_size": [
+        18.0,
+        3.6,
+        10.0
+      ]
+    },
+    "feed_silo_land_LOD0": {
+      "path": "godot/assets/models/land_kit/feed_silo_land_LOD0.glb",
+      "sha256": "a1d542b8c896bce94af43b6913ff13a9722054bdaa4cb2e4642ca747a29b4808",
+      "size": 43788,
+      "tri_count": 884,
+      "material_count": 1,
+      "bbox_size": [
+        10.03,
+        15.23,
+        10.0866
+      ]
+    },
+    "feed_silo_land_LOD1": {
+      "path": "godot/assets/models/land_kit/feed_silo_land_LOD1.glb",
+      "sha256": "319468d559daf189674a24f87d9372431173f4268f8fa7b59691a710e8e0737b",
+      "size": 8024,
+      "tri_count": 152,
+      "material_count": 1,
+      "bbox_size": [
+        10.0,
+        14.2,
+        8.8042
+      ]
+    },
+    "feed_silo_land_LOD2": {
+      "path": "godot/assets/models/land_kit/feed_silo_land_LOD2.glb",
+      "sha256": "3e66cf4657eb18028c82b2f8714e673b17454543a9d992bb8daf1f5f8a0b2a11",
+      "size": 2160,
+      "tri_count": 10,
+      "material_count": 1,
+      "bbox_size": [
+        9.0,
+        12.0,
+        9.0
+      ]
+    },
+    "sludge_station_LOD0": {
+      "path": "godot/assets/models/land_kit/sludge_station_LOD0.glb",
+      "sha256": "529c46fa6c796bab83f49cacf1c9eb718d4a9256bf77985e49271e2afb882f60",
+      "size": 34672,
+      "tri_count": 386,
+      "material_count": 1,
+      "bbox_size": [
+        20.5,
+        9.12,
+        12.96
+      ]
+    },
+    "sludge_station_LOD1": {
+      "path": "godot/assets/models/land_kit/sludge_station_LOD1.glb",
+      "sha256": "05de5588badf2ff1ce9300552b7992e20949f58e7815350f717e5ef7d1ffeaf1",
+      "size": 11084,
+      "tri_count": 112,
+      "material_count": 1,
+      "bbox_size": [
+        20.5,
+        9.0,
+        12.6
+      ]
+    },
+    "sludge_station_LOD2": {
+      "path": "godot/assets/models/land_kit/sludge_station_LOD2.glb",
+      "sha256": "5f26c8dcd5febfdaee135ef007eb55af7ddccd021d7bd960ec1df5c329e97fad",
+      "size": 2152,
+      "tri_count": 10,
+      "material_count": 1,
+      "bbox_size": [
+        20.0,
+        8.0,
+        12.0
+      ]
+    },
+    "of1_class_LOD0": {
+      "path": "godot/assets/models/offshore/of1_class_LOD0.glb",
+      "sha256": "1cd14e3159cf298076bd137b3c4f4d1cc1d816808b3eb09b4f778ef4a386e0d6",
+      "size": 2663816,
+      "tri_count": 46638,
+      "material_count": 2,
+      "bbox_size": [
+        126.0044,
+        71.8,
+        122.3546
+      ]
+    },
+    "of1_class_LOD1": {
+      "path": "godot/assets/models/offshore/of1_class_LOD1.glb",
+      "sha256": "27d4dcba91607cdd1c3f91d931649bdaf9d007958b0a7c13e4d389ce58703f43",
+      "size": 355984,
+      "tri_count": 5478,
+      "material_count": 2,
+      "bbox_size": [
+        125.9042,
+        71.8,
+        122.3546
+      ]
+    },
+    "of1_class_LOD2": {
+      "path": "godot/assets/models/offshore/of1_class_LOD2.glb",
+      "sha256": "65ea7f3447875363a0b85936a4c2f6ff33432cb4aa7464abc13531ad65542bf8",
+      "size": 110428,
+      "tri_count": 1198,
+      "material_count": 2,
+      "bbox_size": [
+        122.4458,
+        30.7176,
+        122.3546
+      ]
+    },
+    "offshore_service_LOD0": {
+      "path": "godot/assets/models/offshore_service/offshore_service_LOD0.glb",
+      "sha256": "510a016cc1c74680465674549bf89dcba8b13735a56278cf5c2cca66931b0878",
+      "size": 898988,
+      "tri_count": 19377,
+      "material_count": 8,
+      "bbox_size": [
+        17.768,
+        27.82,
+        75.02
+      ]
+    },
+    "offshore_service_LOD1": {
+      "path": "godot/assets/models/offshore_service/offshore_service_LOD1.glb",
+      "sha256": "83d28c1ab435dee55a77720ed72481aee1e15d5631c848663eeb06e4cc516850",
+      "size": 189052,
+      "tri_count": 3697,
+      "material_count": 7,
+      "bbox_size": [
+        17.768,
+        26.92,
+        75.02
+      ]
+    },
+    "offshore_service_LOD2": {
+      "path": "godot/assets/models/offshore_service/offshore_service_LOD2.glb",
+      "sha256": "6d6b2e402e38cfd1c1280ed052e0a5069cde90b639f6d28b679f54ab33f5c329",
+      "size": 48312,
+      "tri_count": 620,
+      "material_count": 5,
+      "bbox_size": [
+        17.0,
+        22.38,
+        75.0
+      ]
+    },
+    "crew_boat_LOD0": {
+      "path": "godot/assets/models/crew_boat/crew_boat_LOD0.glb",
+      "sha256": "d9a67b7df4a60b048bbde10799851051201f7aa34a4c746a95a67d06787f24c7",
+      "size": 299308,
+      "tri_count": 7186,
+      "material_count": 8,
+      "bbox_size": [
+        7.38,
+        11.18,
+        20.4075
+      ]
+    },
+    "crew_boat_LOD1": {
+      "path": "godot/assets/models/crew_boat/crew_boat_LOD1.glb",
+      "sha256": "af1c56bd87331dd4a188c3bae5cfed8139576e0fd3ec683e5a235a866c23363d",
+      "size": 78964,
+      "tri_count": 1288,
+      "material_count": 8,
+      "bbox_size": [
+        7.38,
+        10.28,
+        20.4075
+      ]
+    },
+    "crew_boat_LOD2": {
+      "path": "godot/assets/models/crew_boat/crew_boat_LOD2.glb",
+      "sha256": "61d44c2b4932b754c1373cef882b9cb0f2d54b95b0b3f2cd75c8f6f4f71910bf",
+      "size": 23480,
+      "tri_count": 292,
+      "material_count": 5,
+      "bbox_size": [
+        7.0,
+        7.22,
+        20.3
+      ]
+    },
+    "rov_LOD0": {
+      "path": "godot/assets/models/subsea/rov_LOD0.glb",
+      "sha256": "a42862b73ae254c5f0fbc4777db773db2b0a1d5c68e5a20ab916896382c07699",
+      "size": 73140,
+      "tri_count": 1094,
+      "material_count": 4,
+      "bbox_size": [
+        1.624,
+        1.4901,
+        2.7602
+      ]
+    },
+    "rov_LOD1": {
+      "path": "godot/assets/models/subsea/rov_LOD1.glb",
+      "sha256": "e3433e5e054d5741410d882cb4b889a4d9d6b5f0922d16b86e49e21462396788",
+      "size": 13980,
+      "tri_count": 152,
+      "material_count": 2,
+      "bbox_size": [
+        1.6,
+        1.44,
+        2.6
+      ]
+    },
+    "auv_LOD0": {
+      "path": "godot/assets/models/subsea/auv_LOD0.glb",
+      "sha256": "54ba9b2460a5d1c070c1b6cc954da1872da1fe85eca4430adb50721671590b70",
+      "size": 23644,
+      "tri_count": 432,
+      "material_count": 2,
+      "bbox_size": [
+        0.6534,
+        0.7967,
+        4.055
+      ]
+    },
+    "auv_LOD1": {
+      "path": "godot/assets/models/subsea/auv_LOD1.glb",
+      "sha256": "572d504625ea14e5777f9264fa21c461a1f2e1b3775ab530b7bb19478356cc94",
+      "size": 9992,
+      "tri_count": 120,
+      "material_count": 2,
+      "bbox_size": [
+        0.6534,
+        0.6534,
+        3.96
+      ]
+    }
+  }
+}

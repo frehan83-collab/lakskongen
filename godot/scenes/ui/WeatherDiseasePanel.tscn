@@ -1,0 +1,203 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/WeatherDiseasePanel.gd" id="1_weather"]
+[ext_resource type="Theme" path="res://theme/lakskongen_chart_theme.tres" id="theme_chart"]
+
+[node name="WeatherDiseasePanel" type="PanelContainer"]
+theme = ExtResource("theme_chart")
+theme_type_variation = &"Card"
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_weather")
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="MainScroll" type="ScrollContainer" parent="Margin"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="RootVBox" type="VBoxContainer" parent="Margin/MainScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 16
+
+[node name="TitleLabel" type="Label" parent="Margin/MainScroll/RootVBox"]
+theme_type_variation = &"Heading"
+unique_name_in_owner = true
+layout_mode = 2
+text = "UI_WD_TITLE"
+
+[node name="WeatherCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
+theme_type_variation = &"Card"
+layout_mode = 2
+
+[node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/WeatherCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/WeatherCard/Outer"]
+theme_type_variation = &"CardHeader"
+layout_mode = 2
+
+[node name="WeatherHeader" type="Label" parent="Margin/MainScroll/RootVBox/WeatherCard/Outer/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "UI_WD_CURRENT_WEATHER"
+
+[node name="WeatherBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/WeatherCard/Outer"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="WeatherStatusLabel" type="Label" parent="Margin/MainScroll/RootVBox/WeatherCard/Outer/WeatherBody"]
+theme_type_variation = &"BodySmall"
+unique_name_in_owner = true
+layout_mode = 2
+text = "--"
+
+[node name="TemperatureLabel" type="Label" parent="Margin/MainScroll/RootVBox/WeatherCard/Outer/WeatherBody"]
+theme_type_variation = &"BodyMuted"
+unique_name_in_owner = true
+layout_mode = 2
+text = "--"
+
+[node name="AlertCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
+theme_type_variation = &"Card"
+layout_mode = 2
+
+[node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/AlertCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/AlertCard/Outer"]
+theme_type_variation = &"CardHeader"
+layout_mode = 2
+
+[node name="AlertHeader" type="Label" parent="Margin/MainScroll/RootVBox/AlertCard/Outer/Header"]
+theme_type_variation = &"BodyWarn"
+unique_name_in_owner = true
+layout_mode = 2
+text = "UI_WD_WEATHER_ALERTS"
+
+[node name="AlertBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/AlertCard/Outer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="WeatherAlertList" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/AlertCard/Outer/AlertBody"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="DiseaseCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
+theme_type_variation = &"Card"
+layout_mode = 2
+
+[node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/DiseaseCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/DiseaseCard/Outer"]
+theme_type_variation = &"CardHeader"
+layout_mode = 2
+
+[node name="DiseaseHeader" type="Label" parent="Margin/MainScroll/RootVBox/DiseaseCard/Outer/Header"]
+theme_type_variation = &"BodyCrit"
+unique_name_in_owner = true
+layout_mode = 2
+text = "UI_WD_DISEASE_OUTBREAKS"
+
+[node name="DiseaseBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/DiseaseCard/Outer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="DiseaseAlertList" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/DiseaseCard/Outer/DiseaseBody"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TreatmentCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
+theme_type_variation = &"Card"
+layout_mode = 2
+
+[node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/TreatmentCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/TreatmentCard/Outer"]
+theme_type_variation = &"CardHeader"
+layout_mode = 2
+
+[node name="TreatmentHeader" type="Label" parent="Margin/MainScroll/RootVBox/TreatmentCard/Outer/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "UI_WD_TREATMENTS"
+
+[node name="TreatmentBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/TreatmentCard/Outer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TreatmentList" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/TreatmentCard/Outer/TreatmentBody"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="BloomCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
+theme_type_variation = &"Card"
+layout_mode = 2
+
+[node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/BloomCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/BloomCard/Outer"]
+theme_type_variation = &"CardHeader"
+layout_mode = 2
+
+[node name="BloomHeader" type="Label" parent="Margin/MainScroll/RootVBox/BloomCard/Outer/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "🪼 Oppblomstring & mottiltak"
+
+[node name="BloomBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/BloomCard/Outer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="BloomSiteRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/BloomCard/Outer/BloomBody"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="BloomSiteOption" type="OptionButton" parent="Margin/MainScroll/RootVBox/BloomCard/Outer/BloomBody/BloomSiteRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="BtnBubble" type="Button" parent="Margin/MainScroll/RootVBox/BloomCard/Outer/BloomBody/BloomSiteRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "🫧 Boblegardin (1.8M)"
+tooltip_text = "Maneter ×0.23. 90k/uke drift."
+
+[node name="BtnDiffuser" type="Button" parent="Margin/MainScroll/RootVBox/BloomCard/Outer/BloomBody/BloomSiteRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "💨 O2-diffuser (2.4M)"
+tooltip_text = "Oksygenfall ×0.3, alger ×0.7. 120k/uke drift."
+
+[node name="BtnVaccinate" type="Button" parent="Margin/MainScroll/RootVBox/BloomCard/Outer/BloomBody/BloomSiteRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "💉 Vaksiner (okt)"
+tooltip_text = "Sår/CMS-vaksine: kun oktober. 3.2 NOK/fisk + 0.6% håndteringstap. 12 mnd beskyttelse."
+
+[node name="BloomAlertList" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/BloomCard/Outer/BloomBody"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8

@@ -107,7 +107,7 @@ namespace LakskongenSim.Optimization
                 },
                 new DelousingOption
                 {
-                    Method = "Laser (Stingray)",
+                    Method = "Laseravlusing",
                     Description = "Automated laser targeting of sea lice",
                     CostPerFishNOK = 0.50, // Capital cost amortized
                     EfficacyPct = 50.0,

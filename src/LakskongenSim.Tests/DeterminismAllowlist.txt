@@ -1,0 +1,79 @@
+# Grandfathered non-determinism in src/LakskongenSim (S10; P0-07 symbol keys).
+# Format: path :: pattern :: Type.Member :: count (occurrences of the pattern in that symbol).
+# DeterminismBanTests fails on any NEW key, on a count above the one listed, and on a stale
+# entry (a count above what the code holds). Fix an entry by threading the engine seed
+# through, then lower its count or delete the line. Scanner: Core/DeterminismScanner.cs.
+# SimRng/SimRandom.CreateUnseeded are the sanctioned entropy points for unseeded engines.
+src/LakskongenSim/Advisor/AdvisorDemo.cs :: DateTime.Now :: AdvisorDemo.RunDemo :: 1
+src/LakskongenSim/Advisor/AlertSystem.cs :: DateTime.UtcNow :: AlertSystem.CleanupOldAlerts :: 3
+src/LakskongenSim/Advisor/AlertSystem.cs :: DateTime.UtcNow :: AlertSystem.CreateAlert :: 3
+src/LakskongenSim/Advisor/AlertSystem.cs :: DateTime.UtcNow :: AlertSystem.DismissAlert :: 1
+src/LakskongenSim/Advisor/AlertSystem.cs :: DateTime.UtcNow :: AlertSystem.ResolveAlert :: 1
+src/LakskongenSim/Advisor/AlertSystem.cs :: DateTime.UtcNow :: AlertSystem.ResolveAlertsByType :: 1
+src/LakskongenSim/Advisor/IntelligentAdvisor.cs :: DateTime.UtcNow :: IntelligentAdvisor.CreateRecommendation :: 1
+src/LakskongenSim/Advisor/IntelligentAdvisor.cs :: Guid.NewGuid() :: IntelligentAdvisor.CreateRecommendation :: 1
+src/LakskongenSim/Advisor/Recommendation.cs :: DateTime.UtcNow :: Recommendation.CreatedAt :: 1
+src/LakskongenSim/Advisor/Recommendation.cs :: DateTime.UtcNow :: RecommendationOutcome.RecordedAt :: 1
+src/LakskongenSim/Advisor/Recommendation.cs :: Guid.NewGuid() :: Recommendation.Id :: 1
+src/LakskongenSim/Advisor/RecommendationHistory.cs :: DateTime.UtcNow :: RecommendationHistory.CleanOutdatedRecommendations :: 1
+src/LakskongenSim/Advisor/RecommendationHistory.cs :: DateTime.UtcNow :: RecommendationHistory.DismissRecommendation :: 1
+src/LakskongenSim/Advisor/RecommendationHistory.cs :: DateTime.UtcNow :: RecommendationHistory.MarkAsFollowed :: 1
+src/LakskongenSim/Advisor/RecommendationHistory.cs :: DateTime.UtcNow :: RecommendationHistory.WasRecentlyRecommended :: 1
+src/LakskongenSim/Biology/FishPopulation.cs :: Guid.NewGuid() :: FishPopulation.Id :: 1
+src/LakskongenSim/Biology/IndividualFish.cs :: DateTime.UtcNow :: IndividualFish..ctor :: 2
+src/LakskongenSim/Biology/IndividualFish.cs :: DateTime.UtcNow :: IndividualFish.Die :: 1
+src/LakskongenSim/Biology/IndividualFish.cs :: Guid.NewGuid() :: IndividualFish..ctor :: 2
+src/LakskongenSim/Core/AquacultureCalibrationEngine.cs :: DateTime.UtcNow :: ExternalAquacultureSnapshot.RetrievedAtUtc :: 1
+src/LakskongenSim/Core/BarentsWatchFishHealthIntegration.cs :: DateTime.UtcNow :: BarentsWatchFishHealthNormalizer.Normalize :: 1
+src/LakskongenSim/Core/BarentsWatchFishHealthIntegration.cs :: DateTime.UtcNow :: BarentsWatchFishHealthRawSnapshot.RetrievedAtUtc :: 1
+src/LakskongenSim/Core/BarentsWatchFishHealthIntegration.cs :: DateTime.UtcNow :: BarentsWatchStoredSnapshot.RetrievedAtUtc :: 1
+src/LakskongenSim/Core/CrewMember.cs :: Guid.NewGuid() :: CrewMember.Id :: 1
+src/LakskongenSim/Core/ModLoader.cs :: Guid.NewGuid() :: ModEventDefinition.Id :: 1
+src/LakskongenSim/Core/MultiplayerManager.cs :: DateTime.UtcNow :: ChatMessage.Timestamp :: 1
+src/LakskongenSim/Core/MultiplayerManager.cs :: Guid.NewGuid() :: MultiplayerManager.SessionId :: 1
+src/LakskongenSim/Core/MultiplayerManager.cs :: Guid.NewGuid() :: PlayerProfile.Id :: 1
+src/LakskongenSim/Core/MultiplayerManager.cs :: Guid.NewGuid() :: TradeOffer.OfferId :: 1
+src/LakskongenSim/Core/SimRandom.cs :: RandomNumberGenerator :: SimRandom.CreateUnseeded :: 1
+src/LakskongenSim/Core/SimRng.cs :: RandomNumberGenerator :: SimRng.CreateUnseeded :: 1
+src/LakskongenSim/Core/SteamWorkshopManager.cs :: RandomNumberGenerator :: SteamWorkshopManager.GenerateDummyWorkshopId :: 1
+src/LakskongenSim/Data/RealData/Cache/CacheEntry.cs :: DateTime.UtcNow :: CacheEntry.IsExpired :: 1
+src/LakskongenSim/Data/RealData/Cache/DataCache.cs :: DateTime.UtcNow :: CacheEntry.IsExpired :: 1
+src/LakskongenSim/Data/RealData/Cache/DataCache.cs :: DateTime.UtcNow :: DataCache.SetAsync :: 2
+src/LakskongenSim/Data/RealData/Loaders/EmodnetDataLoader.cs :: DateTime.UtcNow :: EmodnetDataLoader.GenerateSyntheticBathymetry :: 1
+src/LakskongenSim/Data/RealData/Loaders/EmodnetDataLoader.cs :: DateTime.UtcNow :: EmodnetDataLoader.GetAvailabilityAsync :: 1
+src/LakskongenSim/Data/RealData/Loaders/EmodnetDataLoader.cs :: DateTime.UtcNow :: EmodnetDataLoader.HealthCheckAsync :: 1
+src/LakskongenSim/Data/RealData/Models/GeoCoordinate.cs :: HashCode.Combine() :: GeoCoordinate.GetHashCode :: 1
+src/LakskongenSim/Environment/BloomEvent.cs :: Guid.NewGuid() :: BloomEvent.Id :: 1
+src/LakskongenSim/Environment/MareanoEnvironmentalDataProvider.cs :: DateTime.UtcNow :: MareanoEnvironmentalDataProvider..ctor :: 1
+src/LakskongenSim/Environment/VectorMath.cs :: HashCode.Combine() :: Vector2.GetHashCode :: 1
+src/LakskongenSim/Environment/VectorMath.cs :: HashCode.Combine() :: Vector3.GetHashCode :: 1
+src/LakskongenSim/Events/EventDefinition.cs :: Guid.NewGuid() :: EventDefinition.Id :: 1
+src/LakskongenSim/Events/VisualMilestones.cs :: DateTime.Now :: VisualMilestones.CheckMilestone :: 1
+src/LakskongenSim/Expansion/VerticalIntegrationSystem.cs :: DateTime.Now :: VerticalIntegrationSystem.BuildAsset :: 1
+src/LakskongenSim/Expansion/VerticalIntegrationSystem.cs :: DateTime.Now :: VerticalIntegrationSystem.CalculateQualityPremium :: 1
+src/LakskongenSim/Expansion/VerticalIntegrationSystem.cs :: DateTime.Now :: VerticalIntegrationSystem.CalculateTotalCostSavings :: 1
+src/LakskongenSim/Expansion/VerticalIntegrationSystem.cs :: DateTime.Now :: VerticalIntegrationSystem.GetAnnualIntegrationOpex :: 1
+src/LakskongenSim/Expansion/VerticalIntegrationSystem.cs :: DateTime.Now :: VerticalIntegrationSystem.GetIntegrationScore :: 1
+src/LakskongenSim/Expansion/VerticalIntegrationSystem.cs :: DateTime.Now :: VerticalIntegrationSystem.HasAdjacentTierSynergy :: 1
+src/LakskongenSim/Finance/EconomicEngine.cs :: new Random() :: EconomicEngine._random :: 1
+src/LakskongenSim/Finance/EmpireProgression.cs :: DateTime.Now :: EmpireProgressionSystem.UnlockMilestone :: 1
+src/LakskongenSim/Finance/MarketCycleSimulator.cs :: new Random() :: MarketCycleSimulator._random :: 1
+src/LakskongenSim/Finance/StockMarket.cs :: DateTime.Now :: StockMarketSystem.ApplyEarningsReaction :: 1
+src/LakskongenSim/Finance/StockMarket.cs :: DateTime.Now :: StockMarketSystem.ExecuteBuyback :: 1
+src/LakskongenSim/Finance/StockMarket.cs :: DateTime.Now :: StockMarketSystem.ExecuteIPO :: 1
+src/LakskongenSim/Finance/StockMarket.cs :: DateTime.Now :: StockMarketSystem.IssueEquity :: 1
+src/LakskongenSim/Finance/StockMarket.cs :: DateTime.Now :: StockMarketSystem.RestoreState :: 1
+src/LakskongenSim/Finance/StockMarket.cs :: DateTime.Now :: StockMarketSystem.UpgradeToOSE :: 1
+src/LakskongenSim/Market/FuturesContract.cs :: Guid.NewGuid() :: FuturesContract.ContractId :: 1
+src/LakskongenSim/Optimization/FeedingOptimizer.cs :: DateTime.Today :: FeedingOptimizer.GetFeedingSchedule :: 1
+src/LakskongenSim/Optimization/HarvestOptimizer.cs :: DateTime.Today :: HarvestOptimizer.CalculateOptimalHarvestDate :: 2
+src/LakskongenSim/Optimization/HarvestOptimizer.cs :: DateTime.Today :: HarvestOptimizer.CompareHarvestScenarios :: 1
+src/LakskongenSim/Optimization/PenManagementOptimizer.cs :: DateTime.Today :: PenManagementOptimizer.CalculateRotationPlan :: 1
+src/LakskongenSim/Optimization/PenManagementOptimizer.cs :: DateTime.Today :: PenManagementOptimizer.GenerateFallowSchedule :: 1
+src/LakskongenSim/Performance/EconomicCalculationCache.cs :: DateTime.UtcNow :: EconomicCalculationCache.GetOrCompute :: 2
+src/LakskongenSim/Performance/EnvironmentalDataCache.cs :: DateTime.UtcNow :: EnvironmentalDataCache.GetCached :: 1
+src/LakskongenSim/Performance/EnvironmentalDataCache.cs :: DateTime.UtcNow :: EnvironmentalDataCache.Store :: 1
+src/LakskongenSim/Politics/StakeholderFactionSystem.cs :: DateTime.Now :: Demand..ctor :: 1
+src/LakskongenSim/Politics/StakeholderFactionSystem.cs :: DateTime.Now :: Demand.IsExpired :: 1
+src/LakskongenSim/Processing/BrandReputation.cs :: DateTime.UtcNow :: BrandReputation.RecordEvent :: 1
+src/LakskongenSim/Processing/ProcessingPlant.cs :: Guid.NewGuid() :: ProcessingPlant.AddProductionLine :: 1

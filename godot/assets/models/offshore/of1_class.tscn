@@ -1,0 +1,20 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="PackedScene" path="res://assets/models/offshore/of1_class_LOD0.glb" id="1_lod0"]
+[ext_resource type="PackedScene" path="res://assets/models/offshore/of1_class_LOD1.glb" id="2_lod1"]
+[ext_resource type="PackedScene" path="res://assets/models/offshore/of1_class_LOD2.glb" id="3_lod2"]
+[ext_resource type="Script" path="res://scripts/visual/OffshoreUnitModel.gd" id="4_unit"]
+
+[node name="OF1Class" instance=ExtResource("1_lod0")]
+script = ExtResource("4_unit")
+asset_id = "of1_class"
+circumradius_m = 55.0
+draft_m = 43.0
+height_m = 68.4
+deck_y_m = 15.4
+air_draught_m = 28.8
+lod_switch = Vector2(500, 2000)
+
+[node name="LOD1" parent="." instance=ExtResource("2_lod1")]
+
+[node name="LOD2" parent="." instance=ExtResource("3_lod2")]

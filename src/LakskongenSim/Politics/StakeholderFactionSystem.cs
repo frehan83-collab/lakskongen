@@ -112,20 +112,26 @@ namespace LakskongenSim.Politics
     {
         private Dictionary<FactionType, Faction> _factions;
         private List<Demand> _demandHistory;
-        private Random _random;
+        private SimRngStream _random;
+        internal SimRngStream RngForSnapshot => _random;
         private int _nextDemandId;
 
         public event Action<FactionType, float, string>? RelationshipChanged;
         public event Action<Demand>? DemandIssued;
         public event Action<ConsequenceResult>? ConsequenceApplied;
 
-        public StakeholderFactionSystem()
+        public StakeholderFactionSystem(SimRngStream rng)
         {
             _factions = new Dictionary<FactionType, Faction>();
             _demandHistory = new List<Demand>();
-            _random = new Random();
+            _random = rng ?? throw new ArgumentNullException(nameof(rng));
             _nextDemandId = 1;
             InitializeFactions();
+        }
+
+        public StakeholderFactionSystem(int? seed = null)
+            : this((seed.HasValue ? new SimRng(seed.Value) : SimRng.CreateUnseeded()).Stream(SimRngStreams.Factions))
+        {
         }
 
         private void InitializeFactions()
@@ -152,7 +158,7 @@ namespace LakskongenSim.Politics
             {
                 Type = FactionType.ENVIRONMENTAL_NGOS,
                 Name = "Environmental NGOs",
-                Description = "Bellona, WWF Norway - advocates for sustainability",
+                Description = "Miljøorganisasjoner som kjemper for bærekraftig havbruk",
                 RelationshipScore = -0.2f, // Initially skeptical
                 Influence = 0.6f
             };

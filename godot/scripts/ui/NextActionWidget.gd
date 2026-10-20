@@ -59,14 +59,8 @@ func _update_suggestion():
 	var text = _decision_manager.GetNextActionSuggestion()
 	
 	suggestion_label.text = text
-	
-	# Color-code by urgency
-	if text.contains("⚠️"):
-		suggestion_label.add_theme_color_override("font_color", LakskongenTheme.WARNING)
-	elif text.contains("💰"):
-		suggestion_label.add_theme_color_override("font_color", LakskongenTheme.DANGER)
-	elif text.contains("🐟"):
-		suggestion_label.add_theme_color_override("font_color", LakskongenTheme.KELP_LIGHT)
-	else:
-		suggestion_label.add_theme_color_override("font_color", LakskongenTheme.TEXT)
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
+
+	# No colour read off the suggestion's text (U2-06: nothing classifies
+	# alert text by substring). Urgency comes back as a typed field when the
+	# widget is revived with the choice events (S4-08, roadmap D6).
+	LakskongenTheme.set_text_color(suggestion_label, LakskongenTheme.TEXT)

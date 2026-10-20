@@ -1,13 +1,19 @@
 using System;
 using LakskongenSim.Data;
+using LakskongenSim.Environment;
 
+using LakskongenSim.Core;
 namespace LakskongenSim.Biology
 {
     /// <summary>
-    /// Simplified growth model that adjusts mean weight.
-    /// Uses biologically-accurate 7-stage salmon lifecycle.
+    /// Fish growth. The engine grows every cohort on the thermal-growth-coefficient
+    /// law in <c>GrowthModel.Tgc.cs</c> (roadmap S2-03): growth from the water the
+    /// cohort lives in, its appetite and the ration fed. The von Bertalanffy SDE
+    /// below (<see cref="ApplySDEGrowthOneDay(double, double, double, double, double, LifeStage)"/>)
+    /// and the compound <see cref="ApplyGrowth"/> are the pre-S2-03 laws: no engine
+    /// path reads them; they stay for their unit tests and the research tools.
     /// </summary>
-    public class GrowthModel
+    public partial class GrowthModel
     {
         /// <summary>Apply growth over a number of days for a cohort.</summary>
         public double ApplyGrowth(double currentWeightKg, int days, LifeStage stage)
@@ -30,19 +36,57 @@ namespace LakskongenSim.Biology
             return newWeight;
         }
 
-        // Thread-safe random using .NET 6+ Random.Shared
-        // For deterministic seeding per instance, use instance field instead
-        private Random _random = Random.Shared;
+        // Thread-safe RNG (TD-06): System.Random instances are NOT thread-safe for
+        // concurrent use. All draws go through NextDoubleLocked(), guarded by _rngLock.
+        // The default (unseeded) instance aliases Random.Shared — itself thread-safe —
+        // while a seeded instance gives deterministic streams for tests.
+        private readonly SimRngStream _random;
+        private readonly object _rngLock = new();
+        internal SimRngStream RngForSnapshot => _random;
         private const double AllometricExponent = 0.67; // Metabolism scaling exponent
         private const double OptimalTemperature = 11.0; // Norwegian optimal
         private const double ThermalTolerance = 3.0;    // Thermal tolerance width
+
+        // Genetic/stochastic spread applied per draw (fraction of the parameter value).
+        private const double AsymptoticWeightSpread = 0.15; // ±15% on K
+        private const double GrowthRateSpread = 0.10;       // ±10% on α_max
+        private const double VarianceSpread = 0.20;         // ±20% on σ
+
+        // Viable growth temperature window (°C). Outside: no growth that day.
+        private const double MinGrowthTemperatureC = 2.0;
+        private const double MaxGrowthTemperatureC = 17.0; // ↓ from 18.0 (tighter upper bound)
+
+        public GrowthModel(SimRngStream rng)
+        {
+            _random = rng ?? throw new ArgumentNullException(nameof(rng));
+        }
+
+        /// <summary>Create a growth model with a non-deterministic RNG.</summary>
+        public GrowthModel() : this(SimRng.CreateUnseeded().Stream(SimRngStreams.Growth)) { }
+
+        /// <summary>
+        /// Create a growth model with an optional deterministic seed (for tests).
+        /// </summary>
+        /// <param name="seed">Seed for the RNG, or null for non-deterministic.</param>
+        public GrowthModel(int? seed)
+            : this(seed.HasValue
+                ? new SimRng(seed.Value).Stream(SimRngStreams.Growth)
+                : SimRng.CreateUnseeded().Stream(SimRngStreams.Growth))
+        {
+        }
+
+        /// <summary>Thread-safe uniform draw in [0,1).</summary>
+        private double NextDoubleLocked()
+        {
+            lock (_rngLock) { return _random.NextDouble(); }
+        }
         
         /// <summary>
         /// Scaling factor applied to geneticGrowthRate to calibrate biological growth.
-        /// With rate=3.0 (engine default), produces ~5kg harvest from 80g smolt in 540 days at 11°C.
+        /// With rate=3.0 (engine default), produces ~5.2kg harvest from 80g smolt in 540 days at 11°C.
         /// Formula: effective α = rate × ScalingFactor × stageModifier × temp_response
         /// </summary>
-        private const double GrowthRateScalingFactor = 0.0015;
+        private const double GrowthRateScalingFactor = 0.0016; // ↑ from 0.0015 (better calibration)
 
         /// <summary>
         /// Apply SDE-based growth for individual fish tracking over one day.
@@ -58,46 +102,102 @@ namespace LakskongenSim.Biology
         /// <returns>New weight after one day</returns>
         public double ApplySDEGrowthOneDay(double weight, double temperature, double geneticAsymptoticWeight, double geneticGrowthRate, double individualVariance, LifeStage lifeStage)
         {
+            return ApplySDEGrowthOneDay(weight, temperature, geneticAsymptoticWeight, geneticGrowthRate, individualVariance, lifeStage, 1.0);
+        }
+
+        /// <summary>
+        /// Apply SDE-based growth for individual fish tracking over one day with environmental multiplier.
+        /// </summary>
+        /// <param name="weight">Current weight in kg</param>
+        /// <param name="temperature">Water temperature in °C</param>
+        /// <param name="geneticAsymptoticWeight">Genetic asymptotic weight K (4-6 kg baseline)</param>
+        /// <param name="geneticGrowthRate">Genetic maximum growth rate α_max (1-100 scale)</param>
+        /// <param name="individualVariance">Individual variance σ (epigenetic + stochastic)</param>
+        /// <param name="lifeStage">Current life stage for stage-specific modifiers</param>
+        /// <param name="environmentalMultiplier">Combined environmental multiplier (DO × density) (0.1-1.0)</param>
+        /// <param name="researchGrowthBonus">Additive growth rate bonus from unlocked research (e.g., 0.04 = +4%).</param>
+        /// <returns>New weight after one day</returns>
+        public double ApplySDEGrowthOneDay(double weight, double temperature, double geneticAsymptoticWeight, double geneticGrowthRate, double individualVariance, LifeStage lifeStage, double environmentalMultiplier = 1.0, double researchGrowthBonus = 0.0)
+        {
             // Genetic variance (±15% on K, ±10% on α_max, ±20% on σ)
-            double asymptoticWeightK = geneticAsymptoticWeight * (1.0 + (_random.NextDouble() - 0.5) * 0.15);
-            
-            // Stage-specific growth modifier (aligns with ApplyGrowth multipliers)
-            double stageModifier = 1.0;
-            switch (lifeStage)
-            {
-                case LifeStage.Egg: stageModifier = 0.1; break;
-                case LifeStage.Alevin: stageModifier = 0.2; break;
-                case LifeStage.Fry: stageModifier = 0.5; break;
-                case LifeStage.Parr: stageModifier = 0.8; break;
-                case LifeStage.Smolt: stageModifier = 0.9; break;
-                case LifeStage.Seawater: stageModifier = 1.2; break;
-                case LifeStage.Harvest: stageModifier = 0.8; break;
-            }
+            double asymptoticWeightK = geneticAsymptoticWeight * (1.0 + (NextDoubleLocked() - 0.5) * AsymptoticWeightSpread);
+            double maxGrowthRate = geneticGrowthRate * GrowthRateScalingFactor * (1.0 + (NextDoubleLocked() - 0.5) * GrowthRateSpread) * StageModifier(lifeStage) * (1.0 + researchGrowthBonus);
+            double variance = individualVariance * (1.0 + (NextDoubleLocked() - 0.5) * VarianceSpread);
 
-            double maxGrowthRate = geneticGrowthRate * GrowthRateScalingFactor * (1.0 + (_random.NextDouble() - 0.5) * 0.1) * stageModifier;
-            double variance = individualVariance * (1.0 + (_random.NextDouble() - 0.5) * 0.2);
-
-            // Temperature-dependent growth rate: α(T) = α_max × exp(−(T − T_opt)^2 / (2τ^2))
-            if (temperature < 2.0 || temperature > 18.0) return weight; // No growth outside range
-            double alphaT = maxGrowthRate * Math.Exp(-Math.Pow(temperature - OptimalTemperature, 2) / (2.0 * Math.Pow(ThermalTolerance, 2)));
+            if (temperature < MinGrowthTemperatureC || temperature > MaxGrowthTemperatureC) return weight; // No growth outside range
 
             // Proper SDE with time step dt = 1 day
             // Box-Muller transform for normal noise N(0,1)
-            double u1 = _random.NextDouble();
-            double u2 = _random.NextDouble();
+            // NOTE: 1.0 - NextDouble() keeps u1 in (0,1]; NextDouble() can
+            // return exactly 0.0, and Log(0) would poison weights with NaN/Inf.
+            double u1 = 1.0 - NextDoubleLocked();
+            double u2 = NextDoubleLocked();
             double normalNoise = Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Cos(2.0 * Math.PI * u2);
-            
-            double deterministicGrowth = alphaT * Math.Pow(weight, AllometricExponent) * (1.0 - weight / asymptoticWeightK);
-            double stochasticGrowth = variance * Math.Sqrt(1.0) * normalNoise; // sqrt(dt) where dt=1
+
+            double deterministicGrowth = DriftGrowth(weight, temperature, asymptoticWeightK, maxGrowthRate, environmentalMultiplier);
+            double stochasticGrowth = variance * deterministicGrowth * Math.Sqrt(1.0) * normalNoise; // sqrt(dt) where dt=1
             double newWeight = weight + deterministicGrowth + stochasticGrowth;
 
             return newWeight > 0.0 ? newWeight : 0.0; // Non-negative weight
         }
 
         /// <summary>
+        /// Expected one-day weight under the SDE with every random term at its
+        /// mean (no genetic spread, no noise). Pure: draws nothing from the RNG,
+        /// so read-only projections (ForecastTwin, UI forecasts) can never move
+        /// the saved growth stream (review F521/F835). Shares
+        /// <see cref="DriftGrowth"/> with <see cref="ApplySDEGrowthOneDay(double, double, double, double, double, LifeStage, double, double)"/>.
+        /// </summary>
+        public static double ProjectGrowthOneDay(double weight, double temperature, double geneticAsymptoticWeight,
+            double geneticGrowthRate, LifeStage lifeStage, double environmentalMultiplier = 1.0, double researchGrowthBonus = 0.0)
+        {
+            if (temperature < MinGrowthTemperatureC || temperature > MaxGrowthTemperatureC) return weight;
+            double maxGrowthRate = geneticGrowthRate * GrowthRateScalingFactor * StageModifier(lifeStage) * (1.0 + researchGrowthBonus);
+            double newWeight = weight + DriftGrowth(weight, temperature, geneticAsymptoticWeight, maxGrowthRate, environmentalMultiplier);
+            return newWeight > 0.0 ? newWeight : 0.0;
+        }
+
+        /// <summary>Stage-specific growth modifier (aligns with ApplyGrowth multipliers).</summary>
+        private static double StageModifier(LifeStage lifeStage) => lifeStage switch
+        {
+            LifeStage.Egg => 0.1,
+            LifeStage.Alevin => 0.2,
+            LifeStage.Fry => 0.5,
+            LifeStage.Parr => 0.8,
+            LifeStage.Smolt => 0.9,
+            LifeStage.Seawater => 1.2,
+            LifeStage.Harvest => 0.8,
+            _ => 1.0
+        };
+
+        /// <summary>
+        /// Deterministic SDE drift for one day: temperature-dependent rate
+        /// α(T) = α_max × exp(−(T − T_opt)² / (2τ²)), allometric von Bertalanffy
+        /// term, and the environmental multiplier applied additively in log
+        /// space (log(1 + x) ≈ x), i.e. 1 + (m − 1) × 0.5 clamped to [0.5, 1.5]
+        /// so environment acts as a ±50% perturbation of the VB baseline.
+        /// </summary>
+        private static double DriftGrowth(double weight, double temperature, double asymptoticWeightK,
+            double maxGrowthRate, double environmentalMultiplier)
+        {
+            double alphaT = maxGrowthRate * Math.Exp(-Math.Pow(temperature - OptimalTemperature, 2) / (2.0 * Math.Pow(ThermalTolerance, 2)));
+            double combinedMultiplier = 1.0 + (environmentalMultiplier - 1.0) * 0.5;
+            combinedMultiplier = Math.Clamp(combinedMultiplier, 0.5, 1.5);
+            return alphaT * Math.Pow(weight, AllometricExponent) * (1.0 - weight / asymptoticWeightK) * combinedMultiplier;
+        }
+
+        /// <summary>
         /// Apply SDE growth over multiple days (batch processing optimized).
         /// </summary>
         public double ApplySDEGrowthMultipleDays(double initialWeight, int days, double temperature, double geneticAsymptoticWeight, double geneticGrowthRate, double individualVariance, LifeStage lifeStage)
+        {
+            return ApplySDEGrowthMultipleDays(initialWeight, days, temperature, geneticAsymptoticWeight, geneticGrowthRate, individualVariance, lifeStage, 1.0, 0.0);
+        }
+
+        /// <summary>
+        /// Apply SDE growth over multiple days with environmental multiplier and research bonus.
+        /// </summary>
+        public double ApplySDEGrowthMultipleDays(double initialWeight, int days, double temperature, double geneticAsymptoticWeight, double geneticGrowthRate, double individualVariance, LifeStage lifeStage, double environmentalMultiplier = 1.0, double researchGrowthBonus = 0.0)
         {
             if (days <= 0) return initialWeight;
             double weight = initialWeight;
@@ -107,15 +207,16 @@ namespace LakskongenSim.Biology
             double[] noises = new double[days];
             for (int i = 0; i < days; i++)
             {
-                double u1 = _random.NextDouble();
-                double u2 = _random.NextDouble();
+                // See note above: guard against Log(0).
+                double u1 = 1.0 - NextDoubleLocked();
+                double u2 = NextDoubleLocked();
                 noises[i] = Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Cos(2.0 * Math.PI * u2);
             }
 
             // Genetic parameters (fixed for this batch)
-            double asymptoticWeightK = geneticAsymptoticWeight * (1.0 + (_random.NextDouble() - 0.5) * 0.15);
-            double maxGrowthRate = geneticGrowthRate * GrowthRateScalingFactor * (1.0 + (_random.NextDouble() - 0.5) * 0.1);
-            double variance = individualVariance * (1.0 + (_random.NextDouble() - 0.5) * 0.2);
+            double asymptoticWeightK = geneticAsymptoticWeight * (1.0 + (NextDoubleLocked() - 0.5) * AsymptoticWeightSpread);
+            double maxGrowthRate = geneticGrowthRate * GrowthRateScalingFactor * (1.0 + (NextDoubleLocked() - 0.5) * GrowthRateSpread);
+            double variance = individualVariance * (1.0 + (NextDoubleLocked() - 0.5) * VarianceSpread);
             
             // Stage modifier
             double stageModifier = 1.0;
@@ -130,21 +231,69 @@ namespace LakskongenSim.Biology
                 case LifeStage.Harvest: stageModifier = 0.8; break;
             }
             
-            maxGrowthRate *= stageModifier;
-
+            maxGrowthRate *= stageModifier * (1.0 + researchGrowthBonus);
+            
             // Temperature effect (constant over batch)
-            if (temperature < 2.0 || temperature > 18.0) return weight; // No growth
+            if (temperature < MinGrowthTemperatureC || temperature > MaxGrowthTemperatureC) return weight; // No growth
             double alphaT = maxGrowthRate * Math.Exp(-Math.Pow(temperature - OptimalTemperature, 2) / (2.0 * Math.Pow(ThermalTolerance, 2)));
+
+            // Apply environmental multiplier ADDITIVELY in log-space to preserve VB baseline
+            double combinedMultiplier = 1.0 + (environmentalMultiplier - 1.0) * 0.5;
+            combinedMultiplier = Math.Clamp(combinedMultiplier, 0.5, 1.5);
 
             for (int day = 0; day < days; day++)
             {
-                double deterministic = alphaT * Math.Pow(weight, AllometricExponent) * (1.0 - weight / asymptoticWeightK);
-                double stochastic = variance * noises[day]; // sqrt(dt)=1
+                double deterministic = alphaT * Math.Pow(weight, AllometricExponent) * (1.0 - weight / asymptoticWeightK) * combinedMultiplier;
+                double stochastic = variance * deterministic * noises[day]; // sqrt(dt)=1, stochastic scales with deterministic growth
                 weight += deterministic + stochastic;
                 if (weight <= 0.0) weight = 0.0;
             }
             
             return weight;
         }
+
+        /// <summary>
+        /// Calculate combined environmental growth multiplier from DO and stocking density.
+        /// </summary>
+        public double CalculateCombinedEnvironmentalMultiplier(
+            WaterChemistry waterChemistry,
+            double temperatureC,
+            double stockingDensityKgM3,
+            double salinityPSU = 35.0)
+        {
+            return WaterQuality.CalculateCombinedEnvironmentalMultiplier(
+                waterChemistry, temperatureC, stockingDensityKgM3, salinityPSU);
+        }
+
+        /// <summary>
+        /// Capture a save snapshot. GrowthModel is stateless by design (all
+        /// formulation parameters are compile-time constants; the RNG only
+        /// serves independent per-tick draws, so continuity is intentionally
+        /// not preserved). The snapshot is a schema marker so saves record
+        /// that growth state was considered, and so RestoreFromSave has a
+        /// symmetric, future-proof contract.
+        /// </summary>
+        public GrowthModelSnapshot GetSaveSnapshot() => new();
+
+        /// <summary>
+        /// Restore growth state after a load. No-op by design (see
+        /// <see cref="GetSaveSnapshot"/>): accepts null for saves written
+        /// before this snapshot existed. Growth resumes with identical
+        /// deterministic output for identical inputs.
+        /// </summary>
+        public void RestoreFromSave(GrowthModelSnapshot? snapshot)
+        {
+            // Intentionally stateless — nothing to rehydrate.
+            _ = snapshot;
+        }
+    }
+
+    /// <summary>
+    /// Save snapshot for <see cref="GrowthModel"/>. Deliberately empty: the
+    /// model carries no serializable runtime state. Kept as a named type so
+    /// GameState documents growth coverage and future state has a home.
+    /// </summary>
+    public sealed class GrowthModelSnapshot
+    {
     }
 }

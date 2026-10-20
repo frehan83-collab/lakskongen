@@ -1,0 +1,59 @@
+{
+  "asset": "sludge_station",
+  "atlas": "godot/assets/models/facility_kit/textures/facility_atlas.png",
+  "bbox_size": [
+    20.5,
+    9.12,
+    12.96
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "height_m": 8.0,
+    "length_m": 20.2,
+    "width_m": 12.0
+  },
+  "file": "sludge_station_LOD0.glb",
+  "lod": "LOD0",
+  "material_count": 1,
+  "materials": [
+    "LK_FacilityKit"
+  ],
+  "part_strips": {
+    "Canopy": "steel",
+    "CanopyRoof": "hall_roof",
+    "Doors": "door",
+    "House": "hall_clad",
+    "Plinth": "concrete",
+    "Roof": "hall_roof",
+    "Roofgear": "steel",
+    "Skips": "sludge",
+    "Trim": "steel",
+    "Windows": "window"
+  },
+  "parts": {
+    "Canopy": 32,
+    "CanopyRoof": 12,
+    "Doors": 24,
+    "House": 158,
+    "Plinth": 44,
+    "Roof": 40,
+    "Roofgear": 20,
+    "Skips": 20,
+    "Trim": 20,
+    "Windows": 16
+  },
+  "surfaces": 1,
+  "swatches": {
+    "House": {
+      "hex": "#D6DADC",
+      "spec": "#D5D9DB",
+      "strip": "hall_clad"
+    },
+    "Skips": {
+      "hex": "#6E7B73",
+      "spec": "#6E7B73",
+      "strip": "sludge"
+    }
+  },
+  "tri_count": 386
+}

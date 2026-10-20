@@ -1,0 +1,80 @@
+name: ci
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  # Superseded PR runs are cancelled; every main/master run completes.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/master' }}
+
+jobs:
+  quality-gate:
+    name: Quality gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      DOTNET_NOLOGO: "1"
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      DOTNET_ROLL_FORWARD: LatestMajor
+    steps:
+      # Actions are pinned to commit SHAs (the tag each one resolved to).
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Setup Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+
+      - name: Install the gate's Python packages
+        run: python -m pip install -r requirements-dev.txt
+
+      # use-dotnet selects the C# (mono) build; the export gate needs the
+      # templates (the Linux preset is exported on this runner).
+      - name: Setup Godot 4.7.2 (.NET, headless)
+        uses: chickensoft-games/setup-godot@ac93246ea68518a384c1c280a496e5989341f2f6 # v2.4.3
+        with:
+          version: 4.7.2
+          use-dotnet: true
+          include-templates: true
+
+      - name: Locate Godot binary
+        run: |
+          BIN="$(command -v godot || command -v godot-mono || true)"
+          if [ -z "$BIN" ]; then
+            BIN="$(find "$HOME" "$RUNNER_TOOL_CACHE" -maxdepth 5 -name 'Godot*' -type f 2>/dev/null | head -1)"
+          fi
+          [ -n "$BIN" ] || { echo "Godot binary not found"; exit 1; }
+          echo "GODOT_BIN=$BIN" >> "$GITHUB_ENV"
+          "$BIN" --version
+
+      # The shader gate compiles every shader under a real renderer, which
+      # needs a display: Xvfb (xvfb-run needs xauth) and Mesa's software
+      # Vulkan and OpenGL drivers. Godot draws the project's Forward+ renderer
+      # with Mesa's Vulkan (lavapipe); the gate prints the renderer it got and
+      # fails if Godot fell back to OpenGL (Compatibility) instead.
+      - name: Install a virtual display for the shader gate
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xvfb xauth mesa-vulkan-drivers libgl1-mesa-dri
+
+      # The runner checks out a clean tree, so tools/ci.sh imports the Godot
+      # project before the Godot gates (tools/ci_clean_checkout.sh reproduces
+      # this locally).
+      - name: Run quality gate
+        env:
+          # A skipped step fails the run here: a missing tool must not turn
+          # into a green build.
+          CI_REQUIRE_ALL: "1"
+        run: bash tools/ci.sh

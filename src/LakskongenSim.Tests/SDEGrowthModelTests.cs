@@ -3,6 +3,7 @@ using System.Linq;
 using Xunit;
 using LakskongenSim.Biology;
 using LakskongenSim.Data;
+using LakskongenSim.Environment;
 
 namespace LakskongenSim.Tests
 {
@@ -405,6 +406,306 @@ namespace LakskongenSim.Tests
             
             Assert.True(midGrowthRate > lateGrowthRate, 
                 "Growth rate should slow as approaching asymptotic size");
+        }
+
+        #endregion
+
+        #region Water Quality (DO & Stocking Density) Tests
+
+        /// <summary>
+        /// Roadmap D2 (S1-01) fixed the seawater solubility: the old band
+        /// (10.5-12.0 mg/L at 10 °C, 35 PSU) held the freshwater value 11.3 that
+        /// the table carried. Seawater at 10 °C and 35 PSU holds 9.02 mg/L
+        /// (Weiss 1970; Garcia &amp; Gordon 1992); the band is now ±0.05.
+        /// </summary>
+        [Fact]
+        public void CalculateOxygenSaturation_At10C_ReturnsExpectedValue()
+        {
+            double sat = WaterQuality.CalculateOxygenSaturation(10.0);
+            Assert.InRange(sat, 8.97, 9.07);
+        }
+
+        /// <summary>
+        /// The solubility against an independent fit: Garcia &amp; Gordon (1992),
+        /// "combined fit" coefficients for mL/L (Benson-Krause data), times
+        /// 1.42903 mg/mL. A different functional form from the engine's APHA
+        /// equation, so a coefficient typo in either shows up here.
+        /// </summary>
+        [Theory]
+        [InlineData(0.0, 0.0)]
+        [InlineData(10.0, 0.0)]
+        [InlineData(20.0, 0.0)]
+        [InlineData(2.0, 33.0)]
+        [InlineData(6.0, 34.0)]
+        [InlineData(10.0, 35.0)]
+        [InlineData(14.0, 35.0)]
+        [InlineData(18.0, 35.0)]
+        [InlineData(24.0, 35.0)]
+        public void CalculateOxygenSaturation_MatchesGarciaGordonSeawaterSolubility(double temperatureC, double salinityPsu)
+        {
+            double ts = Math.Log((298.15 - temperatureC) / (273.15 + temperatureC));
+            double[] a = { 2.00907, 3.22014, 4.05010, 4.94457, -0.256847, 3.88767 };
+            double[] b = { -6.24523e-3, -7.37614e-3, -1.03410e-2, -8.17083e-3 };
+            double ln = 0.0, salt = 0.0;
+            for (int i = 0; i < a.Length; i++) ln += a[i] * Math.Pow(ts, i);
+            for (int i = 0; i < b.Length; i++) salt += b[i] * Math.Pow(ts, i);
+            double expectedMgL = Math.Exp(ln + salinityPsu * salt - 4.88682e-7 * salinityPsu * salinityPsu) * 1.42903;
+
+            Assert.Equal(expectedMgL, WaterQuality.CalculateOxygenSaturation(temperatureC, salinityPsu), 2);
+        }
+
+        [Fact]
+        public void CalculateOxygenSaturation_ReferenceValues_FreshAndSeawater()
+        {
+            // Freshwater, 1 atm (USGS DOTABLES / APHA 4500-O): 14.62, 11.29, 9.09 mg/L.
+            Assert.Equal(14.62, WaterQuality.CalculateOxygenSaturation(0.0, 0.0), 2);
+            Assert.Equal(11.29, WaterQuality.CalculateOxygenSaturation(10.0, 0.0), 2);
+            Assert.Equal(9.09, WaterQuality.CalculateOxygenSaturation(20.0, 0.0), 2);
+            // Seawater at 35 PSU holds about a fifth less than freshwater.
+            double ratio = WaterQuality.CalculateOxygenSaturation(10.0, 35.0) / WaterQuality.CalculateOxygenSaturation(10.0, 0.0);
+            Assert.InRange(ratio, 0.79, 0.81);
+        }
+
+        [Fact]
+        public void CalculateOxygenSaturation_HigherTemp_LowerSaturation()
+        {
+            var model = new SDEGrowthModel(TestSeed);
+            double satCold = WaterQuality.CalculateOxygenSaturation(5.0);
+            double satWarm = WaterQuality.CalculateOxygenSaturation(15.0);
+            Assert.True(satCold > satWarm, "Colder water should hold more oxygen");
+        }
+
+        [Fact]
+        public void CalculateDOSaturation_AtSaturation_ReturnsOne()
+        {
+            var model = new SDEGrowthModel(TestSeed);
+            double sat = WaterQuality.CalculateOxygenSaturation(10.0);
+            double doSat = WaterQuality.CalculateDOSaturation(sat, 10.0);
+            Assert.Equal(1.0, doSat, 3);
+        }
+
+        [Fact]
+        public void CalculateDOSaturation_BelowSaturation_ReturnsFraction()
+        {
+            var model = new SDEGrowthModel(TestSeed);
+            double sat = WaterQuality.CalculateOxygenSaturation(10.0);
+            double doSat = WaterQuality.CalculateDOSaturation(sat * 0.5, 10.0);
+            Assert.Equal(0.5, doSat, 3);
+        }
+
+        [Fact]
+        public void CalculateDOSaturationModifier_AboveThreshold_ReturnsOne()
+        {
+            var model = new SDEGrowthModel(TestSeed);
+            double modifier = WaterQuality.CalculateDOSaturationModifier(0.60);
+            Assert.Equal(1.0, modifier, 3);
+
+            modifier = WaterQuality.CalculateDOSaturationModifier(0.80);
+            Assert.Equal(1.0, modifier, 3);
+
+            modifier = WaterQuality.CalculateDOSaturationModifier(1.0);
+            Assert.Equal(1.0, modifier, 3);
+        }
+
+        [Fact]
+        public void CalculateDOSaturationModifier_BelowThreshold_ExponentialReduction()
+        {
+            var model = new SDEGrowthModel(TestSeed);
+            // At 30% saturation: 1 - exp(-0.3/0.3) = 1 - exp(-1) ≈ 0.632
+            double modifier30 = WaterQuality.CalculateDOSaturationModifier(0.30);
+            Assert.InRange(modifier30, 0.60, 0.66);
+
+            // At 10% saturation: 1 - exp(-0.1/0.3) = 1 - exp(-0.333) ≈ 0.283
+            double modifier10 = WaterQuality.CalculateDOSaturationModifier(0.10);
+            Assert.InRange(modifier10, 0.28, 0.32);
+
+            // At 0% saturation: should be clamped to minimum 0.2
+            double modifier0 = WaterQuality.CalculateDOSaturationModifier(0.0);
+            Assert.Equal(0.2, modifier0, 3);
+        }
+
+        [Fact]
+        public void CalculateDOSaturationModifier_ClampedToRange()
+        {
+            var model = new SDEGrowthModel(TestSeed);
+            // Should never exceed 1.0
+            Assert.True(WaterQuality.CalculateDOSaturationModifier(1.5) <= 1.0);
+            // Should never go below 0.2
+            Assert.True(WaterQuality.CalculateDOSaturationModifier(-0.5) >= 0.2);
+        }
+
+        [Fact]
+        public void CalculateStockingDensityModifier_BelowThreshold_ReturnsOne()
+        {
+            var model = new SDEGrowthModel(TestSeed);
+            double modifier = WaterQuality.CalculateStockingDensityModifier(20.0);
+            Assert.Equal(1.0, modifier, 3);
+
+            modifier = WaterQuality.CalculateStockingDensityModifier(25.0);
+            Assert.Equal(1.0, modifier, 3);
+        }
+
+        [Fact]
+        public void CalculateStockingDensityModifier_AboveThreshold_LinearReduction()
+        {
+            var model = new SDEGrowthModel(TestSeed);
+            // At 25 kg/m³: 1.0 (threshold)
+            Assert.Equal(1.0, WaterQuality.CalculateStockingDensityModifier(25.0), 3);
+
+            // At 50 kg/m³: 1 - (50-25)/75 = 1 - 25/75 = 0.667
+            double modifier50 = WaterQuality.CalculateStockingDensityModifier(50.0);
+            Assert.InRange(modifier50, 0.65, 0.69);
+
+            // At 100 kg/m³: 1 - (100-25)/75 = 1 - 75/75 = 0.0 -> clamped to 0.5
+            double modifier100 = WaterQuality.CalculateStockingDensityModifier(100.0);
+            Assert.Equal(0.5, modifier100, 3);
+        }
+
+        [Fact]
+        public void CalculateStockingDensityModifier_ClampedToMin()
+        {
+            var model = new SDEGrowthModel(TestSeed);
+            // Should never go below 0.5
+            Assert.True(WaterQuality.CalculateStockingDensityModifier(200.0) >= 0.5);
+        }
+
+        [Fact]
+        public void UpdateDailyDO_IncreasesOxygenWithHighCurrent()
+        {
+            var model = new SDEGrowthModel(TestSeed);
+            var waterChem = new WaterChemistry(10.0);
+            waterChem.OxygenO2 = 8.0; // Start at 8 mg/L
+
+            double initialO2 = waterChem.OxygenO2;
+            WaterQuality.UpdateDailyDO(
+                waterChem,
+                temperatureC: 10.0,
+                biomassKg: 10000.0,
+                feedRateKgPerDay: 100.0,
+                fcr: 1.2,
+                penVolumeM3: 10000.0,
+                currentSpeedMs: 0.3, // High current
+                salinityPSU: 35.0);
+
+            // With high current, reaeration should help maintain/increase oxygen
+            // The exact change depends on consumption vs reaeration balance
+            Assert.True(waterChem.OxygenO2 >= 0.0 && waterChem.OxygenO2 <= 14.0);
+        }
+
+        [Fact]
+        public void UpdateDailyDO_DecreasesOxygenWithHighBiomass()
+        {
+            var model = new SDEGrowthModel(TestSeed);
+            var waterChem = new WaterChemistry(10.0);
+            waterChem.OxygenO2 = 11.3; // Start at saturation
+
+            double initialO2 = waterChem.OxygenO2;
+            WaterQuality.UpdateDailyDO(
+                waterChem,
+                temperatureC: 10.0,
+                biomassKg: 500000.0, // Very high biomass
+                feedRateKgPerDay: 5000.0,
+                fcr: 1.2,
+                penVolumeM3: 10000.0,
+                currentSpeedMs: 0.05, // Low current
+                salinityPSU: 35.0);
+
+            // High biomass + low current should decrease oxygen
+            Assert.True(waterChem.OxygenO2 < initialO2);
+            Assert.True(waterChem.OxygenO2 >= 0.0);
+        }
+
+        [Fact]
+        public void CalculateCombinedEnvironmentalMultiplier_BothOptimal_ReturnsOne()
+        {
+            var model = new SDEGrowthModel(TestSeed);
+            var waterChem = new WaterChemistry(11.0);
+            waterChem.OxygenO2 = 11.3; // Saturation at 11°C
+
+            double multiplier = WaterQuality.CalculateCombinedEnvironmentalMultiplier(
+                waterChem, 11.0, 20.0, 35.0);
+
+            Assert.Equal(1.0, multiplier, 2);
+        }
+
+        [Fact]
+        public void CalculateCombinedEnvironmentalMultiplier_LowDO_ReducesGrowth()
+        {
+            var model = new SDEGrowthModel(TestSeed);
+            var waterChem = new WaterChemistry(11.0);
+            waterChem.OxygenO2 = 4.0; // Low oxygen (~35% saturation)
+
+            double multiplier = WaterQuality.CalculateCombinedEnvironmentalMultiplier(
+                waterChem, 11.0, 20.0, 35.0);
+
+            // DO saturation ~0.35 -> modifier ~0.68, density 20 -> modifier 1.0
+            // Combined ≈ 0.68
+            Assert.True(multiplier < 1.0);
+            Assert.True(multiplier >= 0.2);
+        }
+
+        [Fact]
+        public void CalculateCombinedEnvironmentalMultiplier_HighDensity_ReducesGrowth()
+        {
+            var model = new SDEGrowthModel(TestSeed);
+            var waterChem = new WaterChemistry(11.0);
+            waterChem.OxygenO2 = 11.3; // Optimal oxygen
+
+            double multiplier = WaterQuality.CalculateCombinedEnvironmentalMultiplier(
+                waterChem, 11.0, 50.0, 35.0);
+
+            // DO optimal -> 1.0, density 50 -> 0.667
+            // Combined ≈ 0.667
+            Assert.InRange(multiplier, 0.65, 0.69);
+        }
+
+        [Fact]
+        public void CalculateCombinedEnvironmentalMultiplier_BothStressors_Compounds()
+        {
+            var model = new SDEGrowthModel(TestSeed);
+            var waterChem = new WaterChemistry(11.0);
+            waterChem.OxygenO2 = 4.0; // Low oxygen
+
+            double multiplier = WaterQuality.CalculateCombinedEnvironmentalMultiplier(
+                waterChem, 11.0, 50.0, 35.0);
+
+            // DO ~0.35 sat -> ~0.68, density 50 -> ~0.667
+            // Combined ≈ 0.45
+            Assert.True(multiplier < 0.7);
+            Assert.True(multiplier >= 0.1); // floor is 0.2 * 0.5 = 0.1
+        }
+
+        [Fact]
+        public void ApplySDEGrowth_WithEnvironmentalMultiplier_ReducesGrowth()
+        {
+            var model = new SDEGrowthModel(TestSeed);
+            double initialWeight = 1.0;
+            double asymptoticWeight = 5.0;
+            double growthRate = 0.015;
+            double variance = 0.02;
+
+            // Without environmental stress
+            double normalWeight = model.ApplySDEGrowth(
+                initialWeight, 11.0, asymptoticWeight, growthRate, variance, 1.0, 1.0);
+
+            // With environmental stress (e.g., 0.5 multiplier)
+            double stressedWeight = model.ApplySDEGrowth(
+                initialWeight, 11.0, asymptoticWeight, growthRate, variance, 1.0, 0.5);
+
+            Assert.True(stressedWeight < normalWeight, 
+                $"Environmental stress should reduce growth: {stressedWeight} vs {normalWeight}");
+        }
+
+        [Fact]
+        public void ApplySDEGrowth_WithEnvironmentalMultiplier_Deterministic()
+        {
+            var model1 = new SDEGrowthModel(TestSeed);
+            var model2 = new SDEGrowthModel(TestSeed);
+
+            double w1 = model1.ApplySDEGrowth(1.0, 11.0, 5.0, 0.015, 0.02, 1.0, 0.7);
+            double w2 = model2.ApplySDEGrowth(1.0, 11.0, 5.0, 0.015, 0.02, 1.0, 0.7);
+
+            Assert.Equal(w1, w2, 6);
         }
 
         #endregion

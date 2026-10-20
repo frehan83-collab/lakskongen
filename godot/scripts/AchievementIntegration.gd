@@ -138,4 +138,3 @@ func unlock_test_achievement():
 ## Manually update progress (testing/debug)
 func test_progress_update():
 	AchievementManager.update_progress("harvest_veteran", 5)
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

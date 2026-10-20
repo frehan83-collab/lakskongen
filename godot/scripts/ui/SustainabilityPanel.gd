@@ -1,34 +1,46 @@
-# SustainabilityPanel.gd
-# UI for displaying sustainability score (0-100) and certification level
-# Godot 4 GDScript
+## SustainabilityPanel v2.1 — Nordic Minimalist (scene-based).
+## Layout lives in scenes/ui/SustainabilityPanel.tscn; this script is wiring only:
+## @onready % refs, signal hookups, localization, theme fonts, data refresh.
+## Category rows are data-driven and still populated in code.
 
 extends PanelContainer
 class_name SustainabilityPanel
 
-# UI References (assign in editor or create dynamically)
-@onready var score_label: Label
-@onready var certification_label: Label
-@onready var price_multiplier_label: Label
+# ── Scene refs ────────────────────────────────────────────────────────────────
+@onready var _header_label: Label = %Header
+@onready var score_value_label: Label = %ScoreValueLabel
+@onready var score_unit_label: Label = %ScoreUnitLabel
+@onready var score_caption_label: Label = %ScoreCaptionLabel
+@onready var certification_label: Label = %CertificationBadgeLabel
+@onready var warning_label: Label = %WarningLabel
+@onready var price_multiplier_label: Label = %price_multiplier_label
+@onready var _breakdown_header: Label = %BreakdownHeader
+@onready var category_container: VBoxContainer = %category_container
 
-# Category breakdown display
-@onready var category_container: VBoxContainer
+# Legacy alias: older code/C# docs refer to score_label as the big score readout.
+# It points at the dedicated value cell (numeric only, no format string).
+var score_label: Label = null
+
+# ── Autoloads ─────────────────────────────────────────────────────────────────
+var _sim_bridge: Node = null
+var _theme: Node = null
 
 # Color scheme from design tokens
-const COLOR_BG = "#0F1720"
-const COLOR_PANEL = "#121826"
-const COLOR_TEXT = "#2E3440"
-const COLOR_MUTED = "#7B8794"
-const COLOR_ACCENT = "#2AB7B5"
-const COLOR_ACCENT_2 = "#1F7A8C"
-const COLOR_DANGER = "#E06666"
+const COLOR_BG = "#1C1E20"
+const COLOR_PANEL = "#13394B"
+const COLOR_TEXT = "#1C1E20"
+const COLOR_MUTED = "#5A6168"
+const COLOR_ACCENT = "#1F5E73"
+const COLOR_ACCENT_2 = "#1F5E73"
+const COLOR_DANGER = "#B3172F"
 
 # Certification level colors
 const CERT_COLORS = {
-	"NonCompliant": "#E06666",        # Red
-	"BasicCompliance": "#D4AF37",     # Gold
-	"ASCCertified": "#2AB7B5",        # Cyan (accent)
-	"OrganicCertified": "#4CAF50",    # Green
-	"SustainabilityLeader": "#00E676" # Bright green
+	"NonCompliant": "#B3172F",        # Red
+	"BasicCompliance": "#8A5A00",     # Gold
+	"ASCCertified": "#1F5E73",        # Cyan (accent)
+	"OrganicCertified": "#2E6B45",    # Green
+	"SustainabilityLeader": "#2E6B45" # Bright green
 }
 
 # Current data
@@ -38,163 +50,167 @@ var category_scores: Dictionary = {}
 
 signal score_updated(score: int, certification: String)
 
-func _ready():
-	# Create UI elements if not assigned
-	if not score_label:
-		_create_ui()
-	
-	# Connect to SimBridge for live data updates
-	if has_node("/root/SimBridge"):
-		var sim_bridge = get_node("/root/SimBridge")
-		sim_bridge.state_updated.connect(_on_state_updated)
-		print("SustainabilityPanel: connected to SimBridge")
-	else:
+func _ready() -> void:
+	_sim_bridge = get_node_or_null("/root/SimBridge")
+	_theme = get_node_or_null("/root/LakskongenTheme")
+
+	score_label = score_value_label
+
+	if _sim_bridge and _sim_bridge.has_signal("state_updated"):
+		_sim_bridge.state_updated.connect(_on_state_updated)
+	elif _sim_bridge == null:
 		push_warning("SustainabilityPanel: SimBridge not found")
-	
-	# Initial display with live data
+
+	_apply_localization()
+	_apply_theme_fonts()
 	_refresh_from_bridge()
 
 func _input(event: InputEvent) -> void:
 	"""Handle keyboard navigation"""
 	if not visible:
 		return
-	
+
 	if event.is_action_pressed("ui_cancel"):
 		hide()
 		get_viewport().set_input_as_handled()
 
-func _create_ui():
-	"""Dynamically create UI elements if not set in editor"""
-	
-	# Main container
-	var margin = MarginContainer.new()
-	margin.add_theme_constant_override("margin_top", 16)
-	margin.add_theme_constant_override("margin_bottom", 16)
-	margin.add_theme_constant_override("margin_left", 16)
-	margin.add_theme_constant_override("margin_right", 16)
-	add_child(margin)
-	
-	var vbox = VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 12)
-	margin.add_child(vbox)
-	
-	# Header
-	var header = Label.new()
-	header.text = tr("UI_SUSTAINABILITY_HEADER")
-	header.tooltip_text = tr("UI_SUSTAINABILITY_TOOLTIP")
-	header.add_theme_font_size_override("font_size", 20)
-	header.add_theme_color_override("font_color", Color(COLOR_TEXT))
-	header.tooltip_text = "Bærekraftsscore (0-100) og sertifiseringsnivå basert på miljøpåvirkning og praksis."
-	vbox.add_child(header)
-	
-	# Score display (large)
-	score_label = Label.new()
-	score_label.add_theme_font_size_override("font_size", 48)
-	score_label.add_theme_color_override("font_color", Color(COLOR_ACCENT))
-	score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	vbox.add_child(score_label)
-	
-	# Certification level
-	certification_label = Label.new()
-	certification_label.add_theme_font_size_override("font_size", 18)
-	certification_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	vbox.add_child(certification_label)
-	
-	# Price multiplier
-	price_multiplier_label = Label.new()
-	price_multiplier_label.add_theme_font_size_override("font_size", 14)
-	price_multiplier_label.add_theme_color_override("font_color", Color(COLOR_MUTED))
-	price_multiplier_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	vbox.add_child(price_multiplier_label)
-	
-	# Separator
-	var separator = HSeparator.new()
-	vbox.add_child(separator)
-	
-	# Category breakdown header
-	var breakdown_header = Label.new()
-	breakdown_header.text = tr("UI_SUSTAINABILITY_BREAKDOWN")
-	breakdown_header.add_theme_font_size_override("font_size", 16)
-	breakdown_header.add_theme_color_override("font_color", Color(COLOR_TEXT))
-	vbox.add_child(breakdown_header)
-	
-	# Category container
-	category_container = VBoxContainer.new()
-	category_container.add_theme_constant_override("separation", 8)
-	vbox.add_child(category_container)
+# ── Scene wiring ──────────────────────────────────────────────────────────────
+
+func _apply_localization() -> void:
+	_header_label.text = tr("UI_SUSTAINABILITY_HEADER")
+	_header_label.tooltip_text = tr("UI_SUSTAINABILITY_TOOLTIP")
+	_breakdown_header.text = tr("UI_SUSTAINABILITY_BREAKDOWN")
+
+func _apply_theme_fonts() -> void:
+	if not _theme:
+		return
+	LakskongenTheme.set_strong(_header_label)
+	LakskongenTheme.set_strong(score_value_label)
+	LakskongenTheme.set_strong(certification_label)
+	LakskongenTheme.set_strong(_breakdown_header)
 
 func update_display(score: int, certification: String, categories: Dictionary):
 	"""Update all UI elements with new sustainability data"""
 	current_score = score
 	current_certification = certification
 	category_scores = categories
-	
-	# Update score label
-	if score_label:
-		score_label.text = tr("UI_SUSTAINABILITY_SCORE_FORMAT") % score
-		score_label.add_theme_color_override("font_color", _get_score_color(score))
-	
-	# Update certification label
+
+	# Update score value cell (numeric only) + unit cell (static "/100").
+	if score_value_label:
+		score_value_label.text = str(score)
+		LakskongenTheme.set_text_color(score_value_label, _get_score_color(score))
+	score_label = score_value_label
+	if score_unit_label:
+		score_unit_label.text = "/100"
+
+	# Update translated format caption on its own row (Norwegian key kept).
+	# Falls back to the Norwegian string from translations.csv if the
+	# translation database is unavailable (tr() then returns the key itself,
+	# which has no placeholder and would otherwise display the raw key).
+	if score_caption_label:
+		score_caption_label.text = _tr_format("UI_SUSTAINABILITY_SCORE_FORMAT", "Poeng: %s") % score
+
+	# Update certification badge on its own row (no warning icon here).
 	if certification_label:
-		var cert_display = _format_certification(certification)
+		var cert_display = _format_certification_badge(certification)
 		certification_label.text = cert_display
-		certification_label.add_theme_color_override("font_color", Color(CERT_COLORS.get(certification, COLOR_MUTED)))
-	
+		LakskongenTheme.set_text_color(certification_label, Color(CERT_COLORS.get(certification, COLOR_MUTED)))
+
+	# Update warning on its own row (visible only when non-compliant).
+	if warning_label:
+		if certification == "NonCompliant":
+			warning_label.visible = true
+			warning_label.text = _format_warning(certification)
+		else:
+			warning_label.visible = false
+
 	# Update price multiplier
 	if price_multiplier_label:
 		var multiplier = _get_price_multiplier(certification)
 		var bonus_text = ""
 		if multiplier > 1.0:
-			bonus_text = "Price Bonus: +%.0f%%" % ((multiplier - 1.0) * 100)
+			bonus_text = tr("UI_SUSTAINABILITY_PRICE_BONUS") % SimFormatters.percent(multiplier - 1.0)
 		elif multiplier < 1.0:
-			bonus_text = "Price Penalty: %.0f%%" % ((multiplier - 1.0) * 100)
+			bonus_text = tr("UI_SUSTAINABILITY_PRICE_PENALTY") % SimFormatters.percent(1.0 - multiplier)
 		else:
-			bonus_text = "Standard Pricing"
+			bonus_text = tr("UI_SUSTAINABILITY_PRICE_STANDARD")
 		price_multiplier_label.text = bonus_text
-	
-	# Update category breakdown
+
+	# Update category breakdown (clears container first)
 	_update_categories(categories)
-	
+
+	# Live traffic-light zone strip (Phase 1.3) on top of the bars.
+	_update_traffic_strip()
+
 	emit_signal("score_updated", score, certification)
 
-func _update_categories(categories: Dictionary):
+func _update_traffic_strip() -> void:
+	"""Live zone traffic-light summary (Phase 1.3). First row of the breakdown."""
+	if not category_container:
+		return
+	var zones: Array = []
+	if _sim_bridge and "traffic_zones" in _sim_bridge:
+		zones = _sim_bridge.traffic_zones
+	if zones.is_empty():
+		return
+	var greens := 0
+	var yellows := 0
+	var reds := 0
+	for z in zones:
+		match str(z.get("color", "Yellow")):
+			"Green": greens += 1
+			"Red": reds += 1
+			_: yellows += 1
+	var row := HBoxContainer.new()
+	row.name = "TrafficStrip"
+	row.add_theme_constant_override("separation", 8)
+	category_container.add_child(row)
+	category_container.move_child(row, 0)
+	var lbl := Label.new()
+	lbl.text = "🚦 " + tr("UI_SUSTAINABILITY_ZONES") % [greens, yellows, reds] + (
+		" — " + tr("UI_SUSTAINABILITY_RED_TIGHTENS") if reds > 0 else "")
+	LakskongenTheme.set_size(lbl, 13)
+	LakskongenTheme.set_text_color(lbl, Color(COLOR_TEXT))
+	row.add_child(lbl)
+
+func _update_categories(categories: Dictionary) -> void:
 	"""Update category breakdown bars"""
 	if not category_container:
 		return
-	
+
 	# Clear existing children
 	for child in category_container.get_children():
 		child.queue_free()
-	
+
 	# Category display order and max points
 	var category_order = [
-		{"name": "SeaLiceManagement", "display": "Sea Lice Management", "max": 25},
-		{"name": "EscapePrevention", "display": "Escape Prevention", "max": 20},
-		{"name": "FeedSustainability", "display": "Feed Sustainability", "max": 20},
-		{"name": "CarbonFootprint", "display": "Carbon Footprint", "max": 15},
-		{"name": "WelfareStandards", "display": "Welfare Standards", "max": 10},
-		{"name": "EcosystemImpact", "display": "Ecosystem Impact", "max": 10}
+		{"name": "SeaLiceManagement", "display": "UI_SUSTAINABILITY_CAT_LICE", "max": 25},
+		{"name": "EscapePrevention", "display": "UI_SUSTAINABILITY_CAT_ESCAPE", "max": 20},
+		{"name": "FeedSustainability", "display": "UI_SUSTAINABILITY_CAT_FEED", "max": 20},
+		{"name": "CarbonFootprint", "display": "UI_SUSTAINABILITY_CAT_CARBON", "max": 15},
+		{"name": "WelfareStandards", "display": "UI_SUSTAINABILITY_CAT_WELFARE", "max": 10},
+		{"name": "EcosystemImpact", "display": "UI_SUSTAINABILITY_CAT_ECOSYSTEM", "max": 10}
 	]
-	
+
 	for cat in category_order:
 		var score = categories.get(cat.name, 0)
 		var max_score = cat.max
-		_create_category_bar(cat.display, score, max_score)
+		_create_category_bar(tr(str(cat.display)), score, max_score)
 
 func _create_category_bar(label_text: String, score: int, max_score: int):
 	"""Create a single category progress bar"""
 	var container = HBoxContainer.new()
 	container.add_theme_constant_override("separation", 8)
 	category_container.add_child(container)
-	
+
 	# Label
 	var label = Label.new()
 	label.text = label_text
 	label.custom_minimum_size = Vector2(200, 0)
-	label.add_theme_font_size_override("font_size", 12)
-	label.add_theme_color_override("font_color", Color(COLOR_TEXT))
+	LakskongenTheme.set_size(label, 12)
+	LakskongenTheme.set_text_color(label, Color(COLOR_TEXT))
 	container.add_child(label)
-	
+
 	# Progress bar
 	var progress = ProgressBar.new()
 	progress.max_value = max_score
@@ -202,48 +218,68 @@ func _create_category_bar(label_text: String, score: int, max_score: int):
 	progress.custom_minimum_size = Vector2(150, 20)
 	progress.show_percentage = false
 	container.add_child(progress)
-	
+
 	# Score text
 	var score_text = Label.new()
 	score_text.text = tr("UI_SUSTAINABILITY_CATEGORY_SCORE") % [score, max_score]
 	score_text.custom_minimum_size = Vector2(50, 0)
-	score_text.add_theme_font_size_override("font_size", 12)
-	score_text.add_theme_color_override("font_color", Color(COLOR_MUTED))
+	LakskongenTheme.set_size(score_text, 12)
+	LakskongenTheme.set_text_color(score_text, Color(COLOR_MUTED))
 	container.add_child(score_text)
 
 func _get_score_color(score: int) -> Color:
 	"""Get color based on score (red -> yellow -> green gradient)"""
 	if score >= 85:
-		return Color("#00E676")  # Bright green
+		return Color("#2E6B45")  # Bright green
 	elif score >= 70:
-		return Color("#4CAF50")  # Green
+		return Color("#2E6B45")  # Green
 	elif score >= 50:
-		return Color("#D4AF37")  # Gold
+		return Color("#8A5A00")  # Gold
 	else:
-		return Color("#E06666")  # Red/danger
+		return Color("#B3172F")  # Red/danger
 
-func _format_certification(cert: String) -> String:
-	"""Format certification level for display"""
+func _format_certification_badge(cert: String) -> String:
+	"""Certification badge text (own row, no warning prefix)."""
 	match cert:
 		"NonCompliant":
-			return "⚠️ Non-Compliant"
+			return tr("UI_CERT_NON_COMPLIANT")
 		"BasicCompliance":
-			return "✓ Basic Compliance"
+			return "✓ " + tr("UI_CERT_BASIC_COMPLIANCE")
 		"ASCCertified":
-			return "⭐ ASC Certified"
+			return "⭐ " + tr("UI_CERT_ASC")
 		"OrganicCertified":
-			return "🌿 Organic Certified"
+			return "🌿 " + tr("UI_CERT_ORGANIC")
 		"SustainabilityLeader":
-			return "🏆 Sustainability Leader"
+			return "🏆 " + tr("UI_CERT_LEADER")
 		_:
-			return cert
+			return SimLabels.humanize(cert)
+
+func _format_warning(cert: String) -> String:
+	"""Warning row text (own row, only shown when relevant)."""
+	match cert:
+		"NonCompliant":
+			return "⚠️ " + tr("UI_CERT_NON_COMPLIANT")
+		_:
+			return ""
+
+func _tr_format(key: String, fallback: String) -> String:
+	"""Translate key, falling back to bundled Norwegian if DB is unavailable."""
+	var s = tr(key)
+	if s == key or "%" not in s:
+		return fallback
+	return s
+
+func _format_certification(cert: String) -> String:
+	"""Format certification level for display (legacy: badge + warning combined)."""
+	if cert == "NonCompliant":
+		return "⚠️ " + tr("UI_CERT_NON_COMPLIANT")
+	return _format_certification_badge(cert)
 
 func _get_price_multiplier(cert: String) -> float:
 	"""Get price multiplier from certification level (from bridge if available, otherwise fallback)"""
-	if has_node("/root/SimBridge"):
-		var sim_bridge = get_node("/root/SimBridge")
-		return sim_bridge.get_price_multiplier()
-	
+	if _sim_bridge and _sim_bridge.has_method("get_price_multiplier"):
+		return _sim_bridge.get_price_multiplier()
+
 	# Fallback to local calculation
 	match cert:
 		"NonCompliant":
@@ -273,26 +309,6 @@ func set_category_scores(categories: Dictionary):
 	category_scores = categories
 	update_display(current_score, current_certification, categories)
 
-# === TEST/DEBUG ===
-
-func _simulate_score_change():
-	"""Test function to simulate score changes"""
-	var test_scores = [30, 55, 75, 88, 97]
-	var test_certs = ["NonCompliant", "BasicCompliance", "ASCCertified", "OrganicCertified", "SustainabilityLeader"]
-	
-	var test_categories = {
-		"SeaLiceManagement": 20,
-		"EscapePrevention": 15,
-		"FeedSustainability": 18,
-		"CarbonFootprint": 12,
-		"WelfareStandards": 8,
-		"EcosystemImpact": 7
-	}
-	
-	for i in range(test_scores.size()):
-		await get_tree().create_timer(2.0).timeout
-		update_display(test_scores[i], test_certs[i], test_categories)
-
 # === BRIDGE DATA REFRESH ===
 
 func _on_state_updated():
@@ -301,35 +317,26 @@ func _on_state_updated():
 
 func _refresh_from_bridge():
 	"""Pull live data from SimBridge and update display"""
-	if not has_node("/root/SimBridge"):
+	if _sim_bridge == null:
 		return
-	
-	var sim_bridge = get_node("/root/SimBridge")
-	
+
 	# Get sustainability score and certification level
-	var score = sim_bridge.sustainability_score
-	var cert = sim_bridge.get_certification_level()
-	
-	# Get detailed breakdown
-	var breakdown = sim_bridge.get_sustainability_breakdown()
-	
-	# Convert breakdown to category scores (normalized to 0-25 scale)
+	var score = _sim_bridge.sustainability_score
+	var cert = _sim_bridge.get_certification_level()
+
+	# Get detailed breakdown (C# returns earned points per category already:
+	# SeaLice 0-25, Escape 0-20, Feed 0-20, Carbon 0-15, Welfare 0-10, Eco 0-10).
+	var breakdown = _sim_bridge.get_sustainability_breakdown()
+
+	# Pass through raw points (no renormalization — matches C# weights).
 	var categories = {
-		"SeaLiceManagement": breakdown.get("sea_lice", 0.0) * 25.0 / 100.0,
-		"EscapePrevention": breakdown.get("escape", 0.0) * 20.0 / 100.0,
-		"FeedSustainability": breakdown.get("feed", 0.0) * 20.0 / 100.0,
-		"CarbonFootprint": breakdown.get("carbon", 0.0) * 15.0 / 100.0,
-		"WelfareStandards": breakdown.get("welfare", 0.0) * 10.0 / 100.0,
-		"EcosystemImpact": breakdown.get("ecosystem", 0.0) * 10.0 / 100.0
+		"SeaLiceManagement": int(breakdown.get("sea_lice", 0.0)),
+		"EscapePrevention": int(breakdown.get("escape", 0.0)),
+		"FeedSustainability": int(breakdown.get("feed", 0.0)),
+		"CarbonFootprint": int(breakdown.get("carbon", 0.0)),
+		"WelfareStandards": int(breakdown.get("welfare", 0.0)),
+		"EcosystemImpact": int(breakdown.get("ecosystem", 0.0))
 	}
-	
+
 	# Update display with live data
 	update_display(score, cert, categories)
-
-# Uncomment to test on load:
-# func _ready():
-# 	super._ready()
-# 	_simulate_score_change()
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
-    if event.is_action_pressed("ui_cancel"):
-        get_tree().call_group_flags(2, "tooltips", "hide")

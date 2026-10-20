@@ -21,5 +21,12 @@ namespace LakskongenSim.Core
             CurrentDay += days;
             OnAdvanceDays?.Invoke(days);
         }
+
+        /// <summary>Reset the clock for a new game (subscribers are NOT
+        /// detached — see Storyteller.Detach and SimulationEngine.Reset).</summary>
+        public void Reset()
+        {
+            CurrentDay = 0;
+        }
     }
 }

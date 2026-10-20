@@ -1,230 +1,304 @@
-[gd_scene load_steps=3 format=3 uid="uid://dc5j8wp6nvlqx"]
+[gd_scene load_steps=2 format=3 uid="uid://dc5j8wp6nvlqx"]
 
-[ext_resource type="Script" path="res://scripts/ui/SettingsMenu.gd" id="1_xrv8h"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_1"]
-bg_color = Color(0.071, 0.095, 0.125, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.165, 0.478, 0.549, 1)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
+[ext_resource type="Script" path="res://scripts/ui/SettingsMenu.gd" id="1_settings"]
 
 [node name="SettingsMenu" type="Control"]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-script = ExtResource("1_xrv8h")
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_settings")
 
-[node name="Background" type="ColorRect" parent="."]
+[node name="Overlay" type="ColorRect" parent="."]
+unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-color = Color(0.059, 0.091, 0.125, 0.9)
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0.043137, 0.164706, 0.227451, 0.65)
 
-[node name="CenterContainer" type="CenterContainer" parent="."]
+[node name="Center" type="CenterContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
-[node name="Panel" type="Panel" parent="CenterContainer"]
-layout_mode = 2
-custom_minimum_size = Vector2(600, 500)
-
-[node name="Panel" type="StyleBoxFlat" parent="CenterContainer/Panel"]
-bg_color = Color(0.059, 0.122, 0.2, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.165, 0.718, 0.71, 1)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
-
-[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer/Panel"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 24.0
-offset_top = 24.0
-offset_right = -24.0
-offset_bottom = -24.0
-
-[node name="Header" type="HBoxContainer" parent="CenterContainer/Panel/VBoxContainer"]
+[node name="DialogPanel" type="PanelContainer" parent="./Center"]
+theme_type_variation = &"Dialog"
+unique_name_in_owner = true
+custom_minimum_size = Vector2(700, 500)
 layout_mode = 2
 
-[node name="Title" type="Label" parent="CenterContainer/Panel/VBoxContainer/Header"]
+[node name="DialogVBox" type="VBoxContainer" parent="./Center/DialogPanel"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="HeaderRow" type="HBoxContainer" parent="./Center/DialogPanel/DialogVBox"]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="./Center/DialogPanel/DialogVBox/HeaderRow"]
+theme_type_variation = &"Heading"
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.902, 0.933, 0.953, 1)
-theme_override_font_sizes/font_size = 24
-text = tr("ui.settingsmenu.innstillinger")
+text = "Innstillinger"
 
-[node name="CloseButton" type="Button" parent="CenterContainer/Panel/VBoxContainer/Header"]
+[node name="CloseButton" type="Button" parent="./Center/DialogPanel/DialogVBox/HeaderRow"]
+unique_name_in_owner = true
 layout_mode = 2
-custom_minimum_size = Vector2(32, 32)
-theme_override_colors/font_color = Color(0.902, 0.933, 0.953, 1)
-theme_override_font_sizes/font_size = 20
-text = "X"
+text = "✕"
 
-[node name="HSeparator" type="HSeparator" parent="CenterContainer/Panel/VBoxContainer"]
-layout_mode = 2
-theme_override_colors/separator = Color(0.165, 0.478, 0.549, 1)
-
-[node name="TabContainer" type="TabContainer" parent="CenterContainer/Panel/VBoxContainer"]
+[node name="Tabs" type="TabContainer" parent="./Center/DialogPanel/DialogVBox"]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_colors/font_unselected_color = Color(0.604, 0.655, 0.698, 1)
-theme_override_colors/font_selected_color = Color(0.902, 0.933, 0.953, 1)
-theme_override_colors/tab_selected = Color(0.165, 0.478, 0.549, 1)
-theme_override_colors/tab_unselected = Color(0.071, 0.095, 0.125, 1)
 
-[node name="Lyd" type="ScrollContainer" parent="CenterContainer/Panel/VBoxContainer/TabContainer"]
+[node name="Lyd" type="VBoxContainer" parent="./Center/DialogPanel/DialogVBox/Tabs"]
 layout_mode = 2
+theme_override_constants/separation = 12
 
-[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Lyd"]
+[node name="MasterRow" type="HBoxContainer" parent="./Center/DialogPanel/DialogVBox/Tabs/Lyd"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="MasterCap" type="Label" parent="./Center/DialogPanel/DialogVBox/Tabs/Lyd/MasterRow"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+text = "Master"
+
+[node name="MasterSlider" type="HSlider" parent="./Center/DialogPanel/DialogVBox/Tabs/Lyd/MasterRow"]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_vertical = 3
-
-[node name="MasterVolumeContainer" type="VBoxContainer" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Lyd/VBoxContainer"]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Lyd/VBoxContainer/MasterVolumeContainer"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.902, 0.933, 0.953, 1)
-text = tr("ui.settingsmenu.hovedvolum")
-
-[node name="MasterVolumeSlider" type="HSlider" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Lyd/VBoxContainer/MasterVolumeContainer"]
-layout_mode = 2
-max_value = 100.0
-value = 80.0
-
-[node name="EffectsVolumeContainer" type="VBoxContainer" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Lyd/VBoxContainer"]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Lyd/VBoxContainer/EffectsVolumeContainer"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.902, 0.933, 0.953, 1)
-text = tr("ui.settingsmenu.lydeffekter")
-
-[node name="EffectsVolumeSlider" type="HSlider" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Lyd/VBoxContainer/EffectsVolumeContainer"]
-layout_mode = 2
-max_value = 100.0
-value = 80.0
-
-[node name="MusicVolumeContainer" type="VBoxContainer" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Lyd/VBoxContainer"]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Lyd/VBoxContainer/MusicVolumeContainer"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.902, 0.933, 0.953, 1)
-text = tr("ui.settingsmenu.musikk")
-
-[node name="MusicVolumeSlider" type="HSlider" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Lyd/VBoxContainer/MusicVolumeContainer"]
-layout_mode = 2
-max_value = 100.0
-value = 60.0
-
-[node name="Grafikk" type="ScrollContainer" parent="CenterContainer/Panel/VBoxContainer/TabContainer"]
-layout_mode = 2
-
-[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Grafikk"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-
-[node name="ResolutionContainer" type="VBoxContainer" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Grafikk/VBoxContainer"]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Grafikk/VBoxContainer/ResolutionContainer"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.902, 0.933, 0.953, 1)
-text = tr("ui.settingsmenu.opplsning")
-
-[node name="ResolutionDropdown" type="OptionButton" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Grafikk/VBoxContainer/ResolutionContainer"]
-layout_mode = 2
-
-[node name="FullscreenContainer" type="VBoxContainer" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Grafikk/VBoxContainer"]
-layout_mode = 2
-
-[node name="FullscreenCheckBox" type="CheckBox" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Grafikk/VBoxContainer/FullscreenContainer"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.902, 0.933, 0.953, 1)
-text = tr("ui.settingsmenu.fullskjerm")
-
-[node name="VsyncContainer" type="VBoxContainer" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Grafikk/VBoxContainer"]
-layout_mode = 2
-
-[node name="VsyncCheckBox" type="CheckBox" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Grafikk/VBoxContainer/VsyncContainer"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.902, 0.933, 0.953, 1)
-text = tr("ui.settingsmenu.vsync")
-
-[node name="Spill" type="ScrollContainer" parent="CenterContainer/Panel/VBoxContainer/TabContainer"]
-layout_mode = 2
-
-[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Spill"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-
-[node name="SimSpeedContainer" type="VBoxContainer" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Spill/VBoxContainer"]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Spill/VBoxContainer/SimSpeedContainer"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.902, 0.933, 0.953, 1)
-text = tr("ui.settingsmenu.simulasjonshastighet")
-
-[node name="SimSpeedSlider" type="HSlider" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Spill/VBoxContainer/SimSpeedContainer"]
-layout_mode = 2
-min_value = 0.5
-max_value = 3.0
-step = 0.5
+max_value = 1.0
+step = 0.01
 value = 1.0
 
-[node name="AutosaveContainer" type="VBoxContainer" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Spill/VBoxContainer"]
+[node name="MasterValue" type="Label" parent="./Center/DialogPanel/DialogVBox/Tabs/Lyd/MasterRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(50, 0)
 layout_mode = 2
+horizontal_alignment = 2
 
-[node name="Label" type="Label" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Spill/VBoxContainer/AutosaveContainer"]
+[node name="MusicRow" type="HBoxContainer" parent="./Center/DialogPanel/DialogVBox/Tabs/Lyd"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.902, 0.933, 0.953, 1)
-text = tr("ui.settingsmenu.autolagringminutter")
+theme_override_constants/separation = 8
 
-[node name="AutosaveSlider" type="HSlider" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Spill/VBoxContainer/AutosaveContainer"]
+[node name="MusicCap" type="Label" parent="./Center/DialogPanel/DialogVBox/Tabs/Lyd/MusicRow"]
+custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
-min_value = 1.0
-max_value = 30.0
-step = 1.0
-value = 5.0
+text = "Musikk"
 
-[node name="TutorialContainer" type="VBoxContainer" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Spill/VBoxContainer"]
-layout_mode = 2
-[node name="TutorialCheckBox" type="CheckBox" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Spill/VBoxContainer/TutorialContainer"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.91, 0.957, 0.973, 1)
-text = tr("ui.settings.tutorial_enabled")
-
-[node name="Kontroller" type="ScrollContainer" parent="CenterContainer/Panel/VBoxContainer/TabContainer"]
-layout_mode = 2
-
-[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Kontroller"]
+[node name="MusicSlider" type="HSlider" parent="./Center/DialogPanel/DialogVBox/Tabs/Lyd/MusicRow"]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_vertical = 3
+max_value = 1.0
+step = 0.01
+value = 0.7
 
-[node name="Label" type="Label" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Kontroller/VBoxContainer"]
+[node name="MusicValue" type="Label" parent="./Center/DialogPanel/DialogVBox/Tabs/Lyd/MusicRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(50, 0)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.902, 0.933, 0.953, 1)
-text = tr("ui.settingsmenu.kontrolltilordningko")))
+horizontal_alignment = 2
+
+[node name="AmbientRow" type="HBoxContainer" parent="./Center/DialogPanel/DialogVBox/Tabs/Lyd"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="AmbientCap" type="Label" parent="./Center/DialogPanel/DialogVBox/Tabs/Lyd/AmbientRow"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+text = "Ambient"
+
+[node name="AmbientSlider" type="HSlider" parent="./Center/DialogPanel/DialogVBox/Tabs/Lyd/AmbientRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1.0
+step = 0.01
+value = 0.5
+
+[node name="AmbientValue" type="Label" parent="./Center/DialogPanel/DialogVBox/Tabs/Lyd/AmbientRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(50, 0)
+layout_mode = 2
+horizontal_alignment = 2
+
+[node name="SfxRow" type="HBoxContainer" parent="./Center/DialogPanel/DialogVBox/Tabs/Lyd"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="SfxCap" type="Label" parent="./Center/DialogPanel/DialogVBox/Tabs/Lyd/SfxRow"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+text = "Effekter"
+
+[node name="SfxSlider" type="HSlider" parent="./Center/DialogPanel/DialogVBox/Tabs/Lyd/SfxRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1.0
+step = 0.01
+value = 0.8
+
+[node name="SfxValue" type="Label" parent="./Center/DialogPanel/DialogVBox/Tabs/Lyd/SfxRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(50, 0)
+layout_mode = 2
+horizontal_alignment = 2
+
+[node name="Grafikk" type="VBoxContainer" parent="./Center/DialogPanel/DialogVBox/Tabs"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="ResRow" type="HBoxContainer" parent="./Center/DialogPanel/DialogVBox/Tabs/Grafikk"]
+layout_mode = 2
+
+[node name="ResCap" type="Label" parent="./Center/DialogPanel/DialogVBox/Tabs/Grafikk/ResRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Oppløsning"
+
+[node name="ResOption" type="OptionButton" parent="./Center/DialogPanel/DialogVBox/Tabs/Grafikk/ResRow"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="QualityRow" type="HBoxContainer" parent="./Center/DialogPanel/DialogVBox/Tabs/Grafikk"]
+layout_mode = 2
+
+[node name="QualityCap" type="Label" parent="./Center/DialogPanel/DialogVBox/Tabs/Grafikk/QualityRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Grafikkvalitet"
+
+[node name="QualityOption" type="OptionButton" parent="./Center/DialogPanel/DialogVBox/Tabs/Grafikk/QualityRow"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="FullscreenCheck" type="CheckBox" parent="./Center/DialogPanel/DialogVBox/Tabs/Grafikk"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Fullskjerm"
+
+[node name="VsyncCheck" type="CheckBox" parent="./Center/DialogPanel/DialogVBox/Tabs/Grafikk"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "VSync"
+
+[node name="Spill" type="VBoxContainer" parent="./Center/DialogPanel/DialogVBox/Tabs"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="AutosaveRow" type="HBoxContainer" parent="./Center/DialogPanel/DialogVBox/Tabs/Spill"]
+layout_mode = 2
+
+[node name="AutosaveCap" type="Label" parent="./Center/DialogPanel/DialogVBox/Tabs/Spill/AutosaveRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Autolagring"
+
+[node name="AutosaveOption" type="OptionButton" parent="./Center/DialogPanel/DialogVBox/Tabs/Spill/AutosaveRow"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="TutorialCheck" type="CheckBox" parent="./Center/DialogPanel/DialogVBox/Tabs/Spill"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Vis tutorial"
+
+[node name="NotifsCheck" type="CheckBox" parent="./Center/DialogPanel/DialogVBox/Tabs/Spill"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Varsler"
+
+[node name="AutoPauseCheck" type="CheckBox" parent="./Center/DialogPanel/DialogVBox/Tabs/Spill"]
+unique_name_in_owner = true
+layout_mode = 2
+button_pressed = true
+text = "Stopp ved kritiske varsler"
+
+[node name="AutoSlowCheck" type="CheckBox" parent="./Center/DialogPanel/DialogVBox/Tabs/Spill"]
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "UI_SETTINGS_AUTO_SLOW_TIP"
+button_pressed = true
+text = "UI_SETTINGS_AUTO_SLOW"
+
+[node name="SpeedRow" type="HBoxContainer" parent="./Center/DialogPanel/DialogVBox/Tabs/Spill"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="SpeedCap" type="Label" parent="./Center/DialogPanel/DialogVBox/Tabs/Spill/SpeedRow"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+text = "Standard hastighet"
+
+[node name="SpeedSlider" type="HSlider" parent="./Center/DialogPanel/DialogVBox/Tabs/Spill/SpeedRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 3.0
+value = 0.0
+tick_count = 4
+ticks_on_borders = true
+
+[node name="SpeedValue" type="Label" parent="./Center/DialogPanel/DialogVBox/Tabs/Spill/SpeedRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(50, 0)
+layout_mode = 2
+horizontal_alignment = 2
+
+[node name="Tilgjengelighet" type="VBoxContainer" parent="./Center/DialogPanel/DialogVBox/Tabs"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="HighContrastCheck" type="CheckBox" parent="./Center/DialogPanel/DialogVBox/Tabs/Tilgjengelighet"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Høykontrast"
+
+[node name="ReducedMotionCheck" type="CheckBox" parent="./Center/DialogPanel/DialogVBox/Tabs/Tilgjengelighet"]
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "UI_SETTINGS_REDUCED_MOTION_TIP"
+text = "UI_SETTINGS_REDUCED_MOTION"
+
+[node name="UiScaleRow" type="HBoxContainer" parent="./Center/DialogPanel/DialogVBox/Tabs/Tilgjengelighet"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="UiScaleCap" type="Label" parent="./Center/DialogPanel/DialogVBox/Tabs/Tilgjengelighet/UiScaleRow"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+text = "Skala grensesnitt"
+
+[node name="UiScaleOption" type="OptionButton" parent="./Center/DialogPanel/DialogVBox/Tabs/Tilgjengelighet/UiScaleRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+
+[node name="ButtonRow" type="HBoxContainer" parent="./Center/DialogPanel/DialogVBox"]
+layout_mode = 2
+alignment = 2
+theme_override_constants/separation = 8
+
+[node name="ResetButton" type="Button" parent="./Center/DialogPanel/DialogVBox/ButtonRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Tilbakestill"
+
+[node name="ApplyButton" type="Button" parent="./Center/DialogPanel/DialogVBox/ButtonRow"]
+theme_type_variation = &"PrimaryButton"
+unique_name_in_owner = true
+layout_mode = 2
+text = "Bruk"

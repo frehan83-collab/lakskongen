@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
+using LakskongenSim.Core;
 namespace LakskongenSim.Finance
 {
     // =========================================================================
@@ -49,7 +50,7 @@ namespace LakskongenSim.Finance
     {
         public string Id { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
-        public string ParodyOf { get; set; } = string.Empty;  // Real company this parodies
+        public string ParodyOf { get; set; } = string.Empty;  // Industry archetype this parodies (no real names, D17)
         public string Tagline { get; set; } = string.Empty;
         public string Headquarters { get; set; } = string.Empty;
         public CompetitorStrategy Strategy { get; set; }
@@ -90,6 +91,15 @@ namespace LakskongenSim.Finance
         public bool IsDistressed { get; set; }
         public bool IsAcquisitionTarget { get; set; }   // Can player acquire this company?
         public decimal AcquisitionPrice { get; set; }   // Price to buy entire company
+
+        /// <summary>Independent copy (lists included) for save snapshots.</summary>
+        public CompetitorCompany Clone()
+        {
+            var copy = (CompetitorCompany)MemberwiseClone();
+            copy.OperatingRegions = new List<string>(OperatingRegions);
+            copy.RecentActions = new List<string>(RecentActions);
+            return copy;
+        }
 
         /// <summary>
         /// Debt-to-EBITDA ratio. Above 4x is considered risky in salmon industry.
@@ -174,7 +184,8 @@ namespace LakskongenSim.Finance
     public class CompetitorAISystem
     {
         private readonly List<CompetitorCompany> _competitors = new();
-        private readonly Random _rng;
+        private readonly SimRngStream _rng;
+        internal SimRngStream RngForSnapshot => _rng;
         private readonly List<CompetitorAction> _pendingActions = new();
         private readonly List<CompetitorAction> _actionHistory = new();
         private int _currentQuarter;
@@ -193,14 +204,52 @@ namespace LakskongenSim.Finance
         public IReadOnlyList<CompetitorAction> PendingActions => _pendingActions;
         public IReadOnlyList<CompetitorAction> ActionHistory => _actionHistory;
 
+        /// <summary>Action history entries kept in a save (UI history only; no logic reads it).</summary>
+        public const int ActionHistoryInSave = 100;
+
+        /// <summary>
+        /// Full roster + quarter clock for a save (F1071). The old DTO kept 14
+        /// financial fields, so acquired rivals came back on load and
+        /// FinancialHealth, appetite, counters and quarter/year reset.
+        /// </summary>
+        public CompetitorAISnapshot ExportState() => new()
+        {
+            Competitors = _competitors.Select(c => c.Clone()).ToList(),
+            CurrentQuarter = _currentQuarter,
+            CurrentYear = _currentYear,
+            PendingActions = _pendingActions.ToList(),
+            ActionHistory = _actionHistory.Skip(Math.Max(0, _actionHistory.Count - ActionHistoryInSave)).ToList()
+        };
+
+        /// <summary>Replace the roster and clock with a saved snapshot (no events fired).</summary>
+        public void ImportState(CompetitorAISnapshot snapshot)
+        {
+            ArgumentNullException.ThrowIfNull(snapshot);
+            _competitors.Clear();
+            _competitors.AddRange((snapshot.Competitors ?? new List<CompetitorCompany>()).Select(c => c.Clone()));
+            _currentQuarter = snapshot.CurrentQuarter;
+            _currentYear = snapshot.CurrentYear;
+            _pendingActions.Clear();
+            _pendingActions.AddRange(snapshot.PendingActions ?? new List<CompetitorAction>());
+            _actionHistory.Clear();
+            _actionHistory.AddRange(snapshot.ActionHistory ?? new List<CompetitorAction>());
+        }
+
         public event Action<CompetitorAction>? OnCompetitorAction;
         public event Action<IndustryReport>? OnQuarterlyReport;
         public event Action<string, string>? OnCompetitorAcquired;  // acquirerId, targetId
+        /// <summary>Fired when a competitor first enters distress. Provides the competitor and current simulation day.</summary>
+        public event Action<CompetitorCompany, int>? OnCompetitorDistressed;
+
+        public CompetitorAISystem(SimRngStream rng)
+        {
+            _rng = rng ?? throw new ArgumentNullException(nameof(rng));
+            InitializeCompetitors();
+        }
 
         public CompetitorAISystem(int? seed = null)
+            : this((seed.HasValue ? new SimRng(seed.Value) : SimRng.CreateUnseeded()).Stream(SimRngStreams.CompetitorAI))
         {
-            _rng = seed.HasValue ? new Random(seed.Value) : new Random();
-            InitializeCompetitors();
         }
 
         /// <summary>
@@ -214,7 +263,7 @@ namespace LakskongenSim.Finance
                 {
                     Id = "mowier",
                     Name = "Mowier ASA",
-                    ParodyOf = "Mowi ASA (ex-Marine Harvest)",
+                    ParodyOf = "the global market leader",
                     Tagline = "Leading the Blue Revolution™ (to the bank)",
                     Headquarters = "Bergen, Vestland",
                     Strategy = CompetitorStrategy.CostLeader,
@@ -245,7 +294,7 @@ namespace LakskongenSim.Finance
                 {
                     Id = "salmax",
                     Name = "SalMax Group ASA",
-                    ParodyOf = "SalMar ASA",
+                    ParodyOf = "the innovative number two",
                     Tagline = "Passion for Profit",
                     Headquarters = "Frøya, Trøndelag",
                     Strategy = CompetitorStrategy.Consolidator,
@@ -276,7 +325,7 @@ namespace LakskongenSim.Finance
                 {
                     Id = "heroy",
                     Name = "Herøy Seafood AS",
-                    ParodyOf = "Lerøy Seafood Group",
+                    ParodyOf = "the integrated seafood group",
                     Tagline = "Lords of the Fjords",
                     Headquarters = "Bergen, Vestland",
                     Strategy = CompetitorStrategy.PremiumSpecialist,
@@ -307,7 +356,7 @@ namespace LakskongenSim.Finance
                 {
                     Id = "greed_gregarious",
                     Name = "Greed Gregarious ASA",
-                    ParodyOf = "Grieg Seafood ASA",
+                    ParodyOf = "the listed west-coast farmer",
                     Tagline = "Growth at Any Cost",
                     Headquarters = "Bergen, Vestland",
                     Strategy = CompetitorStrategy.Consolidator,
@@ -339,7 +388,7 @@ namespace LakskongenSim.Finance
                 {
                     Id = "offshore_optimists",
                     Name = "Offshore Optimists AS",
-                    ParodyOf = "SalMar Ocean / offshore farming startups",
+                    ParodyOf = "offshore farming start-ups",
                     Tagline = "The Future is Offshore (we promise, this time it's different)",
                     Headquarters = "Trondheim, Trøndelag",
                     Strategy = CompetitorStrategy.TechDisruptor,
@@ -371,7 +420,7 @@ namespace LakskongenSim.Finance
                 {
                     Id = "nordlaks_nord",
                     Name = "NordLaks Nord AS",
-                    ParodyOf = "NRS / Norway Royal Salmon",
+                    ParodyOf = "the northern regional farmer",
                     Tagline = "Arctic Excellence, Royal Ambitions",
                     Headquarters = "Stokmarknes, Nordland",
                     Strategy = CompetitorStrategy.Conservative,
@@ -423,7 +472,7 @@ namespace LakskongenSim.Finance
                 UpdateCompetitorFinancials(competitor, spotPriceNOK);
 
                 // Check for distress
-                CheckForDistress(competitor);
+                CheckForDistress(competitor, _currentYear * 365 + _currentQuarter * 90);
 
                 // Generate strategic actions based on competitor personality
                 var actions = GenerateQuarterActions(competitor, playerMarketShare, spotPriceNOK, playerLicenseCount);
@@ -496,7 +545,7 @@ namespace LakskongenSim.Finance
             c.QuartersSinceLastAcquisition++;
         }
 
-        private void CheckForDistress(CompetitorCompany c)
+        private void CheckForDistress(CompetitorCompany c, int currentDay)
         {
             bool wasDistressed = c.IsDistressed;
             c.IsDistressed = c.FinancialHealth < DISTRESS_HEALTH_THRESHOLD
@@ -519,6 +568,8 @@ namespace LakskongenSim.Finance
                     SupplyImpact = 0.98f   // Slight supply reduction
                 };
                 _pendingActions.Add(action);
+
+                OnCompetitorDistressed?.Invoke(c, currentDay);
             }
         }
 
@@ -891,5 +942,15 @@ namespace LakskongenSim.Finance
                 .ToList();
             return ranking;
         }
+    }
+
+    /// <summary>Serializable competitor AI state (GameState.CompetitorAI).</summary>
+    public sealed class CompetitorAISnapshot
+    {
+        public List<CompetitorCompany> Competitors { get; set; } = new();
+        public int CurrentQuarter { get; set; }
+        public int CurrentYear { get; set; }
+        public List<CompetitorAction> PendingActions { get; set; } = new();
+        public List<CompetitorAction> ActionHistory { get; set; } = new();
     }
 }

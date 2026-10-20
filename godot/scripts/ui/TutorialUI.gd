@@ -19,7 +19,7 @@ extends PanelContainer
 ##       ├── HBoxContainer (hint row)
 ##       │   ├── Label          (hint_icon)      "💡"
 ##       │   └── Label          (hint_label)
-##       └── Label              (reward_label)   shows reward if > 0
+##       └── Label              (reward_label)   step-complete toast (steps pay no cash, D16)
 
 # ── Node references (assign in scene or via @export) ──────────────────────────
 
@@ -42,6 +42,11 @@ var _tutorial_skipped: bool = false  # Track if user skipped tutorial
 # ── Godot lifecycle ───────────────────────────────────────────────────────────
 
 func _ready() -> void:
+	# Hide the panel until we know a tutorial step is actually showing.
+	# (Null-guards below keep a bare/scene-less host from crashing;
+	# the canonical scenes/ui/TutorialUI.tscn wires all @exports.)
+	visible = false
+
 	# Connect to SimBridge signals
 	if has_node("/root/SimBridge"):
 		var sb: Node = get_node("/root/SimBridge")
@@ -63,20 +68,18 @@ func _ready() -> void:
 
 # ── Signal handlers ───────────────────────────────────────────────────────────
 
-func _input(event: InputEvent) -> void:
-	"""Handle keyboard navigation"""
-	if not visible:
-		return
-	
-	if event.is_action_pressed("ui_cancel"):
-		hide()
-		get_viewport().set_input_as_handled()
+# No ESC handler: the card is guidance, not a modal (its ✕ minimises it). It
+# is later in the tree than GameUI, so it took every ESC while shown and hid
+# itself until the next refresh re-showed it; ESC never closed a tab.
 
 func _on_state_updated() -> void:
 	_refresh_display()
 
-func _on_step_completed(step_number: int, title: String, reward_nok: float) -> void:
-	_play_completion_animation(step_number, title, reward_nok)
+func _on_step_completed(step_number: int, title: String) -> void:
+	if _has_no_wired_content():
+		return
+	visible = true
+	_play_completion_animation(step_number, title)
 	# Re-expand if the player had minimised the panel
 	if _minimised:
 		_set_minimised(false)
@@ -123,7 +126,7 @@ func _setup_progress_dots() -> void:
 	for i in range(TOTAL_STEPS):
 		var dot = ColorRect.new()
 		dot.custom_minimum_size = Vector2(8, 8)
-		dot.color = Color(0.85, 0.87, 0.91, 0.5)  # Gray inactive
+		dot.color = Color(LakskongenTheme.INK_STROKE, 0.6)  # inactive
 		dot.tooltip_text = "Steg %d" % (i + 1)
 		progress_dots_container.add_child(dot)
 
@@ -138,19 +141,24 @@ func _update_progress_dots(current_step: int, completed_count: int) -> void:
 			continue
 		
 		if i < completed_count:
-			# Completed steps — green
-			dot.color = Color("#A3BE8C")
+			dot.color = LakskongenTheme.INK_OK      # completed
 		elif i == current_step - 1:
-			# Current step — yellow/orange
-			dot.color = Color(1.0, 0.8, 0.2, 1.0)
+			dot.color = LakskongenTheme.INK_ACCENT  # current (salmon)
 		else:
-			# Incomplete steps — gray
-			dot.color = Color(0.85, 0.87, 0.91, 0.5)
+			dot.color = Color(LakskongenTheme.INK_STROKE, 0.6)  # still to do
 
 # ── Display update ────────────────────────────────────────────────────────────
 
 func _refresh_display() -> void:
 	if _tutorial_skipped:
+		visible = false
+		return
+	if not _tutorial_setting_enabled():
+		visible = false
+		return
+	# No wired content (bare GameScene node): keep the panel hidden so no
+	# empty dark rectangle shows when no tutorial is active.
+	if _has_no_wired_content():
 		visible = false
 		return
 	if not has_node("/root/SimBridge"):
@@ -159,7 +167,9 @@ func _refresh_display() -> void:
 
 	var is_complete: bool = sb.tutorial_is_complete
 	var step_num: int     = sb.tutorial_step_number
-	var total: int        = 23  # Updated to 23 steps
+	var total: int        = sb.tutorial_total_steps
+	if total <= 0:
+		total = 12  # engine not running (menu state) — matches C# track size
 
 	if is_complete:
 		_show_completion_screen()
@@ -167,16 +177,13 @@ func _refresh_display() -> void:
 
 	# Step counter
 	if step_label:
-		step_label.text = tr("UI_TUTORIAL_STEP_FORMAT") % [step_num, total]
+		step_label.text = _tr_step_format(step_num, total)
 		step_label.tooltip_text = "Tutorial-stegnummer. Fullført %d av %d." % [sb.tutorial_completed_count, total]
 
 	# Progress bar
 	if progress_bar:
 		progress_bar.max_value = total
 		progress_bar.value     = sb.tutorial_completed_count
-	
-	# Update progress dots
-	_update_progress_dots(step_num, sb.tutorial_completed_count)
 		progress_bar.tooltip_text = "Fremdrift i tutorial: %d av %d steg fullført." % [sb.tutorial_completed_count, total]
 
 	# Title
@@ -193,46 +200,46 @@ func _refresh_display() -> void:
 		hint_label.text          = sb.tutorial_hint
 		hint_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 
-	# Reward label — hide if no reward for this step
+	# Completion toast label: shown only by the completion animation
 	if reward_label:
-		reward_label.visible = false  # rewards shown in completion animation
+		reward_label.visible = false
+
+	# Wired content exists and tutorial is active: show the panel.
+	visible = true
 
 # ── Completion animation ──────────────────────────────────────────────────────
 
-func _play_completion_animation(step_number: int, title: String, reward_nok: float) -> void:
+func _play_completion_animation(step_number: int, title: String) -> void:
 	if _tween:
 		_tween.kill()
 	_tween = create_tween()
 
-	# Flash the panel border green
-	var style: StyleBoxFlat = get_theme_stylebox("panel") as StyleBoxFlat
+	# Flash the panel border green. Tween a private copy: the stylebox comes
+	# from the shared project theme, and animating it would recolour every panel.
+	var base_style: StyleBoxFlat = get_theme_stylebox("panel") as StyleBoxFlat
+	var style: StyleBoxFlat = base_style.duplicate() if base_style else null
 	if style:
+		add_theme_stylebox_override("panel", style)
 		var original_color: Color = style.border_color
-		_tween.tween_property(style, "border_color", Color.GREEN, 0.15)
+		_tween.tween_property(style, "border_color", LakskongenTheme.INK_OK, 0.15)
 		_tween.tween_interval(0.5)
 		_tween.tween_property(style, "border_color", original_color, 0.3)
 
-	# Show reward toast if applicable
-	if reward_label and reward_nok > 0.0:
-		reward_label.text    = tr("UI_TUTORIAL_STEP_COMPLETE") % [step_number, _format_nok(reward_nok)]
+	# Step-complete toast. Steps pay no cash (D16): completing the tutorial
+	# is its own reward, so the toast names the step instead of an amount.
+	if reward_label:
+		reward_label.text    = _tr_step_complete(step_number, title)
 		reward_label.visible = true
-		reward_label.modulate = Color("#A3BE8C")
+		LakskongenTheme.set_tone(reward_label, &"Ok")
 		_tween.tween_interval(0.1)
-		_tween.tween_property(reward_label, "modulate:a", 0.0, 2.5).set_delay(2.0)
+		_tween.tween_property(reward_label, "modulate:a", 0.0, 2.5).set_delay(1.5)
 		await _tween.finished
 		reward_label.visible = false
-	else:
-		if reward_label:
-			reward_label.text    = "✅ %s" % title
-			reward_label.visible = true
-			_tween.tween_interval(0.1)
-			_tween.tween_property(reward_label, "modulate:a", 0.0, 2.5).set_delay(1.5)
-			await _tween.finished
-			reward_label.visible = false
 
 func _show_completion_screen() -> void:
+	visible = true
 	if title_label:
-		title_label.text = tr("🏆 Tutorial fullført!")
+		title_label.text = "🏆 " + tr("UI_TUTUI_DONE")
 	if description_label:
 		description_label.text = (
 			"Gratulerer — du er nå en ekte oppdrettskonge!\n\n" +
@@ -261,23 +268,51 @@ func _set_minimised(value: bool) -> void:
 		_tween.tween_property(self, "custom_minimum_size:y", 32.0, 0.2)
 		if description_label: description_label.visible = false
 		if hint_label:        hint_label.visible        = false
-      close_button.text         = tr("▼")
+		if close_button:      close_button.text         = "▼"
 	else:
 		_tween.tween_property(self, "custom_minimum_size:y", 0.0, 0.2)
 		if description_label: description_label.visible = true
 		if hint_label:        hint_label.visible        = true
-      close_button.text         = tr("✕")
+		if close_button:      close_button.text         = "✕"
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-func _format_nok(amount: float) -> String:
-	if has_node("/root/SimBridge"):
-		return get_node("/root/SimBridge").format_nok(amount)
-	if amount >= 1_000_000.0:
-		return "%.2f MNOK" % (amount / 1_000_000.0)
-	elif amount >= 1_000.0:
-		return "%.0f kNOK" % (amount / 1_000.0)
-	return "%.0f NOK" % amount
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
-    if event.is_action_pressed("ui_cancel"):
-        get_tree().call_group_flags(2, "tooltips", "hide")
+## True when hosted without the wired children from
+## scenes/ui/TutorialUI.tscn (null-guards then apply). Used to hide the
+## empty panel instead of showing a dead rectangle.
+func _has_no_wired_content() -> bool:
+	return step_label == null and title_label == null \
+		and description_label == null and hint_label == null \
+		and progress_bar == null
+
+## Settings gate: SettingsMenu → user://settings.json → gameplay.tutorial_enabled.
+## Missing file / key defaults to enabled (first-run players see onboarding).
+func _tutorial_setting_enabled() -> bool:
+	if not FileAccess.file_exists("user://settings.json"):
+		return true
+	var file = FileAccess.open("user://settings.json", FileAccess.READ)
+	var json = JSON.new()
+	if json.parse(file.get_as_text()) != OK:
+		return true
+	var data = json.data
+	if typeof(data) != TYPE_DICTIONARY:
+		return true
+	var gameplay = data.get("gameplay", {})
+	if typeof(gameplay) != TYPE_DICTIONARY:
+		return true
+	return bool(gameplay.get("tutorial_enabled", true))
+
+## Translated step counter / completion formats with fallbacks: tr() returns
+## the key itself when the catalog is missing, and formatting the raw key
+## (no placeholders) aborts the caller.
+func _tr_step_format(step_num: int, total: int) -> String:
+	var fmt := tr("UI_TUTORIAL_STEP_FORMAT")
+	if fmt == "UI_TUTORIAL_STEP_FORMAT" or not ("%" in fmt):
+		return "Steg %d / %d" % [step_num, total]
+	return fmt % [step_num, total]
+
+func _tr_step_complete(step_number: int, title: String) -> String:
+	var fmt := tr("UI_TUTORIAL_STEP_COMPLETE")
+	if fmt == "UI_TUTORIAL_STEP_COMPLETE" or fmt.count("%") < 2:
+		return "Steg %d fullført: %s" % [step_number, title]
+	return fmt % [step_number, title]

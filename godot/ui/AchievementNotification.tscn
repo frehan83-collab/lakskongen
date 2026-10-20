@@ -1,23 +1,10 @@
-[gd_scene load_steps=3 format=3 uid="uid://achievement_notification"]
+[gd_scene load_steps=2 format=3 uid="uid://achievement_notification"]
 
 [ext_resource type="Script" path="res://scripts/ui/AchievementNotification.gd" id="1"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_1"]
-bg_color = Color(0.1, 0.1, 0.15, 0.95)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.8, 0.6, 0.2, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-
-[node name="AchievementNotification" type="PanelContainer"]
+[node name="AchievementNotification" type="CanvasLayer"]
 offset_right = 400.0
 offset_bottom = 100.0
-theme_override_styles/panel = SubResource("StyleBoxFlat_1")
 script = ExtResource("1")
 
 [node name="MarginContainer" type="MarginContainer" parent="."]
@@ -43,16 +30,14 @@ size_flags_horizontal = 3
 theme_override_constants/separation = 4
 
 [node name="TitleLabel" type="Label" parent="MarginContainer/HBoxContainer/VBoxContainer"]
+theme_type_variation = &"HeadingWarn"
 layout_mode = 2
-theme_override_colors/font_color = Color(0.9, 0.75, 0.3, 1)
-theme_override_font_sizes/font_size = 20
 text = "Achievement Unlocked!"
 autowrap_mode = 2
 
 [node name="DescriptionLabel" type="Label" parent="MarginContainer/HBoxContainer/VBoxContainer"]
+theme_type_variation = &"BodySmall"
 layout_mode = 2
-theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
-theme_override_font_sizes/font_size = 14
 text = "Achievement description here"
 autowrap_mode = 2
 

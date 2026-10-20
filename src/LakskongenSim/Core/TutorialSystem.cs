@@ -10,6 +10,9 @@ namespace LakskongenSim.Core
     /// <summary>Data for one tutorial step.</summary>
     public class TutorialStep
     {
+        // Shared tutorial_steps.json uses numeric ids (GDScript click-through
+        // track) — accept numbers or strings so deserialization never fails.
+        [JsonConverter(typeof(LenientStringConverter))]
         public string Id { get; init; } = "";
         public int StepNumber { get; init; }
         public string Title { get; init; } = "";
@@ -25,8 +28,6 @@ namespace LakskongenSim.Core
         [JsonPropertyName("highlightTarget")]
         public string HighlightTarget { get; init; } = "";
         
-        public decimal RewardNok { get; init; }
-        
         [JsonIgnore]
         public Func<TutorialSystem, bool>? TriggerCondition { get; set; }
         
@@ -41,7 +42,9 @@ namespace LakskongenSim.Core
     /// <summary>
     /// Step-based tutorial engine for Lakskongen — 12-step onboarding.
     /// Tracks player progress, checks completion conditions each day,
-    /// and fires OnStepCompleted with optional NOK rewards.
+    /// and fires OnStepCompleted. Steps pay no cash (owner decision D16,
+    /// S1-03): the 18 steps used to pay 1.45M NOK, in every scenario, and
+    /// completing the tutorial is its own reward (the forste_sesong win).
     ///
     /// Registered in SimulationEngine and updated via CheckProgress() each day.
     /// NOTE: Uses GameState.Balance for step conditions (to be migrated to FinanceManager)
@@ -63,14 +66,19 @@ namespace LakskongenSim.Core
         /// <summary>True after all 12 steps are completed.</summary>
         public bool IsComplete => _currentStepIndex >= _steps.Count;
 
-        /// <summary>1-based number of the current step (returns 12 after completion).</summary>
+        /// <summary>1-based number of the current step (returns TotalSteps after completion).</summary>
         public int CurrentStepNumber =>
-            _currentStepIndex < _steps.Count ? _steps[_currentStepIndex].StepNumber : 12;
+            _currentStepIndex < _steps.Count ? _steps[_currentStepIndex].StepNumber : _steps.Count;
 
         public int TotalSteps => _steps.Count;
 
         /// <summary>How many steps have been completed so far.</summary>
         public int CompletedCount => _steps.Count(s => s.CompletedOnDay.HasValue);
+
+        /// <summary>Share of the tutorial completed (0-1).</summary>
+        public double Progress01 => _steps.Count == 0
+            ? 1.0
+            : System.Math.Min(_currentStepIndex, _steps.Count) / (double)_steps.Count;
 
         public TutorialSystem(SimulationEngine engine)
         {
@@ -99,11 +107,20 @@ namespace LakskongenSim.Core
                                   $"{CompletedCount} steps completed");
             }
         }
+
+        /// <summary>
+        /// Re-run the restore AFTER AdoptSavedState copied the saved progress.
+        /// The constructor runs against a fresh state (index 0, nothing
+        /// completed); without this, CheckProgress re-completes finished
+        /// steps and re-pays their rewards (Phase 1 wave 6).
+        /// </summary>
+        internal void ResyncFromState() => RestoreTutorialState();
         
         /// <summary>Load tutorial steps from JSON file and parse condition strings.</summary>
         private List<TutorialStep> LoadStepsFromJson()
         {
-            string jsonPath = Path.Combine("game", "data", "tutorial_steps.json");
+            string? dir = SimulationEngine.ResolveDataDirectory("tutorial_steps.json");
+            string jsonPath = dir != null ? Path.Combine(dir, "tutorial_steps.json") : string.Empty;
             
             // Fallback to hardcoded steps if JSON doesn't exist
             if (!File.Exists(jsonPath))
@@ -121,6 +138,18 @@ namespace LakskongenSim.Core
                 if (steps == null || steps.Count == 0)
                 {
                     Console.WriteLine("⚠️ Failed to parse tutorial_steps.json, using legacy steps");
+                    return BuildSteps();
+                }
+
+                // Schema guard: the shared tutorial_steps.json belongs to the
+                // GDScript click-through track (id/title/text/action, no
+                // conditions). Condition-less steps would auto-complete on day
+                // 1, wiping the real onboarding — only accept JSON that
+                // actually drives progression.
+                if (!steps.Any(s => !string.IsNullOrWhiteSpace(s.TriggerConditionString)
+                    || !string.IsNullOrWhiteSpace(s.CompletionConditionString)))
+                {
+                    Console.WriteLine("⚠️ tutorial_steps.json has no conditions (GDScript track schema); using built-in steps");
                     return BuildSteps();
                 }
                 
@@ -171,15 +200,21 @@ namespace LakskongenSim.Core
                 "average_weight >= 4.0" => t => t.AverageFishWeightKg >= 4.0,
                 
                 // Health and treatment
-                "lice_detection_acknowledged" => t => t.SeaLicePerFish >= 0.8, // Trigger lice event at 0.8
+                // Lice step: on a lice event, or by day 150 for a player who kept lice
+                // low all along (it used to wait for 0.8 forever, review F1014).
+                "lice_detection_acknowledged" => t => t.SeaLicePerFish >= 0.8 || t.State.Day >= LiceStepFallbackDay,
                 "delousing_completed" => t => t.SeaLicePerFish < 0.5, // Completed when under threshold
                 "biosecurity_enabled" => t => t.State.Day >= 35, // Placeholder: needs BiosecurityManager
                 "cleaner_fish_deployed" => t => t.State.Day >= 40, // Placeholder: needs CleanerFish system
                 
                 // Harvest and sales
-                "first_harvest_initiated" => t => t.State.ProcessingSnapshots.Count >= 1,
-                "first_sale_completed" => t => t.State.ProcessingSnapshots.Count >= 1 && t.State.Balance > 10_000_000m,
-                "pl_report_viewed" => t => t.State.ProcessingSnapshots.Count >= 1 && t.State.Day >= 1,
+                // A harvest sells at once (HarvestSite books the sale). Processing
+                // snapshots are only ever restored from saves, never produced in
+                // play, so these steps could never complete; the sale also needed
+                // a 10M balance a one-pen tutorial farm cannot reach (F1014).
+                "first_harvest_initiated" => t => HasSold(t),
+                "first_sale_completed" => t => HasSold(t),
+                "pl_report_viewed" => t => HasSold(t) && t.State.Day >= 1,
                 
                 // Expansion and systems
                 "feed_strategy_adjusted" => t => t.State.Day >= 1, // Placeholder: needs FeedStrategy tracking
@@ -208,12 +243,12 @@ namespace LakskongenSim.Core
                 "delousing_performed" => t => t.SeaLicePerFish < 0.5,
                 "day_90_reached" => t => t.State.Day >= 90,
                 "disease_event_handled" => t => t.State.Day >= 30,
-                "first_harvest" => t => t.State.ProcessingSnapshots.Count >= 1,
-                "first_sale" => t => t.State.ProcessingSnapshots.Count >= 1,
+                "first_harvest" => t => HasSold(t),
+                "first_sale" => t => HasSold(t),
                 "production_chain_viewed" => t => t.State.Day >= 1,
                 "weather_storm_survived" => t => t.State.Day >= 30,
                 "crew_hired" => t => t.State.Day >= 14,
-                "revenue_10_million" => t => t.State.Balance >= 10_000_000m,
+                "revenue_10_million" => t => t.LiveBalance >= 10_000_000m,
                 
                 // Default: parse numeric comparisons
                 _ when condition.Contains("day >=") => ParseDayCondition(condition),
@@ -256,6 +291,18 @@ namespace LakskongenSim.Core
         // ── Public API ────────────────────────────────────────────────────────
 
         /// <summary>
+        /// Skip the tutorial silently: marks all steps complete WITHOUT
+        /// rewards or completion events (skip ≠ earn). Called from the
+        /// TutorialUI skip button via GameBridge.SkipTutorial.
+        /// </summary>
+        public void Skip()
+        {
+            foreach (var step in _steps)
+                step.CompletedOnDay ??= _engine.State.Day;
+            _currentStepIndex = _steps.Count;
+        }
+
+        /// <summary>
         /// Called each simulated day by SimulationEngine.
         /// Evaluates the current step's trigger and completion conditions and advances when met.
         /// Chains through multiple steps if conditions are immediately satisfied.
@@ -288,6 +335,25 @@ namespace LakskongenSim.Core
 
         internal GameState State => _engine.State;
 
+        /// <summary>
+        /// Live cash from FinanceManager (single source of truth).
+        /// State.Balance is a day-end mirror and goes stale after mid-day
+        /// transactions — conditions must read this instead.
+        /// </summary>
+        internal decimal LiveBalance => _engine.FinanceManager?.Balance ?? State.Balance;
+
+        /// <summary>Day by which the lice step triggers even without a lice event.</summary>
+        internal const int LiceStepFallbackDay = 150;
+
+        /// <summary>
+        /// Fish have been sold (every harvest path books TotalHarvestRevenueNok).
+        /// The sales total also counts sludge income, which the weekly
+        /// valorization books automatically, so it completed these steps before
+        /// any harvest.
+        /// </summary>
+        internal static bool HasSold(TutorialSystem t)
+            => t.State.TotalHarvestRevenueNok > 0m || t.State.ProcessingSnapshots.Count >= 1;
+
         internal int TotalFishCount =>
             _engine.State.Populations.SelectMany(p => p.Cohorts).Sum(c => c.Count);
 
@@ -302,7 +368,7 @@ namespace LakskongenSim.Core
             }
         }
 
-        internal double SeaLicePerFish => _engine.SeaLice?.AverageLicePerFish ?? 0.0;
+        internal double SeaLicePerFish => _engine.GetCompanyLiceAverage();
 
         /// <summary>Returns the day step N was completed, or null if not yet completed.</summary>
         internal int? GetStepCompletedDay(int stepNumber)
@@ -322,18 +388,7 @@ namespace LakskongenSim.Core
             _engine.State.TutorialCurrentStepIndex = _currentStepIndex;
             _engine.State.CompletedTutorialStepIds.Add(step.Id);
 
-            if (step.RewardNok > 0)
-            {
-                _engine.FinanceManager?.AddRevenue(step.RewardNok);
-                Console.WriteLine(
-                    $"🎓 Tutorial Step {step.StepNumber}/{TotalSteps} complete: {step.Title} " +
-                    $"(+{step.RewardNok:N0} NOK)");
-            }
-            else
-            {
-                Console.WriteLine(
-                    $"🎓 Tutorial Step {step.StepNumber}/{TotalSteps} complete: {step.Title}");
-            }
+            SimLog.Info($"🎓 Tutorial Step {step.StepNumber}/{TotalSteps} complete: {step.Title}");
 
             OnStepCompleted?.Invoke(step);
         }
@@ -356,7 +411,6 @@ namespace LakskongenSim.Core
                                   "fish health, and sustainability score.",
                 Hint            = "Look around the dashboard to get familiar with the key indicators: " +
                                   "Balance (NOK), Fish Count, Sea Lice/fish, and Sustainability.",
-                RewardNok       = 0m,
                 // Completes on day 1 — the player simply sees the welcome screen
                 CompletionCondition = t => t.State.Day >= 1
             },
@@ -374,7 +428,6 @@ namespace LakskongenSim.Core
                                   "for hundreds of millions of NOK.",
                 Hint            = "Navigate to Expansion → Purchase License to acquire your first license. " +
                                   "Starting capital covers the cost.",
-                RewardNok       = 50_000m,
                 // Complete once a sea site exists, or after day 2 (guided onboarding)
                 CompletionCondition = t => t.State.SeaSites.Count >= 1 || t.State.Day >= 2
             },
@@ -391,7 +444,6 @@ namespace LakskongenSim.Core
                                   "Add a zone to activate water chemistry monitoring.",
                 Hint            = "Go to Farm → New Sea Site and select a fjord location. " +
                                   "Add at least one zone to enable production.",
-                RewardNok       = 100_000m,
                 CompletionCondition = t => t.State.Zones.Count >= 1 || t.State.SeaSites.Count >= 1
             },
 
@@ -407,7 +459,6 @@ namespace LakskongenSim.Core
                                   "from your hatchery to begin your first sea-phase production cycle.",
                 Hint            = "Open Hatchery → Transfer Smolts and select your sea site pen. " +
                                   "Stocking density should be < 25 kg/m³ at harvest weight.",
-                RewardNok       = 50_000m,
                 CompletionCondition = t => t.TotalFishCount >= 10_000
             },
 
@@ -423,7 +474,6 @@ namespace LakskongenSim.Core
                                   "optimal feeding is at 12–14°C. Watch your fish feed for one week.",
                 Hint            = "Check the FCR indicator on the Production panel. " +
                                   "Reduce feeding if temperature rises above 16°C to avoid waste.",
-                RewardNok       = 25_000m,
                 CompletionCondition = t =>
                 {
                     int? day4 = t.GetStepCompletedDay(4);
@@ -444,7 +494,6 @@ namespace LakskongenSim.Core
                                   "Monitor the health panel for one week.",
                 Hint            = "Check the Health panel daily. Red indicators mean immediate action needed. " +
                                   "Sea lice levels typically rise slowly — catch them early.",
-                RewardNok       = 25_000m,
                 CompletionCondition = t =>
                 {
                     int? day5 = t.GetStepCompletedDay(5);
@@ -466,7 +515,6 @@ namespace LakskongenSim.Core
                                   "Get lice below 0.5 per fish.",
                 Hint            = "Go to Health → Treatments. Bath treatments are fast but stressful. " +
                                   "Cleaner fish provide continuous biological control.",
-                RewardNok       = 50_000m,
                 CompletionCondition = t =>
                 {
                     int? day6 = t.GetStepCompletedDay(6);
@@ -489,7 +537,6 @@ namespace LakskongenSim.Core
                                   "Wait until average fish weight reaches 4.0 kg.",
                 Hint            = "The Production panel shows average fish weight. " +
                                   "Keep health optimal and FCR low for fastest growth.",
-                RewardNok       = 100_000m,
                 CompletionCondition = t => t.AverageFishWeightKg >= 4.0 && t.TotalFishCount > 0
             },
 
@@ -506,8 +553,7 @@ namespace LakskongenSim.Core
                                   "depending on market conditions.",
                 Hint            = "Go to Harvest → Initiate Harvest for your ready population. " +
                                   "Sell on the spot market or negotiate a contract price.",
-                RewardNok       = 0m,
-                CompletionCondition = t => t.State.ProcessingSnapshots.Count >= 1
+                CompletionCondition = HasSold
             },
 
             // ── Step 10: Check Your P&L ──────────────────────────────────────
@@ -521,10 +567,9 @@ namespace LakskongenSim.Core
                                   "Feed Cost (~50% of OpEx), " +
                                   "EBIT/kg (industry benchmark: NOK 20–35/kg), " +
                                   "and Return on Invested Capital (ROIC). " +
-                                  "Norwegian leaders like Mowi and SalMar achieve EBIT > 30 NOK/kg.",
+                                  "The best Norwegian farmers achieve EBIT above 30 NOK/kg.",
                 Hint            = "Open Finance → P&L Summary to see your full cost-per-kg breakdown. " +
                                   "Compare your FCR and mortality % against industry benchmarks.",
-                RewardNok       = 25_000m,
                 CompletionCondition = t =>
                 {
                     int? day9 = t.GetStepCompletedDay(9);
@@ -538,7 +583,7 @@ namespace LakskongenSim.Core
                 Id              = "explore-genetics",
                 StepNumber      = 11,
                 Title           = "Explore Genetics & Breeding",
-                Description     = "Norwegian salmon breeding programs (AquaGen, SalmoBreed) have " +
+                Description     = "Norwegian salmon breeding programmes have " +
                                   "doubled growth rates over 40 years of selective breeding. " +
                                   "In Lakskongen, you can select broodstock for traits: " +
                                   "growth rate, disease resistance, FCR efficiency, and flesh quality. " +
@@ -546,7 +591,6 @@ namespace LakskongenSim.Core
                                   "Spend a week exploring the genetics panel.",
                 Hint            = "Open Genetics → Breeding Programme. Select high-growth, " +
                                   "disease-resistant parents for your next smolt cohort.",
-                RewardNok       = 75_000m,
                 CompletionCondition = t =>
                 {
                     int? day10 = t.GetStepCompletedDay(10);
@@ -569,11 +613,32 @@ namespace LakskongenSim.Core
                                   "salmon producer. Lykke til — good luck!",
                 Hint            = "Your goal: reach 10,000 tonnes annual production with " +
                                   "Sustainability Leader certification. Explore all panels freely.",
-                RewardNok       = 500_000m,
                 // Auto-completes when reached — reward is the graduation bonus
                 CompletionCondition = _ => true
             },
         };
     }
     #pragma warning restore CS0618
+
+    /// <summary>
+    /// Accepts a JSON string or number for string-typed ids (shared config
+    /// files use numeric ids). Numbers serialize back as strings.
+    /// </summary>
+    public class LenientStringConverter : JsonConverter<string>
+    {
+        public override string Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            return reader.TokenType switch
+            {
+                JsonTokenType.String => reader.GetString() ?? "",
+                JsonTokenType.Number => reader.TryGetInt64(out var n) ? n.ToString() : reader.GetDouble().ToString(),
+                JsonTokenType.True => "true",
+                JsonTokenType.False => "false",
+                _ => "",
+            };
+        }
+
+        public override void Write(Utf8JsonWriter writer, string value, JsonSerializerOptions options)
+            => writer.WriteStringValue(value);
+    }
 }

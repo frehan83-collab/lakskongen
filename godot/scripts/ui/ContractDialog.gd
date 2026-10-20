@@ -50,9 +50,9 @@ func _ready() -> void:
 
     # Title
     _title_label = Label.new()
-    _title_label.text = tr("KONTRAKTSFORHANDLING")
-    _title_label.add_theme_font_size_override("font_size", FONT_XL_SIZE)
-    _title_label.add_theme_color_override("font_color", COLOR_ACCENT)
+    _title_label.text = tr("UI_CDIALOG_TITLE")
+    LakskongenTheme.set_size(_title_label, FONT_XL_SIZE)
+    LakskongenTheme.set_text_color(_title_label, COLOR_ACCENT)
     _title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     main_vbox.add_child(_title_label)
 
@@ -65,8 +65,8 @@ func _ready() -> void:
     main_vbox.add_child(_buyer_info_vbox)
     
     var buyer_label = Label.new()
-    buyer_label.add_theme_font_size_override("font_size", FONT_LG_SIZE)
-    buyer_label.add_theme_color_override("font_color", COLOR_TEXT)
+    LakskongenTheme.set_size(buyer_label, FONT_LG_SIZE)
+    LakskongenTheme.set_text_color(buyer_label, COLOR_TEXT)
     _buyer_info_vbox.add_child(buyer_label)
 
     # Negotiation Section
@@ -75,8 +75,8 @@ func _ready() -> void:
     main_vbox.add_child(_negotiation_vbox)
     
     var counter_price_label = Label.new()
-    counter_price_label.text = tr("Din motpris:")
-    counter_price_label.add_theme_color_override("font_color", COLOR_TEXT)
+    counter_price_label.text = tr("UI_CDIALOG_COUNTER_PRICE")
+    LakskongenTheme.set_text_color(counter_price_label, COLOR_TEXT)
     _negotiation_vbox.add_child(counter_price_label)
 
     _slider_price = HSlider.new()
@@ -86,15 +86,15 @@ func _ready() -> void:
     _negotiation_vbox.add_child(_slider_price)
 
     _slider_price_value_label = Label.new()
-    _slider_price_value_label.text = tr("0.0 NOK/kg")
+    _slider_price_value_label.text = tr("UI_CDIALOG_PRICE_PLACEHOLDER")
     _slider_price_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-    _slider_price_value_label.add_theme_color_override("font_color", COLOR_TEXT)
+    LakskongenTheme.set_text_color(_slider_price_value_label, COLOR_TEXT)
     _negotiation_vbox.add_child(_slider_price_value_label)
 
     _acceptance_chance_label = Label.new()
     _acceptance_chance_label.text = "Sjanse for aksept: X%"
     _acceptance_chance_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-    _acceptance_chance_label.add_theme_color_override("font_color", COLOR_TEXT)
+    LakskongenTheme.set_text_color(_acceptance_chance_label, COLOR_TEXT)
     _negotiation_vbox.add_child(_acceptance_chance_label)
     
     # Push buttons to bottom
@@ -107,20 +107,19 @@ func _ready() -> void:
     main_vbox.add_child(_buttons_hbox)
 
     var accept_button = Button.new()
-    accept_button.text = tr("AKSEPTER TILBUD")
-    accept_button.add_theme_color_override("font_color", COLOR_ACCENT)
+    accept_button.text = tr("UI_CDIALOG_ACCEPT")
+    accept_button.theme_type_variation = &"PrimaryButton"
     accept_button.pressed.connect(_on_accept_button_pressed)
     _buttons_hbox.add_child(accept_button)
 
     var negotiate_button = Button.new()
-    negotiate_button.text = tr("FORHANDL")
-    negotiate_button.add_theme_color_override("font_color", COLOR_ACCENT)
+    negotiate_button.text = tr("UI_CDIALOG_NEGOTIATE")
     negotiate_button.pressed.connect(_on_negotiate_button_pressed)
     _buttons_hbox.add_child(negotiate_button)
 
     var decline_button = Button.new()
-    decline_button.text = tr("AVSLÅ")
-    decline_button.add_theme_color_override("font_color", COLOR_DANGER)
+    decline_button.text = tr("UI_CDIALOG_DECLINE")
+    decline_button.theme_type_variation = &"GhostButton"
     decline_button.pressed.connect(_on_decline_button_pressed)
     _buttons_hbox.add_child(decline_button)
 
@@ -163,14 +162,14 @@ func create_stat(title: String, value: String, color: Color) -> void:
     
     var title_label = Label.new()
     title_label.text = title
-    title_label.add_theme_font_size_override("font_size", FONT_MD_SIZE)
-    title_label.add_theme_color_override("font_color", COLOR_TEXT)
+    LakskongenTheme.set_size(title_label, FONT_MD_SIZE)
+    LakskongenTheme.set_text_color(title_label, COLOR_TEXT)
     hbox.add_child(title_label)
 
     var value_label = Label.new()
     value_label.text = value
-    value_label.add_theme_font_size_override("font_size", FONT_MD_SIZE)
-    value_label.add_theme_color_override("font_color", color)
+    LakskongenTheme.set_size(value_label, FONT_MD_SIZE)
+    LakskongenTheme.set_text_color(value_label, color)
     value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
     value_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
     hbox.add_child(value_label)
@@ -192,11 +191,11 @@ func update_acceptance_chance_label() -> void:
     _acceptance_chance_label.text = "Sjanse for aksept: %d%%" % int(acceptance_chance)
     
     if acceptance_chance < 20:
-        _acceptance_chance_label.add_theme_color_override("font_color", COLOR_DANGER)
+        LakskongenTheme.set_text_color(_acceptance_chance_label, COLOR_DANGER)
     elif acceptance_chance < 50:
-        _acceptance_chance_label.add_theme_color_override("font_color", COLOR_WARNING)
+        LakskongenTheme.set_text_color(_acceptance_chance_label, COLOR_WARNING)
     else:
-        _acceptance_chance_label.add_theme_color_override("font_color", COLOR_SUCCESS)
+        LakskongenTheme.set_text_color(_acceptance_chance_label, COLOR_SUCCESS)
 
 
 func _on_accept_button_pressed() -> void:
@@ -223,14 +222,11 @@ func _hide_dialog() -> void:
     visible = false
 
 func _input(event: InputEvent) -> void:
-	if event.is_action_pressed("ui_cancel"):
-		get_viewport().set_input_as_handled()
-		_on_close_requested()
+    if event.is_action_pressed("ui_cancel"):
+        get_viewport().set_input_as_handled()
+        _on_close_requested()
 
 func _on_close_requested() -> void:
-	hide()
+    hide()
 
 
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
-    if event.is_action_pressed("ui_cancel"):
-        get_tree().call_group_flags(2, "tooltips", "hide")

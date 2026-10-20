@@ -3,7 +3,7 @@ class_name CrisisPanel
 
 # CrisisPanel - Dramatic Modal for Crisis Responses
 # Design: Full-screen dark overlay with pulsing border and urgent typography
-# Uses LakskongenTheme Nordlys palette: DANGER = #E54D4D, ACCENT = #E8825C
+# Uses LakskongenTheme palette constants (DANGER, ACCENT).
 
 @onready var overlay: ColorRect = $Overlay
 @onready var panel: PanelContainer = $PanelContainer
@@ -56,18 +56,18 @@ func _setup_appearance():
     panel_style.content_margin_bottom = 30
     panel.add_theme_stylebox_override("panel", panel_style)
     
-    title_label.add_theme_font_size_override("font_size", LakskongenTheme.FONT_TITLE)
-    title_label.add_theme_color_override("font_color", LakskongenTheme.DANGER)
+    LakskongenTheme.set_size(title_label, LakskongenTheme.FONT_TITLE)
+    LakskongenTheme.set_text_color(title_label, LakskongenTheme.DANGER)
     
     desc_label.bbcode_enabled = true
-    desc_label.add_theme_font_size_override("font_size", LakskongenTheme.FONT_LG)
+    LakskongenTheme.set_size(desc_label, LakskongenTheme.FONT_LG)
     desc_label.add_theme_color_override("default_color", LakskongenTheme.MUTED)
     
-    timer_label.add_theme_font_size_override("font_size", LakskongenTheme.FONT_XL)
-    timer_label.add_theme_color_override("font_color", LakskongenTheme.DANGER)
+    LakskongenTheme.set_size(timer_label, LakskongenTheme.FONT_XL)
+    LakskongenTheme.set_text_color(timer_label, LakskongenTheme.DANGER)
     
-    advisor_hint.add_theme_font_size_override("font_size", LakskongenTheme.FONT_SM)
-    advisor_hint.add_theme_color_override("font_color", LakskongenTheme.WARNING)
+    LakskongenTheme.set_size(advisor_hint, LakskongenTheme.FONT_SM)
+    LakskongenTheme.set_text_color(advisor_hint, LakskongenTheme.WARNING)
     
     # Create warning animation
     var animation = Animation.new()
@@ -122,11 +122,11 @@ func _on_crisis_triggered(crisis_data: Dictionary):
     # Show advisor hint based on crisis phase
     var phase = crisis_data.get("phase", "Warning")
     if phase == "Warning":
-        advisor_hint.text = tr("[i]Advisor: You have 3 days to respond before escalation.[/i]")
+        advisor_hint.text = tr("UI_CRISIS_ADVISOR_THREE_DAYS")
     elif phase == "Escalation":
-        advisor_hint.text = tr("[i]Advisor: Immediate action required! Crisis worsening.[/i]")
+        advisor_hint.text = tr("UI_CRISIS_ADVISOR_ACT_NOW")
     elif phase == "FullCrisis":
-        advisor_hint.text = tr("[i]Advisor: CATASTROPHIC — Damage control only.[/i]")
+        advisor_hint.text = tr("UI_CRISIS_ADVISOR_CATASTROPHIC")
     
     # Show and animate
     animation_player.play("crisis_pulse")
@@ -155,7 +155,7 @@ func _on_crisis_resolved(crisis_id: String, success: bool):
         animation_player.stop()
     
     # Show resolution toast (could be implemented separately)
-    GD.print("Crisis %s resolved: success=%s" % [crisis_id, success])
+    print("Crisis %s resolved: success=%s" % [crisis_id, success])
 
 func _on_crisis_escalated(crisis_id: String, new_severity: int):
     if current_crisis_id == crisis_id:
@@ -177,7 +177,7 @@ func _create_response_button(response_data: Dictionary, index: int) -> Button:
     btn.text = response_data["label"]
     btn.tooltip_text = _format_response_tooltip(response_data)
     btn.custom_minimum_size = Vector2(500, 50)
-    btn.add_theme_font_size_override("font_size", LakskongenTheme.FONT_LG)
+    LakskongenTheme.set_size(btn, LakskongenTheme.FONT_LG)
     
     # Style based on effectiveness
     var effectiveness = response_data.get("effectiveness", 50)
@@ -209,7 +209,7 @@ func _create_response_button(response_data: Dictionary, index: int) -> Button:
     pressed_style.bg_color = btn_color.darkened(0.15)
     btn.add_theme_stylebox_override("pressed", pressed_style)
     
-    btn.add_theme_color_override("font_color", LakskongenTheme.TEXT)
+    LakskongenTheme.set_text_color(btn, LakskongenTheme.TEXT)
     btn.add_theme_color_override("font_hover_color", LakskongenTheme.TEXT)
     btn.add_theme_color_override("font_pressed_color", LakskongenTheme.MUTED)
     
@@ -251,7 +251,7 @@ func _get_severity_color(severity: int) -> Color:
         3:
             return LakskongenTheme.DANGER
         4, 5:
-            return Color("#8B0000")  # Dark red
+            return Color("#B3172F")  # Dark red (escalated danger)
         _:
             return LakskongenTheme.MUTED
 
@@ -273,26 +273,23 @@ func _process(delta):
         var time_left = crisis_manager.get_crisis_time_remaining(current_crisis_id)
         
         if time_left <= 0:
-            timer_label.text = tr("TIME EXPIRED")
+            timer_label.text = tr("UI_CRISIS_TIME_EXPIRED")
         elif time_left == 1:
-            timer_label.text = tr("FINAL DAY TO ACT")
-            timer_label.add_theme_color_override("font_color", LakskongenTheme.DANGER)
+            timer_label.text = tr("UI_CRISIS_FINAL_DAY")
+            LakskongenTheme.set_text_color(timer_label, LakskongenTheme.DANGER)
         elif time_left <= 3:
             timer_label.text = "URGENT: %d DAYS REMAINING" % time_left
-            timer_label.add_theme_color_override("font_color", LakskongenTheme.DANGER)
+            LakskongenTheme.set_text_color(timer_label, LakskongenTheme.DANGER)
         else:
             timer_label.text = "ACT IN %d DAYS" % time_left
-            timer_label.add_theme_color_override("font_color", LakskongenTheme.WARNING)
+            LakskongenTheme.set_text_color(timer_label, LakskongenTheme.WARNING)
     else:
-        timer_label.text = tr("TIME LIMITED")
+        timer_label.text = tr("UI_CRISIS_TIME_LIMITED")
 
 func _input(event: InputEvent) -> void:
-	if event.is_action_pressed("ui_cancel"):
-		get_viewport().set_input_as_handled()
-		_on_close_requested()
+    if event.is_action_pressed("ui_cancel"):
+        get_viewport().set_input_as_handled()
+        _on_close_requested()
 
 func _on_close_requested() -> void:
-	hide()
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
-    if event.is_action_pressed("ui_cancel"):
-        get_tree().call_group_flags(2, "tooltips", "hide")
+    hide()

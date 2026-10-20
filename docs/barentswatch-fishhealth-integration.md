@@ -5,7 +5,7 @@
 A new BarentsWatch Fishhealth integration layer now exists in `src/LakskongenSim/Core/BarentsWatchFishHealthIntegration.cs`.
 
 It provides:
-- secure client options for API or offline-file ingestion
+- offline-file ingestion (no network I/O; roadmap D18)
 - raw Fishhealth transport models for disease / lice oriented data
 - normalization into `ExternalAquacultureSnapshot`
 - warning generation for high lice, disease escalation, and environmental stress
@@ -13,21 +13,26 @@ It provides:
 - snapshot persistence for reproducible simulation runs
 - compact health analytics reports for dashboards and in-game messaging
 
-## Runtime flow
+## Runtime flow (offline only, roadmap D18)
 
-`SimulationEngine.Initialize()` now:
-1. initializes the BarentsWatch pipeline
-2. attempts an ingest from either:
-   - `BARENTSWATCH_TOKEN` + configured API endpoint, or
-   - `game/data/barentswatch_fishhealth_raw.json`
-3. stores normalized snapshots under runtime `Data/barentswatch-snapshots`
-4. loads snapshot values into:
+`SimulationEngine.Initialize()` reads data, it never fetches it. The live API
+fetch (bearer token from `BARENTSWATCH_TOKEN`) and the snapshot cache it wrote
+next to the binary were removed in S2-02: with a token one machine played on
+live data and another on defaults, and the newest cached file decided the game.
+`OfflineDataTests` listens to every `System.Net` event source with the token set.
+
+1. looks for a bundled raw snapshot (`game/data/barentswatch_fishhealth_raw.json`
+   or `Data/barentswatch_fishhealth_raw.json`); without one the external data stay
+   at their defaults
+2. normalizes it in memory (`BarentsWatchFishHealthPipeline.ReadOffline`; nothing
+   is written) and keeps the file's own retrieval time
+3. loads the values into:
    - `GameState.ExternalAquacultureSnapshot`
    - `GameState.ExternalDataAnalytics`
    - `GameState.ExternalHealthWarnings`
    - `GameState.ExternalHealthCrisis`
    - `GameState.ExternalHealthAnalytics`
-5. applies crisis-weighted modifiers to sea lice, disease, environment, and market systems
+4. applies crisis-weighted modifiers to sea lice, disease, environment, and market systems
 
 ## Gameplay effects
 
@@ -55,11 +60,11 @@ The tests cover:
 - pipeline ingest + persisted snapshot reload
 - crisis / warning generation for high-risk conditions
 
-## Production hookup notes
+## Refreshing the data
 
-To switch from offline mode to live mode:
-1. provide `BARENTSWATCH_TOKEN`
-2. update `BarentsWatchClientOptions.FishHealthPath` if BarentsWatch exposes a different endpoint path
-3. ensure the live payload maps to `BarentsWatchFishHealthRawSnapshot`
+A fresh snapshot is exported outside the game (a tool with the BarentsWatch API
+credentials writes `barentswatch_fishhealth_raw.json`) and bundled with the build;
+`IngestLatest` can still persist a normalized copy for tools. The simulation
+itself has no network client (D18).
 
 If the actual API schema differs, adapt only the raw transport model / deserialization layer. The downstream pipeline, normalization, analytics, and gameplay wiring can remain stable.

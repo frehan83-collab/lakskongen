@@ -1,0 +1,98 @@
+{
+  "catalog": {
+    "closedPen": {
+      "badCaseSurvival": 0.92,
+      "controlPenCostNokPerKg": 38.78,
+      "cycleMortality": 0.0208,
+      "energyKWhPerKg": 3.87,
+      "externalLiceFactor": 0.15,
+      "productionCostNokPerKg": 36.47,
+      "refitDays": 60,
+      "upgradeCapexNokPerPen": 50000000
+    },
+    "conversionFeeNokPerLicence": 13804348,
+    "havfarm": {
+      "badCaseSurvival": 0.81,
+      "buildDays": 880,
+      "costRatioToCoastal": 1.3,
+      "externalLiceFactor": 0.3,
+      "licences": 13,
+      "mtbTonnes": 10000,
+      "survival": 0.972,
+      "unitCapexNok": 1000000000
+    },
+    "hfs": {
+      "badCaseSurvival": 0.9,
+      "buildDays": 910,
+      "capexNokPerTonneHog": 262000,
+      "costNokPerKgHog": 70.7,
+      "energyKWhPerKg": 6.55,
+      "externalLiceFactor": 0.0,
+      "lotCapacityTonnesHog": 7900,
+      "pilotLotCapexNok": 900000000,
+      "survival": 0.97
+    },
+    "hogTonnesPerMtbTonneYear": 1.2,
+    "licenceSizeTonnesMtb": 780,
+    "of1": {
+      "badCaseSurvival": 0.81,
+      "consortiumEquityShare": 0.35,
+      "costRatioToCoastal": 1.3,
+      "externalLiceFactor": 0.12,
+      "licences": 8,
+      "mooringAndCertificationDays": 45,
+      "roundEscapeFreeDays": 365,
+      "survival": 0.93,
+      "unitCapexNok": 877000000,
+      "voyageDays": 77,
+      "yardDays": 548
+    },
+    "openPen": {
+      "annualMortality": 0.142,
+      "annualMortalityWorstArea": 0.201,
+      "buildDays": 0,
+      "costNokPerKgRound": 64.68,
+      "cycleMonths": 16,
+      "energyKWhPerKg": 0.07,
+      "externalLiceFactor": 1.0,
+      "licencePriceNokPerTonneMtb": 305000,
+      "localityMtbTonnes": 3120,
+      "siteCapexNok": 6000000
+    },
+    "postSmolt": {
+      "badCaseSurvival": 0.9,
+      "biofilterMaturationDays": 45,
+      "constructionDays": 548,
+      "energyKWhPerKg": 4.4,
+      "moduleCapexNok": 110000000,
+      "moduleVolumeM3": 3200,
+      "productionIndexKgPerM3Year": 150,
+      "survival": 0.97
+    },
+    "ras": {
+      "badCaseSurvival": 0.88,
+      "biofilterMaturationDays": 60,
+      "capexUsdPerTonne": 30000,
+      "constructionDays": 913,
+      "costPremiumOverHfs": 0.1,
+      "energyKWhPerKg": 7.0,
+      "externalLiceFactor": 0.0,
+      "hallTanks": 16,
+      "nokPerUsd": 10.7,
+      "productionIndexKgPerM3Year": 130,
+      "survival": 0.98,
+      "tankVolumeM3": 2500
+    }
+  },
+  "construction": {
+    "durationSlipMedian": 0.05,
+    "durationSlipP90": 0.35,
+    "overrunMedian": 0.07,
+    "overrunP90": 0.25,
+    "turnkeyPremium": 0.12
+  },
+  "depreciation": {
+    "landLifeYears": 20,
+    "offshoreLifeYears": 25
+  }
+}

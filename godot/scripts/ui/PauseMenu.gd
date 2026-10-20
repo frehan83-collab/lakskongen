@@ -1,291 +1,328 @@
 extends Control
 
-## PauseMenu — in-game pause overlay for Lakskongen.
-## Shown when the player pauses; dims the game world behind it.
-## Pauses the simulation via get_tree().paused and optionally GameBridge.
+## PauseMenu — the in-game pause menu (Esc), roadmap U1-06 / D15.
 ##
-## Buttons: Fortsett (Resume), Lagre, Last inn, Innstillinger, Hovedmeny, Avslutt.
+## Esc on the home screen (the dashboard) opens it; Esc again, or Fortsett,
+## closes it. While it is open the game clock stands still and the world
+## behind it is frosted; closing restores the clock to how it was (a game the
+## player had paused stays paused).
 ##
-## Expected node layout:
-##   PauseMenu (Control, full-screen, process_mode = ALWAYS so it responds while paused)
-##   ├─ Overlay      (ColorRect, full-screen, semi-transparent dark)
-##   └─ Panel        (PanelContainer, centred)
-##      └─ VBoxContainer
-##         ├─ TitleLabel   (Label) "⏸ Pause"
-##         ├─ BtnResume    (Button) "Fortsett"
-##         ├─ BtnSave      (Button) "Lagre spill"
-##         ├─ BtnLoad      (Button) "Last inn spill"
-##         ├─ BtnSettings  (Button) "Innstillinger"
-##         ├─ Separator    (HSeparator)
-##         ├─ BtnMainMenu  (Button) "Tilbake til hovedmeny"
-##         └─ BtnQuit      (Button) "Avslutt"
-##   (SettingsMenu and SaveLoadMenu as siblings, shown on demand)
+##   Fortsett · Lagre spill · Last inn spill · Innstillinger · Medvirkende ·
+##   Til hovedmenyen · Avslutt spillet
+##
+## Save and load open the save list over the menu (it replaced the
+## "Lagre/last inn" tab, D15); settings and credits open in place. Leaving —
+## the main menu, the quit button or the window's close button (Main.gd turns
+## the close request into request_quit()) — asks first: "Lagre før du
+## avslutter?" with Lagre og avslutt / Avslutt uten å lagre / Avbryt. Saving
+## there writes the quick-save slot, which "Fortsett" on the main menu loads.
+##
+## The menu owns the keyboard while open: Esc steps back (guard, sub-menu,
+## then the menu itself) and the game's own keys (Space, N, I, Cmd/Ctrl+digit)
+## do nothing until it closes.
 
-signal resume_requested
-signal settings_requested
-signal save_requested
-signal quit_to_menu_requested
+signal opened
+signal closed
+signal main_menu_requested
+signal quit_requested
 
-# ── Color palette ─────────────────────────────────────────────────────────────
+const MAIN_MENU_SCENE := "res://scenes/MainMenu.tscn"
+const CREDITS_SCENE := "res://scenes/ui/CreditsScreen.tscn"
+const FADE_IN_S := 0.18
+const FADE_OUT_S := 0.14
+## Actions of the game screen that wait while the menu is open.
+const BLOCKED_ACTIONS := [&"toggle_pause", &"toggle_notifications", &"toggle_attention_inbox",
+	&"next_event", &"speed_1", &"speed_2", &"speed_3", &"speed_4"]
+## The game clock's hold while the menu is open (GameBridge.HoldPauseMenu, U2-07).
+const CLOCK_HOLD := "pause_menu"
 
-const COLOR_OVERLAY        := Color(0.18, 0.20, 0.25, 0.65)  # Nordic dark overlay
-const COLOR_PANEL_BG       := Color("#FFFFFF")
-const COLOR_BTN_NORMAL     := Color("#0A4D68")   # Primary
-const COLOR_BTN_HOVER      := Color("#0D5F80")   # Primary light
-const COLOR_BTN_DANGER     := Color("#BF616A")   # Danger
-const COLOR_BTN_DANGER_HOVER := Color("#A54E56")  # Danger dark
+enum Leave { NONE, QUIT, MAIN_MENU }
 
-# ── Node references ────────────────────────────────────────────────────────────
+@onready var _backdrop: ColorRect = %Backdrop
+@onready var _center: Control = %Center
+@onready var _panel: PanelContainer = %Panel
+@onready var _overline: Label = %Overline
+@onready var _title: Label = %TitleLabel
+@onready var _context: Label = %ContextLabel
+@onready var btn_resume: Button = %ResumeButton
+@onready var btn_save: Button = %SaveButton
+@onready var btn_load: Button = %LoadButton
+@onready var btn_settings: Button = %SettingsButton
+@onready var btn_credits: Button = %CreditsButton
+@onready var btn_main_menu: Button = %MainMenuButton
+@onready var btn_quit: Button = %QuitButton
+@onready var guard: Control = %SaveGuard
+@onready var guard_title: Label = %GuardTitle
+@onready var _guard_body: Label = %GuardBody
+@onready var _guard_error: Label = %GuardError
+@onready var guard_cancel: Button = %GuardCancel
+@onready var guard_discard: Button = %GuardDiscard
+@onready var guard_save: Button = %GuardSave
+@onready var settings_menu: Control = %SettingsMenu
+@onready var save_load_menu: Control = %SaveLoadMenu
 
-@onready var overlay:       ColorRect      = $Overlay
-@onready var panel:         PanelContainer = $PanelContainer
-@onready var title_label:   Label          = $PanelContainer/VBoxContainer/PausedLabel
-@onready var btn_resume:    Button         = $PanelContainer/VBoxContainer/ResumeButton
-@onready var btn_save:      Button         = $PanelContainer/VBoxContainer/SaveButton
-@onready var btn_load:      Button         = get_node_or_null("PanelContainer/VBoxContainer/LoadButton")
-@onready var btn_settings:  Button         = $PanelContainer/VBoxContainer/SettingsButton
-@onready var btn_main_menu: Button         = $PanelContainer/VBoxContainer/QuitButton
-@onready var btn_quit:      Button         = get_node_or_null("PanelContainer/VBoxContainer/ExitButton")
+var credits_screen: Control = null
+## Test seams: when valid, called instead of changing scene (with the scene
+## path) or quitting the application.
+var scene_change_override: Callable = Callable()
+var quit_override: Callable = Callable()
 
-@onready var settings_menu:  Control = get_node_or_null("SettingsMenu")
-@onready var save_load_menu: Control = get_node_or_null("/root/Main/SaveLoadMenu")
-
-# ── State ──────────────────────────────────────────────────────────────────────
-
-var _sim: Node          = null
-var _save_manager: Node = null
-var _game_bridge: Node  = null
-
-# ── Lifecycle ──────────────────────────────────────────────────────────────────
+var _sim: Node = null
+var _open: bool = false
+var _leave: Leave = Leave.NONE
+var _return_focus: Button = null
+var _fade: Tween = null
 
 func _ready() -> void:
-	_sim          = get_node_or_null("/root/SimBridge")
-	_save_manager = get_node_or_null("/root/SaveLoadManager")
-	_game_bridge  = get_node_or_null("/root/GameBridge")
-
-	_setup_visuals()
-	_connect_buttons()
-	_setup_submenus()
-	_setup_tooltips()
-	_setup_focus_navigation()
-
-	# PauseMenu must process while the tree is paused
-	process_mode = Node.PROCESS_MODE_ALWAYS
+	_sim = get_node_or_null("/root/SimBridge")
+	_apply_texts()
+	btn_resume.pressed.connect(hide_menu)
+	btn_save.pressed.connect(_open_save_list.bind("save", btn_save))
+	btn_load.pressed.connect(_open_save_list.bind("load", btn_load))
+	btn_settings.pressed.connect(_open_settings)
+	btn_credits.pressed.connect(open_credits)
+	btn_main_menu.pressed.connect(_ask.bind(Leave.MAIN_MENU))
+	btn_quit.pressed.connect(_ask.bind(Leave.QUIT))
+	guard_cancel.pressed.connect(_cancel_guard)
+	guard_discard.pressed.connect(_leave_now)
+	guard_save.pressed.connect(_save_and_leave)
+	settings_menu.close_requested.connect(_on_submenu_closed)
+	save_load_menu.close_requested.connect(_on_submenu_closed)
+	save_load_menu.game_loaded.connect(_on_game_loaded)
+	UIPolish.link_vertical_focus(btn_resume.get_parent())
+	UIPolish.attach_press_feedback(_panel)
 	hide()
 
-
-func _unhandled_input(event: InputEvent) -> void:
-	if visible and event.is_action_pressed("ui_cancel"):
-		_on_resume_pressed()
-		get_viewport().set_input_as_handled()
+func _apply_texts() -> void:
+	_overline.text = tr("UI_PAUSE_OVERLINE")
+	_title.text = tr("UI_PAUSE_TITLE")
+	btn_resume.text = tr("UI_PAUSE_RESUME")
+	btn_resume.tooltip_text = tr("UI_PAUSE_RESUME_TIP")
+	btn_save.text = tr("UI_PAUSE_SAVE")
+	btn_save.tooltip_text = tr("UI_PAUSE_SAVE_TIP")
+	btn_load.text = tr("UI_PAUSE_LOAD")
+	btn_load.tooltip_text = tr("UI_PAUSE_LOAD_TIP")
+	btn_settings.text = tr("UI_BUTTON_SETTINGS")
+	btn_credits.text = tr("UI_BUTTON_CREDITS")
+	btn_main_menu.text = tr("UI_PAUSE_MAIN_MENU")
+	btn_main_menu.tooltip_text = tr("UI_PAUSE_MAIN_MENU_TIP")
+	btn_quit.text = tr("UI_PAUSE_QUIT")
+	btn_quit.tooltip_text = tr("UI_PAUSE_QUIT_TIP")
+	guard_cancel.text = tr("UI_GUARD_CANCEL")
+	_guard_body.text = tr("UI_GUARD_BODY")
 
 # ── Public API ─────────────────────────────────────────────────────────────────
 
+func is_open() -> bool:
+	return _open
+
+## Open the menu: the menu holds the game clock (U2-07), which runs again on
+## close unless the player had paused it.
 func show_menu() -> void:
-	_pause_simulation(true)
+	if _open:
+		return
+	_open = true
+	if _sim != null:
+		_sim.hold_clock(CLOCK_HOLD)
+	_refresh_context()
+	guard.hide()
+	_center.show()
+	mouse_filter = Control.MOUSE_FILTER_STOP
 	show()
-	modulate = Color(1, 1, 1, 0)
-	panel.scale = Vector2(0.88, 0.88)
-	var tween := create_tween().set_parallel(true)
-	tween.tween_property(self, "modulate:a", 1.0, 0.18)
-	tween.tween_property(panel, "scale", Vector2(1, 1), 0.20) \
-		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_animate(true)
+	btn_resume.grab_focus.call_deferred()
+	opened.emit()
 
-
+## Close the menu and let go of the clock.
 func hide_menu() -> void:
-	var tween := create_tween().set_parallel(true)
-	tween.tween_property(self, "modulate:a", 0.0, 0.15)
-	tween.tween_property(panel, "scale", Vector2(0.88, 0.88), 0.15)
-	tween.chain().tween_callback(func():
-		hide()
-		_pause_simulation(false)
-	)
+	if not _open:
+		return
+	_open = false
+	_close_submenus()
+	guard.hide()
+	if _sim != null:
+		_sim.release_clock(CLOCK_HOLD)
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_animate(false)
+	closed.emit()
 
-# ── Simulation pause ──────────────────────────────────────────────────────────
+## The window's close button (or the quit button): open the menu if needed and
+## ask "Lagre før du avslutter?".
+func request_quit() -> void:
+	show_menu()
+	_ask(Leave.QUIT)
 
-func _pause_simulation(paused: bool) -> void:
-	get_tree().paused = paused
-	if _game_bridge and _game_bridge.has_method("set_paused"):
-		_game_bridge.set_paused(paused)
+## Medvirkende over the menu (also reachable from the main menu).
+func open_credits() -> void:
+	if credits_screen == null or not is_instance_valid(credits_screen):
+		credits_screen = (load(CREDITS_SCENE) as PackedScene).instantiate()
+		credits_screen.close_requested.connect(_on_credits_closed)
+		add_child(credits_screen)
+	_return_focus = btn_credits
+	_center.hide()
+	credits_screen.show()
 
-# ── Visual setup ──────────────────────────────────────────────────────────────
+# ── Input ──────────────────────────────────────────────────────────────────────
 
-func _setup_visuals() -> void:
-	if overlay:
-		overlay.color = COLOR_OVERLAY
+## Ahead of the game screen (this menu sits on a higher layer, later in the
+## tree): Esc steps back one level; the game's own keys wait.
+func _input(event: InputEvent) -> void:
+	if not _open:
+		return
+	if event.is_action_pressed("ui_cancel"):
+		_step_back()
+		get_viewport().set_input_as_handled()
+		return
+	for action in BLOCKED_ACTIONS:
+		if event.is_action(action):
+			get_viewport().set_input_as_handled()
+			return
+	var key := event as InputEventKey
+	if key != null and key.is_command_or_control_pressed() and key.keycode >= KEY_0 and key.keycode <= KEY_9:
+		get_viewport().set_input_as_handled()
 
-	if panel:
-		var panel_style := StyleBoxFlat.new()
-		panel_style.bg_color                  = COLOR_PANEL_BG
-		panel_style.corner_radius_top_left    = 14
-		panel_style.corner_radius_top_right   = 14
-		panel_style.corner_radius_bottom_left = 14
-		panel_style.corner_radius_bottom_right = 14
-		panel_style.content_margin_left   = 48
-		panel_style.content_margin_right  = 48
-		panel_style.content_margin_top    = 36
-		panel_style.content_margin_bottom = 36
-		panel.add_theme_stylebox_override("panel", panel_style)
-
-	if title_label:
-		title_label.add_theme_font_size_override("font_size", 32)
-		title_label.add_theme_color_override("font_color", Color("#2E3440"))
-
-	_style_button(btn_resume,    COLOR_BTN_NORMAL,     COLOR_BTN_HOVER,         22)
-	_style_button(btn_save,      COLOR_BTN_NORMAL,     COLOR_BTN_HOVER,         19)
-	_style_button(btn_load,      COLOR_BTN_NORMAL,     COLOR_BTN_HOVER,         19)
-	_style_button(btn_settings,  COLOR_BTN_NORMAL,     COLOR_BTN_HOVER,         19)
-	_style_button(btn_main_menu, COLOR_BTN_DANGER,     COLOR_BTN_DANGER_HOVER,  19)
-	_style_button(btn_quit,      COLOR_BTN_DANGER,     COLOR_BTN_DANGER_HOVER,  19)
-
-
-func _style_button(btn: Button, normal: Color, hover: Color, font_size: int) -> void:
-	var style := StyleBoxFlat.new()
-	style.bg_color                     = normal
-	style.corner_radius_top_left       = 8
-	style.corner_radius_top_right      = 8
-	style.corner_radius_bottom_left    = 8
-	style.corner_radius_bottom_right   = 8
-	style.content_margin_left          = 36
-	style.content_margin_right         = 36
-	style.content_margin_top           = 10
-	style.content_margin_bottom        = 10
-	btn.add_theme_stylebox_override("normal", style)
-	var hover_style := style.duplicate() as StyleBoxFlat
-	hover_style.bg_color = hover
-	btn.add_theme_stylebox_override("hover", hover_style)
-	btn.add_theme_color_override("font_color", Color("#ECEFF4"))
-	btn.add_theme_font_size_override("font_size", font_size)
-
-# ── Signal connections ─────────────────────────────────────────────────────────
-
-func _connect_buttons() -> void:
-	btn_resume.pressed.connect(_on_resume_pressed)
-	btn_save.pressed.connect(_on_save_pressed)
-	btn_load.pressed.connect(_on_load_pressed)
-	btn_settings.pressed.connect(_on_settings_pressed)
-	btn_main_menu.pressed.connect(_on_main_menu_pressed)
-	btn_quit.pressed.connect(_on_quit_pressed)
-
-# ── Submenu setup ─────────────────────────────────────────────────────────────
-
-func _setup_submenus() -> void:
-	if settings_menu:
-		settings_menu.hide()
-		if settings_menu.has_signal("close_requested"):
-			settings_menu.close_requested.connect(_on_submenu_closed)
-	if save_load_menu:
-		save_load_menu.hide()
-		if save_load_menu.has_signal("menu_closed"):
-			save_load_menu.menu_closed.connect(_on_submenu_closed)
-		elif save_load_menu.has_signal("close_requested"):
-			save_load_menu.close_requested.connect(_on_submenu_closed)
-
-
-func _set_buttons_disabled(disabled: bool) -> void:
-	for btn: Button in [btn_resume, btn_save, btn_load, btn_settings, btn_main_menu, btn_quit]:
-		btn.disabled = disabled
-
-# ── Button handlers ───────────────────────────────────────────────────────────
-
-func _on_resume_pressed() -> void:
-	resume_requested.emit()
-	hide_menu()
-
-
-func _on_save_pressed() -> void:
-	save_requested.emit()
-	btn_save.text     = tr("UI_PAUSE_SAVING")
-	btn_save.disabled = true
-	if _save_manager and _save_manager.has_method("save_game"):
-		_save_manager.save_game("quicksave")
-	await get_tree().create_timer(0.5).timeout
-	btn_save.text = tr("UI_PAUSE_SAVED")
-	await get_tree().create_timer(1.2).timeout
-	btn_save.text     = tr("UI_PAUSE_SAVE")
-	btn_save.disabled = false
-
-
-func _on_load_pressed() -> void:
-	if save_load_menu:
-		save_load_menu.show()
-		_set_buttons_disabled(true)
+func _step_back() -> void:
+	if guard.visible:
+		_cancel_guard()
+	elif credits_screen != null and is_instance_valid(credits_screen) and credits_screen.visible:
+		credits_screen.close()
+	elif save_load_menu.visible:
+		save_load_menu._close()
+	elif settings_menu.visible:
+		settings_menu._on_close()
 	else:
-		push_warning("PauseMenu: SaveLoadMenu node not found")
+		hide_menu()
 
+# ── Sub-menus ──────────────────────────────────────────────────────────────────
 
-func _on_settings_pressed() -> void:
-	settings_requested.emit()
-	if settings_menu:
-		settings_menu.show()
-		_set_buttons_disabled(true)
+func _open_save_list(mode: String, from: Button) -> void:
+	_return_focus = from
+	_center.hide()
+	if mode == "save":
+		save_load_menu.show_save()
 	else:
-		push_warning("PauseMenu: SettingsMenu node not found")
+		save_load_menu.show_load()
 
-
-func _on_main_menu_pressed() -> void:
-	quit_to_menu_requested.emit()
-	_pause_simulation(false)
-	var tween := create_tween()
-	tween.tween_property(self, "modulate:a", 0.0, 0.4)
-	tween.tween_callback(func():
-		hide()
-		get_tree().change_scene_to_file("res://scenes/MainMenu.tscn")
-	)
-
-
-func _on_quit_pressed() -> void:
-	_pause_simulation(false)
-	var tween := create_tween()
-	tween.tween_property(self, "modulate:a", 0.0, 0.4)
-	tween.tween_callback(get_tree().quit)
-
+func _open_settings() -> void:
+	_return_focus = btn_settings
+	_center.hide()
+	settings_menu.show()
 
 func _on_submenu_closed() -> void:
-	_set_buttons_disabled(false)
+	if not _open or guard.visible:
+		return
+	_center.show()
+	if _return_focus != null:
+		_return_focus.grab_focus.call_deferred()
 
-# ── Accessibility ──────────────────────────────────────────────────────────────
+func _on_credits_closed() -> void:
+	_on_submenu_closed()
 
-func _setup_tooltips() -> void:
-	if btn_resume:
-		btn_resume.tooltip_text = "Fortsett spillet (ESC)"
-	if btn_save:
-		btn_save.tooltip_text = "Lagre spillprogresjonen din"
-	if btn_load:
-		btn_load.tooltip_text = "Last inn et tidligere lagret spill"
-	if btn_settings:
-		btn_settings.tooltip_text = "Endre innstillinger for lyd, grafikk og tilgjengelighet"
-	if btn_main_menu:
-		btn_main_menu.tooltip_text = "Gå tilbake til hovedmenyen (usaved progress will be lost)"
-	if btn_quit:
-		btn_quit.tooltip_text = "Avslutt spillet (usaved progress will be lost)"
+## A save loaded from the menu replaces the game: close the menu and leave the
+## loaded game paused, so the player sees it before the clock runs.
+func _on_game_loaded(_file_name: String) -> void:
+	hide_menu()
 
+func _close_submenus() -> void:
+	if settings_menu.visible:
+		settings_menu.hide()
+	if save_load_menu.visible:
+		save_load_menu.hide()
+	if credits_screen != null and is_instance_valid(credits_screen):
+		credits_screen.hide()
 
-func _setup_focus_navigation() -> void:
-	# Enable keyboard focus for all buttons
-	btn_resume.focus_mode = Control.FOCUS_ALL
-	btn_save.focus_mode = Control.FOCUS_ALL
-	btn_load.focus_mode = Control.FOCUS_ALL
-	btn_settings.focus_mode = Control.FOCUS_ALL
-	btn_main_menu.focus_mode = Control.FOCUS_ALL
-	btn_quit.focus_mode = Control.FOCUS_ALL
-	
-	# Set up vertical navigation flow
-	btn_resume.focus_neighbor_bottom = NodePath("../BtnSave")
-	btn_save.focus_neighbor_top = NodePath("../BtnResume")
-	btn_save.focus_neighbor_bottom = NodePath("../BtnLoad")
-	btn_load.focus_neighbor_top = NodePath("../BtnSave")
-	btn_load.focus_neighbor_bottom = NodePath("../BtnSettings")
-	btn_settings.focus_neighbor_top = NodePath("../BtnLoad")
-	btn_settings.focus_neighbor_bottom = NodePath("../BtnMainMenu")
-	btn_main_menu.focus_neighbor_top = NodePath("../BtnSettings")
-	btn_main_menu.focus_neighbor_bottom = NodePath("../BtnQuit")
-	btn_quit.focus_neighbor_top = NodePath("../BtnMainMenu")
-	btn_quit.focus_neighbor_bottom = NodePath("../BtnResume")  # Loop back
-ad")
-	btn_settings.focus_neighbor_bottom = NodePath("../BtnMainMenu")
-	btn_main_menu.focus_neighbor_top = NodePath("../BtnSettings")
-	btn_main_menu.focus_neighbor_bottom = NodePath("../BtnQuit")
-	btn_quit.focus_neighbor_top = NodePath("../BtnMainMenu")
-	btn_quit.focus_neighbor_bottom = NodePath("../BtnResume")  # Loop back
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
+# ── Leaving: the save guard ────────────────────────────────────────────────────
+
+func _ask(leave: Leave) -> void:
+	_close_submenus()
+	_leave = leave
+	_return_focus = btn_quit if leave == Leave.QUIT else btn_main_menu
+	var quitting := leave == Leave.QUIT
+	guard_title.text = tr("UI_GUARD_QUIT_TITLE" if quitting else "UI_GUARD_MENU_TITLE")
+	guard_discard.text = tr("UI_GUARD_QUIT_DISCARD" if quitting else "UI_GUARD_MENU_DISCARD")
+	guard_save.text = tr("UI_GUARD_QUIT_SAVE" if quitting else "UI_GUARD_MENU_SAVE")
+	_guard_error.hide()
+	_center.hide()
+	guard.show()
+	guard_save.grab_focus.call_deferred()
+
+func _cancel_guard() -> void:
+	guard.hide()
+	_leave = Leave.NONE
+	_center.show()
+	if _return_focus != null:
+		_return_focus.grab_focus.call_deferred()
+
+## Save to the quick-save slot, then leave; a failed save stays here and says
+## why (leaving would lose the game).
+func _save_and_leave() -> void:
+	var ok: bool = _sim != null and _sim.quick_save()
+	if not ok:
+		var reason: String = _sim.get_last_save_error() if _sim != null else ""
+		_guard_error.text = tr("UI_GUARD_SAVE_FAILED") % reason
+		_guard_error.show()
+		return
+	_leave_now()
+
+func _leave_now() -> void:
+	var leave := _leave
+	_leave = Leave.NONE
+	guard.hide()
+	match leave:
+		Leave.QUIT:
+			quit_requested.emit()
+			if quit_override.is_valid():
+				quit_override.call()
+			else:
+				get_tree().quit()
+		Leave.MAIN_MENU:
+			# The abandoned game must not tick (or autosave) behind the menu.
+			if _sim != null:
+				_sim.set_paused(true)
+				_sim.release_clock(CLOCK_HOLD)
+			_open = false
+			main_menu_requested.emit()
+			if scene_change_override.is_valid():
+				scene_change_override.call(MAIN_MENU_SCENE)
+			else:
+				get_tree().change_scene_to_file(MAIN_MENU_SCENE)
+
+# ── Look ───────────────────────────────────────────────────────────────────────
+
+## "Dag 13 · 13. jan. 2027 · PO3 i rødt" — where the player paused.
+func _refresh_context() -> void:
+	if _sim == null:
+		_context.text = ""
+		return
+	var day: int = int(_sim.current_day)
+	var parts: PackedStringArray = [tr("UI_DAY_N") % day, SimFormatters.format_day(day)]
+	var scenario := _scenario_name()
+	if not scenario.is_empty():
+		parts.append(scenario)
+	_context.text = " · ".join(parts)
+
+func _scenario_name() -> String:
+	if not _sim.has_method("get_active_scenario_id"):
+		return ""
+	var id := str(_sim.get_active_scenario_id())
+	if id.is_empty():
+		return ""
+	for entry in _sim.get_available_scenarios():
+		if entry is Dictionary and str(entry.get("id", "")) == id:
+			return str(entry.get("name", ""))
+	return ""
+
+func _animate(appear: bool) -> void:
+	if _fade != null and _fade.is_valid():
+		_fade.kill()
+	_panel.pivot_offset = _panel.size * 0.5
+	_fade = create_tween().set_parallel(true)
+	if appear:
+		modulate.a = 0.0
+		_panel.scale = Vector2(0.97, 0.97)
+		_fade.tween_property(self, "modulate:a", 1.0, FADE_IN_S)
+		_fade.tween_property(_panel, "scale", Vector2.ONE, FADE_IN_S + 0.04) \
+			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	else:
+		_fade.tween_property(self, "modulate:a", 0.0, FADE_OUT_S)
+		_fade.chain().tween_callback(hide)

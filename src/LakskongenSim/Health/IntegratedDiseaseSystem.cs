@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using LakskongenSim.Biology;
+using LakskongenSim.Core;
 using LakskongenSim.Environment;
 
 namespace LakskongenSim.Health
@@ -17,14 +19,22 @@ namespace LakskongenSim.Health
         private readonly StochasticDiseaseEngine _stochasticEngine;
         private readonly DiseaseLODSystem _lodSystem;
         private readonly SeaLiceModel _liceModel;
-        
-        // Shared RNG — one instance per system to avoid seed-collision from rapid new Random() calls
-        private readonly Random _rng = new();
 
         // Performance targets
         private const double TargetFPS = 60.0;
         private const double MaxUpdateTimeMs = 16.7; // 60 FPS target
         private const int PerformanceSampleCount = 60; // Track last second of performance
+
+        // SIR tuning for the medium/low fidelity tiers (zone-level model).
+        private const double MediumTierTransmissionRate = 0.15;
+        private const double MediumTierRecoveryRate = 0.05;
+        private const double LowTierDailyDecayRate = 0.01;
+        private const double LowTierPrevalenceFloor = 0.1; // below: no mortality injection
+        private const double WaterborneKernelRadiusKm = 15.0; // ISA spreads 5-15km via water
+
+        // Disease mortality injected per unit prevalence (fraction of fish per day).
+        private const double HighTierMortalityPerPrevalence = 0.002; // 0.2%/day at 100% prevalence
+        private const double LowTierMortalityPerPrevalence = 0.0002; // 0.02%/day at 100% prevalence
         
         // Performance monitoring
         private readonly Queue<double> _updateTimes = new Queue<double>();
@@ -42,60 +52,88 @@ namespace LakskongenSim.Health
         public event Action<LODMode>? OnLODModeChanged;
         public event Action<double>? OnPerformanceUpdate; // FPS update
         
-        public IntegratedDiseaseSystem(SeaLiceModel liceModel)
+        public IntegratedDiseaseSystem(SeaLiceModel liceModel, SimRngStream? diseaseStream = null, SimRngStream? lodStream = null)
         {
             _liceModel = liceModel ?? throw new ArgumentNullException(nameof(liceModel));
             _baseSystem = new DiseaseSystem(liceModel);
-            _stochasticEngine = new StochasticDiseaseEngine(_baseSystem);
-            _lodSystem = new DiseaseLODSystem(_stochasticEngine);
+            _stochasticEngine = diseaseStream != null
+                ? new StochasticDiseaseEngine(_baseSystem, diseaseStream)
+                : new StochasticDiseaseEngine(_baseSystem);
+            _lodSystem = new DiseaseLODSystem(_stochasticEngine, lodStream);
         }
 
         /// <summary>
         /// Inject MortalityModel reference to enable disease rate injection.
         /// Called by SimulationEngine during initialization.
         /// </summary>
+        /// <summary>
+        /// The population-level SIR the daily tick and treatments use. The engine
+        /// exposes this same instance as SimulationEngine.Disease, so scenario
+        /// seeding and saves act on the live prevalence map.
+        /// </summary>
+        public DiseaseSystem BaseSystem => _baseSystem;
+
         public void SetMortalityModel(Biology.MortalityModel mortalityModel)
         {
             _mortalityModel = mortalityModel ?? throw new ArgumentNullException(nameof(mortalityModel));
+            _baseSystem.SetMortalityModel(mortalityModel); // base SIR injects here (single path)
             _lodSystem.SetMortalityModel(mortalityModel); // Pass to LOD system as well
             _lodSystem.SetDiseaseSystem(_baseSystem); // Pass DiseaseSystem for prevalence queries
         }
+
+        /// <summary>
+        /// Size the disease system to a calibrated slice of the whole-cycle sea
+        /// mortality anchor. The disease mortality rate is set so that, at the SIR
+        /// endemic equilibrium, the daily disease hazard integrates to
+        /// <paramref name="diseasePerCycle"/> over the calibrated sea grow-out.
+        /// Populations start at that equilibrium prevalence, so the realized
+        /// per-cycle disease slice is deterministic and tracks the calibration.
+        /// </summary>
+        public void ConfigureDiseaseShare(double diseasePerCycle, double seaPhaseDays)
+        {
+            if (seaPhaseDays <= 0) seaPhaseDays = 540.0;
+            double perCycle = Math.Clamp(diseasePerCycle, 0.0, 0.99);
+            double daily = 1.0 - Math.Pow(1.0 - perCycle, 1.0 / seaPhaseDays);
+            double endemic = _baseSystem.EquilibriumPrevalence();
+            if (endemic < 1e-6) endemic = 1.0;
+            _baseSystem.ExtraMortalityRatePerDay = daily / endemic;
+            _baseSystem.InitialPrevalence = endemic;
+        }
         
         /// <summary>
-        /// Main update method. Automatically selects optimal simulation fidelity.
+        /// Main update method. Runs the deterministic population-level SIR for
+        /// every population and injects the resulting disease mortality rate into
+        /// the shared <see cref="Biology.MortalityModel"/> (the single authoritative
+        /// injection path; the LOD/stochastic tiers are telemetry/scenario only and
+        /// must not inject independently).
         /// </summary>
-        public void Update(List<Zone> zones, List<FishPopulation> populations, int days = 1)
+        /// <param name="zones">Live zones.</param>
+        /// <param name="populations">Live populations.</param>
+        /// <param name="days">Days to advance.</param>
+        /// <param name="waterTemperatureOf">
+        /// Each population's water temperature (°C), from whatever holds it
+        /// (S2-02). Null uses the SIR's 10 °C reference, as before.
+        /// </param>
+        public void Update(List<Zone> zones, List<FishPopulation> populations, int days = 1,
+            Func<FishPopulation, double>? waterTemperatureOf = null)
         {
             if (days <= 0) return;
-            
-            var startTime = DateTime.Now;
-            
+
+            // Stopwatch has sub-millisecond resolution; DateTime.Now is ~15ms (TD-29).
+            var stopwatch = Stopwatch.StartNew();
+
+            // Deterministic population-level SIR: evolve prevalence and inject the
+            // disease mortality rate for the next biology step. No RNG on this path.
+            TickBaseSystem(populations, days, waterTemperatureOf);
+
             // Auto-adjust LOD mode based on performance
             if (_currentMode == LODMode.Auto)
             {
                 AdjustLODBasedOnPerformance(populations);
             }
-            
-            // Execute update with selected mode
-            switch (_currentMode)
-            {
-                case LODMode.High:
-                    UpdateHighFidelity(zones, populations, days);
-                    break;
-                case LODMode.Medium:
-                    UpdateMediumFidelity(zones, populations, days);
-                    break;
-                case LODMode.Low:
-                    UpdateLowFidelity(zones, populations, days);
-                    break;
-                case LODMode.Auto:
-                default:
-                    UpdateWithLODSystem(zones, populations, days);
-                    break;
-            }
-            
-            var endTime = DateTime.Now;
-            double updateTimeMs = (endTime - startTime).TotalMilliseconds;
+
+            var endTime = stopwatch.Elapsed;
+            double updateTimeMs = endTime.TotalMilliseconds;
             
             // Update performance tracking
             UpdatePerformanceMetrics(updateTimeMs);
@@ -109,12 +147,29 @@ namespace LakskongenSim.Health
         }
         
         /// <summary>
+        /// Deterministic population-level SIR tick for every population. The base
+        /// <see cref="DiseaseSystem"/> evolves prevalence and injects the disease
+        /// mortality rate into the shared <see cref="Biology.MortalityModel"/>.
+        /// </summary>
+        private void TickBaseSystem(List<FishPopulation> populations, int days,
+            Func<FishPopulation, double>? waterTemperatureOf = null)
+        {
+            for (int i = 0; i < populations.Count; i++)
+                _baseSystem.Tick(populations[i], days,
+                    waterTemperatureOf?.Invoke(populations[i]) ?? DiseaseReferenceTemperatureC);
+        }
+
+        /// <summary>Water temperature the SIR is ticked at when no population temperature is supplied (°C).</summary>
+        private const double DiseaseReferenceTemperatureC = 10.0;
+
+        /// <summary>
         /// Update with full high-fidelity simulation (for small populations or debugging).
         /// </summary>
         private void UpdateHighFidelity(List<Zone> zones, List<FishPopulation> populations, int days)
         {
-            // Use full stochastic engine
-            _stochasticEngine.SimulateMultiVectorTransmission(zones, populations, days);
+            // High-fidelity path: deterministic base SIR injection (the stochastic
+            // engine is retained for scenario/telemetry use only).
+            TickBaseSystem(populations, days);
         }
         
         /// <summary>
@@ -130,8 +185,8 @@ namespace LakskongenSim.Health
                 foreach (var population in populations.Where(p => p.ZoneId == zone.Id))
                 {
                     double prevalence = _baseSystem.GetPrevalence(population);
-                    double transmissionRate = 0.15 * _externalDiseasePressureMultiplier;
-                    double recoveryRate = 0.05 / Math.Max(1.0, _externalDiseasePressureMultiplier * 0.5);
+                    double transmissionRate = MediumTierTransmissionRate * _externalDiseasePressureMultiplier;
+                    double recoveryRate = MediumTierRecoveryRate / Math.Max(1.0, _externalDiseasePressureMultiplier * 0.5);
                     
                     // Simple SIR update
                     for (int day = 0; day < days; day++)
@@ -162,13 +217,13 @@ namespace LakskongenSim.Health
                 double prevalence = _baseSystem.GetPrevalence(population);
                 
                 // Simple exponential decay
-                double decayRate = 0.01;
+                double decayRate = LowTierDailyDecayRate;
                 prevalence *= Math.Pow(1.0 - decayRate, days);
                 
                 UpdateBaseSystemPrevalence(population, prevalence);
                 
                 // Inject minimal disease mortality rate
-                if (prevalence > 0.1)
+                if (prevalence > LowTierPrevalenceFloor)
                 {
                     InjectMinimalDiseaseMortalityRate(population, prevalence, days);
                 }
@@ -227,7 +282,7 @@ namespace LakskongenSim.Health
         {
             // In a full implementation, would configure the LOD system
             // For now, just log the adjustment
-            Console.WriteLine($"[IntegratedDisease] Adjusted high-detail limit to {_performanceBasedHighDetailLimit}");
+            SimLog.Debug($"[IntegratedDisease] Adjusted high-detail limit to {_performanceBasedHighDetailLimit}");
         }
         
         /// <summary>
@@ -245,7 +300,7 @@ namespace LakskongenSim.Health
                 double distance = EstimateZoneDistance(zone.Id, population.ZoneId);
                 
                 // Gaussian kernel: pressure decays with distance
-                double spreadFactor = Math.Exp(-Math.Pow(distance, 2) / (2 * Math.Pow(15.0, 2)));
+                double spreadFactor = Math.Exp(-Math.Pow(distance, 2) / (2 * Math.Pow(WaterborneKernelRadiusKm, 2)));
                 totalPressure += prevalence * spreadFactor;
             }
             
@@ -269,7 +324,7 @@ namespace LakskongenSim.Health
         {
             if (_mortalityModel == null) return; // Fallback if not wired
             
-            double dailyMortalityRate = 0.002 * prevalence * _externalDiseasePressureMultiplier; // 0.2% per day at 100% prevalence
+            double dailyMortalityRate = HighTierMortalityPerPrevalence * prevalence * _externalDiseasePressureMultiplier; // 0.2% per day at 100% prevalence
             
             System.Diagnostics.Debug.WriteLine($"[IntegratedDisease] Injecting disease rate: PopId={population.Id}, Prevalence={prevalence:F4}, DailyRate={dailyMortalityRate:F6}, Days={days}");
             
@@ -284,7 +339,7 @@ namespace LakskongenSim.Health
             if (_mortalityModel == null) return; // Fallback if not wired
             
             // For low-fidelity, use lower disease mortality to avoid over-killing distant populations
-            double dailyMortalityRate = 0.0002 * prevalence * _externalDiseasePressureMultiplier; // 0.02% per day at 100% prevalence
+            double dailyMortalityRate = LowTierMortalityPerPrevalence * prevalence * _externalDiseasePressureMultiplier; // 0.02% per day at 100% prevalence
             
             System.Diagnostics.Debug.WriteLine($"[IntegratedDisease][Minimal] Injecting disease rate: PopId={population.Id}, Prevalence={prevalence:F4}, DailyRate={dailyMortalityRate:F6}");
             
@@ -297,11 +352,9 @@ namespace LakskongenSim.Health
         /// </summary>
         private double EstimateZoneDistance(string zoneId1, string zoneId2)
         {
-            // Deterministic hash-based distance: same zone pair always returns same distance
-            // Ensures disease spread calculations are reproducible
-            int hash = HashCode.Combine(zoneId1, zoneId2);
-            // Map to 0-30km range deterministically
-            return (Math.Abs(hash) % 3000) / 100.0;
+            // Process-stable hash distance (HashCode.Combine differs per launch):
+            // the same zone pair always maps to the same 0-30 km distance.
+            return (StableHash.Of(zoneId1, zoneId2) % 3000UL) / 100.0;
         }
         
         /// <summary>
@@ -367,10 +420,19 @@ namespace LakskongenSim.Health
         /// <summary>
         /// Apply treatment to a population.
         /// </summary>
-        public void ApplyTreatment(FishPopulation population, double reductionFraction, 
+        public void ApplyTreatment(FishPopulation population, string treatmentType, double reductionFraction,
+            double directTreatmentEfficacy, double temperatureC, bool applyLiceModel = true)
+        {
+            _baseSystem.ApplyTreatment(population, treatmentType, reductionFraction, directTreatmentEfficacy, temperatureC, applyLiceModel);
+        }
+
+        /// <summary>
+        /// Apply treatment to a population (legacy 4-arg overload, defaults to mechanical).
+        /// </summary>
+        public void ApplyTreatment(FishPopulation population, double reductionFraction,
             double directTreatmentEfficacy, double temperatureC)
         {
-            _baseSystem.ApplyTreatment(population, reductionFraction, directTreatmentEfficacy, temperatureC);
+            _baseSystem.ApplyTreatment(population, "mechanical", reductionFraction, directTreatmentEfficacy, temperatureC);
         }
     }
     

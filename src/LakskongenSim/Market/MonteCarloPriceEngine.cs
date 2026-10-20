@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using LakskongenSim.Core;
 
 namespace LakskongenSim.Market
 {
@@ -24,12 +25,18 @@ namespace LakskongenSim.Market
         /// <summary>Poisson intensity: expected jumps per year.</summary>
         public static readonly double JumpIntensity = 2.0;
 
-        private readonly Random _rng;
+        private readonly SimRngStream _rng;
+        internal SimRngStream RngForSnapshot => _rng;
 
         /// <summary>Create engine with optional seed for reproducibility.</summary>
-        public MonteCarloPriceEngine(int? seed = null)
+        public MonteCarloPriceEngine(SimRngStream rng)
         {
-            _rng = seed.HasValue ? new Random(seed.Value) : Random.Shared;
+            _rng = rng ?? throw new ArgumentNullException(nameof(rng));
+        }
+
+        public MonteCarloPriceEngine(int? seed = null)
+            : this((seed.HasValue ? new SimRng(seed.Value) : SimRng.CreateUnseeded()).Stream(SimRngStreams.MonteCarloPrice))
+        {
         }
 
         /// <summary>
@@ -66,7 +73,7 @@ namespace LakskongenSim.Market
             double[] path = new double[days + 1];
             path[0] = startPrice;
 
-            double dt = 1.0 / 365.0;
+            double dt = 1.0 / LakskongenSim.Core.SimCalendar.DaysPerYear;
             double dailyDrift = AnnualDrift * dt;
             double dailyVol = AnnualVolatility * Math.Sqrt(dt);
             double jumpProb = JumpIntensity * dt;
@@ -85,10 +92,10 @@ namespace LakskongenSim.Market
                 }
 
                 // Seasonal overlay
-                int dayOfYear = ((d + 1) % 365) + 1;
+                int dayOfYear = LakskongenSim.Core.SimCalendar.DayOfYear(d + 1) + 1;
                 double seasonal = GetSeasonalMultiplier(dayOfYear);
 
-                double newPrice = path[d] * Math.Exp(diffusion + jump) * seasonal / GetSeasonalMultiplier(dayOfYear > 1 ? dayOfYear - 1 : 365);
+                double newPrice = path[d] * Math.Exp(diffusion + jump) * seasonal / GetSeasonalMultiplier(dayOfYear > 1 ? dayOfYear - 1 : LakskongenSim.Core.SimCalendar.DaysPerYear);
                 path[d + 1] = Math.Max(newPrice, 1.0); // Floor at 1 NOK/kg
             }
 

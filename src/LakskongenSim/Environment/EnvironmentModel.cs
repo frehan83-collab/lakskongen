@@ -12,6 +12,14 @@ namespace LakskongenSim.Environment
 
         public event Action? OnEnvironmentChanged;
 
+        /// <summary>Mirror the live game zones (same instances, no copies —
+        /// water-chemistry state lives on the zones themselves).</summary>
+        public void SyncZones(System.Collections.Generic.IEnumerable<Zone> zones)
+        {
+            Zones.Clear();
+            Zones.AddRange(zones);
+        }
+
         public void AdvanceDays(int days)
         {
             foreach (var z in Zones) z.AdvanceDays(days);

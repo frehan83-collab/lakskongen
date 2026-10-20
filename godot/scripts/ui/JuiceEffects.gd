@@ -11,11 +11,22 @@ static var _shake_intensity: float = 0.0
 static var _shake_duration: float = 0.0
 static var _shake_timer: float = 0.0
 static var _original_camera_offset: Vector2 = Vector2.ZERO
+## A screen_shake of this many pixels is full trauma for the 3D camera.
+const SHAKE_FULL_TRAUMA_PX := 20.0
 
 ## Shake the screen. Use for critical events (storms, escapes, bankruptcy).
 ## intensity: pixels of displacement (5-20 typical)
 ## duration: seconds (0.2-0.5 typical)
+## The game's world is 3D: the shake goes to the 3D camera's view offset
+## (CameraShake, U2-06; 20 px = full trauma). It used to move a Camera2D
+## only, which the game does not have, so nothing shook. Reduced motion
+## (MotionPrefs) turns it off.
 static func screen_shake(viewport: Viewport, intensity: float = 10.0, duration: float = 0.3) -> void:
+	if viewport == null or MotionPrefs.reduced_motion():
+		return
+	if viewport.get_camera_3d() != null:
+		CameraShake.shake(viewport, clampf(intensity / SHAKE_FULL_TRAUMA_PX, 0.0, 1.0))
+		return
 	var canvas = viewport.get_camera_2d()
 	if canvas:
 		_original_camera_offset = canvas.offset
@@ -104,7 +115,7 @@ static func flash_damage(node: Control) -> Tween:
 
 ## Green income flash
 static func flash_income(node: Control) -> Tween:
-	return flash_color(node, Color("#A3BE8C"), 0.4)
+	return flash_color(node, Color("#2E6B45"), 0.4)
 
 ## Amber warning flash
 static func flash_warning(node: Control) -> Tween:
@@ -164,6 +175,40 @@ static func fade_out(node: Control, duration: float = 0.3) -> Tween:
 	tween.tween_property(node, "modulate:a", 0.0, duration)
 	return tween
 
+# ── Button Press Feedback ───────────────────────────────────────────────────
+
+## Quick scale punch for button presses. Pure juice: no logic changes.
+static func button_pop(button: Control, scale_factor: float = 0.94, duration: float = 0.12) -> Tween:
+	var tween := button.create_tween()
+	tween.set_ease(Tween.EASE_OUT)
+	tween.set_trans(Tween.TRANS_BACK)
+	tween.tween_property(button, "scale", Vector2.ONE * scale_factor, duration * 0.5)
+	tween.tween_property(button, "scale", Vector2.ONE, duration * 0.5)
+	return tween
+
+## Wire press feedback onto a button without touching its existing connections.
+static func attach_press_feedback(button: BaseButton) -> void:
+	if button == null:
+		return
+	if button.has_meta("_juice_feedback_attached"):
+		return
+	button.set_meta("_juice_feedback_attached", true)
+	button.pressed.connect(func(): button_pop(button))
+
+# ── Panel Transitions ───────────────────────────────────────────────────────
+
+## Soft enter for tab panels: fade + rise. Call after panel.show().
+static func panel_enter(panel: Control, duration: float = 0.28) -> Tween:
+	panel.modulate.a = 0.0
+	panel.position.y += 14.0
+	var tween := panel.create_tween()
+	tween.set_ease(Tween.EASE_OUT)
+	tween.set_trans(Tween.TRANS_CUBIC)
+	tween.set_parallel(true)
+	tween.tween_property(panel, "modulate:a", 1.0, duration)
+	tween.tween_property(panel, "position:y", panel.position.y - 14.0, duration)
+	return tween
+
 # ── Floating Text (Damage Numbers / Income Pop) ──────────────────────────────
 
 ## Create a floating text that rises and fades (like damage numbers in RPGs).
@@ -174,8 +219,8 @@ static func fade_out(node: Control, duration: float = 0.3) -> Tween:
 static func floating_text(parent: Node, text: String, start_pos: Vector2, color: Color = Color.WHITE, duration: float = 1.5) -> void:
 	var label = Label.new()
 	label.text = text
-	label.add_theme_color_override("font_color", color)
-	label.add_theme_font_size_override("font_size", 18)
+	LakskongenTheme.set_text_color(label, color)
+	LakskongenTheme.set_size(label, 18)
 	label.position = start_pos
 	label.z_index = 100
 	parent.add_child(label)
@@ -185,4 +230,3 @@ static func floating_text(parent: Node, text: String, start_pos: Vector2, color:
 	tween.tween_property(label, "position:y", start_pos.y - 60, duration)
 	tween.tween_property(label, "modulate:a", 0.0, duration)
 	tween.chain().tween_callback(label.queue_free)
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using LakskongenSim.Core;
 
 namespace LakskongenSim.Farm
 {
@@ -16,6 +17,41 @@ namespace LakskongenSim.Farm
     /// </summary>
     public class AIFeedingSystem
     {
+        private readonly SimRngStream? _cameraStream;
+
+        public AIFeedingSystem() { }
+
+        /// <summary>
+        /// Deterministic variant: camera-reading noise comes from a named
+        /// SimRng stream (SimRngStreams.AiFeeding). The parameterless
+        /// constructor keeps a fixed neutral reading for callers without
+        /// an RNG service.
+        /// </summary>
+        public AIFeedingSystem(SimRngStream cameraStream) => _cameraStream = cameraStream;
+
+        /// <summary>Persistence (Phase 1 wave 6): the learning/counter state
+        /// drives daily license economics — must survive a save.</summary>
+        internal (bool Installed, double Calibration, int Days, double CameraUptime, double Appetite,
+            double Waste, decimal Savings, double FcrMult, System.Collections.Generic.List<double> History) ExportState()
+            => (IsInstalled, CalibrationLevel, DaysSinceInstallation, CameraUptime, AppetiteScore,
+                FeedWasteRate, DailyFeedSavings, FCRMultiplier,
+                new System.Collections.Generic.List<double>(AppetiteHistory));
+
+        internal void ImportState((bool Installed, double Calibration, int Days, double CameraUptime, double Appetite,
+            double Waste, decimal Savings, double FcrMult, System.Collections.Generic.List<double> History) s)
+        {
+            IsInstalled = s.Installed;
+            CalibrationLevel = s.Calibration;
+            DaysSinceInstallation = s.Days;
+            CameraUptime = s.CameraUptime;
+            AppetiteScore = s.Appetite;
+            FeedWasteRate = s.Waste;
+            DailyFeedSavings = s.Savings;
+            FCRMultiplier = s.FcrMult;
+            AppetiteHistory.Clear();
+            AppetiteHistory.AddRange(s.History);
+        }
+
         // ─── Configuration ───
         /// <summary>Is the AI system installed and active?</summary>
         public bool IsInstalled { get; set; } = false;
@@ -155,7 +191,7 @@ namespace LakskongenSim.Farm
             // System gets better over 180 days of data collection
             if (CalibrationLevel < 0.95)
             {
-                CalibrationLevel = Math.Min(0.95, 0.5 + (DaysSinceInstallation / 360.0) * 0.45);
+                CalibrationLevel = Math.Min(0.95, 0.5 + ((double)DaysSinceInstallation / LakskongenSim.Core.SimCalendar.DaysPerYear) * 0.45);
             }
 
             // ─── Camera Degradation (biofouling) ───
@@ -186,10 +222,12 @@ namespace LakskongenSim.Farm
             result.DailyFeedSavings = DailyFeedSavings;
 
             // ─── License/Maintenance cost ───
-            result.DailyLicenseCost = ANNUAL_LICENSE_COST / 365m;
+            result.DailyLicenseCost = ANNUAL_LICENSE_COST / LakskongenSim.Core.SimCalendar.DaysPerYear;
 
             // ─── Appetite tracking ───
-            AppetiteScore = 0.5 + Random.Shared.NextDouble() * 0.5; // Simulated camera reading
+            // Simulated camera reading; noise from the named stream when
+            // wired (engine), fixed neutral reading otherwise.
+            AppetiteScore = 0.5 + (_cameraStream?.NextDouble() ?? 0.5) * 0.5;
             if (AppetiteHistory.Count > 30) AppetiteHistory.RemoveAt(0);
             AppetiteHistory.Add(AppetiteScore);
 

@@ -8,13 +8,13 @@ func _ready():
     # Opprett dag-teller
     day_label = Label.new()
     day_label.name = "DayLabel"
-    day_label.text = tr("DAY: 0")
+    day_label.text = tr("UI_SIMLOG_DAY_ZERO")
     add_child(day_label)
 
     # Opprett logg-konsoll
     log_text_label = RichTextLabel.new()
     log_text_label.name = "LogTextLabel"
-    log_text_label.set_anchors_and_offsets_preset(PRESET_WIDE) # Fyller bredden
+    log_text_label.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE) # Fyller bredden
     log_text_label.set_position(Vector2(0, 30)) # Juster posisjon under day_label
     log_text_label.set_size(Vector2(size.x, size.y - 30)) # Juster størrelse
     log_text_label.fit_content = false # Viktig for å kunne scrolle
@@ -37,13 +37,10 @@ func _on_day_ticked(day: int, log_summary: String):
     log_text_label.scroll_to_line(log_text_label.get_line_count() - 1) # Scroll til bunnen
 
 func _input(event: InputEvent) -> void:
-	if event.is_action_pressed("ui_cancel"):
-		get_viewport().set_input_as_handled()
-		_on_close_requested()
+    if event.is_action_pressed("ui_cancel"):
+        get_viewport().set_input_as_handled()
+        _on_close_requested()
 
 func _on_close_requested() -> void:
-	hide()
+    hide()
 
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
-    if event.is_action_pressed("ui_cancel"):
-        get_tree().call_group_flags(2, "tooltips", "hide")

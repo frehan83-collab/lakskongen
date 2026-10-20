@@ -1,32 +1,70 @@
-[gd_scene load_steps=9 format=3 uid="uid://cx3r7m9t1q5n4"]
+[gd_scene load_steps=16 format=3 uid="uid://cx3r7m9t1q5n4"]
 
 [ext_resource type="Script" path="res://scripts/GameController.gd" id="1_gamecontroller"]
-[ext_resource type="Script" path="res://scripts/AudioController.gd" id="2_audiocontroller"]
-[ext_resource type="Script" path="res://scripts/ui/HUD.gd" id="3_hud"]
+[ext_resource type="PackedScene" uid="uid://bks2yj3v1fkl8" path="res://scenes/ui/HUD.tscn" id="3_hud"]
 [ext_resource type="PackedScene" uid="uid://bvn8m9x2kqr7t" path="res://scenes/GameUI.tscn" id="4_gameui"]
-[ext_resource type="Script" path="res://scripts/ui/TutorialUI.gd" id="5_tutorial"]
-[ext_resource type="Script" path="res://scripts/ui/NotificationCenter.gd" id="6_notifications"]
-[ext_resource type="Script" path="res://scripts/ui/AnalyticsPanel.gd" id="7_analytics"]
+[ext_resource type="PackedScene" path="res://scenes/ui/TutorialUI.tscn" id="5_tutorial"]
+[ext_resource type="PackedScene" path="res://scenes/ui/NotificationCenter.tscn" id="6_notifications"]
 [ext_resource type="Script" path="res://scripts/Main.gd" id="8_main"]
+[ext_resource type="PackedScene" uid="uid://fjord_environment_001" path="res://scenes/environment/FjordEnvironment.tscn" id="9_fjord"]
+[ext_resource type="Script" path="res://scripts/environment/FishPenManager.gd" id="10_penmanager"]
+[ext_resource type="Script" path="res://scripts/environment/FjordVistaBridge.gd" id="11_bridge"]
+[ext_resource type="PackedScene" path="res://scenes/ui/FjordCameraHint.tscn" id="12_camerahint"]
+[ext_resource type="PackedScene" uid="uid://d2kx4jnw5l83y" path="res://scenes/ui/AttentionInbox.tscn" id="14_inbox"]
+[ext_resource type="PackedScene" uid="uid://dm4k8n2p7r0v6" path="res://scenes/PauseMenu.tscn" id="15_pause"]
+[ext_resource type="PackedScene" path="res://scenes/ui/CriticalEventCard.tscn" id="16_critical"]
+[ext_resource type="PackedScene" path="res://scenes/ui/BriefingCard.tscn" id="17_briefing"]
+[ext_resource type="PackedScene" path="res://scenes/ui/ScenarioEndScreen.tscn" id="18_endscreen"]
 
-[node name="GameScene" type="Node"]
+[node name="GameScene" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
 script = ExtResource("8_main")
+
+[node name="FjordEnvironment" parent="." instance=ExtResource("9_fjord")]
+
+[node name="FjordCamera" parent="FjordEnvironment"]
+auto_orbit_enabled = true
+auto_orbit_speed = 0.03
+far = 20000.0
+
+[node name="FishPenManager" type="Node3D" parent="FjordEnvironment"]
+script = ExtResource("10_penmanager")
+
+[node name="FjordVistaBridge" type="Node" parent="."]
+unique_name_in_owner = true
+script = ExtResource("11_bridge")
+pen_manager_path = NodePath("../FjordEnvironment/FishPenManager")
+camera_path = NodePath("../FjordEnvironment/FjordCamera")
+game_ui_path = NodePath("../UILayer/GameUI")
 
 [node name="GameController" type="Node" parent="."]
 unique_name_in_owner = true
 script = ExtResource("1_gamecontroller")
 player_name = "Spiller 1"
 starting_capital = 10000000
-auto_start = true
-
-[node name="AudioController" type="Node" parent="."]
-unique_name_in_owner = true
-script = ExtResource("2_audiocontroller")
+auto_start = false
 
 [node name="UILayer" type="CanvasLayer" parent="."]
-layer = 1
+layer = 2
 
-[node name="HUD" type="Control" parent="UILayer"]
+[node name="CameraHint" parent="UILayer" instance=ExtResource("12_camerahint")]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+bridge_path = NodePath("../../FjordVistaBridge")
+
+[node name="HUD" parent="UILayer" instance=ExtResource("3_hud")]
 unique_name_in_owner = true
 layout_mode = 1
 anchor_left = 0.0
@@ -36,7 +74,6 @@ anchor_bottom = 0.0
 offset_bottom = 48.0
 grow_horizontal = 2
 grow_vertical = 1
-script = ExtResource("3_hud")
 
 [node name="GameUI" parent="UILayer" instance=ExtResource("4_gameui")]
 unique_name_in_owner = true
@@ -50,7 +87,7 @@ offset_bottom = 0.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="TutorialUI" type="Control" parent="UILayer"]
+[node name="TutorialUI" parent="UILayer" instance=ExtResource("5_tutorial")]
 unique_name_in_owner = true
 layout_mode = 1
 anchor_left = 0.0
@@ -63,9 +100,8 @@ offset_right = 380.0
 offset_bottom = -16.0
 grow_horizontal = 1
 grow_vertical = 0
-script = ExtResource("5_tutorial")
 
-[node name="NotificationCenter" type="Control" parent="UILayer"]
+[node name="NotificationCenter" parent="UILayer" instance=ExtResource("6_notifications")]
 unique_name_in_owner = true
 layout_mode = 1
 anchor_left = 1.0
@@ -73,17 +109,30 @@ anchor_top = 0.0
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = -360.0
-offset_top = 64.0
-offset_bottom = -4.0
+offset_top = 120.0
+offset_right = -8.0
+offset_bottom = -8.0
 grow_horizontal = 0
 grow_vertical = 2
-script = ExtResource("6_notifications")
 
-[node name="AnalyticsPanel" type="Control" parent="UILayer"]
-unique_name_in_owner = true
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
+[node name="AttentionInbox" parent="." instance=ExtResource("14_inbox")]
 visible = false
-script = ExtResource("7_analytics")
+
+[node name="EventLayer" type="CanvasLayer" parent="."]
+layer = 4
+
+[node name="BriefingCard" parent="EventLayer" instance=ExtResource("17_briefing")]
+unique_name_in_owner = true
+
+[node name="CriticalEventCard" parent="EventLayer" instance=ExtResource("16_critical")]
+unique_name_in_owner = true
+
+[node name="MenuLayer" type="CanvasLayer" parent="."]
+layer = 5
+
+[node name="PauseMenu" parent="MenuLayer" instance=ExtResource("15_pause")]
+unique_name_in_owner = true
+visible = false
+
+[node name="ScenarioEndScreen" parent="." instance=ExtResource("18_endscreen")]
+unique_name_in_owner = true

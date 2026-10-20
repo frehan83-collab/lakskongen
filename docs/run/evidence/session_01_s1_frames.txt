@@ -1,0 +1,53 @@
+# S1 living-fjord forced-state evidence — session 1
+
+*Gate: G-SHOT (forced-state frames distinct, state-driven). Status: **PASSED**
+for the lice-collar and bloom pairs on the 2026-10-12 run14 capture set.
+Repeatability control (two identical runs) deferred to W2 baseline promotion.*
+
+## Mechanics shipped (see git for diffs)
+
+1. **QA forcing bridge methods** (player-unreachable, deterministic):
+   `StartQaScenario(scenarioId, seed)` (QA_SEED=20261012) · `SetQaPenLice` ·
+   `SpawnQaBloom` · `ClearQaBlooms`; wired through `SimActions.gd`/`SimBridge.gd`;
+   bridge contract test green.
+2. **Collar tint rendering bug fixed**: the original `instance uniform` tint was
+   proven set-at-node but never rendered (node probe `applied=(0.85,0.3,0.3,1.0)`
+   vs pixel-sampled identical ring hue). Now: per-pen duplicated ShaderMaterial +
+   regular uniform; the ring uses the sim tint as its primary color with a
+   warning/critical glow (`pen_collar_shader.gdshader`).
+3. **Harness hardening** (all kept): bounded `frame_post_draw` wait + window raise
+   (no more occlusion hangs); in-`_shoot` UI force-hide with logged state; sim
+   paused around forced captures (no lice decay); forced shots ordered before the
+   underwater shot; `_configure_env` staging (proven framing path).
+   The paused-then-resumed flow logs: `lice force: 0.600 via QA set (site
+   po3_nord, lice_set)`, `bloom clear: removed N -> severity 0.00`,
+   `bloom force: 0.00 -> 0.80 (bloom_spawned)`.
+
+## Run14 evidence (final set on disk under `godot/screenshots/game/`)
+
+Command: `tools/capture_screenshots.sh` → `Captured 25 screenshot(s)`; harness log
+free of load/parse errors (the run-8..13 framing outage was traced to a GDScript
+`:=` inference error in FishPenManager introduced mid-session — CI's scene-load
+step caught it; fixed before this run).
+
+| Pair | Frames (same camera, state differs only by forced value) | md5 | phash dist |
+|---|---|---|---|
+| Lice collar | `08b_fjord_farm.png` (healthy, natural lice) vs `12_fjord_lice_red_zone.png` (QA 0.60, red threshold) | `26110c9b…` vs `b456c0db…` (run14) | **16 (major)** |
+| Bloom | `13_fjord_no_bloom.png` (cleared 0.00) vs `13b_fjord_bloom.png` (injected algae 0.80) | `00c376d2…` vs `e904a449…` (run14) | **16 (major)** |
+| Staged controls | night vs storm / day vs night / underwater vs day | — | 28 / 36 / 28 |
+
+Visual confirmation (agent-viewed): `12_` shows the farm framed with the collar in
+the warm/critical tint under the storm sky; `08b_` shows the pale healthy collar;
+`13_` blue-clear water → `13b_` green-tinted water (bloom readout). Threshold
+context from the repo's visual-qa guide: ≥9 noticeable, ≥16 major (gate: 8).
+
+## Follow-ups
+
+- **Repeatability control** at baseline promotion: run the harness twice unchanged
+  and compare phash of staged shots (expect ≤2-3; exact md5 may drift by ticking
+  day/alert text).
+- **Warm-vs-red nuanced read**: run14's lice frame carries storm lighting (storm
+  alert active); a clear-sky pair would make the red read unmistakable — nice-to-
+  have for store screenshots, not required by the gate.
+- The run-8..13 framing outage is documented here — if it recurs, check for
+  GDScript compile errors first (`bash tools/validate_scenes.sh` is the fast gate).

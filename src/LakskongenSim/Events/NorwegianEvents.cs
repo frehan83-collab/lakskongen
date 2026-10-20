@@ -9,50 +9,95 @@ namespace LakskongenSim.Events
     /// 40+ events based on real industry occurrences.
     /// To use: call NorwegianEvents.RegisterAll(storyteller) at game start.
     /// 
-    /// NOTE: This class uses GameState.Balance directly for backward compatibility.
-    /// TODO: Refactor to use FinanceManager when EventDefinition signature is updated.
+    /// NOTE: Cash settles through FinanceManager when provided (production);
+    /// falls back to GameState.Balance for tests without finance (same
+    /// convention as Storyteller). GameState.Balance is otherwise a
+    /// read-only mirror maintained by SimulationEngine.
     /// </summary>
     #pragma warning disable CS0618 // Type or member is obsolete
     public static class NorwegianEvents
     {
-        public static void RegisterAll(Storyteller storyteller)
+        public static void RegisterAll(Storyteller storyteller, Finance.FinanceManager? finance = null, Finance.TrafficLightSystem? trafficLight = null)
         {
-            RegisterDiseaseEvents(storyteller);
-            RegisterWeatherEvents(storyteller);
-            RegisterMarketEvents(storyteller);
-            RegisterRegulatoryEvents(storyteller);
-            RegisterEquipmentEvents(storyteller);
-            RegisterCommunityEvents(storyteller);
-            RegisterCompetitorEvents(storyteller);
-            RegisterInvestorEvents(storyteller);
+            RegisterDiseaseEvents(storyteller, finance);
+            RegisterWeatherEvents(storyteller, finance);
+            RegisterMarketEvents(storyteller, finance);
+            RegisterRegulatoryEvents(storyteller, finance, trafficLight);
+            RegisterEquipmentEvents(storyteller, finance);
+            RegisterCommunityEvents(storyteller, finance);
+            RegisterCompetitorEvents(storyteller, finance);
+            RegisterInvestorEvents(storyteller, finance);
         }
+
+        /// <summary>
+        /// Settle an event's BalanceChange. Unconditional (ForceSpend for costs:
+        /// fines and catastrophes apply even into debt — debt scenarios allow
+        /// negative balances), matching the original direct-mutation semantics.
+        /// </summary>
+        public static void SettleBalanceChange(Finance.FinanceManager? finance, GameState gs, EventRecord rec)
+        {
+            if (rec.BalanceChange == 0m) return;
+            if (finance != null)
+            {
+                if (rec.BalanceChange >= 0m)
+                    finance.AddRevenue(rec.BalanceChange);
+                else
+                    finance.ForceSpend(-rec.BalanceChange);
+            }
+            else
+            {
+                gs.Balance += rec.BalanceChange; // test fallback (no finance)
+            }
+        }
+
+        /// <summary>
+        /// The first population that sits in a sea site's pens (null when none):
+        /// a fjord pen or an offshore unit's zone (F2-03: ISA reaches offshore
+        /// units, spec §3.1 decision 4).
+        /// </summary>
+        internal static Biology.FishPopulation? FirstSeaPen(GameState gs)
+            => gs.Populations.FirstOrDefault(p => gs.SeaSites.Any(s => s.Pens.Contains(p)));
+
+        /// <summary>
+        /// The company's fjord localities (F2-03): the fjord site cards (seals,
+        /// net wear, escape fines, fjord-use disputes, the tourism view) are about
+        /// a fjord's net pens, and an offshore unit meets its own (F2-08).
+        /// </summary>
+        internal static IEnumerable<Farm.SeaSite> FjordSites(GameState gs)
+            => gs.SeaSites.Where(s => s.Kind == Farm.SiteKind.Fjord);
 
         // ═══════════════════════════════════════════════════════════
         // DISEASE EVENTS (10 events)
         // ═══════════════════════════════════════════════════════════
 
-        private static void RegisterDiseaseEvents(Storyteller storyteller)
+        private static void RegisterDiseaseEvents(Storyteller storyteller, Finance.FinanceManager? finance)
         {
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "isa-outbreak",
-                Name = "ISA outbreak",
+                Name = "ILA-utbrudd",
                 Category = EventCategory.Disease,
                 Weight = 0.8,
                 CooldownDays = 180,
                 MinDay = 365, // Not in first year
-                Condition = gs => gs.Populations.Any(),
+                // ISA is a sea-pen disease: land-based RAS tanks are biosecure. The
+                // cull used to take whatever population came first, which wiped a
+                // RAS facility's whole stock.
+                Condition = gs => FirstSeaPen(gs) != null,
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "Infectious Salmon Anemia detected. Mandatory culling and 2-year fallow period for affected zone.";
+                    rec.Description = "Infeksiøs lakseanemi (ILA) påvist. Påbudt utslakting og to års brakklegging i det berørte området.";
                     rec.BalanceChange = -2_500_000m; // Catastrophic
-                    gs.Balance += rec.BalanceChange;
-                    
-                    // Cull all populations in the first zone (or random zone if multiple)
-                    if (gs.Populations.Any())
+                    SettleBalanceChange(finance, gs, rec);
+
+                    // Cull the first sea pen: every fish is destroyed on the
+                    // cull order, booked as an infectious-disease death (S2-05).
+                    var culled = FirstSeaPen(gs);
+                    if (culled != null)
                     {
-                        var firstPop = gs.Populations.First();
-                        firstPop.Cohorts.Clear();
+                        foreach (var cohort in culled.Cohorts)
+                            culled.RemoveDead(cohort, cohort.Count, Biology.MortalityCause.DiseaseCull);
+                        culled.Cohorts.Clear();
                     }
                     
                     // Set first zone to fallow (reduce capacity to effectively disable it)
@@ -67,55 +112,63 @@ namespace LakskongenSim.Events
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "pd-outbreak",
-                Name = "Pancreas Disease outbreak",
+                Name = "Utbrudd av pankreassykdom (PD)",
                 Category = EventCategory.Disease,
                 Weight = 1.2,
                 CooldownDays = 90,
                 Condition = gs => gs.Populations.Any(),
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "PD virus spreading. 10-20% mortality expected, growth rates reduced.";
+                    rec.Description = "PD-viruset sprer seg. Ventet dødelighet 10–20 %, og veksten går ned.";
                     rec.BalanceChange = -350_000m;
-                    gs.Balance += rec.BalanceChange;
+                    SettleBalanceChange(finance, gs, rec);
                 }
             });
 
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "cms-outbreak",
-                Name = "CMS outbreak",
+                Name = "Utbrudd av hjertesprekk (CMS)",
                 Category = EventCategory.Disease,
                 Weight = 1.0,
                 CooldownDays = 120,
                 Condition = gs => gs.Day > 365 && gs.Populations.Any(),
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "Cardiomyopathy Syndrome detected in seawater cohorts. Heart inflammation causes 5-20% losses.";
+                    rec.Description = "Hjertesprekk (CMS) påvist i fisken i sjøen. Betennelse i hjertet gir 5–20 % tap.";
                     rec.BalanceChange = -280_000m;
-                    gs.Balance += rec.BalanceChange;
+                    // Phase 5.1: vaccination coverage blunts CMS (no cure exists).
+                    double vmult = Health.VaccinationProgram.OutbreakCostMult(gs,
+                        Core.CrewEffects.HasRole(gs, "veterinaer"));
+                    if (vmult < 1.0)
+                    {
+                        rec.BalanceChange = -(decimal)(280_000.0 * vmult);
+                        rec.Description += " (Vaksinert bestand — tap begrenset.)";
+                    }
+                    SettleBalanceChange(finance, gs, rec);
                 }
             });
 
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "agd-outbreak",
-                Name = "AGD outbreak",
+                Name = "Utbrudd av amøbegjellesykdom (AGD)",
                 Category = EventCategory.Disease,
                 Weight = 1.5,
                 CooldownDays = 60,
                 Condition = gs => gs.Populations.Any(),
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "Amoebic Gill Disease from warmer waters. Requires freshwater bathing treatment.";
+                    rec.Description = "Amøbegjellesykdom (AGD) fra varmere vann. Krever behandling med ferskvannsbad.";
                     rec.BalanceChange = -120_000m;
-                    gs.Balance += rec.BalanceChange;
+                    SettleBalanceChange(finance, gs, rec);
                 }
             });
 
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "ihn-outbreak",
-                Name = "IHN virus detected",
+                Name = "IHN-virus påvist",
                 Category = EventCategory.Disease,
                 Weight = 0.6,
                 CooldownDays = 180,
@@ -123,48 +176,56 @@ namespace LakskongenSim.Events
                 Condition = gs => gs.Populations.Any(),
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "Infectious Hematopoietic Necrosis in hatchery. Mortality up to 70% in fry stage.";
+                    rec.Description = "IHN påvist i settefiskanlegget. Opptil 70 % dødelighet på yngelstadiet.";
                     rec.BalanceChange = -180_000m;
-                    gs.Balance += rec.BalanceChange;
+                    SettleBalanceChange(finance, gs, rec);
                 }
             });
 
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "winter-ulcers",
-                Name = "Winter ulcers outbreak",
+                Name = "Utbrudd av vintersår",
                 Category = EventCategory.Disease,
                 Weight = 1.0,
                 CooldownDays = 90,
-                Condition = gs => (gs.Day % 365) >= 300 || (gs.Day % 365) <= 90, // Winter months
+                Condition = gs => LakskongenSim.Core.SimCalendar.DayOfYear(gs.Day) >= 300 || LakskongenSim.Core.SimCalendar.DayOfYear(gs.Day) <= 90, // Winter months
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "Bacterial infection from cold stress. Skin lesions reduce fillet quality.";
+                    rec.Description = "Bakterieinfeksjon etter kuldestress. Sår i huden gir dårligere filetkvalitet.";
                     rec.BalanceChange = -90_000m;
-                    gs.Balance += rec.BalanceChange;
+                    // Phase 5.1: vaccination blunts winter ulcers.
+                    double vmult = Health.VaccinationProgram.OutbreakCostMult(gs,
+                        Core.CrewEffects.HasRole(gs, "veterinaer"));
+                    if (vmult < 1.0)
+                    {
+                        rec.BalanceChange = -(decimal)(90_000.0 * vmult);
+                        rec.Description += " (Vaksinert bestand — tap begrenset.)";
+                    }
+                    SettleBalanceChange(finance, gs, rec);
                 }
             });
 
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "lice-infestation",
-                Name = "Sea lice infestation",
+                Name = "Lakselusangrep",
                 Category = EventCategory.Disease,
                 Weight = 2.0,
                 CooldownDays = 30,
                 Condition = gs => gs.Populations.Any(),
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "Lice counts above regulatory limit (0.5 adult females/fish). Mandatory treatment required.";
+                    rec.Description = "Lusetallet er over grensen (0,5 voksne hunnlus per fisk). Behandling er påbudt.";
                     rec.BalanceChange = -75_000m;
-                    gs.Balance += rec.BalanceChange;
+                    SettleBalanceChange(finance, gs, rec);
                 }
             });
 
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "disease-resistance-breakthrough",
-                Name = "Disease-resistant strain success",
+                Name = "Gjennombrudd for sykdomsresistent stamme",
                 Category = EventCategory.Other,
                 Weight = 0.3,
                 CooldownDays = 365,
@@ -172,7 +233,7 @@ namespace LakskongenSim.Events
                 Condition = gs => gs.Day > 730,
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "🎉 Breeding program yields ISA-resistant strain! Disease losses reduced by 40%.";
+                    rec.Description = "Avlsprogrammet gir en ILA-resistent stamme. Sykdomstapene går ned med 40 %.";
                     rec.BalanceChange = 0m; // Long-term benefit
                     
                     // Update best disease resistance breeding value
@@ -186,7 +247,7 @@ namespace LakskongenSim.Events
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "vaccine-innovation",
-                Name = "New vaccine available",
+                Name = "Ny vaksine tilgjengelig",
                 Category = EventCategory.Other,
                 Weight = 0.4,
                 CooldownDays = 540,
@@ -194,25 +255,25 @@ namespace LakskongenSim.Events
                 Condition = gs => true,
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "New multi-valent vaccine offers improved protection against PD and CMS. One-time investment required.";
+                    rec.Description = "En ny kombinasjonsvaksine gir bedre vern mot PD og CMS. Krever en engangsinvestering.";
                     rec.BalanceChange = -150_000m; // Cost
-                    gs.Balance += rec.BalanceChange;
+                    SettleBalanceChange(finance, gs, rec);
                 }
             });
 
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "cleanerfish-success",
-                Name = "Cleaner fish prove effective",
+                Name = "Rensefisken virker",
                 Category = EventCategory.Other,
                 Weight = 0.5,
                 CooldownDays = 180,
                 Condition = gs => gs.Populations.Any(),
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "🐟 Wrasse and lumpfish reducing lice counts better than expected. Chemical treatments down 60%.";
+                    rec.Description = "Leppefisk og rognkjeks holder lusa nede bedre enn ventet. Bruken av kjemiske midler faller med 60 %.";
                     rec.BalanceChange = +80_000m; // Savings
-                    gs.Balance += rec.BalanceChange;
+                    SettleBalanceChange(finance, gs, rec);
                 }
             });
         }
@@ -221,133 +282,142 @@ namespace LakskongenSim.Events
         // WEATHER & ENVIRONMENT EVENTS (8 events)
         // ═══════════════════════════════════════════════════════════
 
-        private static void RegisterWeatherEvents(Storyteller storyteller)
+        private static void RegisterWeatherEvents(Storyteller storyteller, Finance.FinanceManager? finance)
         {
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "storm-damage",
-                Name = "Major storm damages pens",
+                Name = "Kraftig storm skader merdene",
                 Category = EventCategory.Weather,
                 Weight = 1.0,
                 CooldownDays = 120,
-                Condition = gs => (gs.Day % 365) >= 270 || (gs.Day % 365) <= 60, // Oct-Mar storm season
+                Condition = gs => LakskongenSim.Core.SimCalendar.DayOfYear(gs.Day) >= 270 || LakskongenSim.Core.SimCalendar.DayOfYear(gs.Day) <= 60, // Oct-Mar storm season
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "⛈️ Storm Berit causes pen damage and 5,000 fish escape. Repair costs and regulatory fines.";
+                    rec.Description = "Stormen Berit skader merdene, og 5 000 fisk rømmer. Reparasjonskostnader og bøter.";
                     rec.BalanceChange = -420_000m;
-                    gs.Balance += rec.BalanceChange;
+                    SettleBalanceChange(finance, gs, rec);
                 }
             });
 
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "algal-bloom-toxic",
-                Name = "Toxic algal bloom",
+                Name = "Giftig algeoppblomstring",
                 Category = EventCategory.Weather,
                 Weight = 0.8,
                 CooldownDays = 180,
-                Condition = gs => (gs.Day % 365) >= 120 && (gs.Day % 365) <= 240, // May-Sep
+                Condition = gs => LakskongenSim.Core.SimCalendar.DayOfYear(gs.Day) >= 120 && LakskongenSim.Core.SimCalendar.DayOfYear(gs.Day) <= 240, // May-Sep
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "Chrysochromulina algae bloom. Oxygen depletion causes 15% mortality, feeding suspended.";
+                    rec.Description = "Oppblomstring av Chrysochromulina-alger. Oksygensvikt gir 15 % dødelighet, og fôringen stanses.";
                     rec.BalanceChange = -580_000m;
-                    gs.Balance += rec.BalanceChange;
+                    SettleBalanceChange(finance, gs, rec);
                 }
             });
 
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "jellyfish-swarm",
-                Name = "Jellyfish swarm",
+                Name = "Manetinvasjon",
                 Category = EventCategory.Weather,
                 Weight = 1.2,
                 CooldownDays = 90,
-                Condition = gs => (gs.Day % 365) >= 180 && (gs.Day % 365) <= 270, // Summer-autumn
+                Condition = gs => LakskongenSim.Core.SimCalendar.DayOfYear(gs.Day) >= 180 && LakskongenSim.Core.SimCalendar.DayOfYear(gs.Day) <= 270, // Summer-autumn
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "Massive jellyfish swarm clogs nets and stresses fish. Emergency harvest considered.";
+                    rec.Description = "En stor maneteinvasjon tetter nøtene og stresser fisken. Nødslakting vurderes.";
                     rec.BalanceChange = -95_000m;
-                    gs.Balance += rec.BalanceChange;
+                    SettleBalanceChange(finance, gs, rec);
                 }
             });
 
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "heatwave",
-                Name = "Heatwave raises temperatures",
+                Name = "Hetebølge varmer opp sjøen",
                 Category = EventCategory.Weather,
                 Weight = 0.6,
                 CooldownDays = 365,
-                Condition = gs => (gs.Day % 365) >= 150 && (gs.Day % 365) <= 210, // June-Aug
+                Condition = gs => LakskongenSim.Core.SimCalendar.DayOfYear(gs.Day) >= 150 && LakskongenSim.Core.SimCalendar.DayOfYear(gs.Day) <= 210, // June-Aug
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "Unusually high temperatures (16-18°C). Growth slows, lice proliferate, AGD risk elevated.";
+                    rec.Description = "Uvanlig høye temperaturer (16–18 °C). Veksten bremser, lusa formerer seg, og faren for AGD øker.";
                     rec.BalanceChange = -110_000m;
-                    gs.Balance += rec.BalanceChange;
+                    SettleBalanceChange(finance, gs, rec);
                 }
             });
 
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "cold-snap",
-                Name = "Extreme cold snap",
+                Name = "Ekstrem kuldeperiode",
                 Category = EventCategory.Weather,
                 Weight = 0.5,
                 CooldownDays = 365,
-                Condition = gs => (gs.Day % 365) >= 330 || (gs.Day % 365) <= 30, // Dec-Feb
+                Condition = gs => LakskongenSim.Core.SimCalendar.DayOfYear(gs.Day) >= 330 || LakskongenSim.Core.SimCalendar.DayOfYear(gs.Day) <= 30, // Dec-Feb
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "Polar vortex brings temperatures below 2°C. Growth halted, winter ulcer risk high.";
+                    rec.Description = "Arktisk kulde gir sjøtemperatur under 2 °C. Veksten stopper, og faren for vintersår er høy.";
                     rec.BalanceChange = -85_000m;
-                    gs.Balance += rec.BalanceChange;
+                    SettleBalanceChange(finance, gs, rec);
                 }
             });
 
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "perfect-conditions",
-                Name = "Perfect growing conditions",
+                Name = "Perfekte vekstforhold",
                 Category = EventCategory.Weather,
                 Weight = 0.7,
                 CooldownDays = 180,
                 Condition = gs => true,
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "🌊 Ideal temperature (11-13°C), strong currents, high oxygen. FCR improves, growth accelerates.";
+                    rec.Description = "Ideell temperatur (11–13 °C), god strøm og mye oksygen. Fôrfaktoren bedres, og veksten øker.";
                     rec.BalanceChange = +120_000m; // Better FCR savings
-                    gs.Balance += rec.BalanceChange;
+                    SettleBalanceChange(finance, gs, rec);
                 }
             });
 
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "oxygen-depletion",
-                Name = "Oxygen depletion event",
+                Name = "Oksygensvikt",
                 Category = EventCategory.Weather,
                 Weight = 0.8,
                 CooldownDays = 120,
-                Condition = gs => (gs.Day % 365) >= 180 && (gs.Day % 365) <= 270,
+                Condition = gs => LakskongenSim.Core.SimCalendar.DayOfYear(gs.Day) >= 180 && LakskongenSim.Core.SimCalendar.DayOfYear(gs.Day) <= 270,
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "Low currents and high biomass cause oxygen drop below 5 mg/L. Emergency aeration deployed.";
+                    rec.Description = "Svak strøm og høy biomasse gir oksygen under 5 mg/L. Nødlufting er satt i gang.";
                     rec.BalanceChange = -140_000m;
-                    gs.Balance += rec.BalanceChange;
+                    SettleBalanceChange(finance, gs, rec);
                 }
             });
 
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "predator-attack",
-                Name = "Seal predation",
+                Name = "Selangrep",
                 Category = EventCategory.Other,
                 Weight = 1.0,
                 CooldownDays = 60,
-                Condition = gs => gs.Populations.Any(),
+                // Phase 1.5: fully deterrent-protected farms are skipped.
+                Condition = gs => gs.Populations.Any() && FjordSites(gs)
+                    .Where(s => s.Pens.Any(p => p.TotalCount > 0))
+                    .Any(s => !s.HasSealDeterrent),
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "Seals breach nets and kill fish. Net damage and stress-induced mortality.";
-                    rec.BalanceChange = -65_000m;
-                    gs.Balance += rec.BalanceChange;
+                    // Damage scales with the unprotected share of stock.
+                    var stocked = FjordSites(gs).Where(s => s.Pens.Any(p => p.TotalCount > 0)).ToList();
+                    int total = stocked.SelectMany(s => s.Pens).Sum(p => p.TotalCount);
+                    int unprotected = stocked.Where(s => !s.HasSealDeterrent).SelectMany(s => s.Pens).Sum(p => p.TotalCount);
+                    double share = total > 0 ? (double)unprotected / total : 1.0;
+                    rec.Description = "Sel bryter gjennom nøtene og dreper fisk. Notskader og stressrelatert dødelighet."
+                        + (share < 1.0 ? $" (Deterrents protected {1.0 - share:P0} of stock.)" : "");
+                    rec.BalanceChange = -(decimal)(65_000.0 * share);
+                    SettleBalanceChange(finance, gs, rec);
                 }
             });
         }
@@ -356,28 +426,28 @@ namespace LakskongenSim.Events
         // MARKET EVENTS (8 events)
         // ═══════════════════════════════════════════════════════════
 
-        private static void RegisterMarketEvents(Storyteller storyteller)
+        private static void RegisterMarketEvents(Storyteller storyteller, Finance.FinanceManager? finance)
         {
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "price-spike-china",
-                Name = "Chinese demand surge",
+                Name = "Etterspørselen fra Kina skyter fart",
                 Category = EventCategory.Market,
                 Weight = 0.8,
                 CooldownDays = 180,
                 Condition = gs => true,
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "📈 Chinese New Year demand spike! Prices +25% for 2 weeks. Rush to harvest.";
+                    rec.Description = "Kinesisk nyttår gir en topp i etterspørselen: prisene stiger 25 % i to uker. Gode tider for høsting.";
                     rec.BalanceChange = +300_000m;
-                    gs.Balance += rec.BalanceChange;
+                    SettleBalanceChange(finance, gs, rec);
                 }
             });
 
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "chile-collapse",
-                Name = "Chilean production crash",
+                Name = "Produksjonskollaps i Chile",
                 Category = EventCategory.Market,
                 Weight = 0.5,
                 CooldownDays = 365,
@@ -385,16 +455,16 @@ namespace LakskongenSim.Events
                 Condition = gs => true,
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "📰 Algae bloom devastates Chilean salmon farms. Global supply tightens, prices soar.";
+                    rec.Description = "Algeoppblomstring ødelegger lakseoppdrett i Chile. Verdenstilbudet strammes inn, og prisene stiger kraftig.";
                     rec.BalanceChange = +450_000m; // Windfall
-                    gs.Balance += rec.BalanceChange;
+                    SettleBalanceChange(finance, gs, rec);
                 }
             });
 
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "brexit-tariffs",
-                Name = "UK imposes tariffs",
+                Name = "Storbritannia innfører toll",
                 Category = EventCategory.Market,
                 Weight = 0.6,
                 CooldownDays = 730,
@@ -402,80 +472,80 @@ namespace LakskongenSim.Events
                 Condition = gs => true,
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "🇬🇧 Post-Brexit tariffs on Norwegian salmon. UK market access reduced.";
+                    rec.Description = "Toll på norsk laks etter brexit. Adgangen til det britiske markedet blir dårligere.";
                     rec.BalanceChange = -180_000m;
-                    gs.Balance += rec.BalanceChange;
+                    SettleBalanceChange(finance, gs, rec);
                 }
             });
 
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "us-salmon-trend",
-                Name = "US sushi boom",
+                Name = "Sushiboom i USA",
                 Category = EventCategory.Market,
                 Weight = 0.7,
                 CooldownDays = 365,
                 Condition = gs => true,
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "🍣 Sushi trend in US! Premium sashimi-grade demand +40%, prices up.";
+                    rec.Description = "Sushitrend i USA: etterspørselen etter laks i sashimikvalitet øker 40 %, og prisene stiger.";
                     rec.BalanceChange = +220_000m;
-                    gs.Balance += rec.BalanceChange;
+                    SettleBalanceChange(finance, gs, rec);
                 }
             });
 
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "nok-weakens",
-                Name = "NOK currency weakens",
+                Name = "Kronen svekkes",
                 Category = EventCategory.Market,
                 Weight = 1.0,
                 CooldownDays = 180,
                 Condition = gs => true,
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "💱 NOK falls against EUR/USD. Export revenues increase by 12%.";
+                    rec.Description = "Kronen faller mot euro og dollar. Eksportinntektene øker med 12 %.";
                     rec.BalanceChange = +160_000m;
-                    gs.Balance += rec.BalanceChange;
+                    SettleBalanceChange(finance, gs, rec);
                 }
             });
 
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "oversupply-crash",
-                Name = "Market oversupply",
+                Name = "Overskudd i markedet",
                 Category = EventCategory.Market,
                 Weight = 0.9,
                 CooldownDays = 180,
                 Condition = gs => true,
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "📉 Record Norwegian harvest floods market. Prices crash to 48 NOK/kg.";
+                    rec.Description = "Rekordstor norsk slakting oversvømmer markedet. Prisen faller til 48 kr/kg.";
                     rec.BalanceChange = -280_000m;
-                    gs.Balance += rec.BalanceChange;
+                    SettleBalanceChange(finance, gs, rec);
                 }
             });
 
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "asc-premium",
-                Name = "ASC certification premium grows",
+                Name = "ASC-premien øker",
                 Category = EventCategory.Market,
                 Weight = 0.5,
                 CooldownDays = 365,
                 Condition = gs => gs.HasASCCertification,
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "🌱 Whole Foods expands Norwegian sourcing. ASC premium now +12% vs standard.";
+                    rec.Description = "En stor amerikansk dagligvarekjede kjøper mer norsk laks. ASC-premien er nå +12 % mot standard.";
                     rec.BalanceChange = +95_000m;
-                    gs.Balance += rec.BalanceChange;
+                    SettleBalanceChange(finance, gs, rec);
                 }
             });
 
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "contract-secured",
-                Name = "Long-term contract secured",
+                Name = "Langsiktig kontrakt sikret",
                 Category = EventCategory.Market,
                 Weight = 0.6,
                 CooldownDays = 540,
@@ -483,7 +553,7 @@ namespace LakskongenSim.Events
                 Condition = gs => gs.Populations.Any(),
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "🤝 3-year contract with major EU retailer locked in. Stable pricing guaranteed.";
+                    rec.Description = "Treårskontrakt med en stor europeisk dagligvarekjede er i havn. Stabile priser er sikret.";
                     rec.BalanceChange = 0m; // Future benefit
                     gs.ContractActive = true;
                 }
@@ -494,12 +564,12 @@ namespace LakskongenSim.Events
         // REGULATORY EVENTS (6 events)
         // ═══════════════════════════════════════════════════════════
 
-        private static void RegisterRegulatoryEvents(Storyteller storyteller)
+        private static void RegisterRegulatoryEvents(Storyteller storyteller, Finance.FinanceManager? finance, Finance.TrafficLightSystem? trafficLight = null)
         {
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "traffic-light-green",
-                Name = "Zone upgraded to GREEN",
+                Name = "Området oppgradert til GRØNT",
                 Category = EventCategory.Regulation,
                 Weight = 0.5,
                 CooldownDays = 730,
@@ -507,21 +577,20 @@ namespace LakskongenSim.Events
                 Condition = gs => true,
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "🟢 Your zone gets GREEN status! MAB capacity +6% allowed.";
+                    rec.Description = "Området ditt får grønt lys. MTB kan økes med 6 %.";
                     rec.BalanceChange = 0m;
-                    
-                    // Increase MAB (Maximum Allowable Biomass) on all zones by 6%
-                    foreach (var zone in gs.Zones)
-                    {
-                        zone.CarryingCapacityTonnes *= 1.06;
-                    }
+
+                    // Gated (default off): with no TrafficLightSystem, or gate
+                    // off, this is the exact legacy ×1.06 loop — default
+                    // outcomes identical. Gate on routes through the machine.
+                    (trafficLight ?? new Finance.TrafficLightSystem()).ApplyGreenStatus(gs);
                 }
             });
 
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "traffic-light-red",
-                Name = "Zone downgraded to RED",
+                Name = "Området nedgradert til RØDT",
                 Category = EventCategory.Regulation,
                 Weight = 0.6,
                 CooldownDays = 730,
@@ -529,32 +598,36 @@ namespace LakskongenSim.Events
                 Condition = gs => true,
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "🔴 Sea lice pressure triggers RED zone status. Must reduce MAB by 6%.";
+                    rec.Description = "Lusepresset gir rødt lys i området. MTB må reduseres med 6 %.";
                     rec.BalanceChange = -320_000m; // Production loss
-                    gs.Balance += rec.BalanceChange;
+                    SettleBalanceChange(finance, gs, rec);
+
+                    // Gated: legacy leaves MAB untouched (fine only). Gate on
+                    // additionally tracks RED with the symmetric ×0.94 MAB cut.
+                    trafficLight?.ApplyRedStatus(gs);
                 }
             });
 
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "escape-penalty",
-                Name = "Escape incident fine",
+                Name = "Bot for rømming",
                 Category = EventCategory.Regulation,
                 Weight = 0.8,
                 CooldownDays = 180,
-                Condition = gs => gs.SeaSites.Any(),
+                Condition = gs => FjordSites(gs).Any(),
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "⚠️ Net failure: 12,000 fish escaped. Fiskeridirektoratet fine + recapture costs.";
+                    rec.Description = "Notsvikt: 12 000 fisk har rømt. Bot fra Fiskeridirektoratet og kostnader til gjenfangst.";
                     rec.BalanceChange = -550_000m;
-                    gs.Balance += rec.BalanceChange;
+                    SettleBalanceChange(finance, gs, rec);
                 }
             });
 
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "resource-rent-tax",
-                Name = "Resource rent tax introduced",
+                Name = "Grunnrenteskatt innført",
                 Category = EventCategory.Regulation,
                 Weight = 0.3,
                 CooldownDays = 1825,
@@ -562,16 +635,16 @@ namespace LakskongenSim.Events
                 Condition = gs => gs.Balance > 5_000_000m, // Only if profitable
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "📜 Norwegian government introduces 40% resource rent tax on profits above 4M NOK/year.";
+                    rec.Description = "Regjeringen innfører 40 % grunnrenteskatt på overskudd over 4 millioner kroner i året.";
                     rec.BalanceChange = -800_000m; // Retroactive
-                    gs.Balance += rec.BalanceChange;
+                    SettleBalanceChange(finance, gs, rec);
                 }
             });
 
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "development-license",
-                Name = "Development license awarded",
+                Name = "Utviklingstillatelse tildelt",
                 Category = EventCategory.Regulation,
                 Weight = 0.4,
                 CooldownDays = 1095,
@@ -579,7 +652,7 @@ namespace LakskongenSim.Events
                 Condition = gs => gs.Balance > 2_000_000m,
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "🏆 Won development license for closed-containment trial! Innovate to convert to standard license.";
+                    rec.Description = "Utviklingstillatelse tildelt for forsøk med lukket oppdrett. Lykkes innovasjonen, kan den gjøres om til en ordinær tillatelse.";
                     rec.BalanceChange = 0m;
                     
                     // Add development license to unlocked research/licenses
@@ -593,16 +666,16 @@ namespace LakskongenSim.Events
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "welfare-inspection",
-                Name = "Mattilsynet welfare inspection",
+                Name = "Velferdstilsyn fra Mattilsynet",
                 Category = EventCategory.Regulation,
                 Weight = 1.0,
                 CooldownDays = 180,
                 Condition = gs => gs.Populations.Any(),
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "🔍 Surprise welfare inspection. Stocking density violations found. Warning issued.";
+                    rec.Description = "Uanmeldt velferdstilsyn. Brudd på tetthetsreglene ble funnet, og du har fått en advarsel.";
                     rec.BalanceChange = -75_000m;
-                    gs.Balance += rec.BalanceChange;
+                    SettleBalanceChange(finance, gs, rec);
                 }
             });
         }
@@ -611,85 +684,85 @@ namespace LakskongenSim.Events
         // EQUIPMENT EVENTS (5 events)
         // ═══════════════════════════════════════════════════════════
 
-        private static void RegisterEquipmentEvents(Storyteller storyteller)
+        private static void RegisterEquipmentEvents(Storyteller storyteller, Finance.FinanceManager? finance)
         {
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "wellboat-breakdown",
-                Name = "Wellboat breakdown",
+                Name = "Motorstopp på brønnbåten",
                 Category = EventCategory.Equipment,
                 Weight = 1.2,
                 CooldownDays = 120,
                 Condition = gs => gs.Populations.Any(),
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "⚙️ Main wellboat engine failure during harvest transport. Emergency repairs and delayed delivery.";
+                    rec.Description = "Brønnbåten fikk motorstopp under slaktetransporten. Nødreparasjon og forsinket levering.";
                     rec.BalanceChange = -185_000m;
-                    gs.Balance += rec.BalanceChange;
+                    SettleBalanceChange(finance, gs, rec);
                 }
             });
 
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "rov-malfunction",
-                Name = "ROV malfunction",
+                Name = "Feil på undervannsdronen",
                 Category = EventCategory.Equipment,
                 Weight = 1.0,
                 CooldownDays = 90,
                 Condition = gs => gs.SeaSites.Any(),
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "🤖 Underwater ROV inspection system fails. Manual net inspections required, labor costs up.";
+                    rec.Description = "Undervannsdronen svikter. Nøtene må inspiseres manuelt, og lønnskostnadene øker.";
                     rec.BalanceChange = -95_000m;
-                    gs.Balance += rec.BalanceChange;
+                    SettleBalanceChange(finance, gs, rec);
                 }
             });
 
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "feed-barge-collision",
-                Name = "Feed barge collision",
+                Name = "Fôrflåten kolliderer",
                 Category = EventCategory.Equipment,
                 Weight = 0.6,
                 CooldownDays = 180,
                 Condition = gs => gs.Populations.Any(),
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "🚢 Feed barge collides with pen structure in rough weather. Net damage and 2,000 fish escape.";
+                    rec.Description = "Fôrflåten kolliderer med en merd i dårlig vær. Notskader, og 2 000 fisk rømmer.";
                     rec.BalanceChange = -320_000m;
-                    gs.Balance += rec.BalanceChange;
+                    SettleBalanceChange(finance, gs, rec);
                 }
             });
 
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "net-damage",
-                Name = "Net damage discovered",
+                Name = "Notskader oppdaget",
                 Category = EventCategory.Equipment,
                 Weight = 1.3,
                 CooldownDays = 60,
-                Condition = gs => gs.SeaSites.Any(),
+                Condition = gs => FjordSites(gs).Any(),
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "🎣 Routine inspection reveals extensive net wear and small tears. Emergency net replacement needed.";
+                    rec.Description = "En rutineinspeksjon avdekker mye slitasje og små hull i nøtene. De må skiftes straks.";
                     rec.BalanceChange = -145_000m;
-                    gs.Balance += rec.BalanceChange;
+                    SettleBalanceChange(finance, gs, rec);
                 }
             });
 
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "sensor-failure",
-                Name = "Monitoring sensor failure",
+                Name = "Sensorsvikt",
                 Category = EventCategory.Equipment,
                 Weight = 0.9,
                 CooldownDays = 90,
                 Condition = gs => gs.Populations.Any(),
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "📊 Oxygen and temperature sensors malfunction. Missed early warning of low-oxygen event causes losses.";
+                    rec.Description = "Oksygen- og temperatursensorene svikter. Et oksygenfall ble ikke varslet i tide, og det ga tap.";
                     rec.BalanceChange = -110_000m;
-                    gs.Balance += rec.BalanceChange;
+                    SettleBalanceChange(finance, gs, rec);
                 }
             });
         }
@@ -698,28 +771,28 @@ namespace LakskongenSim.Events
         // COMMUNITY EVENTS (5 events)
         // ═══════════════════════════════════════════════════════════
 
-        private static void RegisterCommunityEvents(Storyteller storyteller)
+        private static void RegisterCommunityEvents(Storyteller storyteller, Finance.FinanceManager? finance)
         {
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "ngo-protest",
-                Name = "Environmental NGO protest",
+                Name = "Miljøorganisasjoner protesterer",
                 Category = EventCategory.Community,
                 Weight = 0.7,
                 CooldownDays = 180,
                 Condition = gs => gs.SeaSites.Any(),
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "📢 Greenpeace/WWF protest over sea lice impacts on wild salmon. Media coverage damages brand reputation.";
+                    rec.Description = "Miljøorganisasjoner protesterer mot lusepåvirkningen på villaksen. Mediedekningen skader omdømmet.";
                     rec.BalanceChange = -125_000m; // Lost contracts + PR costs
-                    gs.Balance += rec.BalanceChange;
+                    SettleBalanceChange(finance, gs, rec);
                 }
             });
 
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "local-community-support",
-                Name = "Local community support",
+                Name = "Støtte fra lokalsamfunnet",
                 Category = EventCategory.Community,
                 Weight = 0.8,
                 CooldownDays = 365,
@@ -727,57 +800,57 @@ namespace LakskongenSim.Events
                 Condition = gs => gs.Balance > 1_000_000m,
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "🤝 Local municipality praises your employment and tax contribution. Easier permit renewals and expansion approval.";
+                    rec.Description = "Kommunen roser arbeidsplassene og skatteinntektene du bidrar med. Det blir lettere å fornye tillatelser og å få godkjent utvidelser.";
                     rec.BalanceChange = +85_000m; // Reduced bureaucracy costs
-                    gs.Balance += rec.BalanceChange;
+                    SettleBalanceChange(finance, gs, rec);
                 }
             });
 
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "fjord-access-dispute",
-                Name = "Fjord access dispute",
+                Name = "Strid om fjordbruken",
                 Category = EventCategory.Community,
                 Weight = 0.6,
                 CooldownDays = 540,
-                Condition = gs => gs.SeaSites.Count >= 2,
+                Condition = gs => FjordSites(gs).Count() >= 2,
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "⚖️ Local fishing association challenges your fjord access rights. Legal fees and potential site relocation.";
+                    rec.Description = "Det lokale fiskerlaget utfordrer retten din til å bruke fjorden. Advokatkostnader og mulig flytting av lokaliteten.";
                     rec.BalanceChange = -210_000m;
-                    gs.Balance += rec.BalanceChange;
+                    SettleBalanceChange(finance, gs, rec);
                 }
             });
 
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "tourism-conflict",
-                Name = "Tourism industry conflict",
+                Name = "Konflikt med reiselivet",
                 Category = EventCategory.Community,
                 Weight = 0.5,
                 CooldownDays = 365,
-                Condition = gs => gs.SeaSites.Any(),
+                Condition = gs => FjordSites(gs).Any(),
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "🏔️ Tourism operators complain your pens ruin scenic fjord views. Municipal hearing and compromise required.";
+                    rec.Description = "Reiselivsaktører klager på at merdene ødelegger fjordutsikten. Kommunalt høringsmøte og et kompromiss kreves.";
                     rec.BalanceChange = -95_000m;
-                    gs.Balance += rec.BalanceChange;
+                    SettleBalanceChange(finance, gs, rec);
                 }
             });
 
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "school-visit-pr",
-                Name = "School visit PR success",
+                Name = "Skolebesøk gir god omtale",
                 Category = EventCategory.Community,
                 Weight = 0.9,
                 CooldownDays = 180,
                 Condition = gs => gs.SeaSites.Any(),
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "🎓 Educational tours for local schools generate positive press. 'Farm-to-table' story boosts brand value.";
+                    rec.Description = "Omvisninger for lokale skoler gir god omtale. Historien «fra merd til middagsbord» styrker merkevaren.";
                     rec.BalanceChange = +65_000m;
-                    gs.Balance += rec.BalanceChange;
+                    SettleBalanceChange(finance, gs, rec);
                 }
             });
         }
@@ -786,12 +859,12 @@ namespace LakskongenSim.Events
         // COMPETITOR EVENTS (5 events)
         // ═══════════════════════════════════════════════════════════
 
-        private static void RegisterCompetitorEvents(Storyteller storyteller)
+        private static void RegisterCompetitorEvents(Storyteller storyteller, Finance.FinanceManager? finance)
         {
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "competitor-bankruptcy",
-                Name = "Competitor bankruptcy opportunity",
+                Name = "Konkurs hos en konkurrent",
                 Category = EventCategory.Competitor,
                 Weight = 0.4,
                 CooldownDays = 730,
@@ -799,9 +872,9 @@ namespace LakskongenSim.Events
                 Condition = gs => gs.Balance > 1_500_000m,
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "💼 Local competitor goes bankrupt. Acquire their licenses and sites at 60% discount?";
+                    rec.Description = "En lokal konkurrent går konkurs. Vil du kjøpe tillatelsene og lokalitetene med 60 % rabatt?";
                     rec.BalanceChange = -1_200_000m; // Acquisition cost
-                    gs.Balance += rec.BalanceChange;
+                    SettleBalanceChange(finance, gs, rec);
                     gs.AcquisitionCount++;
                 }
             });
@@ -809,7 +882,7 @@ namespace LakskongenSim.Events
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "ma-offer",
-                Name = "M&A acquisition offer",
+                Name = "Oppkjøpstilbud",
                 Category = EventCategory.Competitor,
                 Weight = 0.3,
                 CooldownDays = 1095,
@@ -817,16 +890,16 @@ namespace LakskongenSim.Events
                 Condition = gs => gs.Balance > 3_000_000m && gs.SeaSites.Count >= 2,
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "🏢 Mowi/SalMar makes acquisition offer for your operation. Premium valuation but loss of independence.";
+                    rec.Description = "En av de store konkurrentene vil kjøpe selskapet ditt. God pris, men du mister selvstendigheten.";
                     rec.BalanceChange = +2_500_000m; // Buyout windfall
-                    gs.Balance += rec.BalanceChange;
+                    SettleBalanceChange(finance, gs, rec);
                 }
             });
 
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "tech-leapfrog",
-                Name = "Competitor tech leapfrog",
+                Name = "Konkurrent tar teknologisprang",
                 Category = EventCategory.Competitor,
                 Weight = 0.6,
                 CooldownDays = 365,
@@ -834,41 +907,41 @@ namespace LakskongenSim.Events
                 Condition = gs => true,
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "🚀 Rival deploys breakthrough closed-containment system. Your traditional pens look outdated to buyers.";
+                    rec.Description = "En konkurrent tar i bruk et banebrytende lukket anlegg. De tradisjonelle merdene dine virker gammeldagse for kjøperne.";
                     rec.BalanceChange = -180_000m; // Lost premium contracts
-                    gs.Balance += rec.BalanceChange;
+                    SettleBalanceChange(finance, gs, rec);
                 }
             });
 
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "price-war",
-                Name = "Price war initiated",
+                Name = "Priskrig",
                 Category = EventCategory.Competitor,
                 Weight = 0.8,
                 CooldownDays = 180,
                 Condition = gs => gs.Populations.Any(),
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "💥 Major producers flood market to drive out smaller operators. Prices crash to 42 NOK/kg.";
+                    rec.Description = "De store produsentene oversvømmer markedet for å presse ut de små. Prisen faller til 42 kr/kg.";
                     rec.BalanceChange = -350_000m;
-                    gs.Balance += rec.BalanceChange;
+                    SettleBalanceChange(finance, gs, rec);
                 }
             });
 
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "competitor-scandal",
-                Name = "Competitor scandal boost",
+                Name = "Skandale hos konkurrenten",
                 Category = EventCategory.Competitor,
                 Weight = 0.5,
                 CooldownDays = 365,
                 Condition = gs => true,
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "📰 Major competitor caught using illegal pesticides. Buyers shift orders to your certified operation.";
+                    rec.Description = "En stor konkurrent er tatt for ulovlige plantevernmidler. Kjøperne flytter bestillingene til det sertifiserte anlegget ditt.";
                     rec.BalanceChange = +275_000m;
-                    gs.Balance += rec.BalanceChange;
+                    SettleBalanceChange(finance, gs, rec);
                 }
             });
         }
@@ -877,12 +950,12 @@ namespace LakskongenSim.Events
         // INVESTOR EVENTS (5 events)
         // ═══════════════════════════════════════════════════════════
 
-        private static void RegisterInvestorEvents(Storyteller storyteller)
+        private static void RegisterInvestorEvents(Storyteller storyteller, Finance.FinanceManager? finance)
         {
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "esg-fund-interest",
-                Name = "ESG fund investment interest",
+                Name = "ESG-fond vil investere",
                 Category = EventCategory.Investor,
                 Weight = 0.5,
                 CooldownDays = 540,
@@ -890,16 +963,16 @@ namespace LakskongenSim.Events
                 Condition = gs => gs.HasASCCertification && gs.Balance > 1_500_000m,
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "🌱 Nordic ESG fund offers growth capital for sustainable expansion. 15% equity for 5M NOK.";
+                    rec.Description = "Et nordisk ESG-fond tilbyr vekstkapital til bærekraftig utvidelse: 5 millioner kroner for 15 % av aksjene.";
                     rec.BalanceChange = +5_000_000m;
-                    gs.Balance += rec.BalanceChange;
+                    SettleBalanceChange(finance, gs, rec);
                 }
             });
 
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "pe-buyout-offer",
-                Name = "Private equity buyout offer",
+                Name = "Oppkjøpstilbud fra oppkjøpsfond",
                 Category = EventCategory.Investor,
                 Weight = 0.3,
                 CooldownDays = 1095,
@@ -907,16 +980,16 @@ namespace LakskongenSim.Events
                 Condition = gs => gs.Balance > 5_000_000m && gs.AcquisitionCount >= 1,
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "💰 PE firm offers 8x EBITDA buyout. Retire rich or keep building your empire?";
+                    rec.Description = "Et oppkjøpsfond byr åtte ganger driftsresultatet (EBITDA). Pensjonere deg rik eller fortsette å bygge imperiet?";
                     rec.BalanceChange = +8_000_000m;
-                    gs.Balance += rec.BalanceChange;
+                    SettleBalanceChange(finance, gs, rec);
                 }
             });
 
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "ipo-opportunity",
-                Name = "IPO opportunity",
+                Name = "Mulighet for børsnotering",
                 Category = EventCategory.Investor,
                 Weight = 0.2,
                 CooldownDays = 1825,
@@ -924,16 +997,16 @@ namespace LakskongenSim.Events
                 Condition = gs => gs.Balance > 10_000_000m && gs.SeaSites.Count >= 3,
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "📈 Oslo Børs IPO window opens. List on exchange, raise expansion capital, face quarterly earnings pressure.";
+                    rec.Description = "Børsvinduet står åpent. Børsnoter selskapet, hent kapital til vekst — og lev med kvartalspresset.";
                     rec.BalanceChange = +12_000_000m; // IPO proceeds
-                    gs.Balance += rec.BalanceChange;
+                    SettleBalanceChange(finance, gs, rec);
                 }
             });
 
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "angel-investor",
-                Name = "Angel investor backing",
+                Name = "Engleinvestor vil bidra",
                 Category = EventCategory.Investor,
                 Weight = 0.7,
                 CooldownDays = 365,
@@ -941,16 +1014,16 @@ namespace LakskongenSim.Events
                 Condition = gs => gs.Balance < 2_000_000m && gs.Balance > 500_000m,
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "👼 Wealthy seafood industry veteran offers mentorship + 1.5M NOK for 10% equity.";
+                    rec.Description = "En formuende sjømatveteran tilbyr veiledning og 1,5 millioner kroner for 10 % av aksjene.";
                     rec.BalanceChange = +1_500_000m;
-                    gs.Balance += rec.BalanceChange;
+                    SettleBalanceChange(finance, gs, rec);
                 }
             });
 
             storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "innovation-grant",
-                Name = "Government innovation grant",
+                Name = "Statlig innovasjonstilskudd",
                 Category = EventCategory.Investor,
                 Weight = 0.6,
                 CooldownDays = 730,
@@ -958,9 +1031,9 @@ namespace LakskongenSim.Events
                 Condition = gs => gs.UnlockedResearchIds.Count >= 3,
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "🏛️ Innovation Norway awards grant for sustainable aquaculture R&D. 2M NOK non-dilutive funding.";
+                    rec.Description = "Innovasjon Norge gir tilskudd til forskning på bærekraftig havbruk: 2 millioner kroner uten å avgi eierandeler.";
                     rec.BalanceChange = +2_000_000m;
-                    gs.Balance += rec.BalanceChange;
+                    SettleBalanceChange(finance, gs, rec);
                 }
             });
         }

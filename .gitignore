@@ -4,7 +4,9 @@
 
 # Godot
 .godot/
-*.import
+# NOTE: *.import files are intentionally TRACKED (Godot 4 expects them in
+# version control). Music loop=true and normal-map import settings live there;
+# ignoring them breaks a fresh clone.
 
 # OS
 .DS_Store
@@ -26,3 +28,33 @@ TestResults/
 godot/export/
 *.exe
 !godot/export_presets.cfg
+
+# Large export artifacts / third-party dev tooling / generated
+build/
+godot/addons/ziva_agent/
+godot_mcp_toolkit/
+godot/extension_api.json
+*.translation
+.opencode.jsonc
+godot/opencode.json
+
+# Python cache
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Screenshot harness output (rewritten on every capture; keep repo lean).
+# Curated Steam capsules live in screenshots/steam_store/ and stay tracked.
+godot/screenshots/game/
+godot/screenshots/design-token-sync/
+screenshots/qa/
+
+# Balance-probe report output (CSV/HTML regenerated per probe run).
+artifacts/
+
+# Mod enable/disable state (generated at runtime by ModLoader).
+godot/mods/mods_config.json
+mods/mods_config.json
+
+# Godot import metadata for the tracked visual baseline (regenerated locally).
+godot/screenshots/baseline/*.import

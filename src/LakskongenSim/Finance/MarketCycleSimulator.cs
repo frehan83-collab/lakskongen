@@ -54,16 +54,18 @@ namespace LakskongenSim.Finance
         }
 
         /// <summary>
-        /// Forecast price for N days ahead.
+        /// Forecast price for N days ahead of sim day <paramref name="currentDay"/>:
+        /// one simulated month per whole calendar month in the span (S2-02; it
+        /// counted 30-day months from the real-world clock's month).
         /// </summary>
-        public double ForecastPrice(double currentPrice, int daysAhead)
+        public double ForecastPrice(double currentPrice, int daysAhead, int currentDay = 0)
         {
             double price = currentPrice;
-            int months = daysAhead / 30;
+            int months = Core.SimCalendar.WholeMonthsBetween(currentDay, currentDay + daysAhead);
 
             for (int m = 0; m < months; m++)
             {
-                int futureMonth = (DateTime.Now.Month + m - 1) % 12 + 1;
+                int futureMonth = Core.SimCalendar.Month(Core.SimCalendar.AddMonths(currentDay, m));
                 price = SimulateMonth(futureMonth, price);
             }
 
@@ -71,14 +73,14 @@ namespace LakskongenSim.Finance
         }
 
         /// <summary>
-        /// Get 7, 30, 90 day price forecasts.
+        /// Get 7, 30, 90 day price forecasts from sim day <paramref name="currentDay"/>.
         /// </summary>
-        public (double day7, double day30, double day90) GetForecasts(double currentPrice)
+        public (double day7, double day30, double day90) GetForecasts(double currentPrice, int currentDay = 0)
         {
             return (
-                ForecastPrice(currentPrice, 7),
-                ForecastPrice(currentPrice, 30),
-                ForecastPrice(currentPrice, 90)
+                ForecastPrice(currentPrice, 7, currentDay),
+                ForecastPrice(currentPrice, 30, currentDay),
+                ForecastPrice(currentPrice, 90, currentDay)
             );
         }
 

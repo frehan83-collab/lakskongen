@@ -2,7 +2,7 @@ extends Control
 
 class_name FinancialDashboard
 
-const LakskongenTheme = preload("res://scripts/ui/LakskongenTheme.gd") # Anta at temaet er her
+const LakskongenTheme = preload("res://theme/default_theme.gd") # Anta at temaet er her
 
 var simulation_core = null
 
@@ -82,7 +82,7 @@ func _create_kpi_tile(title_text, value_text, value_color):
     panel.set_h_size_flags(SIZE_EXPAND_FILL)
 
     var vbox = VBoxContainer.new()
-    vbox.alignment = BoxContainer.ALIGN_CENTER
+    vbox.alignment = BoxContainer.ALIGNMENT_CENTER
     vbox.add_theme_constant_override("separation", LakskongenTheme.SPACE_SM)
     panel.add_child(vbox)
 
@@ -116,14 +116,8 @@ func _refresh_financials():
 
 func _set_label_font_size(label_node, font_size):
     if label_node and label_node is Label:
-        var font = label_node.get_theme_font("font").duplicate()
-        font.set_size(font_size)
-        label_node.add_theme_font_override("font", font)
+        LakskongenTheme.set_size(label_node, font_size)
 
 func _set_label_bold(label_node):
     if label_node and label_node is Label:
-        var font = label_node.get_theme_font("font").duplicate()
-        font.set_size(label_node.get_theme_font("font").get_size())
-        font.set_font_weight(TextServer.FONT_WEIGHT_BOLD)
-        label_node.add_theme_font_override("font", font)
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
+        LakskongenTheme.set_strong(label_node)

@@ -61,23 +61,23 @@ func show_event(title: String, description: String, severity: int):
 	var text_color := LakskongenTheme.BG if severity == EventSeverity.WARNING or severity == EventSeverity.ACHIEVEMENT else LakskongenTheme.TEXT
 	var title_label := Label.new()
 	title_label.text = title
-	title_label.add_theme_font_size_override("font_size", LakskongenTheme.FONT_XXL)
-	title_label.add_theme_color_override("font_color", text_color)
+	LakskongenTheme.set_size(title_label, LakskongenTheme.FONT_XXL)
+	LakskongenTheme.set_text_color(title_label, text_color)
 	vbox.add_child(title_label)
 	
 	# Description
 	var desc_label := Label.new()
 	desc_label.text = description
-	desc_label.add_theme_font_size_override("font_size", LakskongenTheme.FONT_MD)
-	desc_label.add_theme_color_override("font_color", text_color.darkened(0.15))
+	LakskongenTheme.set_size(desc_label, LakskongenTheme.FONT_MD)
+	LakskongenTheme.set_text_color(desc_label, text_color.darkened(0.15))
 	desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vbox.add_child(desc_label)
 	
 	# Close button
 	var close_btn := Button.new()
 	close_btn.text = "✕"
-	close_btn.add_theme_font_size_override("font_size", LakskongenTheme.FONT_XL)
-	close_btn.add_theme_color_override("font_color", text_color)
+	LakskongenTheme.set_size(close_btn, LakskongenTheme.FONT_XL)
+	LakskongenTheme.set_text_color(close_btn, text_color)
 	close_btn.flat = true
 	close_btn.pressed.connect(_dismiss_notification.bind(panel))
 	hbox.add_child(close_btn)
@@ -146,4 +146,3 @@ func _reposition_stack():
 
 func _get_stack_y(index: int) -> float:
 	return LakskongenTheme.SPACE_SM + index * (NOTIFICATION_HEIGHT + NOTIFICATION_GAP)
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

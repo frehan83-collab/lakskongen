@@ -1,0 +1,19 @@
+[gd_scene load_steps=5 format=3 uid="uid://rib_scene_001"]
+
+[ext_resource type="PackedScene" path="res://assets/models/rib/rib_LOD0.glb" id="1_lod0"]
+[ext_resource type="PackedScene" path="res://assets/models/rib/rib_LOD1.glb" id="2_lod1"]
+[ext_resource type="PackedScene" path="res://assets/models/rib/rib_LOD2.glb" id="3_lod2"]
+[ext_resource type="Script" path="res://scripts/visual/VesselModel.gd" id="4_vessel"]
+
+[node name="Rib" instance=ExtResource("1_lod0")]
+script = ExtResource("4_vessel")
+asset_id = "rib"
+length_m = 8.529
+beam_m = 2.937
+air_draught_m = 3.01
+lod_switch = Vector2(90.0, 320.0)
+max_distance = 1500.0
+
+[node name="LOD1" parent="." instance=ExtResource("2_lod1")]
+
+[node name="LOD2" parent="." instance=ExtResource("3_lod2")]

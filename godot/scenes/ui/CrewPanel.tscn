@@ -1,0 +1,183 @@
+[gd_scene load_steps=3 format=3 uid="uid://c9crewpanel01"]
+
+[ext_resource type="Script" path="res://scripts/ui/CrewPanel.gd" id="1_crew"]
+[ext_resource type="Theme" path="res://theme/lakskongen_chart_theme.tres" id="theme_chart"]
+
+[node name="CrewPanel" type="Control"]
+theme = ExtResource("theme_chart")
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_crew")
+
+[node name="Background" type="Panel" parent="."]
+theme_type_variation = &"Sheet"
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Scroll" type="ScrollContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = -16.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Root" type="VBoxContainer" parent="./Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 20
+
+[node name="HeaderRow" type="HBoxContainer" parent="./Scroll/Root"]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="./Scroll/Root/HeaderRow"]
+theme_type_variation = &"KpiSmall"
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "👷 Mannskap"
+
+[node name="HireButton" type="Button" parent="./Scroll/Root/HeaderRow"]
+theme_type_variation = &"SmallPrimaryButton"
+unique_name_in_owner = true
+layout_mode = 2
+text = "+ Ansett ny"
+
+[node name="KPIRow" type="HBoxContainer" parent="./Scroll/Root"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="KPICount" type="PanelContainer" parent="./Scroll/Root/KPIRow"]
+theme_type_variation = &"KpiCardInfo"
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VBox" type="VBoxContainer" parent="./Scroll/Root/KPIRow/KPICount"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Cap" type="Label" parent="./Scroll/Root/KPIRow/KPICount/VBox"]
+theme_type_variation = &"OverlineMuted"
+layout_mode = 2
+text = "ANSATTE"
+
+[node name="KpiCountValue" type="Label" parent="./Scroll/Root/KPIRow/KPICount/VBox"]
+theme_type_variation = &"Heading"
+unique_name_in_owner = true
+layout_mode = 2
+text = "--"
+
+[node name="KPIPayroll" type="PanelContainer" parent="./Scroll/Root/KPIRow"]
+theme_type_variation = &"KpiCardCrit"
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VBox" type="VBoxContainer" parent="./Scroll/Root/KPIRow/KPIPayroll"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Cap" type="Label" parent="./Scroll/Root/KPIRow/KPIPayroll/VBox"]
+theme_type_variation = &"OverlineMuted"
+layout_mode = 2
+text = "LØNNSKOSTNAD/MND"
+
+[node name="KpiPayrollValue" type="Label" parent="./Scroll/Root/KPIRow/KPIPayroll/VBox"]
+theme_type_variation = &"Heading"
+unique_name_in_owner = true
+layout_mode = 2
+text = "--"
+
+[node name="KPIMorale" type="PanelContainer" parent="./Scroll/Root/KPIRow"]
+theme_type_variation = &"KpiCardOk"
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VBox" type="VBoxContainer" parent="./Scroll/Root/KPIRow/KPIMorale"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Cap" type="Label" parent="./Scroll/Root/KPIRow/KPIMorale/VBox"]
+theme_type_variation = &"OverlineMuted"
+layout_mode = 2
+text = "SNITT MORAL"
+
+[node name="KpiMoraleValue" type="Label" parent="./Scroll/Root/KPIRow/KPIMorale/VBox"]
+theme_type_variation = &"Heading"
+unique_name_in_owner = true
+layout_mode = 2
+text = "--"
+
+[node name="KPIEfficiency" type="PanelContainer" parent="./Scroll/Root/KPIRow"]
+theme_type_variation = &"KpiCardInfo"
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VBox" type="VBoxContainer" parent="./Scroll/Root/KPIRow/KPIEfficiency"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Cap" type="Label" parent="./Scroll/Root/KPIRow/KPIEfficiency/VBox"]
+theme_type_variation = &"OverlineMuted"
+layout_mode = 2
+text = "UI_CREW_KPI_ROLES"
+
+[node name="KpiEfficiencyValue" type="Label" parent="./Scroll/Root/KPIRow/KPIEfficiency/VBox"]
+theme_type_variation = &"Heading"
+unique_name_in_owner = true
+layout_mode = 2
+text = "--"
+
+[node name="MidRow" type="HBoxContainer" parent="./Scroll/Root"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="ListCard" type="PanelContainer" parent="./Scroll/Root/MidRow"]
+theme_type_variation = &"CardPadded"
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 2.0
+
+[node name="Outer" type="VBoxContainer" parent="./Scroll/Root/MidRow/ListCard"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="CardHeader" type="Label" parent="./Scroll/Root/MidRow/ListCard/Outer"]
+layout_mode = 2
+text = "📋 Ansattliste"
+
+[node name="CrewList" type="VBoxContainer" parent="./Scroll/Root/MidRow/ListCard/Outer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="SkillsCard" type="PanelContainer" parent="./Scroll/Root/MidRow"]
+theme_type_variation = &"CardPadded"
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Outer" type="VBoxContainer" parent="./Scroll/Root/MidRow/SkillsCard"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="CardHeader" type="Label" parent="./Scroll/Root/MidRow/SkillsCard/Outer"]
+layout_mode = 2
+text = "UI_CREW_ROLES_TITLE"
+
+[node name="SkillsGrid" type="GridContainer" parent="./Scroll/Root/MidRow/SkillsCard/Outer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 12
+columns = 1

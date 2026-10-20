@@ -1,6 +1,8 @@
 extends PanelContainer
 
-## ProductionChainPanel — Anno 1800-style production chain visualization.
+## ProductionChainPanel v2.0 — Anno 1800-style production chain visualization (scene-based).
+## Layout lives in scenes/ui/ProductionChainPanel.tscn; this script is wiring only:
+## SimBridge hookups, localized labels/tooltips, stage refresh.
 ## Shows the full production lifecycle: Broodstock → Eggs → Fry → Smolt → Sea Fish → Harvest → Processing → Export
 ## Each stage displays: current count/quantity, throughput rate, bottleneck indicators.
 ## Color-coded: green (flowing), yellow (slow), red (bottleneck), gray (not yet unlocked).
@@ -74,9 +76,10 @@ var _chain_stages: Array[Dictionary] = [
 	}
 ]
 
-# ── UI references ─────────────────────────────────────────────────────────────
+# ── UI references (declared in ProductionChainPanel.tscn) ─────────────────────
 
 @onready var _chain_container: VBoxContainer = %ChainContainer
+@onready var _header_label: Label = %HeaderLabel
 
 # ── Godot lifecycle ───────────────────────────────────────────────────────────
 
@@ -84,108 +87,35 @@ func _ready() -> void:
 	if not has_node("/root/SimBridge"):
 		push_warning("ProductionChainPanel: SimBridge not found — panel inactive")
 		return
-	
+
 	SimBridge.state_updated.connect(_on_state_updated)
-	_build_ui()
+	_apply_localization()
 	_refresh_display()
 
 func _input(event: InputEvent) -> void:
 	"""Handle keyboard navigation"""
 	if not visible:
 		return
-	
+
 	if event.is_action_pressed("ui_cancel"):
 		hide()
 		get_viewport().set_input_as_handled()
 
-# ── UI construction ───────────────────────────────────────────────────────────
+# ── Localization (static texts live in the .tscn) ─────────────────────────────
 
-func _build_ui() -> void:
-	_chain_container.queue_free()
-	
-	var vbox := VBoxContainer.new()
-	vbox.name = "ChainContainer"
-	vbox.unique_name_in_owner = true
-	add_child(vbox)
-	
-	# Header
-	var header := Label.new()
-	header.text = tr("UI_PRODUCTION_TITLE")
-	header.tooltip_text = tr("UI_PRODUCTION_TITLE_TOOLTIP")
-	header.add_theme_font_size_override("font_size", 20)
-	header.add_theme_color_override("font_color", Color("#2E3440"))
-	vbox.add_child(header)
-	
-	vbox.add_child(_create_separator())
-	
-	# Build each chain stage row
-	for i in _chain_stages.size():
-		var stage_data := _chain_stages[i]
-		var row := _create_stage_row(stage_data)
-		row.name = "Row_" + stage_data.id
-		vbox.add_child(row)
-		
-		# Add arrow between stages (except after last)
-		if i < _chain_stages.size() - 1:
-			var arrow := _create_arrow()
-			vbox.add_child(arrow)
-
-func _create_stage_row(stage_data: Dictionary) -> HBoxContainer:
-	var hbox := HBoxContainer.new()
-	hbox.custom_minimum_size.y = 40
-	
-	# Stage label
-	var label := Label.new()
-	label.text = stage_data.label
-	label.custom_minimum_size.x = 120
-	label.add_theme_font_size_override("font_size", 14)
-	label.tooltip_text = tr("UI_PRODUCTION_STAGE_TOOLTIP") % stage_data.label
-	hbox.add_child(label)
-	
-	# Quantity display
-	var quantity_label := Label.new()
-	quantity_label.name = "Quantity"
-	quantity_label.custom_minimum_size.x = 100
-	quantity_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	quantity_label.add_theme_font_size_override("font_size", 14)
-	quantity_label.tooltip_text = tr("UI_PRODUCTION_QUANTITY_TOOLTIP")
-	hbox.add_child(quantity_label)
-	
-	# Status indicator (colored box)
-	var status_indicator := ColorRect.new()
-	status_indicator.name = "StatusIndicator"
-	status_indicator.custom_minimum_size = Vector2(20, 20)
-	status_indicator.color = Color.GRAY
-	status_indicator.tooltip_text = tr("UI_PRODUCTION_STATUS_TOOLTIP")
-	hbox.add_child(status_indicator)
-	
-	# Throughput/rate label
-	var throughput_label := Label.new()
-	throughput_label.name = "Throughput"
-	throughput_label.custom_minimum_size.x = 150
-	throughput_label.add_theme_font_size_override("font_size", 12)
-	throughput_label.add_theme_color_override("font_color", Color("#4C566A"))
-	throughput_label.tooltip_text = tr("UI_PRODUCTION_THROUGHPUT_TOOLTIP")
-	hbox.add_child(throughput_label)
-	
-	return hbox
-
-func _create_arrow() -> CenterContainer:
-	var center := CenterContainer.new()
-	center.custom_minimum_size.y = 20
-	
-	var arrow_label := Label.new()
-	arrow_label.text = "▼"
-	arrow_label.add_theme_font_size_override("font_size", 16)
-	arrow_label.add_theme_color_override("font_color", Color("#7B8794"))
-	center.add_child(arrow_label)
-	
-	return center
-
-func _create_separator() -> HSeparator:
-	var sep := HSeparator.new()
-	sep.custom_minimum_size.y = 4
-	return sep
+func _apply_localization() -> void:
+	_header_label.text = tr("UI_PRODUCTION_TITLE")
+	_header_label.tooltip_text = tr("UI_PRODUCTION_TITLE_TOOLTIP")
+	for stage_data in _chain_stages:
+		var row: HBoxContainer = _chain_container.get_node_or_null("Row_" + str(stage_data.id))
+		if row == null:
+			continue
+		var stage_label: Label = row.get_node("StageLabel")
+		stage_label.text = stage_data.label
+		stage_label.tooltip_text = tr("UI_PRODUCTION_STAGE_TOOLTIP") % stage_data.label
+		row.get_node("Quantity").tooltip_text = tr("UI_PRODUCTION_QUANTITY_TOOLTIP")
+		row.get_node("StatusIndicator").tooltip_text = tr("UI_PRODUCTION_STATUS_TOOLTIP")
+		row.get_node("Throughput").tooltip_text = tr("UI_PRODUCTION_THROUGHPUT_TOOLTIP")
 
 # ── Data refresh ──────────────────────────────────────────────────────────────
 
@@ -195,24 +125,24 @@ func _on_state_updated() -> void:
 func _refresh_display() -> void:
 	if not has_node("/root/SimBridge"):
 		return
-	
+
 	for stage_data in _chain_stages:
 		_update_stage_row(stage_data)
 
 func _update_stage_row(stage_data: Dictionary) -> void:
-	var row_name := "Row_" + stage_data.id
+	var row_name: String = "Row_" + str(stage_data.id)
 	if not _chain_container.has_node(row_name):
 		return
-	
+
 	var row: HBoxContainer = _chain_container.get_node(row_name)
 	var quantity_label: Label = row.get_node("Quantity")
 	var status_indicator: ColorRect = row.get_node("StatusIndicator")
 	var throughput_label: Label = row.get_node("Throughput")
-	
+
 	var quantity: float = _get_stage_quantity(stage_data)
 	var status_color: Color = _get_status_color(stage_data, quantity)
 	var throughput_text: String = _get_throughput_text(stage_data)
-	
+
 	# Update quantity
 	if stage_data.unit == "kg":
 		quantity_label.text = SimBridge.format_biomass(quantity)
@@ -220,10 +150,10 @@ func _update_stage_row(stage_data: Dictionary) -> void:
 		quantity_label.text = tr("UI_PRODUCTION_MARKETS_FORMAT") % int(quantity)
 	else:
 		quantity_label.text = SimBridge.format_fish(int(quantity))
-	
+
 	# Update status color
 	status_indicator.color = status_color
-	
+
 	# Update throughput
 	throughput_label.text = throughput_text
 
@@ -252,15 +182,15 @@ func _get_stage_quantity(stage_data: Dictionary) -> float:
 func _get_status_color(stage_data: Dictionary, quantity: float) -> Color:
 	# Gray if not unlocked
 	if not _is_stage_unlocked(stage_data):
-		return Color("#D8DEE9")  # Gray
-	
+		return Color("#D6CFBF")  # Gray
+
 	# Green/yellow/red based on thresholds
 	if quantity >= stage_data.threshold_green:
-		return Color("#A3BE8C")  # Green (flowing)
+		return Color("#2E6B45")  # Green (flowing)
 	elif quantity >= stage_data.threshold_yellow:
-		return Color("#EBCB8B")  # Yellow (slow)
+		return Color("#8A5A00")  # Yellow (slow)
 	else:
-		return Color("#BF616A")  # Red (bottleneck)
+		return Color("#B3172F")  # Red (bottleneck)
 
 func _is_stage_unlocked(stage_data: Dictionary) -> bool:
 	match stage_data.id:
@@ -319,6 +249,3 @@ func _get_throughput_text(stage_data: Dictionary) -> String:
 				return tr("UI_PRODUCTION_STATUS_ACTIVE_EXPORTS")
 			return tr("UI_PRODUCTION_STATUS_NO_MARKETS")
 	return ""
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
-    if event.is_action_pressed("ui_cancel"):
-        get_tree().call_group_flags(2, "tooltips", "hide")

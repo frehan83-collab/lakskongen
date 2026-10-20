@@ -40,4 +40,4 @@ func _process(delta):
             var alpha = abs(sin(Time.get_ticks_msec() * 0.002))
             bar.modulate = Color(1, 1, 1, 0.8 + alpha * 0.2)
         else:
-            bar.modulate = Color.WHITEtooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
+            bar.modulate = Color.WHITE

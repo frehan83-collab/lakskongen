@@ -33,10 +33,28 @@ namespace LakskongenSim.Core
         public List<string>              Prerequisites { get; init; } = new();
         public bool                      Unlocked      { get; set; }
         public Dictionary<string, double> Effects      { get; init; } = new();
+
+        /// <summary>
+        /// F2-04: the farm-type variants this node opens (farm-type catalogue
+        /// ids, <c>Farm.FarmTypeCatalog</c>); the node is one of the variant's
+        /// unlock gates. Empty for a node that opens no farm type.
+        /// </summary>
+        public List<string> Unlocks { get; init; } = new();
+
+        /// <summary>
+        /// F2-04: the unit kinds the node's effects reach (<see cref="ResearchScopes"/>:
+        /// "sea", "offshore", "land"). Empty = every unit. A scoped node may only
+        /// carry effects a unit reads (<see cref="ResearchEffectKeys.UnitScoped"/>).
+        /// </summary>
+        public List<string> AppliesTo { get; init; } = new();
+
+        /// <summary>True when the node's effects reach a unit of <paramref name="scope"/> (an unscoped node reaches every unit).</summary>
+        public bool AppliesToScope(string scope) => AppliesTo.Count == 0 || AppliesTo.Contains(scope);
     }
 
     /// <summary>
-    /// Tech tree with 25 research nodes across 5 branches.
+    /// Tech tree with 25 research nodes across 5 branches (the same tree ships as
+    /// godot/data/research_nodes.json; ResearchTreeContractTests keeps them equal).
     /// Tracks active research progress and fires OnResearchCompleted on completion.
     /// </summary>
     public class ResearchSystem
@@ -129,13 +147,30 @@ namespace LakskongenSim.Core
             => _nodes.Values.Where(n => n.Unlocked).Select(n => n.Id);
 
         /// <summary>
-        /// Sum all unlocked effects for a given key.
+        /// Sum the unlocked effects for a given key that reach every unit
+        /// (F2-04: a node scoped to some unit kinds is left out; see
+        /// <see cref="GetTotalEffect(string, string)"/>).
         /// Returns 0.0 if no unlocked node contributes to that key.
         /// </summary>
         public double GetTotalEffect(string key)
             => _nodes.Values
-                .Where(n => n.Unlocked && n.Effects.ContainsKey(key))
+                .Where(n => n.Unlocked && n.AppliesTo.Count == 0 && n.Effects.ContainsKey(key))
                 .Sum(n => n.Effects[key]);
+
+        /// <summary>
+        /// F2-04: sum the unlocked effects for a given key that reach a unit of
+        /// <paramref name="scope"/> (<see cref="ResearchScopes"/>): every unscoped
+        /// node plus the nodes scoped to that kind, in the tree's order (so a
+        /// game with no scoped node unlocked sums exactly as before).
+        /// </summary>
+        public double GetTotalEffect(string key, string scope)
+            => _nodes.Values
+                .Where(n => n.Unlocked && n.AppliesToScope(scope) && n.Effects.ContainsKey(key))
+                .Sum(n => n.Effects[key]);
+
+        /// <summary>F2-04: every node (locked or not) that opens the farm-type variant <paramref name="variantId"/>, in tree order.</summary>
+        public IEnumerable<ResearchNode> NodesUnlocking(string variantId)
+            => _nodes.Values.Where(n => n.Unlocks.Contains(variantId));
 
         // ─── Save/load helpers ─────────────────────────────────────────────────
 
@@ -163,59 +198,99 @@ namespace LakskongenSim.Core
         // ─── JSON population ───────────────────────────────────────────────────
 
         /// <summary>
-        /// Replace the hardcoded node definitions with nodes loaded from JSON.
-        /// Preserves any existing unlock state if node IDs match.
+        /// Replace the code-defined node definitions with nodes loaded from JSON
+        /// (godot/data/research_nodes.json, which ships the same tree). Branches
+        /// are kept as written — the tech-tree UI lays out every branch — and
+        /// unlock state is preserved for matching ids. Effect keys the engine does
+        /// not read are reported (review F1001: a whole shipped tree once carried
+        /// only dead keys).
         /// </summary>
         public void PopulateFromJson(List<ResearchNode> jsonNodes)
         {
             if (jsonNodes == null || jsonNodes.Count == 0) return;
 
-            // Map JSON branch strings to enum values
-            var branchMap = new Dictionary<string, ResearchBranch>(StringComparer.OrdinalIgnoreCase)
-            {
-                ["Biology"] = ResearchBranch.Biology,
-                ["Genetics"] = ResearchBranch.Biology,
-                ["Technology"] = ResearchBranch.Technology,
-                ["Sustainability"] = ResearchBranch.Sustainability,
-                ["Processing"] = ResearchBranch.Processing,
-                ["Expansion"] = ResearchBranch.Expansion
-            };
-
-            // Snapshot current unlock state before replacing
             var previousState = new Dictionary<string, bool>();
             foreach (var kvp in _nodes)
                 previousState[kvp.Key] = kvp.Value.Unlocked;
 
             _nodes.Clear();
-
             foreach (var node in jsonNodes)
             {
-                // Resolve branch from JSON string if needed
-                if (branchMap.TryGetValue(node.Branch.ToString(), out var mappedBranch))
+                node.Unlocked = previousState.TryGetValue(node.Id, out var wasUnlocked) && wasUnlocked;
+                ReportUnknownEffectKeys(node.Id, node.Effects?.Keys);
+                foreach (var problem in ScopeProblems(node))
+                    SimLog.Warn($"Research node '{node.Id}': {problem}");
+                _nodes[node.Id] = node;
+            }
+        }
+
+        /// <summary>Effect keys of a node that no engine system reads.</summary>
+        public static IEnumerable<string> UnknownEffectKeys(IEnumerable<string>? keys)
+            => (keys ?? Enumerable.Empty<string>()).Where(k => !ResearchEffectKeys.Live.Contains(k));
+
+        /// <summary>
+        /// F2-04: what is wrong with a node's scope: an unknown unit kind, or an
+        /// effect a unit does not read on a scoped node (a scoped price premium
+        /// would apply to nothing).
+        /// </summary>
+        public static IEnumerable<string> ScopeProblems(ResearchNode node)
+        {
+            foreach (var scope in node.AppliesTo ?? new List<string>())
+                if (!ResearchScopes.All.Contains(scope))
+                    yield return $"unknown unit kind '{scope}' in appliesTo";
+            if (node.AppliesTo is { Count: > 0 })
+                foreach (var key in node.Effects?.Keys ?? Enumerable.Empty<string>())
+                    if (!ResearchEffectKeys.UnitScoped.Contains(key))
+                        yield return $"effect '{key}' cannot be scoped to a unit kind";
+        }
+
+        private static void ReportUnknownEffectKeys(string nodeId, IEnumerable<string>? keys)
+        {
+            foreach (var key in UnknownEffectKeys(keys))
+                SimLog.Warn($"Research node '{nodeId}': effect key '{key}' has no effect (not in ResearchEffectKeys.Live)");
+        }
+
+        // ─── Mod node integration (Phase 4.6) ─────────────────────────────────
+
+        /// <summary>
+        /// Add mod research nodes to the tech tree. Mod nodes are additive —
+        /// they never overwrite core nodes. If a mod node ID collides with a
+        /// core node ID, the mod node is skipped (core wins).
+        /// </summary>
+        public void AddModNodes(List<ModResearchNode> modNodes)
+        {
+            if (modNodes == null || modNodes.Count == 0) return;
+
+
+            foreach (var mod in modNodes)
+            {
+                if (_nodes.ContainsKey(mod.Id))
                 {
-                    // Create a copy with the correct enum branch
-                    var resolved = new ResearchNode
-                    {
-                        Id = node.Id,
-                        Name = node.Name,
-                        Description = node.Description,
-                        Branch = mappedBranch,
-                        Tier = node.Tier,
-                        CostNOK = node.CostNOK,
-                        ResearchDays = node.ResearchDays,
-                        Prerequisites = node.Prerequisites,
-                        Effects = node.Effects,
-                        Unlocked = previousState.TryGetValue(node.Id, out var wasUnlocked) && wasUnlocked
-                    };
-                    _nodes[resolved.Id] = resolved;
+                    // Core node with same ID exists — skip mod node
+                    continue;
                 }
-                else
+
+                // Any of the schema's ten branch names; the tech-tree UI lays out all of them.
+                var branch = ResearchBranch.Biology;
+                if (!string.IsNullOrEmpty(mod.Branch)
+                    && Enum.TryParse<ResearchBranch>(mod.Branch, ignoreCase: true, out var parsed)
+                    && Enum.IsDefined(parsed))
+                    branch = parsed;
+                ReportUnknownEffectKeys(mod.Id, mod.Effects.Keys);
+
+                _nodes[mod.Id] = new ResearchNode
                 {
-                    // Use node as-is, preserve unlock state
-                    if (previousState.TryGetValue(node.Id, out var wasUnlocked))
-                        node.Unlocked = wasUnlocked;
-                    _nodes[node.Id] = node;
-                }
+                    Id = mod.Id,
+                    Name = mod.Name,
+                    Description = mod.Description,
+                    Branch = branch,
+                    Tier = mod.Tier,
+                    CostNOK = mod.CostNOK,
+                    ResearchDays = mod.ResearchDays,
+                    Prerequisites = new List<string>(mod.Prerequisites),
+                    Effects = new Dictionary<string, double>(mod.Effects),
+                    Unlocked = false
+                };
             }
         }
 
@@ -334,7 +409,7 @@ namespace LakskongenSim.Core
                 CostNOK = 4_500_000m,
                 ResearchDays = 110,
                 Prerequisites = new() { "sensor-networks" },
-                Effects = new() { ["disease_detection_bonus"] = 0.15, ["lice_detection_bonus"] = 0.12 }
+                Effects = new() { [ResearchEffectKeys.DiseaseResistanceBonus] = 0.10, [ResearchEffectKeys.LiceReduction] = 0.12 }
             });
 
             Add(new ResearchNode
@@ -372,7 +447,7 @@ namespace LakskongenSim.Core
             {
                 Id = "organic-certification",
                 Name = "Organic Certification",
-                Description = "Achieve Debio organic aquaculture certification. Requires lower stocking density, no synthetic additives, and higher welfare standards. Commands a significant retail price premium.",
+                Description = "Achieve organic aquaculture certification. Requires lower stocking density, no synthetic additives, and higher welfare standards. Commands a significant retail price premium.",
                 Branch = ResearchBranch.Sustainability,
                 Tier = 1,
                 CostNOK = 600_000m,
@@ -512,26 +587,32 @@ namespace LakskongenSim.Core
             {
                 Id = "deep-sea-farming",
                 Name = "Deep-Sea Exposed Farming",
-                Description = "Develop offshore semi-submersible pen systems (Salmar Ocean Farm concept) for exposed, high-current sites. Access to pristine water and large volume capacity, reducing fjord crowding pressure.",
+                Description = "Develop offshore semi-submersible pen systems for exposed, high-current sites. Opens the semi-submersible offshore unit; its lice and disease effects apply to offshore units only.",
                 Branch = ResearchBranch.Expansion,
                 Tier = 1,
                 CostNOK = 900_000m,
                 ResearchDays = 55,
                 Prerequisites = new(),
-                Effects = new() { ["expansion_capacity_bonus"] = 0.25 }
+                Effects = new() { [ResearchEffectKeys.LiceReduction] = 0.10, [ResearchEffectKeys.DiseaseResistanceBonus] = 0.06 },
+                // F2-04 (FARM_TYPES_SPEC §2C): the gate of the Hav family; its effects narrowed to offshore units.
+                Unlocks = new() { "of1" },
+                AppliesTo = new() { ResearchScopes.Offshore }
             });
 
             Add(new ResearchNode
             {
                 Id = "land-based-ras",
                 Name = "Land-Based RAS Facility",
-                Description = "Recirculating Aquaculture System on shore. Zero sea lice, no escape risk, controlled environment year-round. High capital cost but biosecure smolt production and ability to site near markets.",
+                Description = "Recirculating Aquaculture System on shore. Zero sea lice, no escape risk, controlled environment year-round. Opens the post-smolt module and the hybrid land farm; its mortality and disease effects apply to land tanks only.",
                 Branch = ResearchBranch.Expansion,
                 Tier = 1,
                 CostNOK = 1_200_000m,
                 ResearchDays = 60,
                 Prerequisites = new(),
-                Effects = new() { ["mortality_reduction"] = 0.05, ["disease_resistance_bonus"] = 0.14 }
+                Effects = new() { ["mortality_reduction"] = 0.05, ["disease_resistance_bonus"] = 0.14 },
+                // F2-04 (FARM_TYPES_SPEC §2C): the gate of the Land family; its effects narrowed to land tanks.
+                Unlocks = new() { "post_smolt", "hfs" },
+                AppliesTo = new() { ResearchScopes.Land }
             });
 
             Add(new ResearchNode
@@ -570,7 +651,7 @@ namespace LakskongenSim.Core
                 CostNOK = 9_000_000m,
                 ResearchDays = 200,
                 Prerequisites = new() { "international-export", "land-based-ras" },
-                Effects = new() { ["market_price_bonus"] = 0.09, ["expansion_capacity_bonus"] = 0.35 }
+                Effects = new() { ["market_price_bonus"] = 0.09 }
             });
         }
 

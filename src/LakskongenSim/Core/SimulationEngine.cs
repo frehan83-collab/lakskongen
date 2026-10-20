@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using LakskongenSim.Biology;
+using LakskongenSim.Calibration;
 using LakskongenSim.Data;
 using LakskongenSim.Environment;
 using LakskongenSim.Events;
@@ -26,10 +27,35 @@ namespace LakskongenSim.Core
     /// Central orchestrator connecting all subsystems in correct update order.
     /// Update order: Weather → Environment → Biology → Health → Events → Market → Finance → Tutorial → Analytics
     /// </summary>
-    public class SimulationEngine
+    public partial class SimulationEngine
     {
         public TimeManager Time { get; } = new();
-        public GameState State { get; } = new();
+        public GameState State { get; private set; } = new();
+
+        /// <summary>Named deterministic RNG streams (Phase 1.4). Re-seeded in
+        /// Initialize from the game seed; replaced on Reset.</summary>
+        public SimRng Rng { get; private set; } = new SimRng(0);
+
+        /// <summary>Drop all run state so a new game never inherits zones,
+        /// sites, fish, event log or interval clocks from the previous one
+        /// (S9). Called at the top of Initialize and directly by New Game.</summary>
+        public void Reset()
+        {
+            Storyteller?.Detach();
+            Storyteller = null!;
+            State = new GameState { CapacityRules = Finance.CapacityRegime.Unregulated }; // S2-01a: a scenario start opens the licence register
+            Rng = new SimRng(0);
+            _dayNotes.Clear();
+            GameEvents.Clear();   // U2-06: presentation state, never saved
+            // Run state that lives on the engine rather than in GameState (F292).
+            PenPriceCouncil = new Market.PriceCouncil(DefaultPenPriceNokPerKg);
+            ResourceRentPaid = 0m;
+            EnableResourceRentTax = true;   // D16: on by default
+            StormEscapeEvents = 0.0;
+            _lastWeatherState = LakskongenSim.Environment.WeatherState.Calm;
+            _stormEpisodePeakSeverity = 0.0;
+            Time.Reset();
+        }
 
         // ─── Core subsystems ───
         public WeatherSystem Weather { get; private set; } = null!;
@@ -44,6 +70,21 @@ namespace LakskongenSim.Core
         public Genetics Genetics { get; private set; } = null!;
         public Market.MarketSimulation MarketSimulation { get; set; } = null!;
         public ContractSystem ContractSystem { get; private set; } = null!;
+
+        // ─── Phase 3 depth systems (P5/P6/P7/P9/P10) ───
+        /// <summary>P9: binding monthly pen price set by the Price Council.</summary>
+        public Market.PriceCouncil PenPriceCouncil { get; private set; } = new(DefaultPenPriceNokPerKg);
+        private const decimal DefaultPenPriceNokPerKg = 82m;
+        /// <summary>
+        /// P9: when true, the 25% resource-rent tax is charged at the year-end
+        /// settlement. On by default (owner decision D16, S1-03): the 70M NOK
+        /// basic deduction shields family farms, so only large operations pay.
+        /// A scenario can opt out (enable_resource_rent_tax=false).
+        /// </summary>
+        public bool EnableResourceRentTax { get; set; } = true;
+        /// <summary>P9: cumulative resource-rent tax paid. Settable so save/load
+        /// restore can rehydrate the running total exactly (additive).</summary>
+        public decimal ResourceRentPaid { get; set; } = 0m;
         public InternationalMarketSystem InternationalMarketSystem { get; private set; } = null!;
         public Finance.FinanceManager FinanceManager { get; set; } = null!;
         public Finance.FinancialStatements FinancialStatements { get; private set; } = null!;
@@ -55,6 +96,7 @@ namespace LakskongenSim.Core
         public AnalyticsTracker Analytics { get; private set; } = null!;
         public AudioManager Audio { get; private set; } = null!;
         public AchievementSystem Achievements { get; private set; } = null!;
+        public ScenarioSystem Scenario { get; private set; } = null!;
         public ResearchSystem Research { get; private set; } = null!;
         public Finance.StockMarketSystem StockMarket { get; private set; } = null!;
         public BrandReputation BrandReputation { get; private set; } = null!;
@@ -62,34 +104,33 @@ namespace LakskongenSim.Core
         public VerticalIntegrationSystem VerticalIntegration { get; private set; } = null!;
         public Finance.LoanSystem LoanSystem { get; private set; } = null!;
         public Finance.TaxSystem TaxSystem { get; private set; } = null!;
+        public Finance.CorporateFinanceSystem CorporateFinance { get; private set; } = null!;
         public Finance.InvestorSystem InvestorSystem { get; private set; } = null!;
+        /// <summary>P11: catastrophe insurance policies (Mortality/Bloom/Storm/ISA).</summary>
+        public Finance.InsuranceSystem Insurance { get; private set; } = new();
         public Expansion.AcquisitionSystem AcquisitionSystem { get; private set; } = null!;
         public Finance.LicenseSystem LicenseSystem { get; private set; } = null!;
+        public Finance.TrafficLightSystem TrafficLightSystem { get; private set; } = null!;
         public Politics.StakeholderFactionSystem StakeholderFactionSystem { get; private set; } = null!;
         public Market.MarketIntelligenceSystem MarketIntelligence { get; private set; } = null!;
         public Health.FishWelfare FishWelfare { get; private set; } = null!;
         public VisualMilestones VisualMilestones { get; private set; } = null!;
         public Market.CurrencySystem CurrencySystem { get; private set; } = null!;
+        public PlanktonBloom? PlanktonBloom { get; private set; }
 
         // ─── Farm Subsystems ───
-        public List<RASFacility> RASFacilities { get; private set; } = new();
-        public List<OffshoreFarm> OffshoreFarms { get; private set; } = new();
+        // Facilities live in GameState (the one serialized owner) so a build
+        // survives save/load (F1069); these are views, not parallel stores.
+        public List<RASFacility> RASFacilities => State.RASFacilities;
+        public List<OffshoreFarm> OffshoreFarms => State.OffshoreFarms;
         public AIFeedingSystem AIFeeding { get; private set; } = null!;
-        public List<PostSmoltFacility> PostSmoltFacilities { get; private set; } = new();
+        public List<PostSmoltFacility> PostSmoltFacilities => State.PostSmoltFacilities;
 
         // ─── Update intervals ───
-        private int _lastSustainabilityUpdate = 0;
         private const int SUSTAINABILITY_UPDATE_INTERVAL = 7; // Weekly
-        private int _lastBrandReputationUpdate = 0;
+        private const int TRAFFIC_LIGHT_UPDATE_INTERVAL = 7; // Weekly (Phase 1.3)
         private const int BRAND_REPUTATION_UPDATE_INTERVAL = 7; // Weekly
-        private int _lastCrisisCapitalismUpdate = 0;
         private const int CRISIS_CAPITALISM_UPDATE_INTERVAL = 7; // Weekly - crises don't happen daily
-        private int _lastVerticalIntegrationUpdate = 0;
-        private const int VERTICAL_INTEGRATION_UPDATE_INTERVAL = 30; // Monthly - construction/integration is slow
-        private int _quarterStartDay = 0;
-        private int _lastCompetitorAIUpdate = 0;
-        private const int COMPETITOR_AI_UPDATE_INTERVAL = 90; // Quarterly
-        private int _lastEmpireProgressionUpdate = 0;
         private const int EMPIRE_PROGRESSION_UPDATE_INTERVAL = 7; // Weekly
         // Reserved for future systems (T68: not yet wired)
         // private int _lastAcquisitionSystemUpdate = 0;
@@ -98,27 +139,109 @@ namespace LakskongenSim.Core
         // private const int LICENSE_SYSTEM_UPDATE_INTERVAL = 30; // Monthly - license applications/renewals
         // private int _lastStakeholderFactionUpdate = 0;
         // private const int STAKEHOLDER_FACTION_UPDATE_INTERVAL = 7; // Weekly - faction relationship updates
-        private int _lastTaxUpdate = 0;
-        private const int TAX_UPDATE_INTERVAL = 90; // Quarterly
-        private int _lastInvestorUpdate = 0;
-        private const int INVESTOR_UPDATE_INTERVAL = 30; // Monthly
-        private int _lastMarketIntelligenceUpdate = 0;
         private const int MARKET_INTELLIGENCE_UPDATE_INTERVAL = 7; // Weekly - market analysis updates
-        private int _lastProductMixOptimizerUpdate = 0;
-        private const int PRODUCT_MIX_OPTIMIZER_UPDATE_INTERVAL = 30; // Monthly - production planning is periodic
+        private const int BLOOM_UPDATE_INTERVAL = 7; // Weekly (Phase 4.3)
+        private const int NIGHT_POLICY_INTERVAL = 1; // Daily (Phase 5.2)
 
-        private BalancingConfig _balancing = new(); // Track whether events/disease are enabled
+        private BalancingConfig _balancing = new();
+        // Phase A: single source of truth for balancing values.
+        private CalibrationRegistry _calibration = CalibrationRegistry.Default;
+
+        /// <summary>The calibration this engine runs on (read-only; the UI reads
+        /// targets such as the FCR goal from here instead of its own constants).</summary>
+        public CalibrationRegistry Calibration => _calibration;
         private bool _enableEvents = true;
+        private Finance.FinanceManager? _financeManager;
 
         // ─── Farm systems daily OPEX (accumulated in TickDay, consumed in ProcessDailyFinance) ───
-        private decimal _dailyFarmSystemsOpex = 0m;
-        private decimal _dailyAiFeedingLicenseCost = 0m;
+        internal decimal _dailyFarmSystemsOpex = 0m;
+        internal decimal _dailyAiFeedingLicenseCost = 0m;
+
+        // ─── Per-day biology inputs (growth itself: the S2-03 TGC law, calibration "growth") ───
+        internal const double PenVolumeProxyM3 = 10_000.0; // pen-volume proxy for density estimate
+        internal const double DefaultStockingDensityKgM3 = 20.0; // fallback when no zone is known
+        internal const double WarmingPerYearC = 0.02; // P10: documented warming trend applied to lice development
+
+        // ─── Sea-lice seeding (realistic external copepodid pressure) ───
+        // At sea stocking each cycle is seeded with external lice pressure; the
+        // daily external multiplier is seasonally modulated so a clean grow-out
+        // reaches ~0.5 adult females/fish (the Mattilsynet action limit) without
+        // any treatment. Deterministic (no RNG).
+        private const double StockingLiceSeedIntensity = 2.0;
+        private const double SeasonalLicePressureBase = 1.0;
+        private const double SeasonalLicePressureAmplitude = 0.35;
+
+        // ─── Sea-site storm containment hazards (engine-owned, deterministic) ───
+        // Net integrity wears on storm days and repairs in calm weather; a severe
+        // storm can tear a weakened net and release fish. This is the single
+        // source of truth for storm escapes (GameBridge.CheckWeatherImpacts no
+        // longer mutates NetIntegrityPct / records escapes). Deterministic for a
+        // given seed because storm timing comes from the seeded WeatherSystem.
+        // Real mapping: Norwegian sea-site escapes are rare and far below 1% of
+        // stock per site per year; see docs/BALANCE.md §1c and the 0.5% guard.
+        private const double StormIntegrityLossPctPerDay = 0.3;
+        private const double SevereIntegrityLossPctPerDay = 1.0;
+        /// <summary>
+        /// Routine net maintenance on a non-storm day. Re-fit with S1-02 (0.2 -> 0.5):
+        /// the 0.2 was fitted to a weather chain that never reached Severe in
+        /// Oct-Mar (F456). The honest chain wears nets ~57% more per year
+        /// (~74 vs ~47 integrity points), and at 0.2 maintained nets fell below
+        /// the 40% risk line within two years (escapes 173% of stock/site/year).
+        /// 0.5 restores the measured maintained-net outcome of BALANCE.md §1c.
+        /// </summary>
+        private const double NetIntegrityRepairPctPerDay = 0.5;
+        /// <summary>Expected containment-failure probability on a severe-storm day.</summary>
+        private const double StormFailureProbabilityPerSevereDay = 0.01;
+        /// <summary>Fraction of the pen released by one containment failure at full wear.</summary>
+        private const double StormLossFractionPerFailure = 0.05;
+        /// <summary>Documented 40% net-integrity risk line (hard breach).</summary>
+        private const double NetIntegrityEscapeRiskThresholdPct = 40.0;
+        /// <summary>Regulatory escape fine (NOK per escaped fish).</summary>
+        private const decimal EscapeFineNOKPerFish = 100m;
+        /// <summary>Quarterly fine while certification is NonCompliant (NOK).</summary>
+        private const decimal NonComplianceFineNok = 50_000m;
+        /// <summary>Freshwater-bath wellboat consumables per treatment (NOK).</summary>
+        private const decimal FreshwaterBathConsumablesNok = 60_000m;
+        /// <summary>Automated night-shift emergency oxygenation per event (NOK).</summary>
+        private const decimal NightOxygenEmergencyNok = 12_000m;
+
+        /// <summary>
+        /// Cumulative expected storm containment-failure events recorded by the
+        /// engine (all sites). Expected (not Bernoulli) so escape accounting is
+        /// smooth and reproducible across seeds. Exposed for SimProbe.
+        /// </summary>
+        public double StormEscapeEvents { get; private set; } = 0.0;
 
         // ─── External data calibration ───
         private AquacultureDataConfig _aquacultureDataConfig = new();
-        private AquacultureGameplayModifiers _aquacultureModifiers = AquacultureGameplayModifiers.Default();
+        internal AquacultureGameplayModifiers _aquacultureModifiers = AquacultureGameplayModifiers.Default();
         private BarentsWatchClientOptions _barentsWatchClientOptions = new();
-        private BarentsWatchFishHealthPipeline? _barentsWatchPipeline;
+        /// <summary>The bundled offline Fishhealth snapshot read at Initialize (D18); null without one.</summary>
+        private BarentsWatchStoredSnapshot? _offlineFishHealthSnapshot;
+        private SimRngStream _rng = null!; // Engine-level event draws ("storyteller/engine" stream, seeded in Initialize)
+        /// <summary>Event gating for tick systems (Phase 1 wave 4).</summary>
+        internal bool EventsEnabled => _enableEvents;
+        /// <summary>Legacy seeded event RNG (seed+101) for night-policy and bloom-deck systems.</summary>
+        internal SimRngStream LegacyEventRng => _rng;
+        /// <summary>Tick access to the balancing feed price (BalancingConfig itself stays private).</summary>
+        internal decimal TickFeedCostPerKgNOK => _balancing.FeedCostPerKgNOK;
+        /// <summary>Event fire wrapper for tick systems (events are +=/-= only outside the type).</summary>
+        internal void FireEvent(string message) => OnEventTriggered?.Invoke(message);
+
+        // Storm-impact edge tracking (moved from the bridge, Phase 1 wave 2).
+        private LakskongenSim.Environment.WeatherState _lastWeatherState = LakskongenSim.Environment.WeatherState.Calm;
+        /// <summary>Highest storm severity reached in the running episode (0 between episodes; saved).</summary>
+        private double _stormEpisodePeakSeverity;
+        private const double StormEpisodeSeverity = 0.5;
+        private const double SevereEpisodeSeverity = 1.0;
+
+        /// <summary>Damage severity of a weather state: Severe 1, Storm 0.5, otherwise 0.</summary>
+        internal static double StormSeverity(LakskongenSim.Environment.WeatherState state) => state switch
+        {
+            LakskongenSim.Environment.WeatherState.Severe => SevereEpisodeSeverity,
+            LakskongenSim.Environment.WeatherState.Storm => StormEpisodeSeverity,
+            _ => 0.0
+        };
 
         // ─── Events ───
         public event Action<int>? OnDayAdvanced;
@@ -127,43 +250,80 @@ namespace LakskongenSim.Core
         public event Action<EventRecord>? OnEventFired;
         public event Action<Achievement>? OnAchievementUnlocked;
 
+        /// <summary>Fired when the active scenario's win condition is met.</summary>
+        public event Action<ScenarioDefinition>? OnScenarioWon;
+
+        /// <summary>Fired when the active scenario is lost. Second argument is the reason.</summary>
+        public event Action<ScenarioDefinition, string>? OnScenarioLost;
+
         /// <summary>
         /// Initialize all subsystems and wire them together.
         /// </summary>
         /// <param name="enableEvents">If false, disables random storyteller events and disease mortality (useful for deterministic tests).</param>
-        public void Initialize(bool enableEvents = true)
+        /// <param name="seed">Optional RNG seed. When set, growth/market/event randomness is reproducible (tests).</param>
+        public void Initialize(bool enableEvents = true, int? seed = null)
         {
+            // Fresh run state first: State/Storyteller/Time outlive the
+            // engine instance, so without this a second New Game inherits
+            // the previous game (S9).
+            Reset();
             _enableEvents = enableEvents;
+            Rng = seed.HasValue ? new SimRng(seed.Value) : SimRng.CreateUnseeded();
+            // P0-07: the state carries the seed its streams derive from, so a
+            // save of ANY game (also one started without a seed) resumes on
+            // the same streams. Callers no longer have to remember to set it.
+            State.RandomSeed = Rng.Seed;
+            _rng = Rng.Stream(SimRngStreams.Storyteller, "engine");
             
             // Create subsystems
-            Weather = new WeatherSystem();
+            Weather = new WeatherSystem(Rng.Stream(SimRngStreams.Weather));
             Environment = new EnvironmentModel();
-            Growth = new GrowthModel();
+            Growth = new GrowthModel(Rng.Stream(SimRngStreams.Growth));
             Mortality = new MortalityModel();
             Feed = new FeedSystem();
             SeaLice = new SeaLiceModel();
-            Disease = new DiseaseSystem(SeaLice);
-            IntegratedDisease = new IntegratedDiseaseSystem(SeaLice);
-            
+            IntegratedDisease = new IntegratedDiseaseSystem(SeaLice,
+                Rng.Stream(SimRngStreams.StochasticDisease),
+                Rng.Stream(SimRngStreams.StochasticDisease, "lod"));
+            // ONE population-level SIR: scenario seeding, treatments, the daily
+            // tick and saves all act on the same prevalence map (F478/F244).
+            Disease = IntegratedDisease.BaseSystem;
+
             // Wire disease systems to MortalityModel to prevent double mortality application
-            Disease.SetMortalityModel(Mortality);
             IntegratedDisease.SetMortalityModel(Mortality);
             
             Hatchery = new Hatchery();
-            Genetics = new Genetics();
+            Genetics = new Genetics(Rng.Stream(SimRngStreams.Genetics));
 
             // Default finance and market if not set externally
             FinanceManager ??= new Finance.FinanceManager(10_000_000m); // 10M NOK starting capital
             FinancialStatements = new Finance.FinancialStatements();
-            
-            // NOTE: GameState.Balance is NO LONGER synced automatically.
-            // It is only updated during save/load for backward compatibility.
+
+            // Feed PRICE authority: FeedSystem.FeedCostPerKg is charged daily via
+            // OnFeedCostIncurred. BalancingConfig mirrors it for estimates
+            // (AI savings); ApplyBalancingConfig pushes file values back in.
+            _balancing.FeedCostPerKgNOK = Feed.FeedCostPerKg;
+
+// NOTE: GameState.Balance is a read-only MIRROR, synced from
+            // FinanceManager.Balance at the end of each simulated day (Phase 6).
             // FinanceManager.Balance is the SINGLE SOURCE OF TRUTH for cash.
-            
+            _financeManager = FinanceManager;
+             
             // Initialize CompetitorAI and EmpireProgression systems
-            CompetitorAI = new Finance.CompetitorAISystem();
+            // (S10: every seeded subsystem gets the seed — previously most
+            // ran on unseeded System.Random even in seeded games/tests.)
+            CompetitorAI = new Finance.CompetitorAISystem(Rng.Stream(SimRngStreams.CompetitorAI));
             EmpireProgression = new Finance.EmpireProgressionSystem();
+            // Traffic-light regulatory state machine. Constructed HERE (not
+            // with the expansion systems below) because NorwegianEvents
+            // .RegisterAll, called further down, needs the live instance (S9).
+            TrafficLightSystem = new Finance.TrafficLightSystem();
             
+            // A distressed rival puts its assets on the market (review F499: the
+            // event had no subscriber, so no crisis ever opened and the distressed-
+            // asset pipeline always saw empty lists).
+            CompetitorAI.OnCompetitorDistressed += HandleCompetitorDistressed;
+
             // Wire CompetitorAI events
             CompetitorAI.OnCompetitorAction += action =>
             {
@@ -191,8 +351,13 @@ namespace LakskongenSim.Core
                 Audio?.TriggerAlert("achievement");
             };
             
-            MarketSimulation ??= new Market.MarketSimulation();
-            ContractSystem = new ContractSystem();
+            // Always a fresh market: a retained instance would keep the previous
+            // game's price path and an RNG stream from the previous SimRng (F292).
+            ScenarioPriceMultiplier = 1.0; // scenario rules re-apply on scenario start / load
+            MarketSimulation = new Market.MarketSimulation(
+                Rng.Stream(SimRngStreams.Market),
+                Rng.Stream(SimRngStreams.Intelligence, "market_inner"));
+            ContractSystem = new ContractSystem(Rng.Stream(SimRngStreams.Market, "contracts"));
             InternationalMarketSystem = new InternationalMarketSystem();
 
             // Load sustainability configuration
@@ -215,37 +380,62 @@ namespace LakskongenSim.Core
 
             // Initialize Storyteller event director (only enable default events if enableEvents=true)
             // Pass FinanceManager so events can modify balance correctly
-            Storyteller = new Storyteller(Time, State, FinanceManager, seed: null, enableDefaultEvents: enableEvents);
+            Storyteller = new Storyteller(Time, State, FinanceManager, seed: seed,
+                enableDefaultEvents: enableEvents, rng: Rng.Stream(SimRngStreams.Storyteller));
             if (enableEvents)
             {
-                NorwegianEvents.RegisterAll(Storyteller);
+                NorwegianEvents.RegisterAll(Storyteller, FinanceManager, TrafficLightSystem);
+                RegisterPlanktonEvents();
             }
             Storyteller.OnEventRaised += HandleStorytellerEvent;
+            // Event effects move cash inside the event; book exactly what moved.
+            Storyteller.OnEventCashSettled += (_, delta) => BookSettledCash(delta, "events");
+            // Event costs follow farm size up to one standard site (larger farms unchanged).
+            Storyteller.CostScale = () => Math.Clamp(TotalSiteScale(), 1.0 / StandardPensPerSite, 1.0);
+
+            // Initialize PlanktonBloom system
+            PlanktonBloom = new PlanktonBloom(Rng.Stream(SimRngStreams.PlanktonBloom));
+            LoadPlanktonBloomConfig();
+            ApplyWaterOxygenCalibration(); // wave 2 sim-a-1: the crash's oxygen demand from the registry
 
             // Hatchery → population
             Hatchery.OnNewCohort += cohort =>
             {
-                // Assign genetics if missing (hatchery produces cohorts with specific genomes)
+                // Assign genetics if missing. A released batch is a commercial
+                // batch of standard S1 smolts, so it carries the standard
+                // strain's genome, as StockSmolts does (S2-03): one random
+                // individual's breeding values (growth SD 15%) on a whole
+                // cohort made one batch grow 37% slower than the next.
                 if (cohort.Genetics == null)
                 {
-                    cohort.Genetics = Genetics.GenerateRandomGenome();
+                    cohort.Genetics = SmoltStrainRegistry.Get("standard").BuildGenome();
                 }
 
                 // Create a new population for this cohort (tests expect separate populations per release)
                 var newPopulation = new FishPopulation(Growth, Mortality);
                 newPopulation.AddCohort(cohort);
                 State.Populations.Add(newPopulation);
-            };
 
-            // Feed cost → finance
-            Feed.OnFeedCostIncurred += cost =>
-            {
-                if (!FinanceManager.Spend(cost))
+                // Sea-phase stocking: seed realistic external lice pressure so a
+                // clean (no-treatment) grow-out reaches the regulatory action
+                // limit (~0.5 adult females/fish) rather than staying at zero.
+                // Each cycle starts from a fallow low point, like a real pen.
+                if (cohort.Stage == LifeStage.Smolt)
                 {
-                    OnEventTriggered?.Invoke($"⚠️ Insufficient funds for feed: {cost:N0} NOK. Balance: {FinanceManager.Balance:N0} NOK");
-                    // Could trigger bankruptcy event here
+                    SeaLice.Reset(0.0);
+                    SeaLice.SetExternalPressure(SeasonalLicePressure(State.Day));
+                    SeaLice.SeedExternalInfection(StockingLiceSeedIntensity);
                 }
             };
+
+            // Feed cost → finance (D1: the cash spend also books COGS so the P&L
+            // finally sees the largest cost item — feed is ~35% of OPEX).
+            // Feed is paid like every other operating cost: on credit when cash
+            // is short. It used to be waived (booked as COGS, never paid), which
+            // made deliberate debt a free-feed strategy (review F1130).
+            Feed.OnFeedCostIncurred += cost =>
+                PayCost(cost, CostBooking.Cogs, "feed",
+                    $"⚠️ Insufficient funds for feed: {cost:N0} NOK paid on credit. Balance: {FinanceManager.Balance:N0} NOK");
 
             // Tutorial onboarding system
             Tutorial = new TutorialSystem(this);
@@ -257,14 +447,15 @@ namespace LakskongenSim.Core
             Audio = new AudioManager(Weather);
 
             // Achievement system — initialized after State so conditions have full context
-            Achievements = new AchievementSystem(State, FinanceManager);
+            Achievements = new AchievementSystem(State);
+            // D16 (S1-03): achievements award medals, never cash.
             Achievements.OnAchievementUnlocked += a => OnAchievementUnlocked?.Invoke(a);
 
             // Research / Tech Tree — restore persisted state from GameState
             Research = new ResearchSystem();
 
             // StockMarket and BrandReputation systems
-            StockMarket = new Finance.StockMarketSystem();
+            StockMarket = new Finance.StockMarketSystem(Rng.Stream(SimRngStreams.StockMarket));
             BrandReputation = new BrandReputation
             {
                 BrandName = "Lakskongen",
@@ -272,13 +463,16 @@ namespace LakskongenSim.Core
             };
 
             // CrisisCapitalism and VerticalIntegration systems
-            CrisisCapitalism = new CrisisCapitalismSystem();
+            CrisisCapitalism = new CrisisCapitalismSystem(Rng.Stream(SimRngStreams.CrisisCapitalism));
             VerticalIntegration = new VerticalIntegrationSystem(FinanceManager);
+            VerticalIntegration.OnCapexPaid += capex => BookSettledCash(-capex, "vertical_integration", CostBooking.Capex);
 
             // Initialize financial systems (LoanSystem, TaxSystem, InvestorSystem)
             LoanSystem = new Finance.LoanSystem();
             TaxSystem = new Finance.TaxSystem();
             InvestorSystem = new Finance.InvestorSystem();
+            CorporateFinance = new Finance.CorporateFinanceSystem(
+                Rng.Stream(SimRngStreams.CorporateFinance));
 
             // Wire LoanSystem events
             LoanSystem.OnInterestCharged += interest =>
@@ -287,7 +481,7 @@ namespace LakskongenSim.Core
             };
 
             // Wire TaxSystem events
-            TaxSystem.OnTaxPaid += tax =>
+            TaxSystem.OnTaxPaid += (tax, period) =>
             {
                 OnEventTriggered?.Invoke($"💸 Tax paid: {tax:N0} NOK");
             };
@@ -298,22 +492,60 @@ namespace LakskongenSim.Core
                 OnEventTriggered?.Invoke($"💼 Issued {type}: {amount:N0} NOK");
             };
 
-            // Initialize new farm systems
-            RASFacilities = new();
-            OffshoreFarms = new();
-            AIFeeding = new AIFeedingSystem();
-            PostSmoltFacilities = new();
+            // P11: catastrophe insurance (additive; policies are player-subscribed
+            // via GameBridge.SetInsurancePolicy). Always present so payouts work.
+            Insurance = new Finance.InsuranceSystem();
+
+            // Initialize new farm systems (facility lists live in the fresh State)
+            AIFeeding = new AIFeedingSystem(Rng.Stream(SimRngStreams.AiFeeding));
+            // In-day tick pipeline (Phase 1 wave 4): registration order IS
+            // the simulation order. Rebuilt every Initialize => fresh clocks.
+            _inDayPhases = new ITickSystem[]
+            {
+                new WeatherAndEnvironmentTickSystem(),
+                new HealthPrepTickSystem(),
+                new BiologyTickSystem(),
+                new FarmOpexTickSystem(),
+                new CarbonLedgerTickSystem(),
+                new EventsAndTimeTickSystem(),
+                new MarketTickSystem(),
+                new FinanceTickSystem(),
+                new StockMarketTickSystem(),
+                new SustainabilityTickSystem(),
+                new SludgeValorizationTickSystem(),
+                new TrafficLightTickSystem(),
+                new BrandReputationTickSystem(),
+                new CompetitorAITickSystem(),
+                new EmpireProgressionTickSystem(),
+                new CrisisCapitalismTickSystem(),
+                new VerticalIntegrationTickSystem(),
+                new CorporateFinanceTickSystem(),
+                new InvestorTickSystem(),
+                new BloomDeckTickSystem(),
+                new MarketIntelligenceTickSystem(),
+                new ContractExpiryTickSystem(),
+                new ProductMixOptimizerTickSystem(),
+                new TutorialAnalyticsTickSystem(),
+                new NightShiftPolicyTickSystem()
+            };
 
             // Initialize expansion, license, and politics systems
-            AcquisitionSystem = new Expansion.AcquisitionSystem();
+            AcquisitionSystem = new Expansion.AcquisitionSystem(Rng.Stream(SimRngStreams.Acquisition));
             LicenseSystem = new Finance.LicenseSystem();
-            StakeholderFactionSystem = new Politics.StakeholderFactionSystem();
+            LicenseAuctionSystem = new Finance.LicenseAuctionSystem(
+                Rng.Stream(SimRngStreams.LicenseAuction));
+            // NOTE: TrafficLightSystem is constructed near the top of
+            // Initialize (NorwegianEvents.RegisterAll needs it). Gate stays
+            // off by default: legacy event-only MAB behavior preserved until
+            // explicitly enabled.
+            StakeholderFactionSystem = new Politics.StakeholderFactionSystem(Rng.Stream(SimRngStreams.Factions));
 
             // Initialize Market Intelligence, Fish Welfare, and Visual Milestones systems
-            MarketIntelligence = new Market.MarketIntelligenceSystem();
+            MarketIntelligence = new Market.MarketIntelligenceSystem(
+                Rng.Stream(SimRngStreams.Intelligence));
             FishWelfare = new Health.FishWelfare();
             VisualMilestones = new VisualMilestones();
-            CurrencySystem = new Market.CurrencySystem();
+            CurrencySystem = new Market.CurrencySystem(Rng.Stream(SimRngStreams.Currency));
 
             // Wire MarketIntelligence events
             MarketIntelligence.OnNewsEvent += evt =>
@@ -337,21 +569,19 @@ namespace LakskongenSim.Core
             // Wire VisualMilestones events
             VisualMilestones.MilestoneAchieved += (title, description) =>
             {
-                OnEventTriggered?.Invoke($"🎯 Milestone: {title} — {description}");
+                OnEventTriggered?.Invoke($"🎯 Milepæl: {title} — {description}");
                 Audio?.TriggerAlert("achievement");
             };
 
             // Wire LicenseSystem events to FinanceManager
             LicenseSystem.OnLicenseCharged += (siteId, amount) =>
             {
-                if (!FinanceManager.Spend(amount))
+                bool affordable = FinanceManager.CanAfford(amount);
+                PayCost(amount, CostBooking.Opex, "licence_fees",
+                    SimText.Nb($"⚠️ Kan ikke betale lisensavgiften for {SiteLabelOf(siteId)}: {amount:N0} kr. Saldo: {FinanceManager.Balance:N0} kr"));
+                if (affordable)
                 {
-                    OnEventTriggered?.Invoke($"⚠️ Cannot pay license fee for {siteId}: {amount:N0} NOK. Balance: {FinanceManager.Balance:N0} NOK");
-                    FinanceManager.ForceSpend(amount);
-                }
-                else
-                {
-                    OnEventTriggered?.Invoke($"💰 License fee paid for {siteId}: {amount:N0} NOK");
+                    OnEventTriggered?.Invoke(SimText.Nb($"💰 Lisensavgift betalt for {SiteLabelOf(siteId)}: {amount:N0} kr"));
                 }
             };
             foreach (var id in State.UnlockedResearchIds)
@@ -367,41 +597,40 @@ namespace LakskongenSim.Core
                 SyncResearchToState();
             };
 
+            // Scenario / campaign system — built-in Norwegian roster plus any
+            // additional definitions loaded from scenarios.json (see LoadScenarios).
+            Scenario = new ScenarioSystem(State, FinanceManager);
+            Scenario.OnScenarioWon += scenario => OnScenarioWon?.Invoke(scenario);
+            Scenario.OnScenarioLost += (scenario, reason) => OnScenarioLost?.Invoke(scenario, reason);
+
             LoadJsonConfigs();
             LoadAquacultureDataConfig();
             InitializeBarentsWatchPipeline();
             LoadExternalAquacultureSnapshot();
             ApplyExternalAquacultureCalibration();
-            Console.WriteLine("✅ SimulationEngine initialized — all subsystems wired");
+
+            // Phase 4.6: re-apply configured mods onto the fresh systems
+            // (no-op when no mods directory has been set).
+            ApplyMods();
+
+            // Ledger baseline: the starting cash is the opening balance, not a flow.
+            OpenBooks();
+
+            SimLog.Info("✅ SimulationEngine initialized — all subsystems wired");
         }
 
         private void LoadJsonConfigs()
         {
-            // Try multiple possible paths for data files
-            string[] candidatePaths = {
-                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "..", "game", "data"),
-                Path.Combine("game", "data"),
-                "Data"
-            };
-
-            string? dataPath = null;
-            foreach (var candidate in candidatePaths)
-            {
-                var testPath = Path.Combine(candidate, "balancing.json");
-                if (File.Exists(testPath))
-                {
-                    dataPath = candidate;
-                    break;
-                }
-            }
-
+            string? dataPath = ResolveDataDirectory("calibration.json");
             if (dataPath == null)
             {
-                Console.WriteLine("⚠️  Data directory not found. Using defaults for all configs.");
+                SimLog.Warn("⚠️  Data directory not found. Using defaults for all configs.");
+                // Calibration still loads from the embedded resource.
+                LoadBalancingConfig(null);
                 return;
             }
 
-            Console.WriteLine($"📁 Loading configs from: {Path.GetFullPath(dataPath)}");
+            SimLog.Info($"📁 Loading configs from: {Path.GetFullPath(dataPath)}");
 
             // ─── Load balancing parameters ───
             LoadBalancingConfig(dataPath);
@@ -421,7 +650,30 @@ namespace LakskongenSim.Core
             // ─── Load encyclopedia entries ───
             LoadEncyclopediaEntries(dataPath);
 
-            Console.WriteLine("✅ JSON config loading complete");
+            SimLog.Info("✅ JSON config loading complete");
+        }
+
+        /// <summary>
+        /// Resolve the canonical live data dir (godot/data) by probing for a
+        /// marker file. Shared by TutorialSystem and AchievementSystem, which
+        /// load independently of LoadJsonConfigs. Legacy game/data last
+        /// (removed 2026-10-05, see archive/README.md).
+        /// </summary>
+        internal static string? ResolveDataDirectory(string probeFile)
+        {
+            var baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            string[] candidates = {
+                Path.Combine("godot", "data"),
+                "data",
+                Path.Combine(baseDir, "..", "..", "..", "data"),
+                Path.Combine(baseDir, "..", "..", "..", "..", "..", "godot", "data"),
+                // Exported macOS bundle: <app>/Contents/Resources/data (copied post-export)
+                Path.Combine(baseDir, "..", "Resources", "data"),
+                Path.Combine(baseDir, "..", "..", "..", "..", "..", "game", "data"),
+                Path.Combine("game", "data"),
+                "Data"
+            };
+            return candidates.FirstOrDefault(c => File.Exists(Path.Combine(c, probeFile)));
         }
 
         private void LoadAquacultureDataConfig()
@@ -438,7 +690,7 @@ namespace LakskongenSim.Core
                 var configPath = candidatePaths.FirstOrDefault(File.Exists);
                 if (configPath == null)
                 {
-                    Console.WriteLine("⚠️  AquacultureDataConfig.json not found, using external data defaults.");
+                    SimLog.Warn("⚠️  AquacultureDataConfig.json not found, using external data defaults.");
                     _aquacultureDataConfig = new AquacultureDataConfig();
                     return;
                 }
@@ -449,11 +701,11 @@ namespace LakskongenSim.Core
                     PropertyNameCaseInsensitive = true
                 }) ?? new AquacultureDataConfig();
 
-                Console.WriteLine($"✓ Loaded aquaculture data config from {Path.GetFullPath(configPath)}");
+                SimLog.Info($"✓ Loaded aquaculture data config from {Path.GetFullPath(configPath)}");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"⚠️  Failed to load AquacultureDataConfig.json: {ex.Message}");
+                SimLog.Warn($"⚠️  Failed to load AquacultureDataConfig.json: {ex.Message}");
                 _aquacultureDataConfig = new AquacultureDataConfig();
             }
         }
@@ -462,9 +714,9 @@ namespace LakskongenSim.Core
         {
             try
             {
-                if (_barentsWatchPipeline != null)
+                // The bundled offline Fishhealth snapshot wins (D18: offline only).
                 {
-                    var stored = _barentsWatchPipeline.LoadLatest();
+                    var stored = _offlineFishHealthSnapshot;
                     if (stored != null)
                     {
                         State.ExternalAquacultureSnapshot = stored.Normalized;
@@ -472,7 +724,7 @@ namespace LakskongenSim.Core
                         State.ExternalHealthWarnings = stored.Warnings ?? new List<HealthTrendWarning>();
                         State.ExternalHealthCrisis = BarentsWatchHealthCrisisEngine.BuildScenario(stored.Normalized);
                         State.ExternalHealthAnalytics = BarentsWatchHealthCrisisEngine.BuildReport(stored.Normalized);
-                        Console.WriteLine(string.Format(
+                        SimLog.Info(string.Format(
                             CultureInfo.InvariantCulture,
                             "✓ Loaded BarentsWatch fishhealth snapshot: biomass={0:F2}, lice={1:F2}, risk={2:F2}, warnings={3}",
                             stored.Normalized.NationalBiomassUtilization,
@@ -493,7 +745,7 @@ namespace LakskongenSim.Core
                 var snapshotPath = candidatePaths.FirstOrDefault(File.Exists);
                 if (snapshotPath == null)
                 {
-                    Console.WriteLine("⚠️  aquaculture_snapshot.json not found, using bundled market/sustainability defaults only.");
+                    SimLog.Warn("⚠️  aquaculture_snapshot.json not found, using bundled market/sustainability defaults only.");
                     return;
                 }
 
@@ -509,7 +761,7 @@ namespace LakskongenSim.Core
                     State.ExternalHealthWarnings = BarentsWatchHealthCrisisEngine.BuildWarnings(State.ExternalAquacultureSnapshot);
                     State.ExternalHealthCrisis = BarentsWatchHealthCrisisEngine.BuildScenario(State.ExternalAquacultureSnapshot);
                     State.ExternalHealthAnalytics = BarentsWatchHealthCrisisEngine.BuildReport(State.ExternalAquacultureSnapshot);
-                    Console.WriteLine(string.Format(
+                    SimLog.Info(string.Format(
                         CultureInfo.InvariantCulture,
                         "✓ Loaded aquaculture snapshot: biomass={0:F2}, lice={1:F2}, risk={2:F2}",
                         State.ExternalAquacultureSnapshot.NationalBiomassUtilization,
@@ -519,7 +771,7 @@ namespace LakskongenSim.Core
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"⚠️  Failed to load aquaculture snapshot: {ex.Message}");
+                SimLog.Warn($"⚠️  Failed to load aquaculture snapshot: {ex.Message}");
             }
         }
 
@@ -537,7 +789,7 @@ namespace LakskongenSim.Core
 
             var crisis = State.ExternalHealthCrisis ?? new HealthCrisisScenario();
 
-            SeaLice?.SetExternalPressureMultiplier(_aquacultureModifiers.ZoneRiskMultiplier * crisis.DelousingCostMultiplier / Math.Max(1.0, crisis.GrowthPenaltyMultiplier));
+            SeaLice?.SetExternalPressure(_aquacultureModifiers.ZoneRiskMultiplier * crisis.DelousingCostMultiplier / Math.Max(1.0, crisis.GrowthPenaltyMultiplier));
             IntegratedDisease?.SetExternalDiseasePressure(_aquacultureModifiers.DiseasePressureMultiplier * crisis.MortalityPenaltyMultiplier);
 
             foreach (var zone in State.Zones)
@@ -565,68 +817,211 @@ namespace LakskongenSim.Core
                     Path.Combine("Data", "barentswatch_fishhealth_raw.json")
                 };
 
+                // Roadmap D18: offline snapshots only. No token, no network and
+                // no cache written next to the binary (the latest file in that
+                // cache used to win, so two machines started different games).
                 _barentsWatchClientOptions = new BarentsWatchClientOptions
                 {
-                    BearerToken = System.Environment.GetEnvironmentVariable("BARENTSWATCH_TOKEN"),
                     LocalSnapshotPath = localSnapshotCandidates.FirstOrDefault(File.Exists)
                 };
+                _offlineFishHealthSnapshot = null;
 
-                var snapshotDirectory = Path.Combine(AppContext.BaseDirectory, "Data", "barentswatch-snapshots");
-                var client = new BarentsWatchFishHealthClient(_barentsWatchClientOptions);
-                var repository = new BarentsWatchSnapshotRepository(snapshotDirectory);
-                _barentsWatchPipeline = new BarentsWatchFishHealthPipeline(client, repository);
-
-                if (_barentsWatchClientOptions.HasToken || !string.IsNullOrWhiteSpace(_barentsWatchClientOptions.LocalSnapshotPath))
+                if (!string.IsNullOrWhiteSpace(_barentsWatchClientOptions.LocalSnapshotPath))
                 {
                     try
                     {
-                        var stored = _barentsWatchPipeline.IngestLatest();
+                        var stored = BarentsWatchFishHealthPipeline.ReadOffline(
+                            new BarentsWatchFishHealthClient(_barentsWatchClientOptions));
+                        _offlineFishHealthSnapshot = stored;
                         State.ExternalAquacultureSnapshot = stored.Normalized;
                         State.ExternalDataAnalytics = stored.Analytics;
                         State.ExternalHealthWarnings = stored.Warnings;
                         State.ExternalHealthCrisis = BarentsWatchHealthCrisisEngine.BuildScenario(stored.Normalized);
                         State.ExternalHealthAnalytics = BarentsWatchHealthCrisisEngine.BuildReport(stored.Normalized);
-                        Console.WriteLine($"✓ BarentsWatch Fishhealth pipeline ingested snapshot {stored.Normalized.SnapshotYear}-W{stored.Normalized.SnapshotWeek:D2}");
+                        SimLog.Info($"✓ BarentsWatch Fishhealth offline snapshot {stored.Normalized.SnapshotYear}-W{stored.Normalized.SnapshotWeek:D2}");
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"⚠️  BarentsWatch ingest failed, continuing with persisted/default snapshot: {ex.Message}");
+                        SimLog.Warn($"⚠️  BarentsWatch offline snapshot unreadable, continuing with the default data: {ex.Message}");
                     }
                 }
                 else
                 {
-                    Console.WriteLine("⚠️  BarentsWatch token/local raw snapshot missing; pipeline initialized in passive mode.");
+                    SimLog.Info("BarentsWatch: no bundled offline snapshot; external fish-health data stays at its defaults.");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"⚠️  Failed to initialize BarentsWatch pipeline: {ex.Message}");
+                SimLog.Warn($"⚠️  Failed to initialize BarentsWatch pipeline: {ex.Message}");
             }
         }
 
-        private void LoadBalancingConfig(string dataPath)
+        private void LoadBalancingConfig(string? dataPath)
         {
-            var filePath = Path.Combine(dataPath, "balancing.json");
-            if (!File.Exists(filePath))
+            // Phase A — Calibration Spine.
+            // CalibrationRegistry is the single source of truth. The legacy
+            // balancing.json is superseded on purpose so calibrated values
+            // (feed cost, base FCR, spot price, MAB, resource rent) cannot drift
+            // away from docs/REALISM_CHECKLIST.md. BalancingConfig is retained
+            // (private, same property names) purely as the engine's local view.
+            _calibration = CalibrationRegistry.Load(dataPath);
+            Weather?.ApplySeaTemperatureCalibration(_calibration.SeaTemperature);
+            Growth?.ApplyCalibration(_calibration.Growth);
+            var config = BalancingConfig.FromRegistry(_calibration);
+            _balancing = config;
+            ApplyBalancingConfig(config);
+            SimLog.Info(
+                $"✓ Loaded calibration v{_calibration.Version} " +
+                $"(feed cost ≈ {_calibration.FeedCostPerKgProducedNOK:N2} NOK/kg produced)");
+        }
+
+        private void LoadPlanktonBloomConfig()
+        {
+            var candidatePaths = new[]
             {
-                Console.WriteLine("⚠️  balancing.json not found, using default balancing values.");
+                Path.Combine("Data", "EnvironmentalEvents.json"),
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "EnvironmentalEvents.json"),
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "Data", "EnvironmentalEvents.json")
+            };
+
+            var configPath = candidatePaths.FirstOrDefault(File.Exists);
+            if (configPath == null)
+            {
+                SimLog.Warn("⚠️  EnvironmentalEvents.json not found, using default plankton bloom config.");
+                PlanktonBloom?.LoadConfig(new PlanktonBloom.PlanktonBloomConfig());
                 return;
             }
 
             try
             {
-                var json = File.ReadAllText(filePath);
-                var config = JsonSerializer.Deserialize<BalancingConfig>(json, new JsonSerializerOptions
+                var json = File.ReadAllText(configPath);
+                var envConfig = JsonSerializer.Deserialize<EnvironmentalEventsConfig>(json, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
-                }) ?? new BalancingConfig();
-                _balancing = config;
-                ApplyBalancingConfig(config);
-                Console.WriteLine($"✓ Loaded balancing config (starting capital: {config.StartingCapital:N0} NOK)");
+                });
+
+                if (envConfig?.PlanktonBloom != null)
+                {
+                    PlanktonBloom?.LoadConfig(envConfig.PlanktonBloom);
+                    SimLog.Info($"✓ Loaded plankton bloom config from {Path.GetFullPath(configPath)}");
+                }
+                else
+                {
+                    PlanktonBloom?.LoadConfig(new PlanktonBloom.PlanktonBloomConfig());
+                }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"⚠️  Failed to load balancing.json: {ex.Message}");
+                SimLog.Warn($"⚠️  Failed to load EnvironmentalEvents.json: {ex.Message}");
+                PlanktonBloom?.LoadConfig(new PlanktonBloom.PlanktonBloomConfig());
+            }
+        }
+
+        private void RegisterPlanktonEvents()
+        {
+            // Spring Plankton Bloom
+            Storyteller.RegisterEvent(new EventDefinition
+            {
+                Id = "plankton-bloom-spring",
+                Name = "Planteplankton om våren",
+                Category = EventCategory.PlanktonBloom,
+                Weight = 1.5,
+                CooldownDays = 60,
+                MinDay = 60,
+                MaxDay = 150,
+                Condition = gs => gs.Zones != null && gs.Zones.Any(z => z.CurrentFishBiomassKg > 0) && gs.Day >= 60 && gs.Day <= 150,
+                Apply = (gs, rec) =>
+                {
+                    rec.Description = "Mer lys og næringsrikt vann gir oppblomstring av planteplankton. Fare for oksygensvikt hvis oppblomstringen kollapser.";
+                    rec.BalanceChange = -50000m;
+                    NorwegianEvents.SettleBalanceChange(_financeManager, gs, rec);
+                    
+                    // Trigger bloom in a random zone with fish
+                    var zonesWithFish = gs.Zones.Where(z => z.CurrentFishBiomassKg > 0).ToList();
+                    if (zonesWithFish.Any() && PlanktonBloom != null)
+                    {
+                        var zone = zonesWithFish[_rng.Next(zonesWithFish.Count)];
+                        // Force bloom initiation by boosting intensity
+                        var bloomState = PlanktonBloom.GetAllBloomStates().GetValueOrDefault(zone.Id, new PlanktonBloom.BloomState());
+                        bloomState.Intensity = 0.4; // Above bloom threshold
+                        bloomState.IsActive = true;
+                        bloomState.StartDay = gs.Day;
+                        // We can't directly set internal state, but the daily tick will pick up the conditions
+                    }
+                }
+            });
+
+            // Autumn Plankton Bloom
+            Storyteller.RegisterEvent(new EventDefinition
+            {
+                Id = "plankton-bloom-autumn",
+                Name = "Planteplankton om høsten",
+                Category = EventCategory.PlanktonBloom,
+                Weight = 1.2,
+                CooldownDays = 90,
+                MinDay = 240,
+                MaxDay = 330,
+                Condition = gs => gs.Zones != null && gs.Zones.Any(z => z.CurrentFishBiomassKg > 0) && gs.Day >= 240 && gs.Day <= 330,
+                Apply = (gs, rec) =>
+                {
+                    rec.Description = "Næringssalter og kaldere vann gir høstoppblomstring. Kortere dager gir større fare for kollaps.";
+                    rec.BalanceChange = -75000m;
+                    NorwegianEvents.SettleBalanceChange(_financeManager, gs, rec);
+                }
+            });
+
+            // Plankton Crash (DO Crash)
+            Storyteller.RegisterEvent(new EventDefinition
+            {
+                Id = "plankton-crash",
+                Name = "Planktonkollaps",
+                Category = EventCategory.PlanktonCrash,
+                Weight = 0.8,
+                CooldownDays = 30,
+                MinDay = 1,
+                MaxDay = 365,
+                Condition = gs => gs.Zones != null && gs.Zones.Any(z => 
+                    z.WaterChemistry != null && z.WaterChemistry.OxygenO2 < _calibration.Mortality.AcuteLowOxygenMgL), // DO below the acute limit
+                Apply = (gs, rec) =>
+                {
+                    rec.Description = "Planteplankton dør i stor skala og bakteriene bruker opp oksygenet. Oksygenmetningen faller under 30 % og fisk dør.";
+                    rec.BalanceChange = -200000m;
+                    NorwegianEvents.SettleBalanceChange(_financeManager, gs, rec);
+                    
+                    // Apply acute mortality to populations in affected zones
+                    ApplyPlanktonCrashMortality(gs);
+                }
+            });
+        }
+
+        private void ApplyPlanktonCrashMortality(GameState gs)
+        {
+            if (gs.Populations == null || gs.Zones == null) return;
+            
+            var affectedZones = gs.Zones.Where(z => z.WaterChemistry != null && z.WaterChemistry.OxygenO2 < _calibration.Mortality.AcuteLowOxygenMgL).ToList();
+            if (!affectedZones.Any()) return;
+
+            foreach (var zone in affectedZones)
+            {
+                var populationsInZone = gs.Populations.Where(p => p.ZoneId == zone.Id).ToList();
+                foreach (var pop in populationsInZone)
+                {
+                    // Mortality rate from the oxygen the fish actually sit in
+                    // (S2-05): a sea pen has the zone's water; a land-based tank
+                    // keeps its controlled oxygen and an offshore pen its
+                    // current-fed boost, so a fjord crash no longer kills them.
+                    var environment = ResolveCohortEnvironment(pop);
+                    double mortalityRate = MortalityHazards.LowOxygenFraction(environment, _calibration.Mortality);
+                    if (mortalityRate <= 0.0) continue;
+
+                    for (int ci = 0; ci < pop.Cohorts.Count; ci++)
+                    {
+                        var cohort = pop.Cohorts[ci];
+                        pop.RemoveDead(cohort, MortalityHazards.Deaths(cohort.Count, mortalityRate), MortalityCause.LowOxygen);
+                    }
+
+                    SimLog.Info($"Plankton crash mortality in zone {zone.Id}: DO={environment.OxygenMgL:F2} mg/L, rate={mortalityRate:P0}");
+                }
             }
         }
 
@@ -635,7 +1030,7 @@ namespace LakskongenSim.Core
             var filePath = Path.Combine(dataPath, "research_nodes.json");
             if (!File.Exists(filePath))
             {
-                Console.WriteLine("⚠️  research_nodes.json not found, using built-in research tree.");
+                SimLog.Warn("⚠️  research_nodes.json not found, using built-in research tree.");
                 return;
             }
 
@@ -651,12 +1046,12 @@ namespace LakskongenSim.Core
                 if (nodes != null && nodes.Count > 0)
                 {
                     Research.PopulateFromJson(nodes);
-                    Console.WriteLine($"✓ Loaded {nodes.Count} research nodes from JSON");
+                    SimLog.Info($"✓ Loaded {nodes.Count} research nodes from JSON");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"⚠️  Failed to load research_nodes.json: {ex.Message}");
+                SimLog.Warn($"⚠️  Failed to load research_nodes.json: {ex.Message}");
             }
         }
 
@@ -665,7 +1060,7 @@ namespace LakskongenSim.Core
             var filePath = Path.Combine(dataPath, "tutorial_steps.json");
             if (!File.Exists(filePath))
             {
-                Console.WriteLine("⚠️  tutorial_steps.json not found, using built-in tutorial.");
+                SimLog.Warn("⚠️  tutorial_steps.json not found, using built-in tutorial.");
                 return;
             }
 
@@ -674,11 +1069,11 @@ namespace LakskongenSim.Core
                 var json = File.ReadAllText(filePath);
                 // Tutorial steps in JSON don't include CompletionCondition delegates,
                 // so we log the existence but don't override the hardcoded tutorial
-                Console.WriteLine($"✓ Found tutorial_steps.json (tutorial uses built-in conditions)");
+                SimLog.Info($"✓ Found tutorial_steps.json (tutorial uses built-in conditions)");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"⚠️  Failed to read tutorial_steps.json: {ex.Message}");
+                SimLog.Warn($"⚠️  Failed to read tutorial_steps.json: {ex.Message}");
             }
         }
 
@@ -687,7 +1082,7 @@ namespace LakskongenSim.Core
             var filePath = Path.Combine(dataPath, "scenarios.json");
             if (!File.Exists(filePath))
             {
-                Console.WriteLine("⚠️  scenarios.json not found, scenarios unavailable.");
+                SimLog.Warn("⚠️  scenarios.json not found, scenarios unavailable.");
                 return;
             }
 
@@ -702,13 +1097,25 @@ namespace LakskongenSim.Core
 
                 if (scenarios != null && scenarios.Count > 0)
                 {
-                    Console.WriteLine($"✓ Loaded {scenarios.Count} scenario definitions");
-                    // ScenarioSystem integration would go here when implemented
+                    SimLog.Info($"✓ Loaded {scenarios.Count} scenario definitions");
+                    // Merge into the ScenarioSystem additively: the built-in roster is
+                    // authoritative, file entries only add ids that are not already
+                    // registered (mod/community scenarios), never overwrite built-ins.
+                    if (Scenario != null)
+                    {
+                        var existingIds = new HashSet<string>(Scenario.All.Keys);
+                        var extras = scenarios.Where(s => !existingIds.Contains(s.Id)).ToList();
+                        if (extras.Count > 0)
+                        {
+                            Scenario.RegisterScenarios(extras);
+                            SimLog.Info($"✓ Registered {extras.Count} additional scenario(s) from JSON");
+                        }
+                    }
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"⚠️  Failed to load scenarios.json: {ex.Message}");
+                SimLog.Warn($"⚠️  Failed to load scenarios.json: {ex.Message}");
             }
         }
 
@@ -717,7 +1124,7 @@ namespace LakskongenSim.Core
             var filePath = Path.Combine(dataPath, "achievements_config.json");
             if (!File.Exists(filePath))
             {
-                Console.WriteLine("⚠️  achievements_config.json not found, using built-in achievements.");
+                SimLog.Warn("⚠️  achievements_config.json not found, using built-in achievements.");
                 return;
             }
 
@@ -726,11 +1133,11 @@ namespace LakskongenSim.Core
                 var json = File.ReadAllText(filePath);
                 // Achievement conditions are hardcoded in AchievementSystem.RegisterAllAchievements()
                 // This JSON only provides UI metadata (icons, categories)
-                Console.WriteLine($"✓ Found achievements_config.json (achievements use built-in conditions)");
+                SimLog.Info($"✓ Found achievements_config.json (achievements use built-in conditions)");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"⚠️  Failed to read achievements_config.json: {ex.Message}");
+                SimLog.Warn($"⚠️  Failed to read achievements_config.json: {ex.Message}");
             }
         }
 
@@ -739,7 +1146,7 @@ namespace LakskongenSim.Core
             var filePath = Path.Combine(dataPath, "encyclopedia_entries.json");
             if (!File.Exists(filePath))
             {
-                Console.WriteLine("⚠️  encyclopedia_entries.json not found.");
+                SimLog.Warn("⚠️  encyclopedia_entries.json not found.");
                 return;
             }
 
@@ -753,13 +1160,13 @@ namespace LakskongenSim.Core
 
                 if (entries != null && entries.Count > 0)
                 {
-                    Console.WriteLine($"✓ Loaded {entries.Count} encyclopedia entries");
+                    SimLog.Info($"✓ Loaded {entries.Count} encyclopedia entries");
                     // Encyclopedia system integration would go here when implemented
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"⚠️  Failed to load encyclopedia_entries.json: {ex.Message}");
+                SimLog.Warn($"⚠️  Failed to load encyclopedia_entries.json: {ex.Message}");
             }
         }
 
@@ -772,20 +1179,85 @@ namespace LakskongenSim.Core
             if (State.Day == 0 && config.StartingCapital > 0)
             {
                 // Starting capital is set during FinanceManager construction
-                Console.WriteLine($"  → Starting capital: {config.StartingCapital:N0} NOK");
+                SimLog.Info($"  → Starting capital: {config.StartingCapital:N0} NOK");
             }
 
-            // Feed system parameters
-            Console.WriteLine($"  → Feed cost per kg: {config.FeedCostPerKgNOK:N2} NOK");
-            Console.WriteLine($"  → FCR targets: Optimal={config.OptimalFCR}, Poor={config.PoorFCR}");
+            // Tax rates come from calibration (the tax system's own defaults
+            // were a second, unsynchronized copy).
+            if (TaxSystem != null)
+            {
+                TaxSystem.CorporateTaxRate = (decimal)config.CorporateTaxRate;
+                TaxSystem.ResourceRentTaxRate = (decimal)config.ResourceRentTaxRate;
+            }
+
+            // Feed system parameters — applied, not just logged:
+            // calibration registry is the override authority.
+            if (Feed != null)
+            {
+                Feed.FeedCostPerKg = config.FeedCostPerKgNOK;
+                Feed.SetBaseFCR(config.BaseFCR);
+            }
+            SimLog.Info($"  → Feed cost per kg feed: {config.FeedCostPerKgNOK:N2} NOK");
+            SimLog.Info($"  → Base FCR: {config.BaseFCR:F2} (optimal={config.OptimalFCR}, poor={config.PoorFCR})");
+
+            // Sea mortality anchor — the whole-cycle registry value is mapped to a
+            // daily hazard over the calibrated grow-out duration so the realized
+            // sea-phase mortality tracks the NVI 14-16% band (v1.0.2). v1.0.3 splits
+            // the anchor into a husbandry baseline plus an explicit disease slice
+            // when events are enabled; with events off the full anchor stays in the
+            // baseline (deterministic no-disease runs).
+            if (Mortality != null)
+            {
+                Mortality.ConfigureSeaMortality(
+                    config.SeaMortalityPerCycle,
+                    config.GrowthToHarvestDays,
+                    config.SeaMortalityDiseaseShare,
+                    _enableEvents);
+                SimLog.Info(
+                    $"  → Sea mortality: {config.SeaMortalityPerCycle:P1}/cycle → " +
+                    $"{Mortality.SeaDailyMortalityRate:P4}/day over {config.GrowthToHarvestDays}d " +
+                    $"(disease share {config.SeaMortalityDiseaseShare:P0}, events={_enableEvents})");
+            }
+
+            // Disease slice — size the SIR so its endemic daily hazard integrates
+            // to SeaMortalityPerCycle × SeaMortalityDiseaseShare over the grow-out.
+            // Only when events are enabled; the deterministic path never injects.
+            if (_enableEvents && IntegratedDisease != null)
+            {
+                double diseasePerCycle = config.SeaMortalityPerCycle * config.SeaMortalityDiseaseShare;
+                IntegratedDisease.ConfigureDiseaseShare(diseasePerCycle, config.GrowthToHarvestDays);
+                SimLog.Info($"  → Disease slice: {diseasePerCycle:P1}/cycle (explicit SIR injection)");
+            }
 
             // Market base price
-            Console.WriteLine($"  → Base salmon price: {config.BaseSalmonPricePerKg:N0} NOK/kg");
+            SimLog.Info($"  → Base salmon price: {config.BaseSalmonPricePerKg:N0} NOK/kg");
 
             // Growth parameters
-            Console.WriteLine($"  → Smolt maturation: {config.SmoltMaturationDays} days");
-            Console.WriteLine($"  → Grow-out period: {config.GrowthToHarvestDays} days");
-            Console.WriteLine($"  → Target harvest weight: {config.TargetHarvestWeightKg} kg");
+            SimLog.Info($"  → Smolt maturation: {config.SmoltMaturationDays} days");
+            SimLog.Info($"  → Grow-out period: {config.GrowthToHarvestDays} days");
+            SimLog.Info($"  → Target harvest weight: {config.TargetHarvestWeightKg} kg");
+
+            // Water Quality parameters (DO & Stocking Density)
+            SimLog.Info($"  → DO saturation threshold: {config.CriticalDOSaturationThreshold:P0}");
+            SimLog.Info($"  → DO saturation min multiplier: {config.DOSaturationMinMultiplier:F1}");
+            SimLog.Info($"  → Stocking density threshold: {config.StockingDensityThresholdKgM3} kg/m³");
+            SimLog.Info($"  → Stocking density min multiplier: {config.StockingDensityMinMultiplier:F1}");
+
+            // Apply water quality configuration to the static WaterQuality class
+            var wqConfig = new LakskongenSim.Biology.BalancingConfig
+            {
+                CriticalDOSaturationThreshold = config.CriticalDOSaturationThreshold,
+                DOSaturationDecayCoefficient = config.DOSaturationDecayCoefficient,
+                DOSaturationMinMultiplier = config.DOSaturationMinMultiplier,
+                DOSaturationMaxMultiplier = config.DOSaturationMaxMultiplier,
+                StockingDensityThresholdKgM3 = config.StockingDensityThresholdKgM3,
+                StockingDensityReductionDenominator = config.StockingDensityReductionDenominator,
+                StockingDensityMinMultiplier = config.StockingDensityMinMultiplier,
+                OxygenConsumptionPerKgFishPerDay = config.OxygenConsumptionPerKgFishPerDay,
+                OxygenConsumptionPerKgFeed = config.OxygenConsumptionPerKgFeed,
+                WaterExchangeCoefficient = config.WaterExchangeCoefficient
+            };
+            LakskongenSim.Biology.WaterQuality.ApplyConfig(wqConfig);
 
             // NOTE: Full subsystem integration requires adding setter methods to:
             // - Feed.SetCostPerKg(), Feed.SetFCRTargets()
@@ -795,28 +1267,129 @@ namespace LakskongenSim.Core
             // For now, this logs the values; subsystems use their own defaults.
         }
 
-        private class BalancingConfig
+private class BalancingConfig
         {
+            /// <summary>
+            /// Project the immutable <see cref="CalibrationRegistry"/> into the engine's
+            /// local balancing view. This is the ONLY place engine defaults are sourced,
+            /// keeping code from drifting from the calibrated single source of truth.
+            /// </summary>
+            public static BalancingConfig FromRegistry(CalibrationRegistry c) => new()
+            {
+                // Economy
+                StartingCapital = c.Economy.StartingCapitalNOK,
+                SmoltCostPerFish = c.Economy.SmoltCostPerFishNOK,
+                FeedCostPerKgNOK = c.Feed.FeedPricePerKgFeedNOK,
+                BaseSalmonPricePerKg = c.Economy.BaseSalmonPricePerKgNOK,
+                PriceVolatilityPercent = c.Economy.PriceVolatilityPercent,
+                SeasonalPriceSwingPercent = c.Economy.SeasonalPriceSwingPercent,
+
+                // Labor
+                WorkerMonthlySalaryNOK = c.Labor.WorkerMonthlySalaryNOK,
+                ManagerMonthlySalaryNOK = c.Labor.ManagerMonthlySalaryNOK,
+                WorkersPerSite = c.Labor.WorkersPerSite,
+                WorkersPerHatchery = c.Labor.WorkersPerHatchery,
+                WorkersPerProcessingPlant = c.Labor.WorkersPerProcessingPlant,
+
+                // Infrastructure
+                SeaSiteBuildCostNOK = c.Infrastructure.SeaSiteBuildCostNOK,
+                HatcheryBuildCostNOK = c.Infrastructure.HatcheryBuildCostNOK,
+                ProcessingPlantCostNOK = c.Infrastructure.ProcessingPlantCostNOK,
+                FeedMillCostNOK = c.Infrastructure.FeedMillCostNOK,
+                MaxBiomassPerSiteKg = c.Infrastructure.MaxBiomassPerSiteKg,
+                MaxSitesPerZone = c.Infrastructure.MaxSitesPerZone,
+                MABLimitKgPerLicense = c.Licensing.MABLimitKgPerLicense,
+
+                // Operations
+                HarvestCostPerKgNOK = c.Operations.HarvestCostPerKgNOK,
+                ProcessingCostPerKgNOK = c.Operations.ProcessingCostPerKgNOK,
+                TransportCostPerKgPerKmNOK = c.Operations.TransportCostPerKgPerKmNOK,
+
+                // Health & treatment
+                DelousingCostMechanicalNOK = c.Health.DelousingCostMechanicalNOK,
+                DelousingCostChemicalNOK = c.Health.DelousingCostChemicalNOK,
+                DelousingCostCleanerfishNOK = c.Health.DelousingCostCleanerfishNOK,
+                VaccinationCostPerKgBiomass = c.Health.VaccinationCostPerKgBiomassNOK,
+                MortalityRateBasePercent = c.Health.MortalityRateBasePercent,
+                MortalityRateISAPercent = c.Health.MortalityRateISAPercent,
+                SeaMortalityPerCycle = c.Health.SeaMortalityPerCycle,
+                SeaMortalityDiseaseShare = c.Health.SeaMortalityDiseaseShare,
+                SeaLiceThresholdPerFish = c.Health.SeaLiceThresholdPerFish,
+                SeaLiceTreatmentThreshold = c.Health.SeaLiceTreatmentThreshold,
+
+                // Finance
+                InsurancePremiumPercent = c.Finance.InsurancePremiumPercent,
+                LoanInterestRate = c.Finance.LoanInterestRate,
+                MaxLoanMultiplier = c.Finance.MaxLoanMultiplier,
+                CorporateTaxRate = c.Finance.CorporateTaxRate,
+                ResourceRentTaxRate = c.Finance.ResourceRentTaxRate,
+                BankruptcyFloorNOK = c.Finance.BankruptcyFloorNOK,
+                BankruptcyFloorByScenarioNOK = new Dictionary<string, decimal>(c.Finance.BankruptcyFloorByScenarioNOK),
+                SolvencyWarningFractions = c.Finance.SolvencyWarningFractions.ToArray(),
+
+                // Licensing
+                LicenseCostNOK = c.Licensing.LicenseCostNOK,
+
+                // Biology
+                SmoltMaturationDays = c.Biology.SmoltMaturationDays,
+                GrowthToHarvestDays = c.Biology.GrowthToHarvestDays,
+                TargetHarvestWeightKg = c.Biology.TargetHarvestWeightKg,
+                MinHarvestWeightKg = c.Biology.MinHarvestWeightKg,
+                MaxHarvestWeightKg = c.Biology.MaxHarvestWeightKg,
+                OptimalFCR = c.Biology.OptimalFCR,
+                PoorFCR = c.Biology.PoorFCR,
+                BaseFCR = c.Feed.BaseFCR,
+
+                // Environment
+                OptimalTemperatureMinC = c.Environment.OptimalTemperatureMinC,
+                OptimalTemperatureMaxC = c.Environment.OptimalTemperatureMaxC,
+                LethalTemperatureMaxC = c.Environment.LethalTemperatureMaxC,
+                FallowPeriodDays = c.Environment.FallowPeriodDays,
+
+                // Water quality
+                CriticalDOSaturationThreshold = c.WaterQuality.CriticalDOSaturationThreshold,
+                DOSaturationDecayCoefficient = c.WaterQuality.DOSaturationDecayCoefficient,
+                DOSaturationMinMultiplier = c.WaterQuality.DOSaturationMinMultiplier,
+                DOSaturationMaxMultiplier = c.WaterQuality.DOSaturationMaxMultiplier,
+                StockingDensityThresholdKgM3 = c.WaterQuality.StockingDensityThresholdKgM3,
+                StockingDensityReductionDenominator = c.WaterQuality.StockingDensityReductionDenominator,
+                StockingDensityMinMultiplier = c.WaterQuality.StockingDensityMinMultiplier,
+                OxygenConsumptionPerKgFishPerDay = c.WaterQuality.OxygenConsumptionPerKgFishPerDay,
+                OxygenConsumptionPerKgFeed = c.WaterQuality.OxygenConsumptionPerKgFeed,
+                WaterExchangeCoefficient = c.WaterQuality.WaterExchangeCoefficient,
+
+                // Compliance & certification
+                EscapeFinePer100Fish = c.Compliance.EscapeFinePer100FishNOK,
+                ASCCertificationCostNOK = c.Compliance.ASCCertificationCostNOK,
+                ASCAuditCostYearlyNOK = c.Compliance.ASCAuditCostYearlyNOK,
+                ASCPricePremiumPercent = c.Compliance.ASCPricePremiumPercent,
+                OrganicPricePremiumPercent = c.Compliance.OrganicPricePremiumPercent,
+
+                // Research
+                ResearchBaseCostNOK = c.Research.ResearchBaseCostNOK,
+                ResearchMaxCostNOK = c.Research.ResearchMaxCostNOK,
+            };
+
             // ─── Economy ───
             public decimal StartingCapital { get; set; } = 10_000_000;
-            public decimal SmoltCostPerFish { get; set; } = 15;
-            public decimal FeedCostPerKgNOK { get; set; } = 12.5m;
-            public decimal BaseSalmonPricePerKg { get; set; } = 70;
-            public double PriceVolatilityPercent { get; set; } = 15;
-            public double SeasonalPriceSwingPercent { get; set; } = 20;
+            public decimal SmoltCostPerFish { get; set; } = 12; // ↓ from 15 (competitive smolt price)
+            public decimal FeedCostPerKgNOK { get; set; } = 22.3m; // mirrors CalibrationRegistry feed price (SSOT); overwritten by FromRegistry()
+            public decimal BaseSalmonPricePerKg { get; set; } = 75; // ↑ from 70 (strong market)
+            public double PriceVolatilityPercent { get; set; } = 12; // ↓ from 15 (calmer market)
+            public double SeasonalPriceSwingPercent { get; set; } = 18; // ↓ from 20
 
             // ─── Labor ───
-            public decimal WorkerMonthlySalaryNOK { get; set; } = 45_000;
-            public decimal ManagerMonthlySalaryNOK { get; set; } = 65_000;
-            public int WorkersPerSite { get; set; } = 8;
-            public int WorkersPerHatchery { get; set; } = 12;
-            public int WorkersPerProcessingPlant { get; set; } = 25;
+            public decimal WorkerMonthlySalaryNOK { get; set; } = 48_000; // ↑ from 45k (2024 wages)
+            public decimal ManagerMonthlySalaryNOK { get; set; } = 70_000; // ↑ from 65k
+            public int WorkersPerSite { get; set; } = 7; // ↓ from 8 (automation)
+            public int WorkersPerHatchery { get; set; } = 10; // ↓ from 12
+            public int WorkersPerProcessingPlant { get; set; } = 20; // ↓ from 25
 
             // ─── Infrastructure ───
-            public decimal SeaSiteBuildCostNOK { get; set; } = 5_000_000;
-            public decimal HatcheryBuildCostNOK { get; set; } = 15_000_000;
-            public decimal ProcessingPlantCostNOK { get; set; } = 50_000_000;
-            public decimal FeedMillCostNOK { get; set; } = 30_000_000;
+            public decimal SeaSiteBuildCostNOK { get; set; } = 6_000_000; // ↑ from 5M (inflation)
+            public decimal HatcheryBuildCostNOK { get; set; } = 18_000_000; // ↑ from 15M
+            public decimal ProcessingPlantCostNOK { get; set; } = 55_000_000; // ↑ from 50M
+            public decimal FeedMillCostNOK { get; set; } = 35_000_000; // ↑ from 30M
 
             // ─── Production limits ───
             public int MaxBiomassPerSiteKg { get; set; } = 780_000;
@@ -824,26 +1397,36 @@ namespace LakskongenSim.Core
             public int MABLimitKgPerLicense { get; set; } = 780_000;
 
             // ─── Operations ───
-            public decimal HarvestCostPerKgNOK { get; set; } = 3.5m;
-            public decimal ProcessingCostPerKgNOK { get; set; } = 8;
-            public decimal TransportCostPerKgPerKmNOK { get; set; } = 0.02m;
+            public decimal HarvestCostPerKgNOK { get; set; } = 4.0m; // ↑ from 3.5 (wellboat rates)
+            public decimal ProcessingCostPerKgNOK { get; set; } = 9; // ↑ from 8
+            public decimal TransportCostPerKgPerKmNOK { get; set; } = 0.025m; // ↑ from 0.02
 
             // ─── Health & Treatment ───
-            public decimal DelousingCostMechanicalNOK { get; set; } = 250_000;
-            public decimal DelousingCostChemicalNOK { get; set; } = 150_000;
-            public decimal DelousingCostCleanerfishNOK { get; set; } = 100_000;
+            public decimal DelousingCostMechanicalNOK { get; set; } = 280_000; // ↑ from 250k
+            public decimal DelousingCostChemicalNOK { get; set; } = 180_000; // ↑ from 150k
+            public decimal DelousingCostCleanerfishNOK { get; set; } = 120_000; // ↑ from 100k
             public decimal VaccinationCostPerKgBiomass { get; set; } = 0.5m;
-            public double MortalityRateBasePercent { get; set; } = 0.03;
-            public double MortalityRateISAPercent { get; set; } = 0.25;
+            public double MortalityRateBasePercent { get; set; } = 0.025; // ↓ from 0.03 (better husbandry)
+            public double MortalityRateISAPercent { get; set; } = 0.22; // ↓ from 0.25
+            /// <summary>Whole-cycle sea mortality anchor (fraction); mapped to a daily hazard by MortalityModel.</summary>
+            public double SeaMortalityPerCycle { get; set; } = 0.15;
+            /// <summary>Disease-attributable share of the sea anchor (0-1); drives the SIR slice when events are on.</summary>
+            public double SeaMortalityDiseaseShare { get; set; } = 0.30;
             public double SeaLiceThresholdPerFish { get; set; } = 0.5;
-            public double SeaLiceTreatmentThreshold { get; set; } = 0.2;
+            public double SeaLiceTreatmentThreshold { get; set; } = 0.15; // ↓ from 0.2 (proactive)
 
             // ─── Finance ───
-            public double InsurancePremiumPercent { get; set; } = 0.02;
-            public double LoanInterestRate { get; set; } = 0.065;
-            public double MaxLoanMultiplier { get; set; } = 3.0;
+            public double InsurancePremiumPercent { get; set; } = 0.018; // ↓ from 0.02
+            public double LoanInterestRate { get; set; } = 0.055; // ↓ from 0.065 (lower rates)
+            public double MaxLoanMultiplier { get; set; } = 3.5; // ↑ from 3.0
             public double CorporateTaxRate { get; set; } = 0.22;
             public double ResourceRentTaxRate { get; set; } = 0.25;
+            /// <summary>Default bankruptcy floor (NOK); see FinanceCalibration.BankruptcyFloorNOK.</summary>
+            public decimal BankruptcyFloorNOK { get; set; } = -1_000_000m;
+            /// <summary>Per-scenario bankruptcy floors (D16); see FinanceCalibration.</summary>
+            public Dictionary<string, decimal> BankruptcyFloorByScenarioNOK { get; set; } = new();
+            /// <summary>Warning ladder as fractions of the floor (ascending).</summary>
+            public double[] SolvencyWarningFractions { get; set; } = { 0.0, 0.5, 0.8 };
 
             // ─── Licensing ───
             public decimal LicenseCostNOK { get; set; } = 150_000_000;
@@ -851,28 +1434,63 @@ namespace LakskongenSim.Core
             // ─── Biology ───
             public int SmoltMaturationDays { get; set; } = 365;
             public int GrowthToHarvestDays { get; set; } = 540;
-            public double TargetHarvestWeightKg { get; set; } = 5.0;
-            public double MinHarvestWeightKg { get; set; } = 3.5;
-            public double MaxHarvestWeightKg { get; set; } = 7.0;
-            public double OptimalFCR { get; set; } = 1.15;
-            public double PoorFCR { get; set; } = 1.4;
+            public double TargetHarvestWeightKg { get; set; } = 5.2; // ↑ from 5.0
+            public double MinHarvestWeightKg { get; set; } = 3.8; // ↑ from 3.5
+            public double MaxHarvestWeightKg { get; set; } = 7.5; // ↑ from 7.0
+            // One FCR target in the code base: the calibration registry (U1-03).
+            public double OptimalFCR { get; set; } = CalibrationRegistry.Default.Biology.OptimalFCR;
+            public double PoorFCR { get; set; } = CalibrationRegistry.Default.Biology.PoorFCR;
+            /// <summary>Base FCR used by FeedSystem. Reconciled to 1.15 (checklist).</summary>
+            public double BaseFCR { get; set; } = 1.15;
 
             // ─── Environment ───
             public double OptimalTemperatureMinC { get; set; } = 8;
             public double OptimalTemperatureMaxC { get; set; } = 14;
-            public double LethalTemperatureMaxC { get; set; } = 23;
+            public double LethalTemperatureMaxC { get; set; } = 22; // ↓ from 23
             public int FallowPeriodDays { get; set; } = 60;
+
+            // ─── Water Quality (DO & Stocking Density) ───
+            public double CriticalDOSaturationThreshold { get; set; } = 0.60;
+            public double DOSaturationDecayCoefficient { get; set; } = 0.3;
+            public double DOSaturationMinMultiplier { get; set; } = 0.2;
+            public double DOSaturationMaxMultiplier { get; set; } = 1.0;
+            public double StockingDensityThresholdKgM3 { get; set; } = 25.0;
+            public double StockingDensityReductionDenominator { get; set; } = 75.0;
+            public double StockingDensityMinMultiplier { get; set; } = 0.5;
+            public double OxygenConsumptionPerKgFishPerDay { get; set; } = 95.0; // ↓ from 100
+            public double OxygenConsumptionPerKgFeed { get; set; } = 480.0; // ↓ from 500
+            public double WaterExchangeCoefficient { get; set; } = 0.05;
 
             // ─── Compliance & Certification ───
             public decimal EscapeFinePer100Fish { get; set; } = 500_000;
             public decimal ASCCertificationCostNOK { get; set; } = 2_000_000;
             public decimal ASCAuditCostYearlyNOK { get; set; } = 500_000;
-            public double ASCPricePremiumPercent { get; set; } = 8;
-            public double OrganicPricePremiumPercent { get; set; } = 15;
+            public double ASCPricePremiumPercent { get; set; } = 10; // ↑ from 8
+            public double OrganicPricePremiumPercent { get; set; } = 18; // ↑ from 15
 
             // ─── Research ───
-            public decimal ResearchBaseCostNOK { get; set; } = 500_000;
-            public decimal ResearchMaxCostNOK { get; set; } = 5_000_000;
+            public decimal ResearchBaseCostNOK { get; set; } = 450_000; // ↓ from 500k
+            public decimal ResearchMaxCostNOK { get; set; } = 4_500_000; // ↓ from 5M
+        }
+
+        private class EnvironmentalEventsConfig
+        {
+            public PlanktonBloom.PlanktonBloomConfig? PlanktonBloom { get; set; }
+            public List<EnvironmentalEventDefinition>? EnvironmentalEvents { get; set; }
+        }
+
+        private class EnvironmentalEventDefinition
+        {
+            public string Id { get; set; } = string.Empty;
+            public string Name { get; set; } = string.Empty;
+            public string Category { get; set; } = string.Empty;
+            public double Weight { get; set; }
+            public int CooldownDays { get; set; }
+            public int MinDay { get; set; }
+            public int MaxDay { get; set; }
+            public string Description { get; set; } = string.Empty;
+            public decimal BalanceChange { get; set; }
+            public string Severity { get; set; } = string.Empty;
         }
 
         /// <summary>
@@ -883,15 +1501,349 @@ namespace LakskongenSim.Core
         {
             if (days <= 0) return;
 
+            // Notes a player command left between ticks happened today.
+            StampDayNotes();
             for (int day = 0; day < days; day++)
             {
-                AdvanceOneDay();
-                State.Day++; // Single source of truth for day counter
+                RunDriftsplan();     // F2-05: the standing orders act first, where a player's commands between days land
+                BeginMortalityDay(); // S2-05: this step's deaths carry the day it ends on
+                BeginHoldingDay();   // sim-a-1: every population's holding, resolved once for the step
+                try
+                {
+                    AdvanceOneDay();
+                    State.Day++; // Single source of truth for day counter
+
+                    // Post-tick phases (ordered): storm impacts -> wellboat
+                    // execution -> balance mirror. Registration order IS the
+                    // execution order (see ITickSystem). Wellboat runs AFTER
+                    // State.Day++ so the booking contract
+                    // (DueDay = bookedDay + delay) stays exact.
+                    foreach (var phase in _postTickPhases)
+                        phase.Tick(this);
+
+                    // Any cash that moved without a booking today is booked as
+                    // unclassified, so the statements always reconcile with cash.
+                    ReconcileUnbookedCash();
+
+                    // Date today's notes: the bridge drains a whole multi-day
+                    // Advance at once and must not date them all to its last day.
+                    StampDayNotes();
+                }
+                finally
+                {
+                    EndHoldingDay();
+                }
             }
 
             OnDayAdvanced?.Invoke(State.Day);
         }
 
+        // ─── Post-tick phase pipeline (Phase 1 wave 3) ────────────────────────
+
+        private ITickSystem[] _inDayPhases = Array.Empty<ITickSystem>();
+
+        /// <summary>Test observability for the migrated in-day pipeline (Phase 1 wave 5).</summary>
+        internal ITickSystem[] InDayPhasesForTests => _inDayPhases;
+
+        private ITickSystem[] _postTickPhases = new ITickSystem[]
+        {
+            new StormImpactsTickSystem(),
+            new WellboatExecutionTickSystem(),
+            new ConstructionAndPermitsTickSystem(), // F2-04: projects, permit decisions, F2 depreciation
+            new HarvestOrdersTickSystem(),
+            new CapacityEnforcementTickSystem(),
+            new LicenseAuctionTickSystem(),
+            new OverdraftInterestTickSystem(),
+            new BalanceMirrorTickSystem(),
+            new SolvencyTickSystem(),
+            new LiquidityTickSystem()
+        };
+
+        // ─── Per-advance note ledger ─────────────────────────────────────────
+        // The bridge drains these notes once per Advance/AdvanceDays call and
+        // projects them onto its legacy signals. Mutating code logs to
+        // State.EventLog itself; the notes only mirror WHAT happened so the
+        // presentation layer can react without owning simulation logic.
+
+        private readonly List<DayNote> _dayNotes = new();
+
+        /// <summary>Give every undated note today's sim day.</summary>
+        private void StampDayNotes()
+        {
+            foreach (var note in _dayNotes)
+                if (note.Day < 0)
+                    note.Day = State.Day;
+        }
+
+        /// <summary>Drain and clear the per-advance note ledger.</summary>
+        public List<DayNote> DrainDayNotes()
+        {
+            StampDayNotes();
+            var notes = new List<DayNote>(_dayNotes);
+            _dayNotes.Clear();
+            PublishNoteEvents(notes);   // U2-06: the typed event bus
+            return notes;
+        }
+
+        /// <summary>
+        /// Execute due wellboat jobs (Phase 2.4/3.4). Engine-owned mutations
+        /// and event-log entry; caller (the game) only mirrors the notes.
+        /// </summary>
+        internal void ProcessDueWellboatJobs()
+        {
+            if (State?.WellboatJobs is null || State.WellboatJobs.Count == 0) return;
+
+            foreach (var job in State.WellboatJobs.Where(j => j.DueDay <= State.Day).ToList())
+            {
+                // F2 hook (F2-06): a vessel operation the site's sea state rules
+                // out today waits in the queue and is tried again tomorrow.
+                if (!OperationPossible(State.SeaSites.FirstOrDefault(s => s.Id == job.SiteId), job.Kind, State.Day))
+                    continue;
+                if (job.Kind == "freshwater")
+                    ExecuteFreshwaterBath(job);
+                else if (job.Kind == "rov")
+                    ExecuteRovInspection(job);
+                else
+                    ExecuteDelouseOrHarvestWellboat(job);
+
+                State.WellboatJobs.Remove(job);
+            }
+        }
+
+        private void ExecuteFreshwaterBath(Logistics.WellboatJob job)
+        {
+            var site = State.SeaSites.FirstOrDefault(s => s.Id == job.SiteId);
+            bool ok = site != null && site.Pens.Any(p => p.TotalCount > 0);
+            int deaths = 0;
+            string message;
+            if (ok)
+            {
+                // Freshwater bath: treat all pens, zero resistance. The site's
+                // lice kill applies once per site (first live pen), matching
+                // DelouseSite semantics (the old bridge multiplied the kill
+                // per pen via the company model).
+                var delousing = new Farm.DelousingSystem();
+                double tempC = SeaTemperatureAtSite(site!);
+                double mortMult = CrewEffects.TreatmentMortalityMultiplier(State);
+                bool killDone = false;
+                foreach (var pop in site!.Pens)
+                {
+                    if (pop.TotalCount <= 0) continue;
+                    deaths += delousing.Treat(pop, Data.DelousingMethod.FreshwaterBath,
+                        site.Lice, IntegratedDisease, tempC, mortMult,
+                        applyCompanyLiceKill: !killDone).Deaths;
+                    killDone = true;
+                }
+                PayCost(FreshwaterBathConsumablesNok, CostBooking.Opex, "delousing"); // bath consumables
+                message = SimText.Nb($"Ferskvannsbåten behandlet {SiteLabelOf(job.SiteId)} ({deaths:N0} døde under håndteringen, ingen resistens)");
+            }
+            else
+            {
+                message = $"Ferskvannsbåten kunne ikke behandle {SiteLabelOf(job.SiteId)}";
+            }
+
+            State.EventLog.Add(new Events.EventRecord
+            {
+                Day = State.Day,
+                Name = ok ? "Ferskvannsbehandling" : "Brønnbåt returnerte",
+                Category = Events.EventCategory.Disease,
+                Description = message,
+                BalanceChange = ok ? -FreshwaterBathConsumablesNok : 0m
+            });
+            _dayNotes.Add(new DayNote
+            {
+                Kind = "wellboat_freshwater",
+                SiteId = job.SiteId,
+                Success = ok,
+                Message = message
+            });
+        }
+
+        private void ExecuteRovInspection(Logistics.WellboatJob job)
+        {
+            var site = State.SeaSites.FirstOrDefault(s => s.Id == job.SiteId);
+            bool ok = site != null;
+            string message = ok
+                ? $"ROV på {site!.Label}: nøtene er renset (+15 %)"
+                : $"ROV-en kunne ikke inspisere {SiteLabelOf(job.SiteId)}";
+            if (ok)
+            {
+                site!.NetIntegrityPct = Math.Min(100.0, site.NetIntegrityPct + 15.0);
+                int fish = site.Pens.SelectMany(p => p.Cohorts).Sum(c => c.Count);
+                message = SimText.Nb($"ROV på {site.Label}: {fish:N0} fisk, {GetCompanyLiceAverage():F2} lus per fisk, gjeller {site.GillScore:F0}/100, nøter {site.NetIntegrityPct:F0} % (+15 renset), rømte fisk siste år: {site.EscapedFishInLastYear(State.Day)}");
+                State.EventLog.Add(new Events.EventRecord
+                {
+                    Day = State.Day,
+                    Name = "ROV-inspeksjon",
+                    Category = Events.EventCategory.Equipment,
+                    Description = message,
+                    BalanceChange = 0m
+                });
+            }
+            _dayNotes.Add(new DayNote
+            {
+                Kind = "wellboat_rov",
+                SiteId = job.SiteId,
+                Success = ok,
+                Message = message
+            });
+        }
+
+        private void ExecuteDelouseOrHarvestWellboat(Logistics.WellboatJob job)
+        {
+            var cmd = job.Kind == "delouse"
+                ? DelouseSite(job.SiteId, string.IsNullOrEmpty(job.Method) ? "hydrolicer" : job.Method)
+                : HarvestNowAs(job.SiteId, null, 1.0, LakskongenSim.Harvest.HarvestMode.HiredWellboat,
+                    "site_empty", $"Site '{job.SiteId}' is empty"); // S2-04: the hire paid the transport
+
+            State.EventLog.Add(new Events.EventRecord
+            {
+                Day = State.Day,
+                Name = cmd.Ok ? "Brønnbåt ankommet" : "Brønnbåt returnerte",
+                Category = Events.EventCategory.Equipment,
+                Description = cmd.Ok
+                    ? $"Brønnbåten utførte {WellboatJobName(job.Kind)} på {SiteLabelOf(job.SiteId)}"
+                    : $"Brønnbåten kunne ikke utføre {WellboatJobName(job.Kind)} på {SiteLabelOf(job.SiteId)}",
+                BalanceChange = 0m
+            });
+            _dayNotes.Add(new DayNote
+            {
+                Kind = job.Kind == "delouse" ? "wellboat_delouse" : "wellboat_harvest",
+                SiteId = job.SiteId,
+                Success = cmd.Ok,
+                Message = cmd.Ok ? job.Kind : cmd.Message
+            });
+        }
+
+        /// <summary>
+        /// Seasonal external sea-lice pressure multiplier (neighbouring farms and
+        /// wild salmon). Peaks in late summer, troughs in late winter; centred on
+        /// <see cref="SeasonalLicePressureBase"/> so a normal cycle builds to the
+        /// regulatory action limit. Deterministic.
+        /// </summary>
+        internal static double SeasonalLicePressure(int day)
+        {
+            double dayOfYear = SimCalendar.DayOfYear(day);
+            return SeasonalLicePressureBase
+                + SeasonalLicePressureAmplitude * Math.Sin(2.0 * Math.PI * (dayOfYear - 180.0) / SimCalendar.DaysPerYear);
+        }
+
+        /// <summary>
+        /// Engine-owned storm containment hazards. On storm days net integrity
+        /// decays (containment/crew multipliers); in calm weather it repairs. A
+        /// severe storm can cause a containment failure that releases fish, and
+        /// any site below the documented 40% risk line leaks on a storm day. All
+        /// escapes flow through <see cref="Farm.SeaSite.RecordEscape"/> and charge
+        /// the regulatory fine, keeping the sustainability and finance paths
+        /// consistent. Deterministic for a given seed (storm timing is seeded).
+        /// </summary>
+        internal void ApplyStormHazards()
+        {
+            if (!_enableEvents) return;
+            if (State.SeaSites == null || State.SeaSites.Count == 0) return;
+
+            var state = Weather.CurrentState;
+            bool stormy = state is WeatherState.Storm or WeatherState.Severe;
+            if (!stormy && State.SeaSites.All(s => s.NetIntegrityPct >= 100.0)) return;
+
+            double severity = state == WeatherState.Severe ? 1.0 : state == WeatherState.Storm ? 0.5 : 0.0;
+            double crewStormMult = Core.CrewEffects.StormLossMultiplier(State);
+            double crewNetDecayMult = Core.CrewEffects.NetDecayMultiplier(State);
+
+            foreach (var site in State.SeaSites)
+            {
+                if (SkipsFjordStormWear(site)) continue; // F2 hook (F2-07)
+                var cmods = ContainmentModifiersOf(site);
+
+                if (stormy)
+                {
+                    double wear = (state == WeatherState.Severe
+                            ? SevereIntegrityLossPctPerDay
+                            : StormIntegrityLossPctPerDay)
+                        * cmods.StormDamageMult * crewNetDecayMult;
+                    site.NetIntegrityPct = Math.Max(0.0, site.NetIntegrityPct - wear);
+                }
+                else
+                {
+                    site.NetIntegrityPct = Math.Min(100.0, site.NetIntegrityPct + NetIntegrityRepairPctPerDay);
+                }
+
+                int siteFish = 0;
+                foreach (var pop in site.Pens)
+                    foreach (var cohort in pop.Cohorts)
+                        siteFish += cohort.Count;
+                if (siteFish <= 0) continue;
+
+                double exposure = Math.Max(0.0, 1.0 - site.NetIntegrityPct / 100.0);
+                double riskMult = cmods.EscapeRiskMult
+                    * Optimization.RemoteOpsCentre.EscapeResponseMult(site.WatchMode)
+                    * crewStormMult;
+
+                // (a) Rare containment failure on a severe-storm day, scaled by wear.
+                if (state == WeatherState.Severe)
+                {
+                    double expected = siteFish * StormLossFractionPerFailure
+                        * StormFailureProbabilityPerSevereDay * exposure * riskMult;
+                    StormEscapeEvents += StormFailureProbabilityPerSevereDay;
+                    int escapees = (int)Math.Round(expected);
+                    if (escapees > 0)
+                        RecordStormEscape(site, escapees, severity);
+                }
+
+                // (b) Hard breach below the documented 40% risk line.
+                if (stormy && site.NetIntegrityPct < NetIntegrityEscapeRiskThresholdPct)
+                {
+                    int breach = (int)Math.Round(siteFish * (0.02 + severity * 0.06) * exposure * riskMult);
+                    if (breach > 0)
+                        RecordStormEscape(site, breach, severity);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Remove escaped fish from a site's pens, record the escape, charge the
+        /// regulatory fine and write the event log entry.
+        /// </summary>
+        private void RecordStormEscape(SeaSite site, int escapees, double severity)
+        {
+            if (escapees <= 0) return;
+
+            int remaining = escapees;
+            foreach (var pop in site.Pens)
+            {
+                foreach (var cohort in pop.Cohorts)
+                {
+                    // Escapes leave alive: booked as a removal, not a death (S2-05).
+                    remaining -= pop.RemoveAlive(cohort, remaining, FishRemoval.Escape);
+                    if (remaining <= 0) break;
+                }
+                pop.TriggerOnPopulationChanged();
+                if (remaining <= 0) break;
+            }
+
+            site.RecordEscape(escapees, State.Day);
+
+            decimal fine = escapees * EscapeFineNOKPerFish;
+            PayCost(fine, CostBooking.Opex, "fines");
+
+            string escapeDescription = SimText.Nb($"{escapees:N0} fisk rømte fra {site.Label} (nøter {site.NetIntegrityPct:F0} %, stormstyrke {severity:F1})");
+            State.EventLog.Add(new Events.EventRecord
+            {
+                Day = State.Day,
+                Name = "Rømming",
+                Category = Events.EventCategory.Equipment,
+                Description = escapeDescription,
+                BalanceChange = -fine
+            });
+            State.TrimEventLog();
+            PublishEscapeEvent(site, escapees, escapeDescription);   // U2-06
+
+            OnEventTriggered?.Invoke(SimText.Nb($"🌊 RØMMING: {escapees:N0} fisk rømte fra {site.Label} (bot {fine:N0} kr)"));
+        }
+
+        /// <summary>
+        /// Single-day tick — the core simulation loop.
+        /// </summary>
         /// <summary>
         /// Single-day tick — the core simulation loop.
         /// </summary>
@@ -899,460 +1851,460 @@ namespace LakskongenSim.Core
         {
             var overallStopwatch = Stopwatch.StartNew();
 
-            // ═══════════════════════════════════════════
-            // PHASE 1: WEATHER & ENVIRONMENT
-            // ═══════════════════════════════════════════
-            Weather.AdvanceDays(1);
-            double temperature = Weather.CurrentTemperatureC;
-            Audio?.Update(State.Day);
-
-            // Update environment model and all zones
-            Environment.AdvanceDays(1);
-            // NOTE: Do NOT override zone temperatures here — zones maintain their own temperatures
-            // zone.AdvanceDays(1) is already called by Environment.AdvanceDays(1)
-
-            // ═══════════════════════════════════════════
-            // PHASE 2A: HEALTH PREP (Calculate disease rates BEFORE biology)
-            // ═══════════════════════════════════════════
-            Mortality.ClearDiseaseMortalityRates(); // Clear previous day's disease rates
-            
-            SeaLice.AdvanceDays(1);
-
-            // Only calculate disease if events are enabled (skip in deterministic tests)
-            if (_enableEvents)
-            {
-                // Calculate disease mortality rates and inject into MortalityModel
-                // This MUST happen before FishPopulation.AdvanceDays() to avoid double application
-                IntegratedDisease.Update(
-                    State.Zones.ToList(),
-                    State.Populations.ToList(),
-                    1);
-            }
-
-            // ═══════════════════════════════════════════
-            // PHASE 2B: BIOLOGY (Growth & Mortality)
-            // Optimized: indexed loops, manual sums, in-place updates (T56)
-            // ═══════════════════════════════════════════
-            var biologyStopwatch = Stopwatch.StartNew();
-            for (int popIdx = 0; popIdx < State.Populations.Count; popIdx++)
-            {
-                var population = State.Populations[popIdx];
-                var zone = State.Zones.FirstOrDefault(z => z.Id == population.ZoneId);
-                double waterPenalty = zone?.WaterChemistry.CalculateGrowthPenalty() ?? 1.0;
-
-                // Manual biomass sum — avoids LINQ delegate allocation (T56)
-                double biomassKg = 0.0;
-                for (int ci = 0; ci < population.Cohorts.Count; ci++)
-                {
-                    var c = population.Cohorts[ci];
-                    biomassKg += c.Count * c.MeanWeightKg;
-                }
-
-                if (zone != null)
-                {
-                    zone.CurrentFishBiomassKg = biomassKg;
-                }
-
-                // Advance population: age and mortality only — growth handled by SDE below
-                population.AdvanceDays(1, skipGrowth: true);
-
-                // Manual growth adjustment — indexed loop, in-place (T56)
-                for (int ci = 0; ci < population.Cohorts.Count; ci++)
-                {
-                    var cohort = population.Cohorts[ci];
-
-                    // Apply genetics multiplier
-                    double geneticMultiplier = cohort.Genetics?.GetGrowthMultiplier() ?? 1.0;
-
-                    // Use SDE model for more realistic growth
-                    double newCalculatedWeight = Growth.ApplySDEGrowthOneDay(
-                        cohort.MeanWeightKg,
-                        temperature,
-                        5.5, // Target 5.5kg
-                        20.0, // Genetic maximum growth rate α_max (calibrating: SDE-only growth)
-                        0.002, // Stochastic variance (kept small vs deterministic growth)
-                        cohort.Stage);
-
-                    // Apply environmental and genetic modifiers in-place
-                    double delta = newCalculatedWeight - cohort.MeanWeightKg;
-                    cohort.MeanWeightKg += (delta * geneticMultiplier * waterPenalty);
-                    if (cohort.MeanWeightKg < 0) cohort.MeanWeightKg = 0;
-                }
-
-                // Feed the population — FCR-aware
-                double stockingDensity = zone != null ? (biomassKg / 10_000.0) : 20.0;
-                var feedResult = Feed.Feed(population, 1, temperature, stockingDensity, waterPenalty);
-
-                if (zone != null && feedResult.FeedUsedKg > 0)
-                {
-                    zone.FeedConversionRatio = feedResult.ActualFCR;
-                }
-            }
-            biologyStopwatch.Stop();
-
-            // ═══════════════════════════════════════════
-            // PHASE 3: FARM SYSTEMS & DAILY OPEX COLLECTION
-            // ═══════════════════════════════════════════
-            _dailyFarmSystemsOpex = 0m;
-            _dailyAiFeedingLicenseCost = 0m;
-            double totalBiomassForAI = State.Populations.Sum(p => p.GetTotalBiomassKg());
-            decimal currentFeedPricePerKg = _balancing.FeedCostPerKgNOK; // Using balancing config for now
-
-            // AIFeedingSystem TickDay (applies globally for all farms)
-            if (AIFeeding.IsInstalled)
-            {
-                var aiFeedResult = AIFeeding.TickDay(totalBiomassForAI, currentFeedPricePerKg);
-                _dailyAiFeedingLicenseCost = aiFeedResult.DailyLicenseCost;
-            }
-
-            foreach (var rasFacility in RASFacilities)
-            {
-                var rasResult = rasFacility.TickDay(State.Day, Weather.CurrentTemperatureC);
-                _dailyFarmSystemsOpex += rasResult.TotalDailyOPEX;
-            }
-
-            foreach (var offshoreFarm in OffshoreFarms)
-            {
-                var offshoreResult = offshoreFarm.TickDay(State.Day, Weather.CurrentWindSpeedMs, Weather.CurrentWaveHeight, Weather.CurrentState == WeatherState.Storm);
-                _dailyFarmSystemsOpex += offshoreResult.TotalDailyOPEX;
-            }
-
-            foreach (var postSmoltFacility in PostSmoltFacilities)
-            {
-                var postSmoltResult = postSmoltFacility.TickDay(State.Day);
-                _dailyFarmSystemsOpex += postSmoltResult.TotalDailyOPEX;
-            }
-
-
-            // ═══════════════════════════════════════════
-            // PHASE 4: EVENTS (Storyteller)
-            // ═══════════════════════════════════════════
-            Time.AdvanceDays(1);
-
-            // ═══════════════════════════════════════════
-            // PHASE 5: MARKET & CONTRACTS
-            // ═══════════════════════════════════════════
-            if (_aquacultureModifiers.ProfitabilityAdjustment != 0m)
-            {
-                var supplyFactor = 1.0 - (double)_aquacultureModifiers.ProfitabilityAdjustment;
-                var demandFactor = 1.0 + (double)_aquacultureModifiers.ProfitabilityAdjustment;
-                MarketSimulation.ApplyExternalShock(supplyFactor, demandFactor);
-            }
-
-            if (State.ExternalAquacultureSnapshot != null)
-            {
-                var crisis = State.ExternalHealthCrisis ?? new HealthCrisisScenario();
-                MarketSimulation.ApplyIndustrySignals(
-                    State.ExternalAquacultureSnapshot.NationalBiomassUtilization,
-                    State.ExternalAquacultureSnapshot.DiseasePressureIndex * crisis.MortalityPenaltyMultiplier,
-                    State.ExternalAquacultureSnapshot.MortalityStressIndex * crisis.EnvironmentalStressMultiplier,
-                    State.ExternalAquacultureSnapshot.MarketPriceSupportIndex * crisis.MarketPriceSupportMultiplier);
-            }
-
-            MarketSimulation.AdvanceDays(1);
-            CurrencySystem.AdvanceDays(1);
-
-            // ═══════════════════════════════════════════
-            // PHASE 6: FINANCE
-            // ═══════════════════════════════════════════
-            ProcessDailyFinance();
-
-            // ═══════════════════════════════════════════
-            // PHASE 6B: STOCK MARKET (daily price + quarterly earnings)
-            // ═══════════════════════════════════════════
-            // Daily price movement (only if listed)
-            if (StockMarket != null && StockMarket.Status != Finance.OwnershipStatus.Private)
-            {
-                // Check for quarterly earnings report (every ~90 days)
-                if ((State.Day - _quarterStartDay) >= 90)
-                {
-                    // Process quarterly earnings
-                    decimal quarterlyRevenue = FinancialStatements?.Revenue ?? 0m;
-                    decimal quarterlyEBITDA = (FinancialStatements?.Revenue ?? 0m) - (FinancialStatements?.COGS ?? 0m) - (FinancialStatements?.OperatingExpenses ?? 0m);
-                    decimal quarterlyNetIncome = FinancialStatements?.ComputeNetIncome() ?? 0m;
-                    decimal totalAssets = FinancialStatements?.Assets ?? (State.SeaSites.Count * 5_000_000m);
-                    decimal totalDebt = FinancialStatements?.Liabilities ?? 0m;
-
-                    var earningsReport = StockMarket.AdvanceQuarter(
-                        quarterlyRevenue,
-                        quarterlyEBITDA,
-                        quarterlyNetIncome,
-                        totalAssets,
-                        totalDebt);
-
-                    if (earningsReport != null)
-                    {
-                        OnEventTriggered?.Invoke(
-                            $"📊 Q{earningsReport.Quarter} Earnings: EPS {earningsReport.EPS:F2} NOK " +
-                            $"({(earningsReport.Beat ? "BEAT" : "MISS")} consensus {earningsReport.ConsensusEPS:F2})");
-                    }
-
-                    _quarterStartDay = State.Day;
-                }
-            }
-
-            // ═══════════════════════════════════════════
-            // PHASE 7: SUSTAINABILITY (weekly)
-            // ═══════════════════════════════════════════
-            if (State.Day - _lastSustainabilityUpdate >= SUSTAINABILITY_UPDATE_INTERVAL)
-            {
-                SustainabilityManager?.UpdateScore(State);
-                State.SustainabilityScore = SustainabilityManager?.CurrentScore ?? State.SustainabilityScore;
-                State.SustainabilityCertification = SustainabilityManager?.CurrentCertification ?? State.SustainabilityCertification;
-                _lastSustainabilityUpdate = State.Day;
-            }
-
-            // ═══════════════════════════════════════════
-            // PHASE 7A: BRAND REPUTATION (weekly)
-            // ═══════════════════════════════════════════
-            if (BrandReputation != null && State.Day - _lastBrandReputationUpdate >= BRAND_REPUTATION_UPDATE_INTERVAL)
-            {
-                // Natural reputation decay over time (prevents stagnation)
-                BrandReputation.ApplyNaturalDecay(0.005m);
-
-                // Reward consistent quality performance
-                double avgBiomass = State.Populations.Any() ? State.Populations.Average(p => p.GetTotalBiomassKg()) : 0;
-                if (avgBiomass > 100_000 && State.SustainabilityScore > 60)
-                {
-                    BrandReputation.RecordEvent(
-                        ReputationEvent.ConsistentQuality,
-                        "Maintained quality standards and sustainability",
-                        severity: 1);
-                }
-
-                _lastBrandReputationUpdate = State.Day;
-            }
-
-            // ═══════════════════════════════════════════
-            // PHASE 7B: COMPETITOR AI (quarterly)
-            // ═══════════════════════════════════════════
-            if (State.Day - _lastCompetitorAIUpdate >= COMPETITOR_AI_UPDATE_INTERVAL)
-            {
-                // Calculate player metrics for competitor context
-                float playerMarketShare = CalculatePlayerMarketShare();
-                decimal playerRevenue = FinancialStatements?.Revenue ?? 0m;
-                float spotPrice = (float)(MarketSimulation?.PricePerKg ?? 70m);
-                int playerLicenseCount = State.SeaSites.Count; // Approximate licenses by site count
-
-                CompetitorAI?.AdvanceQuarter(playerMarketShare, playerRevenue, spotPrice, playerLicenseCount);
-                _lastCompetitorAIUpdate = State.Day;
-            }
-
-            // ═══════════════════════════════════════════
-            // PHASE 7C: EMPIRE PROGRESSION (weekly)
-            // ═══════════════════════════════════════════
-            if (State.Day - _lastEmpireProgressionUpdate >= EMPIRE_PROGRESSION_UPDATE_INTERVAL)
-            {
-                var empireState = BuildEmpireState();
-                EmpireProgression?.Update(empireState);
-                _lastEmpireProgressionUpdate = State.Day;
-            }
-
-            // ═══════════════════════════════════════════
-            // PHASE 7D: CRISIS CAPITALISM (weekly)
-            // ═══════════════════════════════════════════
-            if (State.Day - _lastCrisisCapitalismUpdate >= CRISIS_CAPITALISM_UPDATE_INTERVAL)
-            {
-                CrisisCapitalism?.Update();
-                _lastCrisisCapitalismUpdate = State.Day;
-            }
-
-            // ═══════════════════════════════════════════
-            // PHASE 7E: VERTICAL INTEGRATION (monthly)
-            // ═══════════════════════════════════════════
-            if (State.Day - _lastVerticalIntegrationUpdate >= VERTICAL_INTEGRATION_UPDATE_INTERVAL)
-            {
-                // VerticalIntegrationSystem doesn't have an explicit Update() method
-                // but we track the interval for future use (e.g., construction completion checks)
-                _lastVerticalIntegrationUpdate = State.Day;
-            }
-
-            // ═══════════════════════════════════════════
-            // PHASE 7F: TAX SYSTEM (quarterly)
-            // ═══════════════════════════════════════════
-            if (State.Day - _lastTaxUpdate >= TAX_UPDATE_INTERVAL)
-            {
-                decimal netIncome = FinancialStatements?.ComputeNetIncome() ?? 0m;
-                if (netIncome > 0 && TaxSystem != null)
-                {
-                    decimal quarterlyTax = TaxSystem.ComputeTax(netIncome);
-                    if (quarterlyTax > 0)
-                    {
-                        if (!FinanceManager.Spend(quarterlyTax))
-                        {
-                            OnEventTriggered?.Invoke($"💸 Cannot pay {quarterlyTax:N0} NOK in quarterly taxes. Balance: {FinanceManager.Balance:N0} NOK");
-                            FinanceManager.ForceSpend(quarterlyTax);
-                        }
-                        else
-                        {
-                            FinancialStatements?.RecordTax(quarterlyTax);
-                        }
-                    }
-                }
-                _lastTaxUpdate = State.Day;
-            }
-
-            // ═══════════════════════════════════════════
-            // PHASE 7G: INVESTOR SYSTEM (monthly reporting)
-            // ═══════════════════════════════════════════
-            if (State.Day - _lastInvestorUpdate >= INVESTOR_UPDATE_INTERVAL)
-            {
-                // Monthly investor update - report dilution and bond status
-                if (InvestorSystem != null)
-                {
-                    decimal dilution = InvestorSystem.DilutionFraction();
-                    if (dilution > 0.01m)
-                    {
-                        OnEventTriggered?.Invoke($"📊 Equity dilution: {dilution * 100:F1}% — {InvestorSystem.OutstandingShares:N0} shares outstanding");
-                    }
-                    if (InvestorSystem.OutstandingBondPrincipal > 0)
-                    {
-                        OnEventTriggered?.Invoke($"💼 Outstanding bonds: {InvestorSystem.OutstandingBondPrincipal:N0} NOK");
-                    }
-                }
-                _lastInvestorUpdate = State.Day;
-            }
-
-            // ═══════════════════════════════════════════
-            // PHASE 7H-7J: RESERVED FOR FUTURE SYSTEMS (T68: not yet wired)
-            // ═══════════════════════════════════════════
-            // ACQUISITION SYSTEM, LICENSE SYSTEM, STAKEHOLDER FACTION SYSTEM
-            // These will be wired in future tasks
-            /*
-            if (State.Day - _lastAcquisitionSystemUpdate >= ACQUISITION_SYSTEM_UPDATE_INTERVAL)
-            {
-                _lastAcquisitionSystemUpdate = State.Day;
-            }
-
-            if (State.Day - _lastLicenseSystemUpdate >= LICENSE_SYSTEM_UPDATE_INTERVAL)
-            {
-                foreach (var site in State.SeaSites)
-                {
-                    LicenseSystem.ChargeAnnual(site.Id);
-                }
-                _lastLicenseSystemUpdate = State.Day;
-            }
-
-            if (State.Day - _lastStakeholderFactionUpdate >= STAKEHOLDER_FACTION_UPDATE_INTERVAL)
-            {
-                StakeholderFactionSystem.ProcessExpiredDemands();
-                _lastStakeholderFactionUpdate = State.Day;
-            }
-            */
-
-            // ═══════════════════════════════════════════
-            // PHASE 7K: MARKET INTELLIGENCE (weekly)
-            // ═══════════════════════════════════════════
-            if (State.Day - _lastMarketIntelligenceUpdate >= MARKET_INTELLIGENCE_UPDATE_INTERVAL)
-            {
-                // Market intelligence updates weekly with current spot price
-                decimal currentSpotPrice = MarketSimulation?.PricePerKg ?? 70m;
-                MarketIntelligence?.AdvanceWeek(currentSpotPrice);
-                _lastMarketIntelligenceUpdate = State.Day;
-            }
-
-            // ═══════════════════════════════════════════
-            // PHASE 7L: FISH WELFARE (daily)
-            // ═══════════════════════════════════════════
-            // Fish welfare is monitored daily through environmental and health conditions
-            // Condition score is updated via FishWelfare.ModifyCondition() called by other systems
-            // (e.g., disease systems, environment stress, stocking density)
-
-            // ═══════════════════════════════════════════
-            // PHASE 7M: PRODUCT MIX OPTIMIZER (monthly)
-            // ═══════════════════════════════════════════
-            // ProductMixOptimizer is called on-demand when player opens processing UI
-            // No periodic update needed — it's a decision support tool, not a simulation system
-            // This interval marker is for future features (e.g., auto-optimization recommendations)
-            if (State.Day - _lastProductMixOptimizerUpdate >= PRODUCT_MIX_OPTIMIZER_UPDATE_INTERVAL)
-            {
-                _lastProductMixOptimizerUpdate = State.Day;
-            }
-
-            // ═══════════════════════════════════════════
-            // PHASE 7N: VISUAL MILESTONES (daily)
-            // ═══════════════════════════════════════════
-            // Visual milestones are checked daily for achievement conditions
-            // Milestone checks are triggered by specific events (harvest, revenue, etc.)
-            // implemented in the relevant systems that call VisualMilestones.CheckMilestone()
-
-            // ═══════════════════════════════════════════
-            // PHASE 8-10: TUTORIAL, ANALYTICS, ACHIEVEMENTS, RESEARCH
-            // ═══════════════════════════════════════════
-            Tutorial?.CheckProgress();
-            Analytics?.RecordSnapshot(this);
-            Achievements?.CheckAchievements();
-            Research?.AdvanceDay();
-            SyncResearchToState();
+            // Phase 1 wave 4: ordered in-day pipeline. Registration order in
+            // _inDayPhases IS the simulation order; every migrated phase owns
+            // its interval state (rebuilt per Initialize — fresh clocks per
+            // New Game, S9, including the formerly-leaking _quarterStartDay).
+            foreach (var phase in _inDayPhases)
+                phase.Tick(this);
 
             overallStopwatch.Stop();
-            // T56: Removed Console.WriteLine to avoid string allocation in hot path
+            // T56: Removed SimLog.Info to avoid string allocation in hot path
             // Use Trace.WriteLine or conditional logging if debug output needed
         }
 
-        private void ProcessDailyFinance()
+        /// <summary>
+        /// Storm episode impacts + temperature stress, moved from the GameBridge
+        /// (Phase 1 wave 2) and now a first-class POST-TICK phase via
+        /// StormImpactsTickSystem (wave 3). Storm mortality, repair bill and
+        /// insurance settlement fire once per storm EPISODE (S1-02): when an
+        /// episode starts, at the severity it starts with, and again only when
+        /// it escalates past its peak (Storm then Severe: the extra half). The
+        /// old edge rule fired on every Storm/Severe flip inside one episode;
+        /// with Severe reachable in winter (F456) that counted 81 "onsets" a
+        /// year for 46 episodes. Temperature stress applies daily. Gated by
+        /// _enableEvents like the other event hazards, so event-off probes keep
+        /// their band models.
+        /// </summary>
+        internal void ApplyStormAndTemperatureImpacts()
         {
-            // 1. Calculate operational costs (Wages, Maintenance)
-            decimal dailyWages = 0m;
-            int totalSites = State.SeaSites.Count;
-            dailyWages += totalSites * _balancing.WorkersPerSite * (_balancing.WorkerMonthlySalaryNOK / 30m);
-            
-            if (State.OwnsHatchery)
-                dailyWages += _balancing.WorkersPerHatchery * (_balancing.WorkerMonthlySalaryNOK / 30m);
-            
-            if (State.OwnsProcessingPlant)
-                dailyWages += _balancing.WorkersPerProcessingPlant * (_balancing.WorkerMonthlySalaryNOK / 30m);
-
-            // 2. Fixed maintenance costs (e.g., 0.01% of build cost daily)
-            decimal dailyMaintenance = (totalSites * _balancing.SeaSiteBuildCostNOK * 0.0001m);
-            dailyMaintenance += _dailyAiFeedingLicenseCost; // Add AI Feeding license cost here
-
-            // 3. Apply costs to FinanceManager and FinancialStatements
-            decimal totalOpEx = dailyWages + dailyMaintenance + _dailyFarmSystemsOpex;
-            if (totalOpEx > 0)
+            if (!_enableEvents || Weather == null)
             {
-                if (!FinanceManager.Spend(totalOpEx))
-                {
-                    // Bankruptcy warning - insufficient funds for operations
-                    OnEventTriggered?.Invoke($"💸 BANKRUPTCY WARNING: Cannot pay {totalOpEx:N0} NOK in operating costs. Balance: {FinanceManager.Balance:N0} NOK");
-                    
-                    // Force spend to create negative balance (debt)
-                    FinanceManager.ForceSpend(totalOpEx);
-                }
-                FinancialStatements?.RecordOperatingExpense(totalOpEx);
+                _lastWeatherState = Weather?.CurrentState ?? LakskongenSim.Environment.WeatherState.Calm;
+                _stormEpisodePeakSeverity = StormSeverity(_lastWeatherState);
+                return;
             }
 
-            // 4. Interest on debt (LoanSystem - daily accrual)
-            // Use InvestorSystem's bond principal as debt source
+            var currentWeather = Weather.CurrentState;
+            double currentSeverity = StormSeverity(currentWeather);
+            double severity = 0.0; // damage charged today
+            string weatherDesc = "";
+            if (currentSeverity > _stormEpisodePeakSeverity)
+                severity = currentSeverity - _stormEpisodePeakSeverity;
+            _stormEpisodePeakSeverity = currentSeverity > 0.0
+                ? Math.Max(_stormEpisodePeakSeverity, currentSeverity)
+                : 0.0;
+
+            if (severity > 0.0)
+            {
+
+                // Storm stress mortality (roekter halves losses). Iterate each
+                // site's own pens: populations are ZoneId-tagged, State-wide
+                // filtering here would hit zone-shared populations per site.
+                decimal stormSpotPrice = MarketSimulation?.PricePerKg ?? 70m;
+                decimal stormFishLoss = 0m;
+                double stormMult = CrewEffects.StormLossMultiplier(State);
+                foreach (var site in State.SeaSites)
+                {
+                    if (SkipsFjordStormWear(site)) continue; // F2 hook (F2-07)
+                    foreach (var pop in site.Pens)
+                    {
+                        foreach (var cohort in pop.Cohorts)
+                        {
+                            int mortalityCount = (int)(cohort.Count * severity * CalibrationRegistry.Default.Environment.StormFishLossBaseFraction * stormMult);
+                            if (mortalityCount > 0)
+                            {
+                                mortalityCount = pop.RemoveDead(cohort, mortalityCount, MortalityCause.Storm);
+                                stormFishLoss += (decimal)(mortalityCount * cohort.MeanWeightKg) * stormSpotPrice;
+                            }
+                        }
+                    }
+                }
+
+                // Storm repair bill (infrastructure damage; escapes and net wear
+                // remain owned by ApplyStormHazards, the escape single source).
+                decimal repairCost = (decimal)(State.SeaSites.Where(s => !SkipsFjordStormWear(s)).Sum(SiteSizeScale) * 50000 * severity);
+                if (repairCost > 0)
+                {
+                    // Damage must be repaired: paid on credit when cash is short
+                    // (it used to be skipped for free when the player was broke).
+                    PayCost(repairCost, CostBooking.Opex, "storm_repairs");
+                    State.EventLog.Add(new Events.EventRecord
+                    {
+                        Day = State.Day,
+                        Name = "Storm Damage",
+                        Category = Events.EventCategory.Weather,
+                        Description = currentWeather == LakskongenSim.Environment.WeatherState.Severe
+                            ? "Ekstremværet skadet merdene og fortøyningene"
+                            : "Stormen skadet merdene og fortøyningene",
+                        BalanceChange = -repairCost
+                    });
+                }
+
+                // P11: settle the Storm insurance claim against the realized
+                // loss (fish mortality + infrastructure repair). One claim per
+                // episode (the bridge gated on the same edge-transition).
+                decimal stormLossNok = stormFishLoss + repairCost;
+                PayInsurance(InsuranceKind.Storm, stormLossNok, "stormtap", Events.EventCategory.Weather);
+
+                weatherDesc = currentWeather == LakskongenSim.Environment.WeatherState.Severe
+                    ? "Ekstremvær gir store skader på anlegget og stresset fisk"
+                    : "Stormen gir moderate skader og økt dødelighet";
+            }
+
+            // Temperature extremes stress fish (daily), each in its own water (S2-02).
+            ApplyHoldingWaterTemperatureStress();
+
+            if (severity > 0.0)
+            {
+                _dayNotes.Add(new DayNote
+                {
+                    Kind = "storm_impact",
+                    EventType = currentWeather.ToString(),
+                    Severity = severity,
+                    Message = weatherDesc,
+                    Success = true
+                });
+            }
+
+            _lastWeatherState = currentWeather;
+        }
+
+        /// <summary>
+        /// Process night-shift ROC policy (Phase 5.2): handles 00-06 events based on policy.
+        /// </summary>
+        internal void ProcessNightShiftPolicy()
+        {
+            var policy = State.NightShiftPolicy;
+            if (policy == Logistics.NightShiftPolicy.Standard) return; // nothing special
+
+            var crewCount = State.Crew.Count;
+
+            // Night event rolls: bloom, hypoxia, storm, equipment failure
+            // Base chance per night per site, modified by policy
+            var sites = FjordSites().Where(s => s.Pens.Any(p => p.TotalCount > 0)).ToList(); // F2-03: offshore units are crewed on board
+            var rng = _rng;
+
+            foreach (var site in sites)
+            {
+                // 1. Bloom/hypoxia early detection (ScanOnly = queued, Auto = instant)
+                double detectChance = Logistics.NightShiftResolver.DetectionChance(State.NightShiftPolicy);
+                if (rng.NextDouble() < detectChance * 0.1) // 10% base chance per night
+                {
+                    var activeBlooms = State.ActiveBlooms.Where(b => b.SiteId == site.Id && !b.IsExpired(State.Day)).ToList();
+                    if (activeBlooms.Any())
+                    {
+                        var severity = activeBlooms.Max(b => b.Severity01);
+                        if (State.NightShiftPolicy == Logistics.NightShiftPolicy.AutomatedROC)
+                        {
+                            // Auto-mitigate: O2 diffuser or freshwater if available
+                            // For now just log the detection
+                            State.EventLog.Add(new Events.EventRecord
+                            {
+                                Day = State.Day,
+                                Name = "Natt-deteksjon",
+                                Category = Events.EventCategory.Weather,
+                                Description = $"Driftssentralen oppdaget oppblomstring på {site.Label} kl. 02.00 — tiltak er satt i gang",
+                                BalanceChange = 0m
+                            });
+                        }
+                        else if (State.NightShiftPolicy == Logistics.NightShiftPolicy.ScanOnly)
+                        {
+                            State.EventLog.Add(new Events.EventRecord
+                            {
+                                Day = State.Day,
+                                Name = "Natt-skanning",
+                                Category = Events.EventCategory.Weather,
+                                Description = $"Nattskanningen oppdaget oppblomstring på {site.Label} kl. 02.00 — venter til kl. 06.00",
+                                BalanceChange = 0m
+                            });
+                        }
+                    }
+                }
+
+                // 2. Hypoxia / O2 crash auto-response
+                var zone = State.Zones.FirstOrDefault(z => z.Id == site.ZoneId);
+                if (zone != null && zone.WaterChemistry.OxygenO2 < 5.5)
+                {
+                    if (State.NightShiftPolicy == Logistics.NightShiftPolicy.AutomatedROC)
+                    {
+                        // Auto O2 diffuser or aeration
+                        PayCost(NightOxygenEmergencyNok, CostBooking.Opex, "night_shift"); // emergency O2 cost
+                        State.EventLog.Add(new Events.EventRecord
+                        {
+                            Day = State.Day,
+                            Name = "Natt-oksygen",
+                            Category = Events.EventCategory.Weather,
+                            Description = $"Oksygenfall på {site.Label} kl. 03.00 — driftssentralen startet diffuseren (12k)",
+                            BalanceChange = -NightOxygenEmergencyNok
+                        });
+                    }
+                }
+            }
+
+            // Crew fatigue from AutomatedROC
+            if (State.NightShiftPolicy == Logistics.NightShiftPolicy.AutomatedROC)
+            {
+                foreach (var crew in State.Crew)
+                {
+                    crew.Morale = System.Math.Max(10, crew.Morale - Logistics.NightShiftResolver.FatiguePerNightAuto);
+                }
+            }
+
+            // Apply night misfire chance
+            if (State.NightShiftPolicy == Logistics.NightShiftPolicy.AutomatedROC)
+            {
+                var avgSkill = State.Crew.Count > 0 ? State.Crew.Average(c => c.Morale) / 10.0 : 0.5;
+                if (rng.NextDouble() < Logistics.NightShiftResolver.MisfireChance(State.NightShiftPolicy, (int)(avgSkill * 10)))
+                {
+                    State.EventLog.Add(new Events.EventRecord
+                    {
+                        Day = State.Day,
+                        Name = "Feil i automatisk nattdrift",
+                        Category = Events.EventCategory.Equipment,
+                        Description = "Den automatiske nattdriften slo feil: feil merd eller feil tiltak — mannskapet stresses (+5 %)",
+                        BalanceChange = -25_000m
+                    });
+                    foreach (var c in State.Crew) c.Morale = Math.Max(10, c.Morale - 5);
+                }
+            }
+
+            // Premium cost
+            decimal premium = SimCalendar.MonthlyToDaily(Logistics.NightShiftResolver.MonthlyCost(State.NightShiftPolicy));
+            PayCost(premium, CostBooking.Opex, "night_shift");
+        }
+
+        /// <summary>Total live biomass across all populations, kg (annual-close input).</summary>
+        internal decimal GetTotalBiomassKg()
+            => (decimal)State.Populations.Sum(p => p.GetTotalBiomassKg());
+
+        /// <summary>Pens in a standard sea site; calibrated crew and upkeep are per standard site.</summary>
+        internal const int StandardPensPerSite = 8;
+
+        /// <summary>A site's size relative to a standard 8-pen site.</summary>
+        internal static double SiteSizeScale(Farm.SeaSite site)
+            => Math.Max(1, site.NumberOfPens) / (double)StandardPensPerSite;
+
+        /// <summary>Sum of all sites' sizes in standard sites.</summary>
+        private double TotalSiteScale() => FjordSites().Sum(SiteSizeScale); // F2-03: an offshore unit's upkeep is its own
+
+        /// <summary>Crew of a site: the calibrated crew scaled to its size, at least one worker.</summary>
+        internal decimal SiteWorkers(Farm.SeaSite site)
+            => Math.Max(1m, Math.Round(_balancing.WorkersPerSite * (decimal)SiteSizeScale(site)));
+
+        internal void ProcessDailyFinance()
+        {
+            // Phase 5.5: Process Mattilsynet over-MAB orders (deadline checks + forced harvest)
+            ProcessMattilsynetOverMabOrders();
+
+            // 1. Calculate operational costs (Wages, Maintenance). Site crews and
+            // upkeep scale with the site's size: the calibrated crew is for a
+            // standard 8-pen site, and a one-pen family farm used to pay that full
+            // crew (11k NOK/day on 5,000 fish; the tutorial went bankrupt before
+            // its first harvest).
+            decimal dailyWages = 0m;
+            foreach (var site in FjordSites()) // F2-03: an offshore unit pays its own crew (its day)
+                dailyWages += SiteWorkers(site) * SimCalendar.MonthlyToDaily(_balancing.WorkerMonthlySalaryNOK);
+            
+            if (State.OwnsHatchery)
+                dailyWages += _balancing.WorkersPerHatchery * SimCalendar.MonthlyToDaily(_balancing.WorkerMonthlySalaryNOK);
+            
+            if (State.OwnsProcessingPlant)
+                dailyWages += _balancing.WorkersPerProcessingPlant * SimCalendar.MonthlyToDaily(_balancing.WorkerMonthlySalaryNOK);
+
+            // Phase 3.1: named crew payroll.
+            foreach (var member in State.Crew)
+                dailyWages += SimCalendar.MonthlyToDaily(member.MonthlySalaryNok);
+
+            // Phase 3.5: VAP plant opex 5k/day when owned.
+            decimal vapOpex = State.OwnsProcessingPlant ? 5_000m : 0m;
+
+            // 2. Fixed maintenance costs (e.g., 0.01% of build cost daily)
+            decimal dailyMaintenance = (decimal)TotalSiteScale() * _balancing.SeaSiteBuildCostNOK * 0.0001m;
+            dailyMaintenance += _dailyAiFeedingLicenseCost; // Add AI Feeding license cost here
+
+            // 3. Apply costs through the ledger (paid on credit when cash is short)
+            decimal totalOpEx = dailyWages + dailyMaintenance + _dailyFarmSystemsOpex + vapOpex;
+            PayCost(totalOpEx, CostBooking.Opex, "operations",
+                $"💸 BANKRUPTCY WARNING: Cannot pay {totalOpEx:N0} NOK in operating costs. Balance: {FinanceManager.Balance:N0} NOK");
+
+            // 3B. Preventive mitigation OPEX (Phase 1.5): silent daily upkeep
+            // (SimulationEngine.Containment.cs).
+            decimal mitigationOpex = PreventiveMitigationDailyOpexNok();
+            PayCost(mitigationOpex, CostBooking.Opex, "mitigation");
+
+            // 4. Bond interest (LoanSystem daily accrual on the InvestorSystem's
+            // bond principal) is interest expense, not OpEx (review F1138).
             if (InvestorSystem != null && InvestorSystem.OutstandingBondPrincipal > 0 && LoanSystem != null)
             {
                 decimal dailyInterest = LoanSystem.ChargeInterest(InvestorSystem.OutstandingBondPrincipal, 1);
-                if (dailyInterest > 0)
-                {
-                    if (!FinanceManager.Spend(dailyInterest))
-                    {
-                        OnEventTriggered?.Invoke($"💸 Cannot pay {dailyInterest:N0} NOK in loan interest. Balance: {FinanceManager.Balance:N0} NOK");
-                        FinanceManager.ForceSpend(dailyInterest);
-                    }
-                    FinancialStatements?.RecordOperatingExpense(dailyInterest);
-                }
+                PayCost(dailyInterest, CostBooking.Interest, "interest",
+                    $"💸 Cannot pay {dailyInterest:N0} NOK in loan interest. Balance: {FinanceManager.Balance:N0} NOK");
             }
 
-            // 5. Taxes (apply monthly)
-            if (State.Day % 30 == 0)
+            // 4B. Loan amortization (S5): TakeLoan records a LoanState liability;
+            // each day pays interest (P&L) and a principal slice (balance sheet).
+            // Principal used to be booked as tax-deductible OpEx (review F1138).
+            foreach (var loan in State.ActiveLoans.ToList())
             {
-                decimal netIncome = FinancialStatements?.ComputeNetIncome() ?? 0m;
-                if (netIncome > 0)
-                {
-                    decimal tax = netIncome * (decimal)_balancing.CorporateTaxRate;
-                    if (!FinanceManager.Spend(tax))
-                    {
-                        OnEventTriggered?.Invoke($"⚠️ Cannot pay {tax:N0} NOK in taxes. Balance: {FinanceManager.Balance:N0} NOK");
-                        FinanceManager.ForceSpend(tax);
-                    }
-                    FinancialStatements?.RecordTax(tax);
-                }
+                if (loan.Principal <= 0) { State.ActiveLoans.Remove(loan); continue; }
+                loan.DaysTaken++;
+                int remainingDays = Math.Max(1, loan.TermDays - loan.DaysTaken + 1);
+                decimal dailyInterest = loan.Principal * loan.InterestRate / SimCalendar.DaysPerYear;
+                decimal principalSlice = loan.Principal / remainingDays;
+                // Final day: clear exactly (avoid dust from rounding).
+                if (loan.DaysTaken >= loan.TermDays) principalSlice = loan.Principal;
+                if (!FinanceManager.CanAfford(dailyInterest + principalSlice))
+                    OnEventTriggered?.Invoke($"💸 Cannot pay {dailyInterest + principalSlice:N0} NOK loan instalment. Balance: {FinanceManager.Balance:N0} NOK");
+                PayCost(dailyInterest, CostBooking.Interest, "interest");
+                PayCost(principalSlice, CostBooking.LoanPrincipal, "loan_principal");
+                loan.Principal -= principalSlice;
+                if (loan.Principal <= 0.01m || loan.DaysTaken >= loan.TermDays)
+                    State.ActiveLoans.Remove(loan);
             }
+
+            // 4C. Insurance premiums (S5): policies were free — charge the
+            // annual premium pro-rata every day.
+            if (Insurance != null)
+            {
+                decimal dailyPremium = 0m;
+                foreach (var policy in Insurance.Policies)
+                    dailyPremium += policy.PremiumNokPerYear / SimCalendar.DaysPerYear;
+                PayCost(dailyPremium, CostBooking.Opex, "insurance");
+            }
+
+            // 5. Monthly provisional corporate tax (true-up; see SettleProvisionalTax),
+            // on the last day of every calendar month (S2-02; it was every 30 days).
+            if (SimCalendar.IsLastDayOfMonth(State.Day))
+                SettleProvisionalTax();
+        }
+
+
+        /// <summary>
+        /// Process sludge valorization at sea sites (Phase 5.3).
+        /// Converts accumulated sludge to biogas revenue + fertilizer revenue - opex.
+        /// Runs weekly as part of sustainability update.
+        /// </summary>
+        internal void ProcessSludgeValorization()
+        {
+            var sludgeParams = Farm.SludgeValorization.Default;
+            foreach (var site in State.SeaSites)
+            {
+                if (site.SludgeAccumulatedKgDs < 500.0) continue; // Minimum batch size for valorization
+
+                // Valorize sludge
+                var (biogasRev, fertRev, opex) = Farm.SludgeValorization.Valorize(site.SludgeAccumulatedKgDs, sludgeParams);
+                decimal netRevenue = biogasRev + fertRev - opex;
+
+                if (netRevenue != 0m)
+                {
+                    if (netRevenue > 0)
+                    {
+                        ReceiveIncome(netRevenue, "sludge");
+                        State.TotalSalesRevenueNok += netRevenue;
+                    }
+                    else
+                        PayCost(-netRevenue, CostBooking.Opex, "sludge");
+
+                    site.SludgeValorizedKgDs += site.SludgeAccumulatedKgDs;
+                    site.LastSludgeValorizationDay = State.Day;
+
+                    // Phase 5.4: Add biogas credit to carbon ledger
+                    double biogasNm3 = site.SludgeAccumulatedKgDs * Farm.SludgeValorization.Default.BiogasYieldNm3PerKgDs;
+                    double biogasCredit = Farm.CarbonLedger.BiogasCreditKgCO2e(biogasNm3);
+                    site.CarbonTracker.AddCredit("Biogas", site.Id, biogasCredit, State.Day);
+
+                    State.EventLog.Add(new Events.EventRecord
+                    {
+                        Day = State.Day,
+                        Name = "Slamgjenvinning",
+                        Category = Events.EventCategory.Equipment,
+                        Description = SimText.Nb($"{site.Label}: {site.SludgeAccumulatedKgDs:F0} kg tørrstoff → biogass {biogasRev:N0} + gjødsel {fertRev:N0} − drift {opex:N0} = {netRevenue:+#,0;-#,0;0} kr (CO₂e-kreditt: {biogasCredit:F0} kg)"),
+                        BalanceChange = netRevenue
+                    });
+                    State.TrimEventLog();
+                }
+
+                site.SludgeAccumulatedKgDs = 0.0;
+            }
+        }
+
+
+        /// <summary>
+        /// Process daily carbon emissions for all facilities (Phase 5.4).
+        /// Tracks Scope 1 (fuel), Scope 2 (electricity), Scope 3 (feed, transport)
+        /// and credits from biogas, kelp, avoided soy.
+        /// </summary>
+        /// <summary>A rival in financial distress: bankruptcy proceedings list its assets.</summary>
+        private void HandleCompetitorDistressed(Finance.CompetitorCompany competitor, int _)
+            => CrisisCapitalism?.TriggerCrisis(competitor.Id, competitor.Name, Events.CrisisType.BANKRUPTCY,
+                State.Day, CompetitorAI.Competitors);
+
+        internal void ProcessCarbonLedger()
+        {
+            int day = State.Day;
+            double feedReplacementPct = State.RecipeReplacePct;
+            // Research (renewable energy, carbon capture) cuts fuel and power
+            // emissions, Scope 1-2; feed and transport (Scope 3) are unaffected.
+            double energyEmissionFactor = 1.0 - ResearchEffectKeys.ClampReduction(CarbonReduction);
+
+            // ─── Sea Sites ───
+            foreach (var site in FjordSites()) // F2-03: an offshore unit books its own (OffshoreTickSystem)
+            {
+                double biomassTonnes = site.Pens.Sum(p => p.GetTotalBiomassKg()) / 1000.0;
+                if (biomassTonnes <= 0) continue;
+
+                // Scope 1: Diesel fuel
+                double fuelL = Farm.CarbonLedger.DailySiteFuelLiters(site, biomassTonnes);
+                double fuelCO2e = fuelL * Farm.CarbonLedger.DieselKgCO2ePerLiter * energyEmissionFactor;
+                site.CarbonTracker.AddEmission("Scope1_Fuel", site.Id, fuelCO2e, day);
+
+                // Scope 2: Electricity
+                double elecKwh = Farm.CarbonLedger.DailySiteElectricityKwh(site, biomassTonnes);
+                double elecCO2e = elecKwh * Farm.CarbonLedger.GridElectricityKgCO2ePerKwh * energyEmissionFactor;
+                site.CarbonTracker.AddEmission("Scope2_Electricity", site.Id, elecCO2e, day);
+            }
+
+            // ─── Feed emissions (Scope 3) - aggregate across all populations ───
+            double totalFeedKg = 0.0;
+            foreach (var pop in State.Populations)
+            {
+                // Approximate from biomass - rough estimate 1.5% body weight/day
+                totalFeedKg += pop.GetTotalBiomassKg() * 0.015;
+            }
+            if (totalFeedKg > 0)
+            {
+                double feedCO2e = Farm.CarbonLedger.FeedEmissionsKgCO2e(totalFeedKg, feedReplacementPct);
+                // Attribute to first site for simplicity
+                var firstSite = State.SeaSites.FirstOrDefault();
+                if (firstSite != null)
+                    firstSite.CarbonTracker.AddEmission("Scope3_Feed", "feed_total", feedCO2e, day);
+            }
+
+            // ─── Land facilities and offshore farms (F2-02: their tick systems) ───
+            LandSiteTickSystem.AccountCarbon(this, energyEmissionFactor, day);
+            OffshoreTickSystem.AccountCarbon(this, energyEmissionFactor, day);
+
+            // ─── Processing Plants ───
+            if (State.OwnsProcessingPlant && Enum.TryParse<Processing.ProcessingTier>(State.ProcessingTier, out var tier))
+            {
+                // Estimate daily throughput from recent harvests
+                double dailyThroughputKg = State.Populations
+                    .SelectMany(p => p.Cohorts)
+                    .Where(c => c.Stage == LakskongenSim.Data.LifeStage.Harvest)
+                    .Sum(c => c.Count * c.MeanWeightKg) * 0.02; // ~2% harvest rate
+                
+                double procCO2e = Farm.CarbonLedger.ProcessingPlantEmissionsKgCO2e((int)dailyThroughputKg, tier);
+                // Attribute to a virtual processing tracker on first site or create one
+                var firstSite = State.SeaSites.FirstOrDefault();
+                if (firstSite != null)
+                    firstSite.CarbonTracker.AddEmission("Scope2_Electricity", "processing_plant", procCO2e, day);
+            }
+
+            // ─── Biogas credits from sludge valorization ───
+            // (When sludge is valorized, add credit - handled in ProcessSludgeValorization)
+            // Here we just ensure the credit is tracked when valorization happens
+            // The actual credit entry is added in ProcessSludgeValorization
         }
 
 
@@ -1360,7 +2312,7 @@ namespace LakskongenSim.Core
         /// Synchronise the ResearchSystem's runtime state back into the serialisable GameState
         /// so that Save/Load correctly persists the tech tree progress.
         /// </summary>
-        private void SyncResearchToState()
+        internal void SyncResearchToState()
         {
             if (Research == null) return;
             State.UnlockedResearchIds = Research.GetUnlockedIds().ToList();
@@ -1394,15 +2346,11 @@ namespace LakskongenSim.Core
             {
                 if (FinanceManager != null)
                 {
-                    if (!FinanceManager.Spend(50_000m))
-                    {
-                        OnEventTriggered?.Invoke("⚠️ BANKRUPTCY WARNING: Cannot pay 50,000 NOK non-compliance fine. Balance: " + FinanceManager.Balance.ToString("N0") + " NOK");
-                        FinanceManager.ForceSpend(50_000m);
-                    }
-                    else
-                    {
+                    bool affordable = FinanceManager.CanAfford(NonComplianceFineNok);
+                    PayCost(NonComplianceFineNok, CostBooking.Opex, "fines",
+                        "⚠️ BANKRUPTCY WARNING: Cannot pay 50,000 NOK non-compliance fine. Balance: " + FinanceManager.Balance.ToString("N0") + " NOK");
+                    if (affordable)
                         OnEventTriggered?.Invoke("💸 Non-compliance fine: 50,000 NOK");
-                    }
                 }
             }
         }
@@ -1413,9 +2361,10 @@ namespace LakskongenSim.Core
         {
             // Notify UI
             OnEventFired?.Invoke(record);
+            PublishStoryEvent(record);   // U2-06: the typed event bus
             OnEventTriggered?.Invoke($"📣 [{record.Category}] {record.Name}: {record.Description}");
 
-            Console.WriteLine($"[Day {record.Day}] EVENT: {record.Name} — {record.Description} ({record.BalanceChange:+#,0;-#,0;0} NOK)");
+            SimLog.Info($"[Day {record.Day}] EVENT: {record.Name} — {record.Description} ({record.BalanceChange:+#,0;-#,0;0} NOK)");
 
             // Audio: map event category to alert sounds
             switch (record.Category)
@@ -1454,6 +2403,17 @@ namespace LakskongenSim.Core
             // Run extra disease update days to reflect outbreak escalation
             if (State.Populations.Count > 0)
                 IntegratedDisease?.Update(State.Zones.ToList(), State.Populations.ToList(), 3);
+
+            // P11: catastrophe insurance payout for the realized disease loss.
+            // ISA detection mandates a cull → ISA cover; other outbreaks map to
+            // routine mortality cover.
+            if (record != null && record.BalanceChange < 0m)
+            {
+                var kind = string.Equals(record.Id, "isa-outbreak", StringComparison.OrdinalIgnoreCase)
+                    ? InsuranceKind.ISA
+                    : InsuranceKind.Mortality;
+                PayInsurance(kind, -record.BalanceChange, record.Name, EventCategory.Disease);
+            }
         }
 
         private void ApplyWeatherConsequence(EventRecord record)
@@ -1542,7 +2502,7 @@ namespace LakskongenSim.Core
         /// <summary>
         /// Calculate player's market share in Norwegian salmon production.
         /// </summary>
-        private float CalculatePlayerMarketShare()
+        internal float CalculatePlayerMarketShare()
         {
             double totalBiomass = State.Populations.Sum(p => p.GetTotalBiomassKg());
             float playerWeeklyHarvest = (float)(totalBiomass / 1000.0); // Convert to tonnes
@@ -1551,9 +2511,712 @@ namespace LakskongenSim.Core
         }
 
         /// <summary>
-        /// Build EmpireState snapshot for EmpireProgressionSystem.
+        /// Weekly traffic-light assessment (Phase 1.3): each zone is assessed
+        /// from the live lice load of its populations. MAB consequence applies
+        /// exactly once per color change; steady colors never compound.
         /// </summary>
-        private Finance.EmpireState BuildEmpireState()
+        /// <summary>
+        /// Phase 2.1 daily per-site lice: advance each stocked site's model
+        /// under local conditions, decay resistance, then spread copepodids
+        /// between sites (same zone couples strongly, across zones weakly).
+        /// Also decays each population's delousing-injury load.
+        /// </summary>
+        internal void AdvanceSiteLiceModels()
+        {
+            if (State.SeaSites.Count == 0)
+                return;
+
+            foreach (var site in State.SeaSites)
+            {
+                double biomassKg = 0.0;
+                int fish = 0;
+                foreach (var pen in site.Pens)
+                {
+                    foreach (var c in pen.Cohorts)
+                    {
+                        biomassKg += c.Count * c.MeanWeightKg;
+                        fish += c.Count;
+                    }
+                    // P4: injury loads heal with time (handled here so the
+                    // compounding only bites on repeat treatments).
+                    pen.TreatmentHarm = Health.DelousingHarmModel.AdvanceDay(pen.TreatmentHarm);
+                }
+                if (fish <= 0)
+                    continue;
+
+                var zone = State.Zones.FirstOrDefault(z => z.Id == site.ZoneId);
+                double volumeM3 = Math.Max(1.0, (double)site.PenVolume * Math.Max(1, site.NumberOfPens));
+                // S2-02: the lice develop at the site's own water temperature.
+                site.Lice.SetEnvironment(
+                    SeaTemperatureAtSite(site),
+                    35.0,
+                    zone?.CurrentSpeed ?? 0.15,
+                    biomassKg / volumeM3);
+                site.Lice.SetExternalPressure(SeasonalLicePressure(State.Day) * ExternalLicePressureFor(site)); // F2 hook (F2-08)
+                // The site's own skirt, containment and barrier block settlement on
+                // the lice that are counted and regulated. They used to reach only
+                // the company-wide rollup, so paid mitigation never lowered a
+                // site's count, traffic light or Mattilsynet exposure.
+                site.Lice.PreventiveCoverage01 = SiteSettlementBlocking(site);
+                site.Lice.AdvanceDay();
+                site.Lice.AdvanceResistanceDecay(1);
+            }
+
+            // Farm-to-farm infection: adult females shed copepodids onto
+            // neighbours, attenuated by zone separation.
+            foreach (var site in State.SeaSites)
+            {
+                double inflow = 0.0;
+                foreach (var other in State.SeaSites)
+                {
+                    if (ReferenceEquals(other, site))
+                        continue;
+                    double coupling = other.ZoneId == site.ZoneId ? 0.4 : 0.08;
+                    inflow += other.Lice.AdultFemalePerFish * coupling;
+                }
+                if (inflow > 0.0001)
+                    site.Lice.SeedExternalInfection(Math.Min(inflow * 0.02, 0.05));
+            }
+        }
+
+        /// <summary>
+        /// Phase 2.1 weekly lice census: mirror each site model onto its pens
+        /// (traffic lights, limits and UI read pen loads), count adult
+        /// females where the site's water is warm enough to count (≥4 °C),
+        /// enforce the site's legal limit (0.5; 0.2 in its production area's
+        /// spring ISO weeks, 16–21 up to Nord-Trøndelag and 21–26 further north,
+        /// S2-02), and escalate repeat breaches into Mattilsynet treatment orders
+        /// with forced treatment past the deadline.
+        /// </summary>
+        internal void UpdateSiteLiceCounts()
+        {
+            foreach (var site in State.SeaSites)
+            {
+                int fish = site.Pens.SelectMany(p => p.Cohorts).Sum(c => c.Count);
+                if (fish <= 0)
+                    continue;
+                double temperature = SeaTemperatureAtSite(site);
+                double limit = LiceLimitAtSite(site);
+
+                // Self-starting: scenario/hatchery stockings set population
+                // loads without seeding the site model — re-seed from the
+                // worst pen instead of zeroing everyone's lice.
+                if (site.Lice.AverageLicePerFish <= 0.001)
+                {
+                    double maxLoad = site.Pens.Max(p => p.SeaLiceLoad);
+                    if (maxLoad > 0.01)
+                        site.Lice.SeedExternalInfection(Math.Min(maxLoad, 0.5));
+                }
+
+                double avgLice = site.Lice.AverageLicePerFish;
+                foreach (var pen in site.Pens)
+                    pen.SeaLiceLoad = avgLice;
+
+                // No counting obligation below 4 °C.
+                if (temperature < 4.0)
+                    continue;
+
+                site.LastLiceCount = site.Lice.AdultFemalePerFish;
+                site.LastLiceCountDay = State.Day;
+
+                if (site.LastLiceCount > limit)
+                    site.ConsecutiveLiceBreaches++;
+                else
+                    site.ConsecutiveLiceBreaches = 0;
+
+                if (site.TreatmentOrderDueDay >= 0 && site.LastLiceCount <= limit)
+                {
+                    // Back under the limit before the deadline: the order is
+                    // satisfied. Without this, a player who complied still got
+                    // a forced (paid, harmful) treatment at the deadline (F1133).
+                    site.TreatmentOrderDueDay = -1;
+                    site.ConsecutiveLiceBreaches = 0;
+                    State.EventLog.Add(new Events.EventRecord
+                    {
+                        Day = State.Day,
+                        Name = "Mattilsynet order closed",
+                        Category = Events.EventCategory.Regulation,
+                        Description = SimText.Nb($"Mattilsynet: {site.Label} er under lusegrensen igjen ({site.LastLiceCount:F2} mot {limit:F1}); pålegget om behandling er lukket."),
+                        BalanceChange = 0m
+                    });
+                    State.TrimEventLog();
+                    OnEventTriggered?.Invoke(
+                        SimText.Nb($"✅ Mattilsynet: {site.Label} er under lusegrensen igjen ({site.LastLiceCount:F2} mot {limit:F1}) — pålegget er lukket."));
+                }
+                else if (site.ConsecutiveLiceBreaches >= 2 && site.TreatmentOrderDueDay < 0)
+                {
+                    site.TreatmentOrderDueDay = State.Day + 14;
+                    State.EventLog.Add(new Events.EventRecord
+                    {
+                        Day = State.Day,
+                        Name = "Mattilsynet order",
+                        Category = Events.EventCategory.Regulation,
+                        Description = SimText.Nb($"Mattilsynet: {site.Label} er over lusegrensen ({site.LastLiceCount:F2} voksne hunnlus mot {limit:F1} tillatt). Avlus innen 14 dager."),
+                        BalanceChange = 0m
+                    });
+                    State.TrimEventLog();
+                    OnEventTriggered?.Invoke(
+                        SimText.Nb($"📋 Mattilsynet: {site.Label} er over lusegrensen ({site.LastLiceCount:F2} mot {limit:F1}) — avlus innen 14 dager!"));
+                }
+                else if (site.TreatmentOrderDueDay >= 0 && State.Day > site.TreatmentOrderDueDay)
+                {
+                    EnforceLiceTreatmentOrder(site, temperature);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Mattilsynet deadline passed: forced delousing at the player's
+        /// expense, breaches reset. The state does not negotiate.
+        /// </summary>
+        /// <summary>Result of a full-site delousing pass (shared player/regulation kernel).</summary>
+        private sealed class SiteDelousingOutcome
+        {
+            public bool Applied = false;
+            public string CancelReason = "";
+            public int TotalFish = 0;
+            public int TotalDeaths = 0;
+            public double GillDamage = 0.0;
+            public decimal Cost = 0m;
+        }
+
+        /// <summary>
+        /// Treatment-mortality multiplier for a site: crew (veterinarian) and
+        /// gill health (Phase 4.3: damaged gills can't take heat/handling,
+        /// up to +150%). Shared by the player verb and regulatory enforcement.
+        /// </summary>
+        private double ComputeSiteTreatmentMortalityMultiplier(SeaSite site)
+        {
+            double mortMult = CrewEffects.TreatmentMortalityMultiplier(State);
+            double worstGill = site.GillScore;
+            return mortMult * (1.0 + (1.0 - worstGill / 100.0) * 1.5);
+        }
+
+        /// <summary>
+        /// Treat every live pen of a site with one delousing method (all-pens
+        /// semantics). Lice kill and gill capture happen once per site;
+        /// handling mortality and harm per pen. Payment, bookkeeping and the
+        /// event log stay with the caller so the player verb (validated,
+        /// spend) and regulation (force-paid) share one model.
+        /// </summary>
+        private SiteDelousingOutcome ApplySiteDelousing(Farm.SeaSite site,
+            Data.DelousingMethod method, double tempC, double mortMult,
+            IReadOnlyList<FishPopulation>? pens = null, double liceKillShare = 1.0)
+        {
+            var outcome = new SiteDelousingOutcome();
+            var delousing = new Farm.DelousingSystem();
+            bool siteLiceKillDone = false;
+            bool gillCaptured = false;
+            // S2-01b: a treatment of chosen pens handles only their fish and
+            // kills the site model's lice on the treated share of the fish.
+            foreach (var pop in pens ?? site.Pens)
+            {
+                if (pop.TotalCount <= 0) continue;
+                var result = delousing.Treat(pop, method, site.Lice, IntegratedDisease,
+                    tempC, mortMult, applyCompanyLiceKill: !siteLiceKillDone, liceKillShare: liceKillShare);
+                if (!result.Success)
+                {
+                    outcome.CancelReason = result.Message;
+                    continue;
+                }
+                siteLiceKillDone = true;
+                outcome.Applied = true;
+                outcome.TotalFish += result.FishTreated;
+                outcome.TotalDeaths += result.Deaths;
+                outcome.Cost += result.Cost;
+                if (!gillCaptured)
+                {
+                    outcome.GillDamage = result.GillDamage;
+                    gillCaptured = true;
+                }
+            }
+            return outcome;
+        }
+
+        private void EnforceLiceTreatmentOrder(SeaSite site, double temperatureC)
+        {
+            var target = site.Pens.FirstOrDefault(p => p.TotalCount > 0);
+            if (target == null)
+            {
+                site.TreatmentOrderDueDay = -1;
+                site.ConsecutiveLiceBreaches = 0;
+                return;
+            }
+
+            // Phase 1 wave 3: regulation drives the SAME treatment kernel as
+            // the player verb, so a Mattilsynet order treats the WHOLE site
+            // (previously only the first pen) with identical model semantics —
+            // crew/gill multipliers included (documented decision; the old
+            // forced path silently used a flat 1.0 multiplier).
+            var outcome = ApplySiteDelousing(site, Data.DelousingMethod.Thermolicer,
+                temperatureC, ComputeSiteTreatmentMortalityMultiplier(site));
+
+            if (outcome.Applied)
+            {
+                PayCost(outcome.Cost, CostBooking.Opex, "delousing");
+                site.GillScore = Math.Max(0.0, site.GillScore - outcome.GillDamage * 50.0);
+
+                State.EventLog.Add(new Events.EventRecord
+                {
+                    Day = State.Day,
+                    Name = "Forced delousing",
+                    Category = Events.EventCategory.Regulation,
+                    Description = SimText.Nb($"Pålegget fra Mattilsynet om avlusing på {site.Label} ble ikke fulgt — tvangsbehandling med termisk avlusing av {outcome.TotalFish:N0} fisk kostet {outcome.Cost:N0} kr."),
+                    BalanceChange = -outcome.Cost
+                });
+                State.TrimEventLog();
+                OnEventTriggered?.Invoke(SimText.Nb($"⚖️ Tvangsavlusing på {site.Label}: {outcome.Cost:N0} kr."));
+            }
+            else
+            {
+                // Temperature window closed (e.g. Thermolicer < 6 °C) — the
+                // order still closes, logged honestly instead of a silent 0-cost "success".
+                State.EventLog.Add(new Events.EventRecord
+                {
+                    Day = State.Day,
+                    Name = "Forced delousing",
+                    Category = Events.EventCategory.Regulation,
+                    Description = $"Pålegget fra Mattilsynet på {site.Label} kunne ikke gjennomføres: {outcome.CancelReason}",
+                    BalanceChange = 0m
+                });
+                State.TrimEventLog();
+            }
+
+            site.TreatmentOrderDueDay = -1;
+            site.ConsecutiveLiceBreaches = 0;
+        }
+
+        /// <summary>
+        /// Phase 2.1 company rollup: biomass-weighted mean lice across stocked
+        /// sites. Falls back to the legacy company model when nothing is stocked.
+        /// </summary>
+        public double GetCompanyLiceAverage()
+        {
+            double liceFish = 0.0;
+            long fish = 0;
+            foreach (var site in State.SeaSites)
+            {
+                foreach (var pen in site.Pens)
+                {
+                    foreach (var c in pen.Cohorts)
+                    {
+                        liceFish += c.Count * site.Lice.AverageLicePerFish;
+                        fish += c.Count;
+                    }
+                }
+            }
+            if (fish > 0)
+                return liceFish / fish;
+            return SeaLice?.AverageLicePerFish ?? 0.0;
+        }
+
+        /// <summary>The name of a site id as the player reads it.</summary>
+        private string SiteLabelOf(string siteId) =>
+            State.SeaSites.FirstOrDefault(s => s.Id == siteId)?.Label ?? Farm.SiteNames.Humanize(siteId);
+
+        /// <summary>Norwegian name of a bloom kind for the event log.</summary>
+        private static string BloomName(string kind) => kind switch
+        {
+            "jellyfish" => "Maneter",
+            "algae" => "Algeoppblomstring",
+            "hypoxia" => "Oksygensvikt",
+            _ => "Oppblomstring"
+        };
+
+        /// <summary>The Norwegian name of a traffic-light colour ("Green" → "grønn").</summary>
+        private static string TrafficLightName(ZoneColor color) => color switch
+        {
+            ZoneColor.Green => "grønn",
+            ZoneColor.Yellow => "gul",
+            ZoneColor.Red => "rød",
+            _ => color.ToString()
+        };
+
+        /// <summary>A zone as the player reads it: the name of its first site
+        /// ("PO3 Nord"), else a readable form of the id.</summary>
+        private string ZoneLabel(string zoneId)
+        {
+            var site = State.SeaSites.FirstOrDefault(s => s.ZoneId == zoneId);
+            return site != null && !string.IsNullOrWhiteSpace(site.DisplayName)
+                ? site.DisplayName
+                : Farm.SiteNames.Humanize(zoneId);
+        }
+
+        /// <summary>
+        /// A zone's fish and fish-weighted lice per fish, the traffic light's
+        /// assessment input: every population tagged with the zone, each through
+        /// the F2 hook <see cref="ZoneLiceContribution"/> with the site that holds
+        /// it, summed in the population list's order (0 lice when no fish count).
+        /// </summary>
+        internal (int Fish, double Lice) ZoneLiceForTrafficLight(string zoneId)
+        {
+            int fish = 0;
+            double liceWeighted = 0.0;
+            foreach (var population in State.Populations)
+            {
+                if (population.ZoneId != zoneId) continue;
+                var share = ZoneLiceContribution(HoldingOf(population).Site, population);
+                fish = checked(fish + share.Fish);
+                liceWeighted += share.LiceWeightedFish;
+            }
+            return (fish, fish > 0 ? liceWeighted / fish : 0.0);
+        }
+
+        internal void UpdateTrafficLightZones()
+        {
+            if (TrafficLightSystem == null || State.Zones.Count == 0) return;
+
+            foreach (var zone in State.Zones)
+            {
+                var (_, lice) = ZoneLiceForTrafficLight(zone.Id);
+
+                var before = TrafficLightSystem.GetZoneColor(zone.Id);
+                var after = TrafficLightSystem.AssessZone(zone.Id, lice);
+                if (after == before) continue;
+
+                double factor = TrafficLightSystem.ApplyMABConsequence(zone);
+                string lightDescription = SimText.Nb($"{ZoneLabel(zone.Id)} → {TrafficLightName(after)} (lus {lice:F2} per fisk, MTB ×{factor:F2})");
+                State.EventLog.Add(new EventRecord
+                {
+                    Day = State.Day,
+                    Name = $"Trafikklys: {TrafficLightName(after)}",
+                    Category = EventCategory.Regulation,
+                    Description = lightDescription,
+                    BalanceChange = 0m
+                });
+                State.TrimEventLog();
+                PublishTrafficLightEvent(zone.Id, after, lightDescription);   // U2-06
+                SimLog.Info($"🚦 Zone {zone.Id} → {after} (lice {lice:F2}, MAB ×{factor:F2})");
+
+                // Phase 4.1: red-zone MAB credit for contained sites (SimulationEngine.Containment.cs).
+                ApplyRedZoneContainmentCredit(zone.Id, after);
+
+                // Phase 5.5: regulatory chess — orders on RED entry, cleared on exit.
+                if (after.ToString() == "Red")
+                    IssueMattilsynetOverMabOrders(zone.Id);
+                else
+                    ClearMattilsynetOverMabOrders(zone.Id);
+            }
+        }
+
+    /// <summary>
+    /// Phase 5.5: Regulatory chess — felt consequence.
+    /// When a zone goes RED, issue Mattilsynet over-MAB orders with deadlines.
+    /// When a zone exits RED, clear any remaining over-MAB orders.
+    /// </summary>
+    private void IssueMattilsynetOverMabOrders(string zoneId)
+    {
+        // Capacity v1 (S2-01a) reads every site against its MTB every day and
+        // orders the reduction itself; this red-zone order is the rule of an
+        // engine without a licence register.
+        if (CapacityRulesActive) return;
+        foreach (var site in State.SeaSites.Where(s => s.ZoneId == zoneId))
+        {
+            if (site.IsOverMAB && !site.HasActiveMattilsynetOrder)
+            {
+                int deadline = State.Day + 14; // 14-day deadline
+                site.MattilsynetDeadlineDay = deadline;
+                site.MattilsynetOrderFulfilled = false;
+
+                State.EventLog.Add(new EventRecord
+                {
+                    Day = State.Day,
+                    Name = "Mattilsynet MAB-beskjed",
+                    Category = EventCategory.Regulation,
+                    Description = SimText.Nb($"{ZoneLabel(zoneId)}: {site.Label} er over MTB ({site.CurrentBiomassTonnes:F1}t > {site.MABTonnes:F1}t). Avlus eller slakt ned innen dag {deadline}, ellers tvangsavslakt til redusert pris."),
+                    BalanceChange = 0m
+                });
+                SimLog.Info($"📋 Mattilsynet MAB-beskjed: {site.Id} → deadline day {deadline}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Clear Mattilsynet over-MAB orders when zone exits RED status.
+    /// </summary>
+    private void ClearMattilsynetOverMabOrders(string zoneId)
+    {
+        foreach (var site in State.SeaSites.Where(s => s.ZoneId == zoneId))
+        {
+            if (site.HasActiveMattilsynetOrder)
+            {
+                site.MattilsynetDeadlineDay = -1;
+                site.MattilsynetOrderFulfilled = false;
+
+                State.EventLog.Add(new EventRecord
+                {
+                    Day = State.Day,
+                    Name = "Mattilsynet besked trukket",
+                    Category = EventCategory.Regulation,
+                    Description = $"{ZoneLabel(zoneId)}: {site.Label} er ikke lenger i rød sone — MTB-pålegget er trukket.",
+                    BalanceChange = 0m
+                });
+                SimLog.Info($"📋 Mattilsynet MAB-beskjed trukket for {site.Id} (sone {zoneId} ikke lenger rød)");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Process Mattilsynet over-MAB orders daily: check deadlines,
+    /// execute forced harvest at penalty price if missed.
+    /// </summary>
+    internal void ProcessMattilsynetOverMabOrders()
+    {
+        foreach (var site in State.SeaSites.Where(s => s.HasActiveMattilsynetOrder && !s.MattilsynetOrderFulfilled))
+        {
+            if (State.Day >= site.MattilsynetDeadlineDay)
+            {
+                // Deadline missed → forced harvest at 70% of market price
+                decimal penaltyPrice = MarketSimulation?.PricePerKg ?? 70m;
+                penaltyPrice = Math.Round(penaltyPrice * 0.7m, 2);
+
+                double biomassT = site.CurrentBiomassTonnes;
+                double harvestT = Math.Min(biomassT, site.CurrentBiomassTonnes - site.MABTonnes);
+                if (harvestT < 0.1) harvestT = biomassT; // harvest all if barely over
+
+                // S2-04: sold through the harvest pipeline (HOG kilos, size
+                // classes, grades) at 70% of the price, less the harvest cost.
+                // The pipeline takes the fish themselves (S2-05 ledger:
+                // FishRemoval.ForcedHarvest), so the sale and the removal match.
+                decimal revenue = SellForcedHarvest(site, harvestT, 0.7m);
+
+                // Record event
+                State.EventLog.Add(new EventRecord
+                {
+                    Day = State.Day,
+                    Name = "Tvangsavslakt (Mattilsynet)",
+                    Category = EventCategory.Regulation,
+                    Description = SimText.Nb($"{site.Label}: Fristen er ute. {harvestT:F1}t tvangsavslattet til {penaltyPrice:F2} kr/kg (30 % straff)."),
+                    BalanceChange = revenue
+                });
+                SimLog.Info($"⚠️ Tvangsavslakt: {site.Id} {harvestT:F1}t til {penaltyPrice:F2} NOK/kg");
+
+                site.MattilsynetOrderFulfilled = true;
+                site.MattilsynetDeadlineDay = -1;
+            }
+            else if (!site.IsOverMAB)
+            {
+                // Player harvested enough to get under MAB before deadline
+                site.MattilsynetOrderFulfilled = true;
+                site.MattilsynetDeadlineDay = -1;
+
+                State.EventLog.Add(new EventRecord
+                {
+                    Day = State.Day,
+                    Name = "Mattilsynet MAB-oppgjør",
+                    Category = EventCategory.Regulation,
+                    Description = $"{site.Label}: Biomassen er under MTB. Pålegget er oppfylt — ingen tvangsslakting.",
+                    BalanceChange = 0m
+                });
+                SimLog.Info($"✅ Mattilsynet MAB-oppgjør: {site.Id} under MAB før deadline");
+            }
+        }
+    }
+
+
+        // Preventive coverage, the sites' settlement blocking and the barrier's
+        // flow: SimulationEngine.Containment.cs (F2-02).
+
+        /// <summary>
+        /// Weekly bloom roll + damage (Phase 4.3). Spawns seasonal events per
+        /// zone, ticks gill damage + mortality on afflicted sites, heals clean
+        /// sites, expires old blooms, charges countermeasure opex.
+        /// </summary>
+        internal void RollBloomWeek()
+        {
+            int dayOfYear = SimCalendar.DayOfYear(State.Day);
+            bool calm = Weather == null || Weather.CurrentState.ToString() == "Calm"
+                || Weather.CurrentState.ToString() == "Moderate";
+            bool vet = Core.CrewEffects.HasRole(State, "veterinaer");
+
+            // Spawn per zone, each on its own water temperature (S2-02).
+            foreach (var zone in State.Zones)
+            {
+                var sites = State.SeaSites
+                    .Where(s => s.ZoneId == zone.Id && s.Pens.Any(p => p.TotalCount > 0))
+                    .ToList();
+                if (sites.Count == 0) continue;
+                var site = sites[_rng.Next(sites.Count)];
+                double temp = SeaTemperatureOfZone(zone.Id);
+
+                TrySpawnBloom(site, "jellyfish", dayOfYear,
+                    LakskongenSim.Environment.BloomEventDeck.InJellySeason(dayOfYear) ? 0.10 : 0.0);
+                TrySpawnBloom(site, "algae", dayOfYear,
+                    LakskongenSim.Environment.BloomEventDeck.InAlgaeSeason(dayOfYear) && temp > 10.0 ? 0.12 : 0.0);
+                TrySpawnBloom(site, "hypoxia", dayOfYear,
+                    temp > 14.0 && calm ? 0.08 : 0.0);
+            }
+
+            // Tick damage + recovery + expiry.
+            foreach (var bloom in State.ActiveBlooms.ToList())
+            {
+                var site = State.SeaSites.FirstOrDefault(s => s.Id == bloom.SiteId);
+                if (site == null || bloom.IsExpired(State.Day))
+                {
+                    State.ActiveBlooms.Remove(bloom);
+                    continue;
+                }
+                double cm = LakskongenSim.Environment.BloomEventDeck.CounterMult(site, bloom.Kind)
+                    * LakskongenSim.Environment.BloomEventDeck.ContainmentMult(site, bloom.Kind)
+                    * (vet ? 0.8 : 1.0);
+
+                // P8: a permeable barrier also excludes jellyfish
+                // (SimulationEngine.Containment.cs); no barrier leaves cm unchanged.
+                cm *= BarrierBloomPassFraction(site, bloom.Kind);
+                if (cm <= 0.0) continue; // fully dodged (contained)
+                double gillDmg = bloom.Kind switch
+                {
+                    "jellyfish" => LakskongenSim.Environment.BloomEventDeck.JellyGillPerWeek,
+                    "algae" => LakskongenSim.Environment.BloomEventDeck.AlgaeGillPerWeek,
+                    _ => LakskongenSim.Environment.BloomEventDeck.HypoxiaGillPerWeek
+                } * bloom.Severity01 * cm;
+                site.GillScore = Math.Max(0.0, site.GillScore - gillDmg);
+
+                // Wave 2 sim-a-1: the hypoxia card is an in-cage oxygen sag that
+                // lowers the pens' water (HoldingWaterOf); it kills only the fish
+                // whose own oxygen is below the acute limit (per pen, below), not
+                // a flat share of the site whatever the water held.
+                bool oxygenSag = bloom.Kind == "hypoxia";
+                double mortRate = oxygenSag
+                    ? (vet ? 0.8 : 1.0)
+                    : bloom.Kind switch
+                    {
+                        "jellyfish" => 0.05, "algae" => 0.07, _ => 0.03
+                    } * bloom.Severity01 * cm;
+
+                // P11: an installed bloom mitigation blunts mortality and incurs
+                // an incident deployment/operating cost. No installed kit keeps
+                // the baseline behaviour unchanged.
+                var mitigation = ChooseBloomMitigation(site, bloom.Kind);
+                if (mitigation != MitigationKind.None)
+                {
+                    var outcome = BloomMitigation.MitigationEffectiveness(
+                        mitigation, bloom.Severity01, bloom.Kind);
+                    mortRate *= 1.0 - Math.Clamp(outcome.MortalityReductionFraction, 0.0, 1.0);
+                    PayCost(outcome.CostNok, CostBooking.Opex, "bloom_mitigation");
+                }
+
+                int killed = 0;
+                double lostKg = 0.0;
+                var bloomCause = MortalityCauses.ForBloomKind(bloom.Kind);
+                foreach (var pop in site.Pens)
+                {
+                    double popRate = oxygenSag ? mortRate * LowOxygenDeathFraction(pop) : mortRate;
+                    foreach (var cohort in pop.Cohorts)
+                    {
+                        int take = pop.RemoveDead(cohort, (int)(cohort.Count * popRate), bloomCause);
+                        killed += take;
+                        lostKg += take * cohort.MeanWeightKg;
+                    }
+                }
+                if (killed > 0)
+                {
+                    SimLog.Info($"🪼 Bloom {bloom.Kind} killed {killed:N0} at {site.Id} (gill {site.GillScore:F0})");
+
+                    // P11: catastrophe insurance payout on the realized bloom loss.
+                    decimal bloomPrice = MarketSimulation?.PricePerKg ?? _balancing.BaseSalmonPricePerKg;
+                    PayInsurance(
+                        InsuranceKind.Bloom,
+                        (decimal)lostKg * bloomPrice,
+                        $"{BloomName(bloom.Kind)} på {site.Label}",
+                        EventCategory.PlanktonBloom);
+                }
+            }
+
+            // Recovery on clean sites.
+            foreach (var site in State.SeaSites)
+            {
+                if (!State.ActiveBlooms.Any(b => b.SiteId == site.Id))
+                    site.GillScore = Math.Min(100.0, site.GillScore + LakskongenSim.Environment.BloomEventDeck.GillRecoveryPerWeek);
+                // Countermeasure standing opex.
+                decimal opex = (site.HasBubbleCurtain ? 90_000m : 0m) + (site.HasO2Diffuser ? 120_000m : 0m);
+                PayCost(opex, CostBooking.Opex, "bloom_countermeasures");
+            }
+        }
+
+        private void TrySpawnBloom(Farm.SeaSite site, string kind, int dayOfYear, double p)
+        {
+            if (p <= 0.0 || _rng.NextDouble() >= p) return;
+            if (State.ActiveBlooms.Any(b => b.SiteId == site.Id && b.Kind == kind)) return;
+            var bloom = new LakskongenSim.Environment.BloomEvent
+            {
+                Kind = kind, SiteId = site.Id,
+                Severity01 = 0.4 + _rng.NextDouble() * 0.6,
+                StartDay = State.Day, DurationDays = 7 + _rng.Next(15)
+            };
+            State.ActiveBlooms.Add(bloom);
+            State.EventLog.Add(new Events.EventRecord
+            {
+                Day = State.Day,
+                Name = kind == "jellyfish" ? "Manetoppblomstring" : kind == "algae" ? "Algeoppblomstring" : "Oksygenfall",
+                Category = Events.EventCategory.Weather,
+                Description = $"{BloomName(bloom.Kind)} på {site.Label} — sjekk gjellene og vurder tiltak",
+                BalanceChange = 0m
+            });
+            State.TrimEventLog();
+            SimLog.Info($"🪼 Bloom {kind} @ {site.Id} (sev {bloom.Severity01:F2})");
+        }
+
+        /// <summary>
+        /// P11: pick the mitigation actually installed at a site that best
+        /// addresses <paramref name="bloomKind"/>. Prefers the specialist
+        /// (<see cref="BloomMitigation.BestFor"/>), then falls back to whichever
+        /// flag-backed intervention is installed (target-aware effectiveness
+        /// discounts a mismatched tool). Returns <see cref="MitigationKind.None"/>
+        /// when nothing is installed.
+        /// </summary>
+        private static MitigationKind ChooseBloomMitigation(Farm.SeaSite? site, string bloomKind)
+        {
+            if (site == null) return MitigationKind.None;
+            var best = BloomMitigation.BestFor(bloomKind);
+            if (best != MitigationKind.None && BloomMitigation.IsInstalled(best, site))
+                return best;
+            if (BloomMitigation.IsInstalled(MitigationKind.O2Diffuser, site))
+                return MitigationKind.O2Diffuser;
+            if (BloomMitigation.IsInstalled(MitigationKind.BubbleCurtain, site))
+                return MitigationKind.BubbleCurtain;
+            return MitigationKind.None;
+        }
+
+        /// <summary>
+        /// P11: settle a catastrophe insurance claim. Computes the payout for
+        /// <paramref name="kind"/> against the realized <paramref name="lossNok"/>,
+        /// books it as revenue and logs an event. No-op when there is no policy
+        /// or the loss is fully retained (below deductible).
+        /// </summary>
+        internal void PayInsurance(InsuranceKind kind, decimal lossNok, string cause, EventCategory category)
+        {
+            if (Insurance == null || lossNok <= 0m) return;
+            decimal payout = Insurance.ComputePayout(kind, lossNok);
+            if (payout <= 0m) return;
+
+            // Booked as insurance income, not harvest revenue (review F1132).
+            ReceiveIncome(payout, "insurance");
+
+            string payoutDescription = SimText.Nb($"Forsikringen dekket {payout:N0} av {lossNok:N0} kr i tap — {cause}");
+            State.EventLog.Add(new Events.EventRecord
+            {
+                Day = State.Day,
+                Id = $"insurance-{kind.ToString().ToLowerInvariant()}",
+                Name = "Forsikringsoppgjør",
+                Category = category,
+                Description = payoutDescription,
+                BalanceChange = payout
+            });
+            State.TrimEventLog();
+            PublishGameEvent(new GameEventRequest(GameEventType.InsurancePayout, State.Day)   // U2-06
+            {
+                Variant = kind.ToString().ToLowerInvariant(),
+                Message = payoutDescription,
+                Value = (double)payout
+            });
+            OnEventTriggered?.Invoke($"🛡️ Forsikringsutbetaling ({kind}): {payout:N0} NOK");
+        }
+
+        /// <summary>
+        /// Build EmpireState snapshot for EmpireProgressionTickSystem.
+        /// </summary>
+        internal Finance.EmpireState BuildEmpireState()
         {
             decimal annualRevenue = FinancialStatements?.Revenue ?? 0m;
             decimal annualEBITDA = FinancialStatements?.ComputeNetIncome() ?? 0m;
@@ -1597,12 +3260,236 @@ namespace LakskongenSim.Core
         /// </summary>
         public void PrepareForSave()
         {
+            ReconcileUnbookedCash();
             #pragma warning disable CS0618 // Type or member is obsolete
             State.Balance = FinanceManager.Balance;
             #pragma warning restore CS0618
 
             // T74: Sync all empire systems to GameState for serialization
             SyncEmpireSystemsToState();
+
+            // P9/P11: Sync insurance, resource-rent tax, pen-price council and
+            // bloom mitigations so top-tier depth state survives saves.
+            SyncDepthSystemsToState();
+
+            // Phase 1 wave 5: snapshot the runtime cadence (interval clocks,
+            // storm edge, event gating) so a loaded game CONTINUES instead of
+            // resetting weekly/quarterly beats and edge detectors.
+            var runtime = new EngineRuntimeSnapshot
+            {
+                WeatherEdgeState = _lastWeatherState.ToString(),
+                StormEpisodePeakSeverity = _stormEpisodePeakSeverity,
+                EventsEnabled = _enableEvents
+            };
+            var clocks = new List<int>(_inDayPhases.Length);
+            var clocksByName = new List<KeyValuePair<string, int>>();
+            foreach (var phase in _inDayPhases)
+            {
+                if (phase is ITickClock clock)
+                {
+                    clocks.Add(clock.ClockValue);
+                    clocksByName.Add(new(phase.GetType().Name, clock.ClockValue));
+                }
+                else
+                {
+                    clocks.Add(0);
+                }
+            }
+            runtime.InDayClocks = clocks.ToArray();
+            runtime.ClocksBySystem = new Dictionary<string, int>(clocksByName);
+
+            // Phase 1 wave 6: RNG stream positions + the stateful sub-models
+            // so a loaded game CONTINUES exactly (enables the save-hash test).
+            // Every subsystem RNG is a named SimRng stream owned by this
+            // engine's Rng service, so positions round-trip through
+            // SimStreamPositions (including per-identity streams).
+            runtime.SimStreamPositions = Rng.CaptureStates();
+
+            var pcState = PenPriceCouncil?.ExportState();
+            runtime.PriceCouncilSpots = pcState?.Spots;
+            runtime.PriceCouncilMonthly = pcState?.Monthly ?? 0m;
+            runtime.StorytellerLastEventDay = Storyteller?.LastEventDayForSnapshot ?? -9999;
+            runtime.StorytellerCooldowns = Storyteller?.CooldownsForSnapshot;
+            runtime.CurrencyStatePresent = true;
+            runtime.TrafficLightColors = TrafficLightSystem?.ExportColors();
+            runtime.SustainabilityLiveScore = SustainabilityManager?.CurrentScore;
+            runtime.SustainabilityLiveLevel = SustainabilityManager?.CurrentCertification;
+            var feedState = Feed.ExportState();
+            runtime.FeedFcr = feedState.Fcr;
+            runtime.FeedUsedKg = feedState.FeedUsedKg;
+            runtime.FeedGrowthKg = feedState.GrowthKg;
+            runtime.FeedLastAppetite = feedState.LastAppetite;
+            runtime.FeedSustainabilityRating = feedState.SustainRating;
+            var cur = CurrencySystem?.ExportCurrencyState() ?? (0, 0m, 0m, 0m, 0m, 2.5m);
+            runtime.CurrencyBankRate = cur.BankRate;
+            runtime.CurrencyDay = cur.Day;
+            runtime.CurrencyEur = cur.Eur;
+            runtime.CurrencyUsd = cur.Usd;
+            runtime.CurrencyJpy = cur.Jpy;
+            runtime.CurrencyGbp = cur.Gbp;
+
+            // Phase 1 wave 6: weather live state (season day, temperature,
+            // wind, wave, Markov state) — without this the season restarts
+            // at January and every downstream system diverges.
+            var wth = Weather;
+            runtime.WeatherStatePresent = wth != null;
+            if (wth != null)
+            {
+                runtime.WeatherDay = wth.SimulationDay;
+                runtime.WeatherTempC = wth.CurrentTemperatureC;
+                runtime.WeatherWindMs = wth.CurrentWindSpeedMs;
+                runtime.WeatherWaveM = wth.CurrentWaveHeight;
+                runtime.WeatherStateName = wth.CurrentState.ToString();
+                runtime.WeatherSeaAnomalyC = wth.SeaAnomalyC;
+                runtime.WeatherEventAnomalyC = wth.EventAnomalyC;
+                runtime.WeatherDailyFluctuationC = wth.DailyFluctuationC;
+                runtime.WeatherStormCoolingC = wth.StormCoolingC;
+            }
+
+            // Phase 1 wave 6: live statements + market trajectory. These were
+            // silently reset on every load before (fresh instances), which
+            // broke quarterly taxes/earnings and the whole price path.
+            var finState = FinancialStatements!.ExportState();
+            runtime.FinRevenue = finState.Revenue;
+            runtime.FinCogs = finState.Cogs;
+            runtime.FinOpex = finState.Opex;
+            runtime.FinInterest = finState.Interest;
+            runtime.FinTaxes = finState.Taxes;
+            runtime.FinCash = finState.Cash;
+            runtime.FinAssets = finState.Assets;
+            runtime.FinLiabilities = finState.Liabilities;
+            runtime.FinBiomassInventoryValue = finState.BiomassInventoryValue;
+            runtime.FinCurrentPeriod = finState.CurrentPeriod;
+            runtime.FinEvents = finState.Events;
+            runtime.FinCostBreakdown = FinancialStatements.ExportCostBreakdown();
+            runtime.FinRevenueBreakdown = FinancialStatements.ExportRevenueBreakdown();
+            runtime.FinLifetime = FinancialStatements.ExportLifetime();
+            var mktState = MarketSimulation!.ExportState();
+            runtime.MktBase = mktState.Base;
+            runtime.MktPrice = mktState.Price;
+            runtime.MktWeeklyAvg = mktState.WeeklyAvg;
+            runtime.MktLongMean = mktState.LongMean;
+            runtime.MktMeanRev = mktState.MeanRev;
+            runtime.MktVol = mktState.Vol;
+            runtime.MktSupplyIdx = mktState.SupplyIdx;
+            runtime.MktDemandIdx = mktState.DemandIdx;
+            runtime.MktCertMult = mktState.CertMult;
+            runtime.MktLastR2 = mktState.LastR2;
+            runtime.MktLastObs = mktState.LastObs;
+            runtime.MktSimDay = mktState.SimDay;
+            runtime.MktHistory = mktState.History;
+            runtime.MktPlayerPressure = MarketSimulation!.PlayerSupply.Pressure;
+            var shockState = MarketSimulation!.ExportShockState();
+            runtime.MktShockDays = shockState.ShockDays;
+            runtime.MktSupplyOffset = shockState.SupplyOffset;
+            runtime.MktDailyPrices = MarketSimulation!.ExportDailyPrices(); // F2-05: the weekly mean continues after a load
+            var intelState = MarketSimulation!.Intelligence.ExportState();
+            runtime.IntelWeek = intelState.Week;
+            runtime.IntelActive = intelState.Active;
+            runtime.IntelHistory = intelState.History;
+            runtime.IntelCompetitors = intelState.Competitors;
+            runtime.IntelPriceHistory = intelState.PriceHistory;
+            runtime.IntelBrandScore = intelState.BrandScore;
+            runtime.IntelBrandGood = intelState.BrandGood;
+            runtime.IntelBrandTotal = intelState.BrandTotal;
+            runtime.PlanktonBloomStates = PlanktonBloom?.GetAllBloomStates();
+            var aiState = AIFeeding.ExportState();
+            runtime.AiFeedInstalled = aiState.Installed;
+            runtime.AiFeedCalibration = aiState.Calibration;
+            runtime.AiFeedDays = aiState.Days;
+            runtime.AiFeedCameraUptime = aiState.CameraUptime;
+            runtime.AiFeedAppetite = aiState.Appetite;
+            runtime.AiFeedWaste = aiState.Waste;
+            runtime.AiFeedSavings = aiState.Savings;
+            runtime.AiFeedFcrMult = aiState.FcrMult;
+            runtime.AiFeedHistory = aiState.History;
+
+            State.Runtime = runtime;
+        }
+
+        /// <summary>
+        /// P9/P11: Sync the depth systems into GameState for serialization.
+        /// Insurance policies, resource-rent opt-in/paid total, the last Price
+        /// Council pen price, and (GameBridge-managed) bloom mitigations.
+        /// </summary>
+        public void SyncDepthSystemsToState()
+        {
+            SyncInsuranceToState();
+            State.EnableResourceRentTax = EnableResourceRentTax;
+            State.ResourceRentPaid = ResourceRentPaid;
+            State.PenPriceCouncilLastValue = PenPriceCouncil?.MonthlyPenPrice ?? 0m;
+        }
+
+        /// <summary>P11: mirror live insurance policies into GameState.</summary>
+        public void SyncInsuranceToState()
+        {
+            State.InsurancePolicies = Insurance?.Policies
+                .Select(p => new InsurancePolicyState
+                {
+                    Kind = p.Kind.ToString(),
+                    Premium = (double)p.PremiumNokPerYear,
+                    Coverage = p.CoverageFraction,
+                    Deductible = p.DeductibleNok
+                }).ToList() ?? new List<InsurancePolicyState>();
+        }
+
+        /// <summary>
+        /// P11: rebuild live insurance policies from GameState. Backward-safe:
+        /// null/absent list clears policies (matches pre-persistence behavior);
+        /// unknown kinds and non-finite numbers are skipped/sanitized.
+        /// </summary>
+        public void RestoreInsuranceFromState(GameState loadedState)
+        {
+            Insurance ??= new Finance.InsuranceSystem();
+            Insurance.ClearPolicies();
+            if (loadedState?.InsurancePolicies == null) return;
+
+            foreach (var p in loadedState.InsurancePolicies)
+            {
+                if (p == null || string.IsNullOrWhiteSpace(p.Kind)) continue;
+                if (!Enum.TryParse<InsuranceKind>(p.Kind, ignoreCase: true, out var kind)) continue;
+
+                double coverage = double.IsNaN(p.Coverage) || double.IsInfinity(p.Coverage)
+                    ? 0.0
+                    : p.Coverage;
+                double rawPremium = double.IsNaN(p.Premium) || double.IsInfinity(p.Premium)
+                    ? 0.0
+                    : p.Premium;
+                decimal premium = rawPremium > 0.0 ? (decimal)rawPremium : 0m;
+                decimal deductible = p.Deductible > 0m ? p.Deductible : 0m;
+
+                Insurance.Subscribe(new InsurancePolicy(kind, premium, coverage, deductible));
+            }
+        }
+
+        /// <summary>
+        /// P9/P11: restore insurance, resource-rent tax, Price Council price and
+        /// the bloom-mitigation mirror from a loaded GameState.
+        /// </summary>
+        private void RestoreDepthSystemsFromState(GameState loadedState)
+        {
+            RestoreInsuranceFromState(loadedState);
+
+            EnableResourceRentTax = loadedState.EnableResourceRentTax;
+            ResourceRentPaid = loadedState.ResourceRentPaid > 0m ? loadedState.ResourceRentPaid : 0m;
+            State.EnableResourceRentTax = EnableResourceRentTax;
+            State.ResourceRentPaid = ResourceRentPaid;
+
+            if (PenPriceCouncil != null && loadedState.PenPriceCouncilLastValue > 0m)
+            {
+                PenPriceCouncil.Reset();
+                PenPriceCouncil.Update(loadedState.PenPriceCouncilLastValue);
+            }
+            State.PenPriceCouncilLastValue = PenPriceCouncil?.MonthlyPenPrice ?? 0m;
+
+            // Bloom mitigations are mirrored here; GameBridge repopulates its
+            // live registry from State.BloomMitigations on load.
+            State.BloomMitigations = loadedState.BloomMitigations != null
+                ? new List<BloomMitigationState>(loadedState.BloomMitigations)
+                : new List<BloomMitigationState>();
+            State.InsurancePolicies = loadedState.InsurancePolicies != null
+                ? new List<InsurancePolicyState>(loadedState.InsurancePolicies)
+                : new List<InsurancePolicyState>();
         }
 
         /// <summary>
@@ -1611,7 +3498,9 @@ namespace LakskongenSim.Core
         /// </summary>
         private void SyncEmpireSystemsToState()
         {
-            // 1. CompetitorAI - use public Competitors property
+            // 1. CompetitorAI — full snapshot (F1071) plus the legacy DTO list
+            // that older builds read.
+            State.CompetitorAI = CompetitorAI?.ExportState();
             if (CompetitorAI != null)
             {
                 State.CompetitorCompanies = CompetitorAI.Competitors
@@ -1620,39 +3509,180 @@ namespace LakskongenSim.Core
                         Id = c.Id,
                         Name = c.Name,
                         Revenue = c.Revenue,
+                        EBITDA = c.EBITDA,
                         MarketCap = c.MarketCap,
+                        DebtLevel = c.DebtLevel,
+                        CashReserves = c.CashReserves,
                         LicenseCount = c.LicenseCount,
+                        TotalMABTonnes = c.TotalMABTonnes,
+                        SiteCount = c.SiteCount,
                         MarketShareNorway = c.MarketShareNorway,
-                        IsDistressed = c.IsDistressed
+                        MarketShareGlobal = c.MarketShareGlobal,
+                        WeeklyHarvestTonnes = c.WeeklyHarvestTonnes,
+                        IsDistressed = c.IsDistressed,
+                        IsAcquisitionTarget = c.IsAcquisitionTarget,
+                        AcquisitionPrice = c.AcquisitionPrice
                     }).ToList();
             }
 
-            // 2. EmpireProgression - store current phase as string (will be restored)
+            // 2. EmpireProgression - phase, features, milestone/victory unlocks
             if (EmpireProgression != null)
             {
                 State.EmpireProgression = new EmpireProgressionState
                 {
                     CurrentPhase = EmpireProgression.CurrentPhase.ToString(),
-                    UnlockedMilestoneIds = new List<string>(), // Will be populated by EmpireProgression if needed
-                    AchievedVictoryIds = new List<string>()
+                    UnlockedFeatures = EmpireProgression.UnlockedFeatures.ToList(),
+                    UnlockedMilestoneIds = EmpireProgression.Milestones
+                        .Where(m => m.IsUnlocked).Select(m => m.Id).ToList(),
+                    AchievedVictoryIds = EmpireProgression.VictoryConditions
+                        .Where(v => v.IsAchieved).Select(v => v.Id).ToList()
                 };
             }
 
-            // 3-15: Other systems - Keep empty for now to avoid build errors
-            // These will be implemented incrementally as needed
-            State.StockMarket = null;
-            State.BrandReputation = null;
-            State.ActiveCrises.Clear();
-            State.VerticalIntegration = null;
-            State.ActiveLoans.Clear();
-            State.TaxHistory.Clear();
-            State.InvestorSystem = null;
-            State.Acquisitions.Clear();
-            State.Licenses.Clear();
-            State.FactionRelations.Clear();
-            State.RecentMarketReports.Clear();
-            State.FishWelfareCondition = 1.0m;
-            State.AchievedVisualMilestones.Clear();
+            // 3. StockMarket — live cap-table state (private setters; see RestoreState)
+            if (StockMarket != null)
+            {
+                State.StockMarket = new StockMarketState
+                {
+                    Status = StockMarket.Status.ToString(),
+                    SharePrice = StockMarket.SharePrice,
+                    PriceHistory = StockMarket.PriceHistory.Select(e => e.NewPrice).ToList(),
+                    OutstandingShares = (int)StockMarket.TotalShares
+                };
+            }
+
+            // 4. BrandReputation — public setters, direct map
+            if (BrandReputation != null)
+            {
+                State.BrandReputation = new BrandReputationState
+                {
+                    BrandName = BrandReputation.BrandName,
+                    Strategy = BrandReputation.Strategy.ToString(),
+                    QualityReputation = BrandReputation.QualityReputation,
+                    SustainabilityReputation = BrandReputation.SustainabilityReputation,
+                    Certifications = new HashSet<string>(BrandReputation.Certifications)
+                };
+            }
+
+            // 5. CrisisCapitalism — active crises and the listings they put on the
+            // market (expired ones drop naturally). Listings were never saved, so
+            // a load emptied the market. The listings are filtered by the
+            // calendar, exactly like RestoreAsset and the bridge: the weekly
+            // countdown lags, so a listing that closed today (ExpiresOnDay ==
+            // Day) used to be saved, dropped on load, and the resumed career
+            // diverged from the uninterrupted one (S1-01).
+            if (CrisisCapitalism != null)
+            {
+                State.ActiveCrises = CrisisCapitalism.GetActiveCrises(State.Day)
+                    .Select(c => new CrisisEventState
+                    {
+                        Id = c.Id,
+                        Type = c.Type.ToString(),
+                        AffectedCompetitorId = c.AffectedCompetitorId,
+                        CompetitorName = c.CompetitorName,
+                        SeverityScore = c.SeverityScore,
+                        DiscountMultiplier = c.DiscountMultiplier,
+                        DurationMonths = c.DurationMonths,
+                        StartDay = c.StartDay
+                    }).ToList();
+                State.DistressedAssets = CrisisCapitalism.GetAllAvailableDistressedAssets(State.Day)
+                    .Select(a => new DistressedAssetState
+                    {
+                        Id = a.Id,
+                        AssetType = a.AssetType.ToString(),
+                        Name = a.Name,
+                        Description = a.Description,
+                        Location = a.Location,
+                        OriginalValueNOK = a.OriginalValueNOK,
+                        DiscountedPriceNOK = a.DiscountedPriceNOK,
+                        TimeRemainingMonths = a.TimeRemainingMonths,
+                        ExpiresOnDay = a.ExpiresOnDay,
+                        RiskScore = a.RiskScore,
+                        CrisisEventId = a.CrisisEventId,
+                        OwningCompetitor = a.OwningCompetitor,
+                        SourceCompetitorId = a.SourceCompetitorId,
+                        SiteId = a.SiteId,
+                        LicenseCount = a.LicenseCount,
+                        MABTonnes = a.MABTonnes
+                    }).ToList();
+            }
+
+            // 6. VerticalIntegration — owned tiers + score
+            if (VerticalIntegration != null)
+            {
+                var owned = VerticalIntegration.GetOwnedTiers();
+                State.VerticalIntegration = new VerticalIntegrationState
+                {
+                    OwnsFeedMill = owned.Contains(Expansion.IntegrationTier.FEED_MILL),
+                    OwnsHatchery = owned.Contains(Expansion.IntegrationTier.HATCHERY),
+                    OwnsProcessing = owned.Contains(Expansion.IntegrationTier.PROCESSING),
+                    OwnsColdChain = owned.Contains(Expansion.IntegrationTier.COLD_CHAIN),
+                    OwnsDistribution = owned.Contains(Expansion.IntegrationTier.DISTRIBUTION),
+                    IntegrationScore = VerticalIntegration.GetIntegrationScore()
+                };
+            }
+
+            // 7. InvestorSystem — aggregates (no per-investor records exist yet;
+            // DTO keeps the list slot for a future cap-table implementation)
+            if (InvestorSystem != null)
+            {
+                State.InvestorSystem = new InvestorSystemState
+                {
+                    OutstandingShares = (int)InvestorSystem.OutstandingShares,
+                    OutstandingBondPrincipal = InvestorSystem.OutstandingBondPrincipal,
+                    Investors = new List<InvestorRecord>()
+                };
+            }
+            State.CorporateFinance = CorporateFinance?.ExportState();
+
+            // 8. StakeholderFactionSystem — RAW relationship scores by faction
+            // (not weighted: Influence is a constant per faction, re-applied live)
+            if (StakeholderFactionSystem != null)
+            {
+                State.FactionRelations = StakeholderFactionSystem.GetAllFactions()
+                    .ToDictionary(kvp => kvp.Key.ToString(), kvp => (decimal)kvp.Value.RelationshipScore);
+            }
+
+            // 9. FishWelfare — single condition score
+            if (FishWelfare != null)
+            {
+                State.FishWelfareCondition = (decimal)FishWelfare.ConditionScore;
+            }
+
+            // 10. VisualMilestones — achieved type names (dates not persisted)
+            if (VisualMilestones != null)
+            {
+                State.AchievedVisualMilestones = VisualMilestones.GetAchievedMilestones()
+                    .Select(m => m.Type.ToString()).ToHashSet();
+            }
+
+            // 11. TD-04: Growth/Mortality model snapshots so loaded games
+            // resume disease + chronic stress pressure exactly.
+            if (Growth != null)
+                State.GrowthState = Growth.GetSaveSnapshot();
+            if (Mortality != null)
+                State.MortalityState = Mortality.GetSaveSnapshot();
+
+            // 12. Live systems persisted for the save/load matrix: contracts
+            // (F409), scenario progress (F243), disease prevalence + the
+            // company lice model it reads (F478), tax carry-forward (F1137).
+            State.Contracts = ContractSystem?.ExportState();
+            SyncScenarioToState();
+            if (Disease != null)
+                State.DiseasePrevalence = Disease.ExportPrevalence(LivePopulationIds());
+            State.CompanyLice = SeaLice?.ExportState();
+            if (TaxSystem != null)
+            {
+                var tax = TaxSystem.ExportState();
+                State.Tax = new TaxSystemState { LossCarryForward = tax.LossCarryForward, Period = tax.Period };
+            }
+
+            // PRESERVED (never cleared): ActiveLoans, TaxHistory, Acquisitions,
+            // Licenses, RecentMarketReports. These DTO slots have no live runtime
+            // counterpart yet (LoanSystem/TaxSystem/LicenseSystem are stateless
+            // calculators; AcquisitionSystem tracks targets, not owned deals;
+            // no market-report producer exists). Loaded values round-trip
+            // untouched until the systems grow live state — then wire them here.
         }
 
         /// <summary>
@@ -1662,13 +3692,27 @@ namespace LakskongenSim.Core
         /// </summary>
         public void RestoreFromLoad(GameState loadedState)
         {
-            // 1. Restore balance from saved state
+            // 0. S2: the Godot save path deserializes GameState directly
+            // (not via the library SaveLoadManager), so re-link here too:
+            // SeaSite.Pens and State.Populations must share instances.
+            GameStateRelinker.RelinkIds(loadedState);
+
+            // 1. Restore balance from saved state (always assign — a bankrupt
+            // or zero save must restore exactly that, not keep live cash).
+            // Reset IN PLACE: subsystems captured this instance at
+            // construction, and replacing it would orphan their references.
             #pragma warning disable CS0618 // Type or member is obsolete
-            if (loadedState.Balance > 0)
-            {
+            if (FinanceManager == null)
                 FinanceManager = new Finance.FinanceManager(loadedState.Balance);
-            }
+            else
+                FinanceManager.SetBalanceForLoad(loadedState.Balance);
+            // Restore the daily cash mirror too: storyteller event conditions
+            // read GameState.Balance, and until the next end-of-day sync it
+            // would read 0 and silently change the event pool on the first
+            // day after a load (found by SaveLoadMatrixTests, seed 23 day 400).
+            State.Balance = FinanceManager.Balance;
             #pragma warning restore CS0618
+            ResetLedgerBaseline();
 
             // 2. Re-inject GrowthModel and MortalityModel into all FishPopulations
             foreach (var pop in loadedState.Populations)
@@ -1676,33 +3720,339 @@ namespace LakskongenSim.Core
                 pop.InjectDependencies(Growth, Mortality);
             }
 
+            // TD-04: resume model internals (disease rates, chronic stress).
+            // Null-safe for saves written before snapshots existed.
+            Growth?.RestoreFromSave(loadedState.GrowthState);
+            Mortality?.RestoreFromSave(loadedState.MortalityState);
+
+            // Phase 1.2: NetIntegrityPct defaults to 100 for new sites; saves
+            // written before the field existed deserialize as 0 — migrate.
+            // Phase 4.1: containment migration (SimulationEngine.Containment.cs).
+            foreach (var site in loadedState.SeaSites)
+            {
+                if (site.NetIntegrityPct <= 0.0)
+                    site.NetIntegrityPct = 100.0;
+                MigrateLegacyContainmentFlags(site);
+            }
+
             // T74: Restore all empire systems from loaded state
             RestoreEmpireSystemsFromState(loadedState);
 
-            Console.WriteLine($"✅ Restored from save: Balance={FinanceManager.Balance:N0} NOK, {loadedState.Populations.Count} populations, Day {loadedState.Day}");
+            // Save/load matrix: contracts, scenario, disease, lice, tax.
+            RestoreLiveSystemsFromState(loadedState);
+
+            // P9/P11: Restore insurance, resource-rent tax and pen-price state
+            RestoreDepthSystemsFromState(loadedState);
+
+            // Phase 1 wave 5: restore the runtime cadence. Interval clocks
+            // and the storm edge come from the snapshot so a loaded game
+            // CONTINUES (no double-firing weekly/quarterly beats, no
+            // re-settled mid-episode insurance). Legacy saves without a
+            // snapshot align the storm edge with the current weather.
+            var runtime = loadedState.Runtime;
+            if (runtime != null)
+            {
+                // Weather live state first: the storm-edge fallback below
+                // reads Weather.CurrentState, which must already be the
+                // saved one (season day, temperature, wind, wave, Markov
+                // state) — otherwise the whole downstream chain diverges.
+                if (Weather != null && runtime.WeatherStatePresent &&
+                    Enum.TryParse(runtime.WeatherStateName, ignoreCase: true,
+                        out LakskongenSim.Environment.WeatherState wstate) &&
+                    Enum.IsDefined(wstate))
+                {
+                    Weather.ImportState(runtime.WeatherDay, runtime.WeatherTempC,
+                        runtime.WeatherWindMs, runtime.WeatherWaveM, wstate);
+                    Weather.ImportSeaTemperatureState(runtime.WeatherSeaAnomalyC, runtime.WeatherEventAnomalyC,
+                        runtime.WeatherDailyFluctuationC, runtime.WeatherStormCoolingC);
+                }
+
+                for (int i = 0; i < _inDayPhases.Length; i++)
+                {
+                    if (_inDayPhases[i] is not ITickClock clockSystem) continue;
+
+                    // Identity-keyed restore first (inserting/reordering
+                    // phases can never mis-map a clock); positional array is
+                    // the legacy fallback.
+                    if (runtime.ClocksBySystem != null &&
+                        runtime.ClocksBySystem.TryGetValue(_inDayPhases[i].GetType().Name, out var savedByKey))
+                    {
+                        clockSystem.SetClock(savedByKey);
+                    }
+                    else if (runtime.InDayClocks != null &&
+                             runtime.InDayClocks.Length == _inDayPhases.Length)
+                    {
+                        clockSystem.SetClock(runtime.InDayClocks[i]);
+                    }
+                }
+
+                // Storm edge restore with a hard fallback: an unparsable or
+                // undefined edge value must resolve to "aligned with current
+                // weather" — a parse failure must never leave Initialize's
+                // Calm behind, which could re-fire a mid-episode storm.
+                bool edgeOk = Enum.TryParse(runtime.WeatherEdgeState, ignoreCase: true,
+                                  out LakskongenSim.Environment.WeatherState edge)
+                              && Enum.IsDefined(edge);
+                _lastWeatherState = edgeOk
+                    ? edge
+                    : Weather?.CurrentState ?? LakskongenSim.Environment.WeatherState.Calm;
+                // Saves from before S1-02 carry no episode peak: a running
+                // episode is taken to have peaked at its last state.
+                _stormEpisodePeakSeverity = runtime.StormEpisodePeakSeverity ?? StormSeverity(_lastWeatherState);
+
+                // Independent of the clock restore: length mismatches must
+                // never silently drop the events gating either.
+                _enableEvents = runtime.EventsEnabled;
+
+                // Phase 1 wave 6: resume exact RNG stream positions (and the
+                // stateful sub-models). Absent keys keep the freshly-seeded
+                // stream — legacy saves simply replay from day 0 as before.
+                Rng.ImportStates(runtime.SimStreamPositions ?? new());
+                if (runtime.PriceCouncilSpots != null)
+                    PenPriceCouncil?.ImportState((runtime.PriceCouncilSpots, runtime.PriceCouncilMonthly));
+                if (Storyteller != null && runtime.StorytellerLastEventDay != -9999)
+                    Storyteller.LastEventDayForSnapshot = runtime.StorytellerLastEventDay;
+                if (Storyteller != null && runtime.StorytellerCooldowns != null)
+                    Storyteller.CooldownsForSnapshot = runtime.StorytellerCooldowns;
+                Feed.ImportState((runtime.FeedFcr, runtime.FeedUsedKg, runtime.FeedGrowthKg,
+                    runtime.FeedLastAppetite, runtime.FeedSustainabilityRating));
+                if (runtime.TrafficLightColors != null)
+                    TrafficLightSystem?.ImportColors(runtime.TrafficLightColors);
+                SustainabilityManager?.ImportState(runtime.SustainabilityLiveScore ?? State.SustainabilityScore,
+                    runtime.SustainabilityLiveLevel ?? State.SustainabilityCertification);
+                if (runtime.CurrencyStatePresent)
+                    CurrencySystem?.ImportCurrencyState((
+                        runtime.CurrencyDay, runtime.CurrencyEur, runtime.CurrencyUsd,
+                        runtime.CurrencyJpy, runtime.CurrencyGbp, runtime.CurrencyBankRate));
+                FinancialStatements?.ImportState((runtime.FinRevenue, runtime.FinCogs,
+                    runtime.FinOpex, runtime.FinInterest, runtime.FinTaxes,
+                    runtime.FinCash, runtime.FinAssets, runtime.FinLiabilities,
+                    runtime.FinBiomassInventoryValue, runtime.FinCurrentPeriod,
+                    runtime.FinEvents ?? new System.Collections.Generic.List<string>()));
+                FinancialStatements?.ImportBreakdowns(
+                    runtime.FinCostBreakdown, runtime.FinRevenueBreakdown);
+                if (runtime.FinLifetime != null)
+                    FinancialStatements?.ImportLifetime(runtime.FinLifetime);
+                if (runtime.MktHistory != null)
+                    MarketSimulation?.ImportState((runtime.MktBase, runtime.MktPrice,
+                        runtime.MktWeeklyAvg, runtime.MktLongMean, runtime.MktMeanRev,
+                        runtime.MktVol, runtime.MktSupplyIdx, runtime.MktDemandIdx,
+                        runtime.MktCertMult, runtime.MktLastR2, runtime.MktLastObs,
+                        runtime.MktSimDay, runtime.MktHistory));
+                MarketSimulation?.PlayerSupply.ImportPressure(runtime.MktPlayerPressure);
+                MarketSimulation?.ImportShockState((runtime.MktShockDays, runtime.MktSupplyOffset));
+                if (runtime.MktDailyPrices != null)
+                    MarketSimulation?.ImportDailyPrices(runtime.MktDailyPrices);
+                if (runtime.PlanktonBloomStates != null)
+                    PlanktonBloom?.RestoreBloomStates(runtime.PlanktonBloomStates);
+                MarketSimulation?.Intelligence.ImportState((runtime.IntelWeek,
+                    runtime.IntelActive ?? new System.Collections.Generic.List<LakskongenSim.Market.MarketNewsEvent>(),
+                    runtime.IntelHistory ?? new System.Collections.Generic.List<LakskongenSim.Market.MarketNewsEvent>(),
+                    runtime.IntelCompetitors ?? new System.Collections.Generic.List<LakskongenSim.Market.CompetitorProducer>(),
+                    runtime.IntelPriceHistory ?? new System.Collections.Generic.List<decimal>(),
+                    runtime.IntelBrandScore, runtime.IntelBrandGood, runtime.IntelBrandTotal));
+                AIFeeding.ImportState((runtime.AiFeedInstalled, runtime.AiFeedCalibration,
+                    runtime.AiFeedDays, runtime.AiFeedCameraUptime, runtime.AiFeedAppetite,
+                    runtime.AiFeedWaste, runtime.AiFeedSavings, runtime.AiFeedFcrMult,
+                    runtime.AiFeedHistory ?? new System.Collections.Generic.List<double>()));
+            }
+            else
+            {
+                _lastWeatherState = Weather?.CurrentState
+                    ?? LakskongenSim.Environment.WeatherState.Calm;
+                _stormEpisodePeakSeverity = StormSeverity(_lastWeatherState);
+            }
+
+            SimLog.Info($"✅ Restored from save: Balance={FinanceManager.Balance:N0} NOK, {loadedState.Populations.Count} populations, Day {loadedState.Day}");
+        }
+
+        /// <summary>Ids of every population the engine simulates (sea pens and facility tanks).</summary>
+        private IEnumerable<string> LivePopulationIds()
+            => State.Populations.Select(p => p.Id)
+                .Concat(State.RASFacilities.SelectMany(f => f.Tanks).Select(p => p.Id))
+                .Concat(State.OffshoreFarms.SelectMany(f => f.Pens).Select(p => p.Id));
+
+        /// <summary>
+        /// Restore the live systems whose state used to be dropped on load.
+        /// Each is optional: a save from before the field existed keeps the
+        /// freshly initialized system (previous behavior).
+        /// </summary>
+        private void RestoreLiveSystemsFromState(GameState loadedState)
+        {
+            if (loadedState.Contracts != null)
+                ContractSystem?.ImportState(loadedState.Contracts);
+            RestoreScenarioFromState(loadedState);
+            if (loadedState.DiseasePrevalence != null)
+                Disease?.ImportPrevalence(loadedState.DiseasePrevalence);
+            if (loadedState.CompanyLice != null)
+                SeaLice?.ImportState(loadedState.CompanyLice);
+            if (loadedState.Tax != null)
+                TaxSystem?.ImportState((loadedState.Tax.LossCarryForward, loadedState.Tax.Period));
         }
 
         /// <summary>
         /// Restore all empire systems from loaded GameState (T74).
         /// Backward-compatible: gracefully handles old saves without new fields.
+        /// Live-system rehydration is exact and side-effect-free (no cash
+        /// movement, no events). Competitors match by stable parody ID onto the
+        /// procedurally spawned roster; unknown IDs are ignored.
         /// </summary>
         private void RestoreEmpireSystemsFromState(GameState loadedState)
         {
-            // T74: For now, just log that new empire systems were loaded
-            // Full restoration will be added incrementally as each system is battle-tested
-            
-            if (loadedState.CompetitorCompanies?.Count > 0)
+            if (loadedState.CompetitorAI != null && CompetitorAI != null)
             {
-                Console.WriteLine($"✓ Loaded {loadedState.CompetitorCompanies.Count} competitor companies from save");
+                CompetitorAI.ImportState(loadedState.CompetitorAI);
+            }
+            else if (loadedState.CompetitorCompanies?.Count > 0)
+            {
+                SimLog.Info($"✓ Loaded {loadedState.CompetitorCompanies.Count} competitor companies from save");
+                if (CompetitorAI != null)
+                {
+                    var roster = CompetitorAI.Competitors.ToDictionary(c => c.Id);
+                    foreach (var saved in loadedState.CompetitorCompanies)
+                    {
+                        if (!roster.TryGetValue(saved.Id, out var live)) continue;
+                        live.Revenue = saved.Revenue;
+                        live.EBITDA = saved.EBITDA;
+                        live.MarketCap = saved.MarketCap;
+                        live.DebtLevel = saved.DebtLevel;
+                        live.CashReserves = saved.CashReserves;
+                        live.LicenseCount = saved.LicenseCount;
+                        live.TotalMABTonnes = saved.TotalMABTonnes;
+                        live.SiteCount = saved.SiteCount;
+                        live.MarketShareNorway = saved.MarketShareNorway;
+                        live.MarketShareGlobal = saved.MarketShareGlobal;
+                        live.WeeklyHarvestTonnes = saved.WeeklyHarvestTonnes;
+                        live.IsDistressed = saved.IsDistressed;
+                        live.IsAcquisitionTarget = saved.IsAcquisitionTarget;
+                        live.AcquisitionPrice = saved.AcquisitionPrice;
+                    }
+                }
             }
 
             if (loadedState.EmpireProgression != null)
             {
-                Console.WriteLine($"✓ Loaded empire progression: {loadedState.EmpireProgression.CurrentPhase}");
+                SimLog.Info($"✓ Loaded empire progression: {loadedState.EmpireProgression.CurrentPhase}");
+                if (EmpireProgression != null &&
+                    Enum.TryParse<Finance.EmpirePhase>(loadedState.EmpireProgression.CurrentPhase, out var phase))
+                {
+                    EmpireProgression.RestoreState(phase, loadedState.EmpireProgression.UnlockedFeatures,
+                        loadedState.EmpireProgression.UnlockedMilestoneIds,
+                        loadedState.EmpireProgression.AchievedVictoryIds);
+                }
             }
 
-            // Other systems will be restored incrementally as they're tested
-            // Old saves without these fields will load fine with default values
+            // StockMarket — exact restore via system API
+            if (loadedState.StockMarket != null && StockMarket != null)
+            {
+                if (Enum.TryParse<Finance.OwnershipStatus>(loadedState.StockMarket.Status, out var status))
+                    StockMarket.RestoreState(status, loadedState.StockMarket.SharePrice,
+                        loadedState.StockMarket.OutstandingShares, loadedState.StockMarket.PriceHistory);
+            }
+
+            // BrandReputation — public setters, direct restore
+            if (loadedState.BrandReputation != null && BrandReputation != null)
+            {
+                BrandReputation.BrandName = loadedState.BrandReputation.BrandName;
+                if (Enum.TryParse<Processing.BrandStrategy>(loadedState.BrandReputation.Strategy, out var strategy))
+                    BrandReputation.Strategy = strategy;
+                BrandReputation.QualityReputation = loadedState.BrandReputation.QualityReputation;
+                BrandReputation.SustainabilityReputation = loadedState.BrandReputation.SustainabilityReputation;
+                BrandReputation.Certifications = new HashSet<string>(loadedState.BrandReputation.Certifications);
+            }
+
+            // Active crises — re-registered silently (expired ones skipped)
+            if (loadedState.ActiveCrises?.Count > 0 && CrisisCapitalism != null)
+            {
+                foreach (var c in loadedState.ActiveCrises)
+                {
+                    if (!Enum.TryParse<Events.CrisisType>(c.Type, out var type)) continue;
+                    CrisisCapitalism.RestoreCrisis(new Events.CrisisEvent
+                    {
+                        Id = c.Id,
+                        Type = type,
+                        AffectedCompetitorId = c.AffectedCompetitorId,
+                        CompetitorName = c.CompetitorName ?? "",
+                        SeverityScore = c.SeverityScore,
+                        DiscountMultiplier = c.DiscountMultiplier,
+                        DurationMonths = c.DurationMonths,
+                        StartDay = c.StartDay
+                    }, State.Day);
+                }
+            }
+            if (loadedState.DistressedAssets?.Count > 0 && CrisisCapitalism != null)
+            {
+                foreach (var a in loadedState.DistressedAssets)
+                {
+                    if (!Enum.TryParse<Events.AssetType>(a.AssetType, out var assetType)) continue;
+                    CrisisCapitalism.RestoreAsset(new Events.DistressedAsset
+                    {
+                        Id = a.Id,
+                        AssetType = assetType,
+                        Name = a.Name,
+                        Description = a.Description,
+                        Location = a.Location,
+                        OriginalValueNOK = a.OriginalValueNOK,
+                        DiscountedPriceNOK = a.DiscountedPriceNOK,
+                        TimeRemainingMonths = a.TimeRemainingMonths,
+                        ExpiresOnDay = a.ExpiresOnDay,
+                        RiskScore = a.RiskScore,
+                        CrisisEventId = a.CrisisEventId,
+                        OwningCompetitor = a.OwningCompetitor,
+                        SourceCompetitorId = a.SourceCompetitorId,
+                        SiteId = a.SiteId,
+                        LicenseCount = a.LicenseCount,
+                        MABTonnes = a.MABTonnes
+                    }, State.Day);
+                }
+            }
+
+            // VerticalIntegration — re-mark owned tiers (no CAPEX, no events)
+            if (loadedState.VerticalIntegration != null && VerticalIntegration != null)
+            {
+                var vi = loadedState.VerticalIntegration;
+                if (vi.OwnsFeedMill) VerticalIntegration.RestoreOwnedTier(Expansion.IntegrationTier.FEED_MILL);
+                if (vi.OwnsHatchery) VerticalIntegration.RestoreOwnedTier(Expansion.IntegrationTier.HATCHERY);
+                if (vi.OwnsProcessing) VerticalIntegration.RestoreOwnedTier(Expansion.IntegrationTier.PROCESSING);
+                if (vi.OwnsColdChain) VerticalIntegration.RestoreOwnedTier(Expansion.IntegrationTier.COLD_CHAIN);
+                if (vi.OwnsDistribution) VerticalIntegration.RestoreOwnedTier(Expansion.IntegrationTier.DISTRIBUTION);
+            }
+
+            // InvestorSystem — exact aggregates via system API
+            if (loadedState.InvestorSystem != null && InvestorSystem != null)
+            {
+                InvestorSystem.RestoreState(loadedState.InvestorSystem.OutstandingShares,
+                    loadedState.InvestorSystem.OutstandingBondPrincipal);
+            }
+
+            // CorporateFinanceSystem — covenants, IPO, tax state (Phase 4.3)
+            if (loadedState.CorporateFinance != null && CorporateFinance != null)
+                CorporateFinance.ImportState(loadedState.CorporateFinance);
+
+            // Faction relations — direct score restore (no delta replay)
+            if (loadedState.FactionRelations?.Count > 0 && StakeholderFactionSystem != null)
+            {
+                foreach (var kvp in loadedState.FactionRelations)
+                {
+                    if (!Enum.TryParse<Politics.FactionType>(kvp.Key, out var faction)) continue;
+                    var f = StakeholderFactionSystem.GetFaction(faction);
+                    if (f != null) f.RelationshipScore = (float)kvp.Value;
+                }
+            }
+
+            // FishWelfare — delta restore (fires normal condition event for UI)
+            if (FishWelfare != null)
+            {
+                FishWelfare.ModifyCondition((double)loadedState.FishWelfareCondition - FishWelfare.ConditionScore);
+            }
+
+            // VisualMilestones — silent re-mark (no events, no cinematics)
+            if (loadedState.AchievedVisualMilestones?.Count > 0 && VisualMilestones != null)
+            {
+                VisualMilestones.RestoreAchieved(loadedState.AchievedVisualMilestones);
+            }
+
+            // Old saves without these fields load fine with default values
         }
     }
 }

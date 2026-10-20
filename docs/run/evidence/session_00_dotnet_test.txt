@@ -1,0 +1,25 @@
+Test run for /Users/fredrik.j.hansen/lakskongen/src/LakskongenSim.Tests/bin/Debug/net10.0/LakskongenSim.Tests.dll (.NETCoreApp,Version=v10.0)
+Test run for /Users/fredrik.j.hansen/lakskongen/tests/Health/bin/Debug/net10.0/LakskongenSim.Health.Tests.dll (.NETCoreApp,Version=v10.0)
+Test run for /Users/fredrik.j.hansen/lakskongen/src/LakskongenSim.LogisticsTests/bin/Debug/net10.0/LakskongenSim.LogisticsTests.dll (.NETCoreApp,Version=v10.0)
+Test run for /Users/fredrik.j.hansen/lakskongen/tests/Processing/bin/Debug/net10.0/LakskongenSim.ProcessingTests.dll (.NETCoreApp,Version=v10.0)
+Test run for /Users/fredrik.j.hansen/lakskongen/src/LakskongenSim.SaveLoadTests/bin/Debug/net10.0/LakskongenSim.SaveLoadTests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+A total of 1 test files matched the specified pattern.
+A total of 1 test files matched the specified pattern.
+A total of 1 test files matched the specified pattern.
+A total of 1 test files matched the specified pattern.
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:     4, Skipped:     0, Total:     4, Duration: 7 ms - LakskongenSim.LogisticsTests.dll (net10.0)
+
+Passed!  - Failed:     0, Passed:    31, Skipped:     0, Total:    31, Duration: 45 ms - LakskongenSim.ProcessingTests.dll (net10.0)
+
+Passed!  - Failed:     0, Passed:    23, Skipped:     0, Total:    23, Duration: 1 s - LakskongenSim.SaveLoadTests.dll (net10.0)
+
+Passed!  - Failed:     0, Passed:     5, Skipped:     0, Total:     5, Duration: 51 ms - LakskongenSim.Health.Tests.dll (net10.0)
+
+Passed!  - Failed:     0, Passed:    10, Skipped:     0, Total:    10, Duration: 328 ms - LakskongenSim.PersistenceTests.dll (net10.0)
+[xUnit.net 00:00:01.66]     LakskongenSim.Tests.Performance.PerformanceTests.Performance_UnderLoad_GracefulDegradation [SKIP]
+  Skipped LakskongenSim.Tests.Performance.PerformanceTests.Performance_UnderLoad_GracefulDegradation [1 ms]
+
+Passed!  - Failed:     0, Passed:   684, Skipped:     1, Total:   685, Duration: 6 s - LakskongenSim.Tests.dll (net10.0)

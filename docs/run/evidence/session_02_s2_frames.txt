@@ -1,0 +1,50 @@
+# S2 time-series UI evidence — session 2
+
+*Gate: G-SHOT (screenshot diff) + data test (series follow sim values). Status:
+**PASSED** — market-price sparkline + colour-coded trend block shipped on the
+finance panel; run18 capture set; analytics series test 2/2.*
+
+## Shipped
+
+- **Finance panel, market readout**: "Merdpris (bindende)" row now carries a
+  30-day `market_price_nok` sparkline; line colour = trend (up-good:
+  green/red/accent) via `get_analytics_trend`.
+- **"📈 Trender (90 d)" card replaces the last-10-days text wall**: three
+  colour-coded series from `State.DailySnapshots` (no new sim state):
+  `Kontanter` (balance_nok, up-good), `Lus per fisk` (lice_per_fish, up-bad),
+  `FCR` (fcr, up-bad). Value labels in mono; row built once, updated per refresh.
+- Reuses the existing `Sparkline.gd` control (pure `_draw`, headless-safe).
+- Harness: new scrolled capture `06b_finance_trends` (bottom-of-panel frame) +
+  `_shoot(force_hide_ui)` made opt-in (fixes the session-1 regression where UI
+  shots were force-hidden into fjord frames — `06_finance.png` from run14 was a
+  fjord frame; run15+ are correct UI frames).
+
+## Evidence (run18 set, `godot/screenshots/game/`)
+
+```
+tools/capture_screenshots.sh → "Captured N screenshot(s)" (harness log: captured 06_finance, 06b_finance_trends)
+06_finance.png        before (run15) md5 a878c9416654a69c9f5573066919340b
+                      after  (run18) md5 88fa8ac92fcbcedec1756cc174b70d88
+                      before↔after phash dist 18 (≥16 major) [note: adjacent run16 compare gave 6 — the change
+                      is localized; run-to-run sim state dominates the global phash. Visual confirmation below.]
+06b_finance_trends.png md5 53eb0715423333b765de3bb9611f5786 (1920×1080) — Trender card with all three series
+```
+
+Visual confirmation (agent-viewed): price sparkline renders in the Merdpris row;
+the Trender card shows Kontanter (blue, stable), Lus per fisk (red, rising-bad),
+FCR (red) with values 11.80 MNOK / 0.13 / 2.40 — colours match
+`get_analytics_trend` semantics.
+
+Data test (S2 G-TEST): `dotnet test src/LakskongenSim.Tests --filter
+"FullyQualifiedName~AnalyticsSeriesTests"` → `Passed! Failed: 0, Passed: 2`
+- newest series value == live `State.Balance` (6-dp) and == `GetLatest`;
+- series extends with days; 30-day window == last 30;
+- fish_count > 0 after the stocked scenario; temperature within −2…20 °C.
+
+## Notes / follow-ups
+
+- `_refresh_history` / `get_financial_history(10)` UI use removed from the finance
+  panel (bridge API retained for compatibility; other panels unaffected).
+- Row titles translate at build time (language switch mid-session won't retranslate
+  the three row labels; `_apply_localization` covers the card title).
+- Repeatability + baseline promotion still tracked for W2 close (per S1 evidence note).

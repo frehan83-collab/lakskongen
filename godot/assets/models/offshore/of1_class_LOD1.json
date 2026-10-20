@@ -1,0 +1,139 @@
+{
+  "asset": "of1_class",
+  "atlas": "godot/assets/models/facility_kit/textures/offshore_atlas.png",
+  "bbox_size": [
+    125.9042,
+    71.8,
+    122.3546
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "air_draught_m": 28.8,
+    "circumradius_m": 55.0,
+    "column_large_d_m": 3.56,
+    "column_slim_d_m": 2.8,
+    "columns": 12,
+    "crane_reach_m": 18.473,
+    "deck_z_m": 15.4,
+    "deckhouse_m": [
+      14.0,
+      14.0,
+      9.8
+    ],
+    "draft_m": 43.0,
+    "height_m": 68.4,
+    "net_bottom_m": -34.0,
+    "net_top_m": 14.6,
+    "sides": 12,
+    "silo_height_m": 10.0,
+    "topsides_top_m": 25.4
+  },
+  "file": "of1_class_LOD1.glb",
+  "groups": {
+    "Bracing": 752,
+    "Columns": 1480,
+    "Net": 128,
+    "Pontoons": 420,
+    "Rings": 1092,
+    "Topsides": 1606
+  },
+  "lod": "LOD1",
+  "markers": {
+    "Beacon": [
+      0.0,
+      28.2,
+      1.5
+    ]
+  },
+  "material_count": 2,
+  "materials": [
+    "LK_OffshoreKit",
+    "LK_OffshoreNet"
+  ],
+  "net_colour": "#A8ADB0",
+  "node_order": [
+    "Hull",
+    "Net"
+  ],
+  "nodes": {
+    "Hull": 5398,
+    "Net": 80
+  },
+  "parts": {
+    "BlowerHouse": 10,
+    "BoatLanding": 92,
+    "BottomRing": 192,
+    "Bulkhead": 48,
+    "BulkheadNet": 4,
+    "CentrePontoon": 60,
+    "Chute": 36,
+    "ColumnCentre": 100,
+    "ColumnLarge": 600,
+    "ColumnSlim": 780,
+    "Cranes": 224,
+    "Deckhouse": 48,
+    "DeckhouseTrim": 44,
+    "DeckhouseWindows": 24,
+    "Diagonals": 720,
+    "Feet": 360,
+    "Gantry": 96,
+    "GantryWalk": 20,
+    "LanternPosts": 48,
+    "Lanterns": 294,
+    "Mast": 46,
+    "MidRing": 144,
+    "NetBottom": 24,
+    "NetBulkheads": 4,
+    "NetSides": 48,
+    "Platform": 10,
+    "PlatformStruts": 32,
+    "PowerDeck": 26,
+    "PowerHouse": 22,
+    "RadialBeams": 432,
+    "RingWalkway": 120,
+    "RoofGear": 52,
+    "SiloDeck": 26,
+    "SiloFittings": 96,
+    "Silos": 336,
+    "Spoke": 36,
+    "SpokeWalk": 10,
+    "StairTower": 10,
+    "TopRing": 192,
+    "W2WLanding": 12
+  },
+  "pivots": {},
+  "surfaces": 2,
+  "swatches": {
+    "Deckhouse": {
+      "hex": "#EAEDEB",
+      "spec": "#E9ECEA",
+      "strip": "white"
+    },
+    "Hull": {
+      "hex": "#E6BE2E",
+      "spec": "#E6BE2E",
+      "strip": "hull_yellow"
+    },
+    "NavLights": {
+      "hex": "#FFC33A",
+      "spec": "#FFC23A",
+      "strip": "nav_light"
+    },
+    "PowerHouse": {
+      "hex": "#80838E",
+      "spec": "#80838D",
+      "strip": "grey"
+    },
+    "Silos": {
+      "hex": "#777888",
+      "spec": "#777887",
+      "strip": "silo"
+    },
+    "SplashZone": {
+      "hex": "#B9912A",
+      "spec": "#B8902A",
+      "strip": "hull_splash"
+    }
+  },
+  "tri_count": 5478
+}

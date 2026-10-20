@@ -281,12 +281,20 @@ namespace LakskongenSim.Core
 
         private readonly List<LoadedMod> _loadedMods = new();
         private readonly List<string> _loadErrors = new();
+        private readonly List<ModManifest> _discoveredManifests = new();
 
         private ModConfiguration _modConfiguration = new();
         private string _modConfigPath => Path.Combine(_modsDirectory, "mods_config.json");
 
         public IReadOnlyList<LoadedMod> LoadedMods => _loadedMods;
         public IReadOnlyList<string> LoadErrors => _loadErrors;
+
+        /// <summary>
+        /// Every manifest discovered on the last <see cref="DiscoverAndLoad"/> call,
+        /// including disabled mods (which are not present in <see cref="LoadedMods"/>).
+        /// Useful for mod-management UIs.
+        /// </summary>
+        public IReadOnlyList<ModManifest> DiscoveredManifests => _discoveredManifests;
 
         public int EnabledModCount => _loadedMods.Count(m => m.Manifest.Enabled);
 
@@ -312,6 +320,7 @@ namespace LakskongenSim.Core
         {
             _loadedMods.Clear();
             _loadErrors.Clear();
+            _discoveredManifests.Clear();
 
             if (!Directory.Exists(_modsDirectory))
             {
@@ -321,6 +330,7 @@ namespace LakskongenSim.Core
 
             var manifests = DiscoverManifests();
             var ordered   = SortByDependencies(manifests);
+            _discoveredManifests.AddRange(ordered);
 
             foreach (var manifest in ordered)
             {
@@ -342,29 +352,36 @@ namespace LakskongenSim.Core
         /// </summary>
         public void SetModEnabled(string modId, bool enabled)
         {
+            // A disabled mod is not in _loadedMods, so also consult the full
+            // discovered set (populated by DiscoverAndLoad) to re-enable it.
+            var discovered = _discoveredManifests.FirstOrDefault(m => m.Id == modId);
+            if (discovered != null)
+                discovered.Enabled = enabled;
+
             var mod = _loadedMods.FirstOrDefault(m => m.Manifest.Id == modId);
             if (mod != null)
-            {
                 mod.Manifest.Enabled = enabled;
 
-                var configEntry = _modConfiguration.Mods.FirstOrDefault(e => e.Id == modId);
-                if (configEntry != null)
-                {
-                    configEntry.Enabled = enabled;
-                }
-                else
-                {
-                    _modConfiguration.Mods.Add(new ModConfigEntry { Id = modId, Enabled = enabled });
-                }
-                _modConfiguration.Save(_modConfigPath, _jsonOptions);
+            if (discovered == null && mod == null)
+                return;
+
+            var configEntry = _modConfiguration.Mods.FirstOrDefault(e => e.Id == modId);
+            if (configEntry != null)
+            {
+                configEntry.Enabled = enabled;
             }
+            else
+            {
+                _modConfiguration.Mods.Add(new ModConfigEntry { Id = modId, Enabled = enabled });
+            }
+            _modConfiguration.Save(_modConfigPath, _jsonOptions);
         }
 
         /// <summary>
         /// Collect all ModEventDefinitions from every enabled loaded mod,
         /// converting them into runtime EventDefinition objects with simple numeric effects.
         /// </summary>
-        public List<EventDefinition> BuildEventDefinitions()
+        public List<EventDefinition> BuildEventDefinitions(Finance.FinanceManager? finance = null)
         {
             var result = new List<EventDefinition>();
 
@@ -400,9 +417,19 @@ namespace LakskongenSim.Core
 
                             if (captured.Effects.TryGetValue("balance_change", out var balDelta))
                             {
-                                // TODO: Route through FinanceManager when engine ref is available in closure
-                                state.Balance += (decimal)balDelta;
-                                record.BalanceChange = (decimal)balDelta;
+                                var delta = (decimal)balDelta;
+                                // Unconditional (fines/catastrophes apply into debt),
+                                // matching NorwegianEvents settlement semantics.
+                                if (finance != null)
+                                {
+                                    if (delta >= 0m) finance.AddRevenue(delta);
+                                    else finance.ForceSpend(-delta);
+                                }
+                                else
+                                {
+                                    state.Balance += delta; // test fallback (no finance)
+                                }
+                                record.BalanceChange = delta;
                             }
                         }
                     });

@@ -1,0 +1,13 @@
+{
+  "id": "example_norwegian_pack",
+  "name": "Example Norwegian Pack",
+  "author": "Lakskongen Team",
+  "version": "1.0.0",
+  "description": "Reference mod demonstrating the Lakskongen data-mod contract: research nodes, events and one scenario.",
+  "files": [
+    "research_arctic_breeding.json",
+    "events_winter_storm.json",
+    "scenario_fjord_pioneer.json"
+  ],
+  "dependencies": []
+}

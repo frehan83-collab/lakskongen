@@ -1,0 +1,18 @@
+{
+  "asset": "mooring_light",
+  "bbox_size": [
+    0.199,
+    1.26,
+    0.2092
+  ],
+  "blender_version": "5.2.2 LTS",
+  "file": "mooring_light_LOD1.glb",
+  "lod": "LOD1",
+  "material_count": 3,
+  "materials": [
+    "LK_HDPE",
+    "LK_Lamp",
+    "LK_Steel"
+  ],
+  "tri_count": 86
+}
