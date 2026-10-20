@@ -216,6 +216,24 @@ def test_the_frame_sits_above_and_the_net_hangs_below_the_waterline():
     assert lod2["net_bottom_m"] >= -3.0 and lod2["draft_m"] < 4.0
 
 
+def test_working_gear_dresses_the_free_slim_columns():
+    # Lookdev wave 4: the OF1 photos show containers, reels and cabinets at
+    # the ring's columns. LOD0 carries the equipment decks with all three,
+    # LOD1 the decks and containers, LOD2 none (sub-pixel there).
+    parts = _sidecar("LOD0")["parts"]
+    for part in ("GearDeck", "Containers", "CableReels", "Cabinets", "GearRail"):
+        assert parts.get(part, 0) > 0, part
+    lod1 = _sidecar("LOD1")["parts"]
+    assert lod1.get("GearDeck", 0) > 0 and lod1.get("Containers", 0) > 0
+    assert "CableReels" not in lod1 and "GearDeck" not in _sidecar("LOD2")["parts"]
+    designs = (REPO / "blender" / "offshore_designs.py").read_text()
+    cols = re.search(r"^GEAR_COLUMNS = \(([^)]*)\)", designs, re.M).group(1)
+    gear = {int(c) for c in cols.split(",") if c.strip()}
+    # Odd = slim columns; clear of the cranes (5, 11), the walk-to-work bay
+    # (8-9, where the service vessel lies) and the large-column decks.
+    assert gear and all(k % 2 == 1 for k in gear) and not gear & {5, 9, 11}
+
+
 # ── Budgets, nodes, groups ────────────────────────────────────────────────────
 
 def test_triangle_budgets_hold_and_lods_step_down():

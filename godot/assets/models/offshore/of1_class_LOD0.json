@@ -45,7 +45,7 @@
     "Net": 1360,
     "Pontoons": 2324,
     "Rings": 8660,
-    "Topsides": 15328
+    "Topsides": 16624
   },
   "lod": "LOD0",
   "markers": {
@@ -89,7 +89,7 @@
     "Hull": 10984,
     "NavLights": 490,
     "Net": 196,
-    "Topsides": 17812
+    "Topsides": 19330
   },
   "parts": {
     "BlowerHouse": 34,
@@ -99,12 +99,15 @@
     "BulkheadNet": 12,
     "BulkheadWalk": 144,
     "BulkheadWalkRail": 392,
+    "Cabinets": 30,
+    "CableReels": 528,
     "CentrePontoon": 140,
     "Chute": 538,
     "Collars": 2880,
     "ColumnCentre": 640,
     "ColumnLarge": 3840,
     "ColumnSlim": 4200,
+    "Containers": 162,
     "Cranes": 528,
     "DeckLights": 264,
     "Deckhouse": 1200,
@@ -116,6 +119,8 @@
     "Gantry": 588,
     "GantryWalk": 320,
     "GantryWalkRail": 816,
+    "GearDeck": 132,
+    "GearRail": 444,
     "LanternPosts": 72,
     "Lanterns": 490,
     "LifeRafts": 72,
@@ -193,5 +198,5 @@
       "strip": "hull_splash"
     }
   },
-  "tri_count": 46638
+  "tri_count": 48156
 }

@@ -23,6 +23,7 @@
     "Plinth": "concrete",
     "Roof": "hall_roof",
     "Roofgear": "steel",
+    "Skylights": "skylight",
     "Trim": "steel",
     "Walls": "hall_clad",
     "Windows": "window"
@@ -32,6 +33,7 @@
     "Plinth": 90,
     "Roof": 88,
     "Roofgear": 40,
+    "Skylights": 4,
     "Trim": 52,
     "Walls": 336,
     "Windows": 44
@@ -54,5 +56,5 @@
       "strip": "window"
     }
   },
-  "tri_count": 680
+  "tri_count": 684
 }

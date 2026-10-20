@@ -890,6 +890,79 @@ def outfitting(u: Unit, lod: int) -> None:
                    (bx, by), close_top=True)
 
 
+# Working gear (lookdev, wave 4): the OF1 photos show the ring's columns
+# crowded with white containers, cable reels and cabinets, the scale cue a
+# bare ring lacks at the 220 m framing. Equipment decks go outside the free
+# slim columns of the 12-gon (crane A sits on 5, crane B on 11; the chute
+# lands inside 7, the walk-to-work apron is at mid-bay 8-9 where the service
+# vessel lies, so 9 stays clear of its hull).
+GEAR_COLUMNS = (1, 3, 7)
+GEAR_DECK_R = R + 3.9          # deck centre radius; it spans R + 1.4 .. R + 6.4
+GEAR_HALF_T, GEAR_HALF_R = 4.2, 2.5
+CONTAINER = (6.06, 2.44, 2.59)  # ISO 20 ft, metres
+REEL_R, REEL_W = 0.95, 1.1
+
+
+def _reel(u: Unit, lod: int, c, axis, side):
+    """A cable/rope reel on an A-frame stand: orange flanges, dark drum."""
+    z = DECK_Z + 0.04 + REEL_R + 0.12
+    hub = (c[0], c[1], z)
+    a0, a1 = v_add(hub, v_mul(axis, -REEL_W / 2)), v_add(hub, v_mul(axis, REEL_W / 2))
+    sides = 16 if lod == 0 else 6
+    flange = u.mb("Topsides", "safety", TOPSIDES, "CableReels")
+    for p in (a0, a1):
+        member(flange, v_add(p, v_mul(axis, -0.04)), v_add(p, v_mul(axis, 0.04)), REEL_R, sides, caps=True)
+    member(u.mb("Topsides", "dark", TOPSIDES, "CableReels"), a0, a1, REEL_R * 0.62, max(6, sides - 4))
+    if lod == 0:
+        stand = u.mb("Topsides", "steel", TOPSIDES, "CableReels")
+        for p in (a0, a1):
+            o = v_mul(axis, 0.09 if p is a1 else -0.09)
+            top = v_add(p, o)
+            for s in (-1, 1):
+                foot = v_add(top, v_add(v_mul(side, s * 0.75), (0.0, 0.0, -(z - DECK_Z - 0.04))))
+                bar(stand, foot, top, 0.08)
+
+
+def deck_gear(u: Unit, lod: int) -> None:
+    """Equipment decks cantilevered outside the free slim columns, each
+    with a 20 ft container (white, or grey for the workshop), a cable reel
+    and a cabinet, railed on its open sides (LOD0). LOD1 keeps the decks and
+    the containers; LOD2 nothing. The 8-gon evidence variant has none."""
+    n = u.sides
+    if n != SIDES or lod == 2:
+        return
+    for idx, k in enumerate(GEAR_COLUMNS):
+        c, er, et = _cantilever_deck(u, lod, k, GEAR_DECK_R, GEAR_HALF_T, GEAR_HALF_R, "GearDeck")
+        top = DECK_Z + 0.04
+        cl, cw, ch = CONTAINER
+        # The container on the outer half, along the ring; doors face +et.
+        cc = v_add(c, v_add(v_mul(er, GEAR_HALF_R - cw / 2 - 0.25), v_mul(et, -GEAR_HALF_T + cl / 2 + 0.3)))
+        strip = "grey" if idx == 2 else "white"
+        obox(u.mb("Topsides", strip, TOPSIDES, "Containers"), (cc[0], cc[1], top + ch / 2), et, None, cl / 2, cw / 2,
+             ch / 2, skip_bottom=True)
+        if lod == 1:
+            continue
+        doors = v_add(cc, v_mul(et, cl / 2 + 0.02))
+        obox(u.mb("Topsides", "door", TOPSIDES, "Containers"), (doors[0], doors[1], top + ch / 2), et, None, 0.03,
+             cw / 2 - 0.08, ch / 2 - 0.1)
+        # Corner posts and the roof rim: the container's outline at a glance.
+        for sl in (-1, 1):
+            for sw in (-1, 1):
+                p = v_add(cc, v_add(v_mul(et, sl * (cl / 2 - 0.08)), v_mul(er, sw * (cw / 2 - 0.08))))
+                bar(u.mb("Topsides", "grey", TOPSIDES, "Containers"), (p[0], p[1], top), (p[0], p[1], top + ch + 0.02),
+                    0.18)
+        # Reel beside the container's doors, a cabinet on the inner half.
+        rc = v_add(c, v_add(v_mul(er, 0.15), v_mul(et, GEAR_HALF_T - REEL_W / 2 - 0.6)))
+        _reel(u, lod, rc, et, er)
+        cab = v_add(c, v_add(v_mul(er, -GEAR_HALF_R + 0.7), v_mul(et, -1.2 + 1.6 * idx)))
+        obox(u.mb("Topsides", "grey", TOPSIDES, "Cabinets"), (cab[0], cab[1], top + 0.85), et, None, 0.6, 0.35, 0.85,
+             skip_bottom=True)
+        # Rail on the open sides (the inner side meets the ring walkway).
+        corner = [v_add((c[0], c[1], DECK_Z), v_add(v_mul(er, sr * GEAR_HALF_R), v_mul(et, st * GEAR_HALF_T)))
+                  for sr, st in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
+        rail(u, "Topsides", TOPSIDES, "GearRail", corner, 2)
+
+
 # --------------------------------------------------------------------------
 # Cranes
 # --------------------------------------------------------------------------
@@ -1055,6 +1128,7 @@ def of1_class(u: Unit, lod: int) -> None:
     harvest_chute(u, lod)
     landings(u, lod)
     outfitting(u, lod)
+    deck_gear(u, lod)
     cranes(u, lod)
     net(u, lod)
     bulkhead(u, lod)

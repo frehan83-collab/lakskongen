@@ -26,6 +26,7 @@
     "Logo": "panel_blank",
     "Roof": "hall_roof",
     "Roofgear": "steel",
+    "Skylights": "skylight",
     "Trim": "steel",
     "Walls": "harvest_clad"
   },
@@ -37,6 +38,7 @@
     "Logo": 12,
     "Roof": 2,
     "Roofgear": 50,
+    "Skylights": 12,
     "Trim": 80,
     "Walls": 114
   },
@@ -53,5 +55,5 @@
       "strip": "harvest_clad"
     }
   },
-  "tri_count": 434
+  "tri_count": 446
 }

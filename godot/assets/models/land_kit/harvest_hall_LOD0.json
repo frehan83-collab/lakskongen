@@ -27,6 +27,7 @@
     "Plinth": "concrete",
     "Roof": "hall_roof",
     "Roofgear": "steel",
+    "Skylights": "skylight",
     "Tower": "harvest_clad",
     "TowerGlass": "window",
     "Trim": "steel",
@@ -42,6 +43,7 @@
     "Plinth": 316,
     "Roof": 24,
     "Roofgear": 212,
+    "Skylights": 12,
     "Tower": 10,
     "TowerGlass": 10,
     "Trim": 80,
@@ -61,5 +63,5 @@
       "strip": "harvest_clad"
     }
   },
-  "tri_count": 2984
+  "tri_count": 2996
 }

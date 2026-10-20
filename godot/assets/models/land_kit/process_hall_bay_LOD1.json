@@ -22,6 +22,7 @@
     "Doors": "door",
     "Roof": "hall_roof",
     "Roofgear": "steel",
+    "Skylights": "skylight",
     "Walls": "hall_clad",
     "Windows": "window"
   },
@@ -29,6 +30,7 @@
     "Doors": 4,
     "Roof": 4,
     "Roofgear": 20,
+    "Skylights": 4,
     "Walls": 54,
     "Windows": 16
   },
@@ -50,5 +52,5 @@
       "strip": "window"
     }
   },
-  "tri_count": 98
+  "tri_count": 102
 }

@@ -86,6 +86,11 @@ _subresources={
 "use_external/fallback_path": "res://assets/models/pen_cage/pen_pole_blue_material.tres",
 "use_external/path": "res://assets/models/pen_cage/pen_pole_blue_material.tres"
 },
+"LK_Rope": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://assets/models/pen_cage/pen_rope_material.tres",
+"use_external/path": "res://assets/models/pen_cage/pen_rope_material.tres"
+},
 "LK_Skirt": {
 "use_external/enabled": true,
 "use_external/fallback_path": "res://assets/models/pen_cage/pen_skirt_material.tres",
