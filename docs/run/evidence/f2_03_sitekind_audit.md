@@ -20,7 +20,7 @@ Every unit on a plot sits in its plot's own water area: its `ZoneId` is the plot
 | Category | What it covers | Test |
 |---|---|---|
 | units-and-lists | the list, lookups by id, the unit views, saves and the bridge's lists | `UnitsAndLists_FindEveryKindById_AndSplitTheKinds` |
-| fjord-zone | per-zone systems: traffic light, zone water load, bloom deck, red-zone orders, auctions, transfers | `FjordZoneSystems_NeverSeeAnOffshoreUnitOrALandSite` |
+| fjord-zone | per-zone systems: traffic light (a unit's larval output, never its fish, F2-08), zone water load, bloom deck, red-zone orders, auctions, transfers | `FjordZoneSystems_NeverSeeAnOffshoreUnitsFishOrALandSite` |
 | site-limits | the remote operations centre's watch budget (`CountsTowardSiteLimits`) | `SiteLimits_CountTheFjordSites_NotTheOffshoreUnit` |
 | fjord-economics | fjord crews, upkeep, per-site carbon, the night shift | `FjordEconomics_TheUnitPaysAndEmitsOnlyItsOwn` |
 | storm-wear | fjord storm net wear, storm escapes, storm deaths and repairs | `StormWear_HitsTheFjord_NeverTheOffshoreUnit` |
@@ -200,6 +200,8 @@ The consumers that read the list before F2-03 and now read the fjord view instea
 | `src/LakskongenSim/Core/SimulationEngine.Expansion.cs` | `BuildGateKey` | 1 | site-limits | exclude | U2-01 (moved here from `CanBuildSeaSite`, wave-3 integration): the free first locality (the development right) is for a company with no fjord site; an offshore unit does not use it up |
 | `src/LakskongenSim/Core/SimulationEngine.Expansion.cs` | `PlanSiteBuild` | 1 | site-limits | exclude | U2-01 (wave-3 integration): the build plan's "new zone" follows the same development right as `BuildGateKey` |
 | `src/LakskongenSim/Core/SimulationEngine.Licence.cs` | `BuildSeaSite` | 1 | units-and-lists | exclude | A fjord build without a name is numbered among the fjord sites (`site_N`); offshore units are numbered apart (`offshore_N`) |
+| `src/LakskongenSim/Core/SimulationEngine.OffshoreLicences.cs` | `AreaLiveMortalityShare` | 1 | reports | exclude | F2-09: the conversion checklist compares a unit's mortality with its production area's live average over the company's fjord sites there (spec §2B "compared live with the game's own PO mortality"); a unit is never its own yardstick |
+| `src/LakskongenSim/Core/SimulationEngine.OffshoreLicences.cs` | `LiceComplianceShare` | 1 | lice | exclude | F2-09: a development-licence dossier's lice compliance is the share of the company's stocked fjord sites under the limit at their last count |
 | `src/LakskongenSim/Core/SimulationEngine.SiteKinds.cs` | `FjordSites` | 1 | units-and-lists | include | The engine's fjord view (definition) |
 | `src/LakskongenSim/Core/SimulationEngine.cs` | `ProcessCarbonLedger` | 1 | fjord-economics | exclude | Hot-file one-liner: the fjord per-site diesel and power formula; a unit books its own fuel, power and transport (`OffshoreTickSystem.AccountCarbon`): one fuel entry a day, not two |
 | `src/LakskongenSim/Core/SimulationEngine.cs` | `ProcessDailyFinance` | 1 | fjord-economics | exclude | Hot-file one-liner: fjord site crews' wages; a unit's crew of 12 is in its own opex (`OffshoreUnit.TickDay`) |

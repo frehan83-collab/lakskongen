@@ -136,20 +136,41 @@ public class SiteKindAuditTests
     /// <summary>
     /// Exclude, by zone: an offshore unit's and a land site's fish sit in their
     /// plot's water area, which no fjord zone is, so the zone systems never see
-    /// them: the traffic-light mean, the zone's biomass load on its water, the
-    /// bloom deck, the per-zone Mattilsynet orders and red-zone credit, the
-    /// licence auctions by zone and the cohort transfers between a zone's sites.
+    /// their fish: the traffic-light mean's fish, the zone's biomass load on its
+    /// water, the bloom deck, the per-zone Mattilsynet orders and red-zone
+    /// credit, the licence auctions by zone and the cohort transfers between a
+    /// zone's sites. The traffic-light mean carries the unit's larval output
+    /// (F2-08, spec §3.3 "Lice and zones": fish × lice per fish × 0.08 over the
+    /// zone's fish, never its fish), so it can only rise with a unit; with a
+    /// unit carrying no lice it is the bare game's bit for bit. Replaces the
+    /// equality of every zone's mean with the bare game's (RUN_LOG §7, F2-08;
+    /// docs/run/evidence/f2_08_replaced_tests.md).
     /// </summary>
     [Fact]
     [Trait(Category, "fjord-zone")]
-    public void FjordZoneSystems_NeverSeeAnOffshoreUnitOrALandSite()
+    public void FjordZoneSystems_NeverSeeAnOffshoreUnitsFishOrALandSite()
     {
         var m = MixedGame(302, events: true);
         var e = m.Engine;
         var bare = MixedGame(302, events: true, withUnit: false);
         Assert.DoesNotContain(e.State.Zones, z => z.Id == m.Unit.ZoneId || z.Id == m.Land.ZoneId || z.Id == m.PostSmolt.ZoneId);
+        double weight = LakskongenSim.Calibration.OffshoreCalibration.Default.LiceCoupling.ZoneOutputWeight;
+        double unitOutput = m.Unit.Pens.Sum(p => p.Cohorts.Sum(c => c.Count) * p.SeaLiceLoad);
+        Assert.True(unitOutput > 0.0);
+        foreach (var zone in e.State.Zones)
+        {
+            var (bareFish, bareLice) = bare.Engine.ZoneLiceForTrafficLight(zone.Id);
+            var (fish, lice) = e.ZoneLiceForTrafficLight(zone.Id);
+            Assert.Equal(bareFish, fish);
+            if (fish == 0) { Assert.Equal(0.0, lice); continue; }
+            Assert.Equal(bareLice + weight * unitOutput / fish, lice, 12);
+            Assert.True(lice > bareLice);
+        }
+        var loads = m.Unit.Pens.Select(p => p.SeaLiceLoad).ToList();
+        foreach (var pen in m.Unit.Pens) pen.SeaLiceLoad = 0.0;
         foreach (var zone in e.State.Zones)
             Assert.Equal(bare.Engine.ZoneLiceForTrafficLight(zone.Id), e.ZoneLiceForTrafficLight(zone.Id));
+        for (int i = 0; i < loads.Count; i++) m.Unit.Pens[i].SeaLiceLoad = loads[i];
         Assert.Equal((0, 0.0), e.ZoneLiceForTrafficLight(m.Unit.ZoneId));
 
         for (int week = 0; week < 40; week++)

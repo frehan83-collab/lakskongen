@@ -45,6 +45,25 @@ public partial class SimulationEngine
         public const string NotOperational = "not_operational";
         public const string ShakedownActive = "shakedown_active";
         public const string NothingToRepair = "nothing_to_repair";
+        // F2-08
+        public const string AlreadyRunning = "already_running";
+        public const string MaxLevel = "max_level";
+        public const string ApprovalWithdrawn = "approval_withdrawn";
+        public const string NotAppealable = "not_appealable";
+        // F2-09
+        public const string LicenceMissing = "licence_missing";
+        public const string LicenceExpired = "licence_expired";
+        public const string LicencesUnplaced = "licences_unplaced";
+        public const string RoundClosed = "round_closed";
+        public const string GateUnmet = "gate_unmet";
+        public const string AlreadyApplied = "already_applied";
+        public const string InvalidConcept = "invalid_concept";
+        public const string CriteriaUnmet = "criteria_unmet";
+        public const string NotPending = "not_pending";
+        public const string NothingDue = "nothing_due";
+        public const string PaymentLapsed = "payment_lapsed";
+        public const string ZoneFull = "zone_full";
+        public const string ZoneNotFound = "zone_not_found";
     }
 
     // ─── Build ─────────────────────────────────────────────────────────────
@@ -133,8 +152,10 @@ public partial class SimulationEngine
     /// engine_not_ready, invalid_type (the legacy submersible), out_of_range
     /// (an equity other than 1 or the consortium share), plot_not_found,
     /// not_an_offshore_slot, plot_taken, exposure_exceeds_design, not_unlocked
-    /// (a gate other than the development licence F2-09 brings, or money),
-    /// insufficient_funds (the signing payment).
+    /// (a gate other than the development licence or money), licence_missing
+    /// (no development-licence award for this plot and concept, F2-09),
+    /// insufficient_funds (the signing payment). The award's licences are bound
+    /// to the unit.
     /// </summary>
     public CommandResult BuildOffshoreUnit(string plotId, OffshoreType type, ContractForm contract, double equityShare = 1.0)
     {
@@ -175,6 +196,7 @@ public partial class SimulationEngine
             return started;
         }
         unit.ConstructionProjectId = started.Id;
+        BindAwardToUnit(BuildableAward(plot!.Id, OffshoreProfiles.VariantOf(type))!, site); // F2-09: the award's licences behind the unit
         EnsureOffshoreSea();
         TakeTodaysSea(site); // its gauges read the sea the window board shows from its first day
         ApplyDriftsplanDefaults(site.Id);
@@ -208,11 +230,13 @@ public partial class SimulationEngine
         if (!plot.IsFree) return OffshoreReasons.PlotTaken;
         if (!plot.AcceptsDesignHs(OffshoreUnit.DefaultDesignHsM(type))) return OffshoreReasons.ExposureExceedsDesign;
         var status = FarmTypeStatus(OffshoreProfiles.VariantOf(type));
-        // Every gate but money (paid phase by phase) and the development licence
-        // (F2-09's round; until it lands the build stands in for the award).
+        // Every gate but money (paid phase by phase) and the development licence,
+        // which F2-09 checks on its own: an award for this plot and concept.
         if (status == null || status.Gates.Any(g => !g.Met
                 && g.Gate.Kind != FarmTypeGateKind.Funds && g.Gate.Kind != FarmTypeGateKind.DevelopmentLicence))
             return OffshoreReasons.NotUnlocked;
+        if (BuildableAward(plot.Id, OffshoreProfiles.VariantOf(type)) == null)
+            return OffshoreReasons.LicenceMissing;
         return "";
     }
 
@@ -525,7 +549,11 @@ public partial class SimulationEngine
             return CommandResult.Fail(OffshoreReasons.InsufficientFunds, $"Insufficient funds: the repair costs {cost:N0} NOK", (double)cost);
         RingFenceOwnLine(site, cost);
         if (structure) unit.StructuralIntegrity = 1.0;
-        if (net) site.NetIntegrityPct = 100.0;
+        if (net)
+        {
+            site.NetIntegrityPct = 100.0;
+            MendTearAfterRepair(site); // F2-08: an open tear stops leaking
+        }
         unit.StructureKnown = unit.StructuralIntegrity;
         unit.NetKnownPct = site.NetIntegrityPct;
         unit.StructureKnownAsOfDay = State.Day;

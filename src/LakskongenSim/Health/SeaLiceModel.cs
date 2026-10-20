@@ -105,6 +105,34 @@ namespace LakskongenSim.Health
         /// saves restore it (a private field would silently reset infection
         /// pressure to zero on every load — Phase 1 wave 6).</summary>
         public double CopepodidDensity { get; set; } = 0.0;
+
+        // ── F2-08: an offshore unit's split pressure (opt-in; a fjord site never sets it) ──
+        //
+        // A fjord site's model scales all of its infection by one external
+        // multiplier (its fjord shares one copepodid cloud). An offshore unit's
+        // own lice reproduce as on any site while the open sea around it brings
+        // a fraction of the coast's pressure (docs/FARM_TYPES_SPEC.md §3.3 "Lice
+        // and zones"): with SeparatesExternalPressure on, the copepodids that
+        // arrive from outside (the engine's farm-to-farm seeding) are kept apart
+        // and scaled by ExternalOnlyMultiplier (the season × the plot), the
+        // unit's own and its neighbouring units' by OwnPressureMultiplier (the
+        // season). Written only when set, so a fjord site's save is unchanged.
+
+        /// <summary>True for an offshore unit's model: outside copepodids are kept apart and scaled on their own.</summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+        public bool SeparatesExternalPressure { get; set; }
+
+        /// <summary>Copepodids that arrived from outside (per m³), with <see cref="SeparatesExternalPressure"/> on.</summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+        public double ExternalCopepodidDensity { get; set; }
+
+        /// <summary>Multiplier on the infection by the unit's own copepodids (the season), with <see cref="SeparatesExternalPressure"/> on.</summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+        public double OwnPressureMultiplier { get; set; }
+
+        /// <summary>Multiplier on the infection by outside copepodids (the season × the plot), with <see cref="SeparatesExternalPressure"/> on.</summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+        public double ExternalOnlyMultiplier { get; set; }
         #endregion
 
         #region Events
@@ -182,8 +210,18 @@ namespace LakskongenSim.Health
             double naturalMortality = NATURAL_MORTALITY_BASE * envFactor;
 
             // Infection pressure from copepodids
-            double infectionPressure = CopepodidDensity * INFECTION_RATE_BASE * (1.0 + CurrentSpeedMs * 2.0) * (1.0 + StockingDensityKgM3 / 50.0);
-            infectionPressure *= ExternalPressureMultiplier;
+            double infectionPressure;
+            if (!SeparatesExternalPressure)
+            {
+                infectionPressure = CopepodidDensity * INFECTION_RATE_BASE * (1.0 + CurrentSpeedMs * 2.0) * (1.0 + StockingDensityKgM3 / 50.0);
+                infectionPressure *= ExternalPressureMultiplier;
+            }
+            else
+            {
+                // F2-08: the unit's own copepodids at the season's pressure, the outside ones at the plot's share of it.
+                double cloud = CopepodidDensity * OwnPressureMultiplier + ExternalCopepodidDensity * ExternalOnlyMultiplier;
+                infectionPressure = cloud * INFECTION_RATE_BASE * (1.0 + CurrentSpeedMs * 2.0) * (1.0 + StockingDensityKgM3 / 50.0);
+            }
 
             // New infections -> chalimus (skirts block settlement pre-attachment)
             double newChalimus = infectionPressure * (1.0 - AverageLicePerFish / MAX_LICE_PER_FISH);
@@ -216,6 +254,7 @@ namespace LakskongenSim.Health
 
             // Copepodid decay (mortality + settlement)
             CopepodidDensity *= 0.95; // 5%/day loss
+            if (SeparatesExternalPressure) ExternalCopepodidDensity *= 0.95;
 
             // Notify
             OnLiceStageChanged?.Invoke(ChalimusPerFish, PreAdultPerFish, AdultFemalePerFish, AdultMalePerFish);
@@ -231,6 +270,7 @@ namespace LakskongenSim.Health
             AdultFemalePerFish *= (1.0 - rate);
             AdultMalePerFish *= (1.0 - rate);
             CopepodidDensity *= (1.0 - rate);
+            if (SeparatesExternalPressure) ExternalCopepodidDensity *= (1.0 - rate);
         }
 
         /// <summary>
@@ -361,13 +401,31 @@ namespace LakskongenSim.Health
             c.SetEnvironment(TemperatureC, SalinityPSU, CurrentSpeedMs, StockingDensityKgM3);
             c.SetExternalPressure(ExternalPressureMultiplier);
             c.CopepodidDensity = CopepodidDensity;
+            c.SeparatesExternalPressure = SeparatesExternalPressure;
+            c.ExternalCopepodidDensity = ExternalCopepodidDensity;
+            c.OwnPressureMultiplier = OwnPressureMultiplier;
+            c.ExternalOnlyMultiplier = ExternalOnlyMultiplier;
             return c;
         }
 
         /// <summary>
         /// Introduce new lice from external source (wild salmon, neighboring farms).
+        /// With <see cref="SeparatesExternalPressure"/> on (an offshore unit), the
+        /// copepodids join the outside pool the plot's multiplier scales.
         /// </summary>
         public void SeedExternalInfection(double intensity = 0.1)
+        {
+            ChalimusPerFish += intensity * 0.5;
+            if (SeparatesExternalPressure) ExternalCopepodidDensity += intensity * 10.0;
+            else CopepodidDensity += intensity * 10.0;
+        }
+
+        /// <summary>
+        /// Introduce lice from a neighbour whose copepodids count as the site's
+        /// own cloud (F2-08: offshore units in one production area infect each
+        /// other outside the plot's multiplier).
+        /// </summary>
+        public void SeedLocalInfection(double intensity)
         {
             ChalimusPerFish += intensity * 0.5;
             CopepodidDensity += intensity * 10.0;

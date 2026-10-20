@@ -21,8 +21,11 @@ namespace LakskongenSim.Core;
 /// </summary>
 public partial class SimulationEngine
 {
-    /// <summary>The sea lane's calibration (facilities.offshore, F2-06/F2-07).</summary>
-    internal OffshoreCalibration OffshoreCal => _calibration.Facilities.Offshore;
+    /// <summary>The sea lane's calibration (facilities.offshore, F2-06..F2-09).</summary>
+    internal OffshoreCalibration OffshoreCal => OffshoreCalOverrideForTests ?? _calibration.Facilities.Offshore;
+
+    /// <summary>Test seam: a sea-lane calibration of a test's own (null = the registry's). Never set by the game.</summary>
+    internal OffshoreCalibration? OffshoreCalOverrideForTests { get; set; }
 
     private readonly Dictionary<(string Plot, int Day, WeatherState Weather, bool Quantiles), SeaStateForecast> _seaForecasts = new();
     private OffshoreMetocean? _seaForecastsOf;
@@ -69,6 +72,7 @@ public partial class SimulationEngine
         foreach (var site in State.SeaSites)
             if (site.Kind == SiteKind.Offshore && site.Offshore != null)
                 TakeTodaysSea(site);
+        CoupleOffshoreUnitLice(); // F2-08: before HealthPrep advances the lice models
     }
 
     /// <summary>
@@ -224,6 +228,15 @@ public partial class SimulationEngine
         State.Metocean = snapshot.Metocean;
         State.Metocean?.ApplyCalibration(OffshoreCal.Metocean);
         _seaForecasts.Clear();
+        // F2-08/F2-09 (empty in a save from before them).
+        State.OffshoreIncidents = snapshot.OffshoreIncidents ?? new List<Farm.Offshore.OffshoreIncident>();
+        State.IncidentReports = snapshot.IncidentReports ?? new List<Farm.Offshore.IncidentReport>();
+        State.NextIncidentReportNumber = Math.Max(1, snapshot.NextIncidentReportNumber);
+        State.SiteWithdrawals = snapshot.SiteWithdrawals ?? new List<Finance.SiteWithdrawalCase>();
+        State.NextSiteWithdrawalNumber = Math.Max(1, snapshot.NextSiteWithdrawalNumber);
+        State.DevelopmentRounds = snapshot.DevelopmentRounds ?? new List<Finance.DevelopmentLicenceRound>();
+        State.DevelopmentAwards = snapshot.DevelopmentAwards ?? new List<Finance.DevelopmentAward>();
+        State.RivalOffshore = snapshot.RivalOffshore;
     }
 }
 

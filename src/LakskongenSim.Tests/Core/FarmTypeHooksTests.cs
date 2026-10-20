@@ -106,15 +106,33 @@ public class FarmTypeHooksTests
     /// <c>lice = fish &gt; 0 ? pops.Sum(p =&gt; p.Cohorts.Sum(c =&gt; c.Count) * p.SeaLiceLoad) / fish : 0</c>.
     /// </summary>
     /// <summary>
-    /// The pre-move terms for every population not in an offshore unit, and the
-    /// pre-move zone mean of every fjord zone, bit for bit; an offshore unit's
-    /// fish add nothing to any zone's mean (F2-03: they never dilute a fjord
+    /// The pre-move terms for every population not in an offshore unit and not
+    /// the first of its zone, bit for bit; the first population of each fjord
+    /// zone adds exactly its production area's offshore units' larval output
+    /// (F2-08, spec §3.3 "Lice and zones": each unit's fish × lice per fish ×
+    /// the calibrated 0.08, summed in the pens' order, and no fish), so each
+    /// fjord zone's mean is the pre-move mean plus that output over the zone's
+    /// fish, never less, and a zone with no unit in its area (or a zone the game
+    /// does not hold) is the pre-move mean bit for bit; an offshore unit's fish
+    /// add nothing to any zone's fish count (F2-03: they never dilute a fjord
     /// zone, spec §3.1 decision 1), and its own water area's mean is empty.
+    /// Replaces F2-02's <c>..._AndTheZoneMeanIsThePreMoveMean</c> (every term the
+    /// pre-move one): F2-08 fills this hook on purpose (RUN_LOG §7, F2-08;
+    /// docs/run/evidence/f2_08_replaced_tests.md).
     /// </summary>
     [Fact]
-    public void ZoneLiceContribution_IsEachPopulationsFishTimesItsLice_AndTheZoneMeanIsThePreMoveMean()
+    public void ZoneLiceContribution_IsEachPopulationsFishTimesItsLice_AndTheZoneMeanAddsOnlyTheUnitsOutput()
     {
-        int offshorePopulations = 0;
+        double weight = LakskongenSim.Calibration.OffshoreCalibration.Default.LiceCoupling.ZoneOutputWeight;
+        var unit = Assert.Single(Engine.OffshoreUnits);
+        int area = Engine.ProductionAreaOfSite(unit);
+        double unitOutput = 0.0;
+        foreach (var pop in unit.Pens)
+            unitOutput += pop.Cohorts.Sum(c => c.Count) * pop.SeaLiceLoad;
+        Assert.True(unitOutput > 0.0, "the fixture's unit carries no lice: the output term would be vacuous");
+        double output = weight * unitOutput;
+
+        int offshorePopulations = 0, anchors = 0;
         foreach (var population in Engine.State.Populations)
         {
             var holding = Engine.HoldingOf(population);
@@ -127,9 +145,21 @@ public class FarmTypeHooksTests
             }
             int fish = population.Cohorts.Sum(c => c.Count);
             Assert.Equal(fish, share.Fish);
-            SameBits(population.Cohorts.Sum(c => c.Count) * population.SeaLiceLoad, share.LiceWeightedFish, population.ZoneId);
+            double own = population.Cohorts.Sum(c => c.Count) * population.SeaLiceLoad;
+            var zone = Engine.State.Zones.FirstOrDefault(z => z.Id == population.ZoneId);
+            bool anchor = ReferenceEquals(Engine.State.Populations.First(p => p.ZoneId == population.ZoneId), population);
+            if (anchor && zone != null && Engine.ProductionAreaOf(zone) == area)
+            {
+                anchors++;
+                SameBits(own + output, share.LiceWeightedFish, population.ZoneId + " (its first population carries the unit's larvae)");
+            }
+            else
+            {
+                SameBits(own, share.LiceWeightedFish, population.ZoneId);
+            }
         }
         Assert.Equal(2, offshorePopulations);
+        Assert.True(anchors >= 1, "no fjord zone shares the unit's production area");
 
         var zoneIds = Engine.State.Zones.Select(z => z.Id).Concat(new[] { "", "no_such_zone" }).ToList();
         Assert.Contains(zoneIds, id => Engine.State.Populations.Count(p => p.ZoneId == id) >= 2);
@@ -138,14 +168,30 @@ public class FarmTypeHooksTests
             var pops = Engine.State.Populations.Where(p => p.ZoneId == zoneId).ToList();
             Assert.DoesNotContain(pops, p => Engine.HoldingOf(p).Site?.Kind == SiteKind.Offshore);
             int fish = pops.SelectMany(p => p.Cohorts).Sum(c => c.Count);
-            double lice = fish > 0
-                ? pops.Sum(p => p.Cohorts.Sum(c => c.Count) * p.SeaLiceLoad) / fish
-                : 0.0;
+            var zone = Engine.State.Zones.FirstOrDefault(z => z.Id == zoneId);
+            bool carries = zone != null && Engine.ProductionAreaOf(zone) == area && pops.Count > 0;
+            double weighted = 0.0;
+            for (int i = 0; i < pops.Count; i++)
+                weighted += pops[i].Cohorts.Sum(c => c.Count) * pops[i].SeaLiceLoad + (i == 0 && carries ? output : 0.0);
+            double preMove = fish > 0 ? pops.Sum(p => p.Cohorts.Sum(c => c.Count) * p.SeaLiceLoad) / fish : 0.0;
+            double lice = fish > 0 ? weighted / fish : 0.0;
             var (hookFish, hookLice) = Engine.ZoneLiceForTrafficLight(zoneId);
             Assert.Equal(fish, hookFish);
-            SameBits(lice, hookLice, $"zone '{zoneId}'");
+            if (carries)
+            {
+                // The exact sum the engine makes (the anchor's share holds its own term plus the output).
+                double engineSum = 0.0;
+                foreach (var p in pops)
+                    engineSum += Engine.ZoneLiceContribution(Engine.HoldingOf(p).Site, p).LiceWeightedFish;
+                SameBits(engineSum / fish, hookLice, $"zone '{zoneId}'");
+                Assert.Equal(lice, hookLice, 12);
+                Assert.True(hookLice >= preMove, $"zone '{zoneId}' looks better with the unit");
+            }
+            else
+            {
+                SameBits(preMove, hookLice, $"zone '{zoneId}'");
+            }
         }
-        var unit = Assert.Single(Engine.OffshoreUnits);
         Assert.Equal((0, 0.0), Engine.ZoneLiceForTrafficLight(unit.ZoneId));
     }
 

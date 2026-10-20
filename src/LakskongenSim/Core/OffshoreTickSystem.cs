@@ -39,6 +39,7 @@ internal static class OffshoreTickSystem
     /// </summary>
     public static void Tick(SimulationEngine engine)
     {
+        engine.RunDevelopmentLicenceDay(); // F2-09: the round, awards, conversion cases (every game; draws no game stream)
         foreach (var site in engine.State.SeaSites.ToList())
         {
             if (site.Kind != SiteKind.Offshore || site.Offshore == null) continue;

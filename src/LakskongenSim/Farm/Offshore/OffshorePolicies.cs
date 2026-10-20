@@ -65,6 +65,21 @@ namespace LakskongenSim.Farm.Offshore
         public const string VesselStandard = "standard";
         public const string VesselDp = "dp_walk_to_work";
 
+        /// <summary>Kind of <see cref="HandlingPolicy"/> (F2-08).</summary>
+        public const string Handling = "offshore_handling";
+
+        /// <summary>A job that waits for a handling requirement to open (F2-08).</summary>
+        public const string TriggerRequirementOpen = "requirement_open";
+
+        /// <summary>A job that waits for the S2-04 harvest order already placed at the unit (F2-08).</summary>
+        public const string TriggerHarvestOrdered = "harvest_ordered";
+
+        /// <summary>A delousing that waits for the water to reach its treatment's minimum temperature (F2-08).</summary>
+        public const string TriggerWaterTooCold = "water_too_cold";
+
+        /// <summary>Fish-handling vessel choice ids (the handling policy's "handling_vessel" setting).</summary>
+        public const string VesselOffshoreWellboat = "offshore_wellboat";
+
         internal static void AddTo(List<IDriftsplanPolicy> policies)
         {
             policies.Add(new ResupplyPolicy());
@@ -72,6 +87,7 @@ namespace LakskongenSim.Farm.Offshore
             policies.Add(new NetInspectionPolicy());
             policies.Add(new SilagePolicy());
             policies.Add(new SensorServicePolicy());
+            policies.Add(new HandlingPolicy());
         }
 
         internal static readonly IReadOnlyList<DriftsplanUnitKind> Units = new[] { DriftsplanUnitKind.OffshoreUnit };

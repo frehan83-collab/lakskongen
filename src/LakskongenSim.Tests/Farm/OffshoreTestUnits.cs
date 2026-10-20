@@ -50,16 +50,20 @@ internal static class OffshoreTestUnits
     }
 
     /// <summary>
-    /// An engine where OF1-class is unlocked but for the development licence
-    /// F2-09 brings: deep-sea-farming researched, a first harvest sold, and a
-    /// year without an escape (366 days of a bare game).
+    /// An engine where OF1-class is unlocked: deep-sea-farming researched, a
+    /// first harvest sold, a year without an escape (366 days of a bare game)
+    /// and, since F2-09, a development-licence award for off_1 (granted as an
+    /// approved application gives it, through the engine's test seam, so the
+    /// helper's days stay F2-07's). <paramref name="award"/> false leaves it
+    /// out (F2-09's licence_missing).
     /// </summary>
-    public static SimulationEngine UnlockedForOf1(int seed, bool events = false, decimal cash = 5_000_000_000m)
+    public static SimulationEngine UnlockedForOf1(int seed, bool events = false, decimal cash = 5_000_000_000m, bool award = true)
     {
         var engine = RichEngine(seed, events, cash);
         engine.Research.ForceUnlock("deep-sea-farming");
         engine.State.HarvestBatchesSold = 1;
         engine.Advance(366);
+        if (award) engine.AwardDevelopmentLicencesForTests("off_1");
         return engine;
     }
 
