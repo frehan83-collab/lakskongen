@@ -1,7 +1,7 @@
 # AGENTS.md — LakskongenSim Agent Instructions
 
 > **Start here:** read `docs/HANDOFF.md` first. It says which branch to build on
-> (`review-remediation`, not `main`), where wave 4 stopped, and the rules: wait for
+> (`main`; PR #5 merged waves 1-3 on 2026-10-20), where wave 4 stopped, and the rules: wait for
 > the owner's go, and align with GitHub before changing anything.
 
 ## Project Overview

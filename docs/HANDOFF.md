@@ -8,7 +8,7 @@ BALANCE 2619, FJORD_RENDERER 782, AGENTS 368. Do not read them whole.
 ## 0. TL;DR
 
 - **Lakskongen** is a Norwegian salmon-farming management sim. The simulation is deterministic C# .NET 10 (`src/LakskongenSim`). The frontend is Godot 4.7.2 Mono (`godot/`).
-- **Build on `review-remediation`**, which equals `integration/wave2`; current head: `git log -1 origin/review-remediation`; it is draft PR #5 against `main`. `main` is older, so do not start from it.
+- **Build on `main`.** PR #5 (review remediation + waves 1-3) was merged into `main` on 2026-10-20 (`1a944e2`). New work goes on a branch from `origin/main` and back through a PR, so the GitHub CI (`ci`, `verify`) runs on it.
 - **Roadmap waves 1-3 are done**: graphics, simulation core, core loop UI, and farm-type foundations. **Wave 4 is paused**: work in progress sits on `wave4/*` branches (§6).
 - **Owner rules:**
   - wait for the owner's go and never autostart;
@@ -121,7 +121,7 @@ BALANCE 2619, FJORD_RENDERER 782, AGENTS 368. Do not read them whole.
 
 ## 5. Open issues (fix first)
 
-1. **GitHub Quality gate:** one UI flow check fails on the Linux runner. It is U2-07's "next event: N during a run ends it and the clock keeps its 3×", a timing check on a slow runner. Grep that text in `godot/tests/UiFlowTests.gd`. Make it deterministic without weakening it.
+1. ~~GitHub Quality gate (U2-07 next-event timing check on Linux)~~ — fixed in `4f93d68`; PR #5 was green on `ci` and `verify` before it merged.
 2. **Visual QA** needs a self-hosted Mac runner, which is the owner's call.
 3. **Harness content findings**, being handled in `wave4/gfx-polish-1`; RUN_LOG §8 has the details:
    - 08a land contrast is 0.106 against a bar of 0.12;
@@ -148,7 +148,7 @@ Goal: land-based and offshore farms that are buildable, visible and operable end
 2. **sim-sea-2:** F2-08 offshore incidents and F2-09 development licences.
 3. **ui-farm-1:** F2-31 family-first build dialog, after merging sim-land-1 and sim-sea-1.
 4. **gfx-farm-2:** F2-21 camera bookmarks and offshore swell, then the F2-23 first-sight sequence and showcase shots.
-5. **Integrate:** merge into `integration/wave2` in a separate worktree, re-record the goldens once with a diff report, run the full CI, push to `review-remediation`.
+5. **Integrate:** merge the finished stage branches into `integration/wave4` (branched from `origin/main`) in a separate worktree, re-record the goldens once with a diff report, run the full CI, then open a PR to `main` so GitHub CI runs.
 6. **Deferred:** G3-04 underwater view, U2-08 settings that apply, Au2-01 audio floor.
 7. **Then:**
    - the rest of the farm types: F2-08…F2-11, F2-16/17, F2-22/24, F2-27-30, F2-32-35;
