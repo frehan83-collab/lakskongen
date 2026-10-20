@@ -861,6 +861,19 @@
       "camera": {"mode": "home"},
       "state": "main_menu_load_slots",
       "purpose": "The main menu's load list over the live fjord: the same slots with their pictures, scenario and ISO time."
+    },
+    {
+      "id": "44_world_at_save",
+      "item": "U2-08",
+      "scene": "res://qa/scenes/SettingsCapture.tscn",
+      "kind": "ui",
+      "resolution": [1920, 1080],
+      "scenario": "po3_red_sone",
+      "seed": 91,
+      "weather": "clear",
+      "camera": {"mode": "home"},
+      "state": "world_at_save",
+      "purpose": "The fjord tab as the first save ('Vårutsett 2027', day 40) is made: the slot's picture in 44_save_slots should show this view without the HUD."
     }
   ]
 }

@@ -44,9 +44,13 @@ func _go() -> void:
 	# A game with a few saves, each with its picture of the world.
 	var scene := await _spawn_po3_scene(91)
 	var cam := get_viewport().get_camera_3d() as FjordCamera
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	ui.show_tab("fjord")
 	await get_tree().create_timer(2.5).timeout
 	_sim.advance_days(40)
 	await get_tree().create_timer(1.0).timeout
+	# The world on screen as the first save is made (its picture should match).
+	await _moment("world_at_save")
 	await _save_with_picture("Vårutsett 2027")
 	if cam != null:
 		var pens := scene.get_node("FjordEnvironment/FishPenManager") as FishPenManager
@@ -57,7 +61,23 @@ func _go() -> void:
 			await get_tree().create_timer(2.0).timeout
 	_sim.advance_days(60)
 	await get_tree().create_timer(1.0).timeout
-	await _save_with_picture("Før lusetelling")
+	# In-run A/B: frame times without and with a save picture being rendered.
+	if not _headless():
+		var idle: Array = await _frame_times(24)
+		var thumbs := get_node("/root/SaveThumbnails")
+		var before: int = thumbs.written
+		_check(_sim.save_game("Før lusetelling"), "capture: saved 'Før lusetelling'")
+		var during: Array = []
+		var last := Time.get_ticks_usec()
+		while thumbs.written == before and during.size() < 120:
+			await get_tree().process_frame
+			var now := Time.get_ticks_usec()
+			during.append((now - last) / 1000.0)
+			last = now
+		print("[SettingsCapture] perf: idle frames p50 %.1f max %.1f ms; with the picture (%d frames incl. the save) p50 %.1f max %.1f ms" % [
+			_pct(idle, 0.5), _pct(idle, 1.0), during.size(), _pct(during, 0.5), _pct(during, 1.0)])
+	else:
+		await _save_with_picture("Før lusetelling")
 	mgr.AutoSave()
 	await _wait_picture()
 
@@ -86,7 +106,6 @@ func _go() -> void:
 	settings.hide()
 	pause._on_submenu_closed()
 	pause.hide_menu()
-	var ui: Control = scene.get_node("UILayer/GameUI")
 	ui.show_tab("dashboard")
 	await _moment("hud_high_contrast")
 	applier.apply_high_contrast(false)
@@ -99,7 +118,27 @@ func _go() -> void:
 	await _moment("main_menu_load_slots")
 	menu.queue_free()
 
+	# The real window takes the window settings (never fullscreen here: on
+	# macOS that opens a new Space on the owner's desktop).
+	if not _headless():
+		var win := get_window()
+		var before := win.size
+		var applied := DisplaySettings.apply({"resolution": "1600x900", "fullscreen": false, "vsync": false}, win)
+		await get_tree().create_timer(0.6).timeout
+		print("[SettingsCapture] window: asked %s, got %s, mode %d, vsync %d (usable screen %s)" % [str(applied["size"]),
+			str(win.size), win.mode, DisplayServer.window_get_vsync_mode(), str(DisplayServer.screen_get_usable_rect().size)])
+		DisplaySettings.apply({"resolution": "%dx%d" % [before.x, before.y], "fullscreen": false, "vsync": true}, win)
+		await get_tree().create_timer(0.6).timeout
+		print("[SettingsCapture] window: back to %s, vsync %d" % [str(win.size), DisplayServer.window_get_vsync_mode()])
+
 	MotionPrefs.force(null)
+	# Keep the slots' pictures beside the frames (compared with 44_world_at_save).
+	if not _headless():
+		for entry: Dictionary in _sim.get_save_list():
+			var thumb := str(entry.get("thumbnail", ""))
+			if thumb != "":
+				DirAccess.copy_absolute(ProjectSettings.globalize_path(thumb),
+					ProjectSettings.globalize_path(OUT_DIR + "44_picture_" + str(entry.get("file", "")).get_basename().validate_filename() + ".png"))
 	_clear_test_saves()
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(SettingsStore.path()))
 	SettingsStore.path_override = ""
@@ -115,6 +154,25 @@ func _go() -> void:
 func _save_with_picture(name: String) -> void:
 	_check(_sim.save_game(name), "capture: saved '%s'" % name)
 	await _wait_picture()
+
+
+func _frame_times(n: int) -> Array:
+	var out: Array = []
+	var last := Time.get_ticks_usec()
+	for i in n:
+		await get_tree().process_frame
+		var now := Time.get_ticks_usec()
+		out.append((now - last) / 1000.0)
+		last = now
+	return out
+
+
+func _pct(values: Array, q: float) -> float:
+	if values.is_empty():
+		return 0.0
+	var s := values.duplicate()
+	s.sort()
+	return float(s[clampi(int(round(q * (s.size() - 1))), 0, s.size() - 1)])
 
 
 func _wait_picture() -> void:

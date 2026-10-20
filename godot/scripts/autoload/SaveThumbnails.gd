@@ -14,6 +14,8 @@ extends Node
 ## filtered down so the water and the pens stay crisp.
 const SIZE := Vector2i(384, 216)
 const RENDER_SCALE := 2
+## Frames the picture's viewport renders before it is read.
+const SETTLE_FRAMES := 8
 
 signal thumbnail_saved(path: String)
 
@@ -68,21 +70,29 @@ func capture_world() -> Image:
 	vp.size = SIZE * RENDER_SCALE
 	vp.world_3d = get_viewport().find_world_3d()
 	# No MSAA of its own (RenderQuality owns render settings): drawn at twice
-	# the size and filtered down, the picture is supersampled anyway.
-	vp.render_target_update_mode = SubViewport.UPDATE_ONCE
+	# the size and filtered down, the picture is supersampled anyway. It runs
+	# for SETTLE_FRAMES frames: the sky's reduced-resolution cloud passes and
+	# other per-viewport buffers start empty in a new viewport (the first frame
+	# reads grey and washed out).
+	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	var eye := Camera3D.new()
 	eye.fov = cam.fov
 	eye.near = cam.near
 	eye.far = cam.far
 	eye.cull_mask = cam.cull_mask
+	eye.keep_aspect = cam.keep_aspect
 	eye.environment = cam.environment
-	eye.attributes = cam.attributes
+	# No depth of field: a picture this small wants every pen sharp.
+	eye.attributes = null
 	vp.add_child(eye)
 	add_child(vp)
 	eye.global_transform = cam.global_transform
 	eye.current = true
-	await RenderingServer.frame_post_draw
-	await RenderingServer.frame_post_draw
+	for i in SETTLE_FRAMES:
+		await RenderingServer.frame_post_draw
+		if is_instance_valid(cam):
+			eye.global_transform = cam.global_transform
+			eye.fov = cam.fov
 	var img := vp.get_texture().get_image()
 	vp.queue_free()
 	return img

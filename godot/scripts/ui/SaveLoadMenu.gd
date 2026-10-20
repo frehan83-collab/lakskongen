@@ -128,6 +128,8 @@ func _refresh_slots() -> void:
 
 ## A slot's picture size (16:9, the SaveThumbnails PNG drawn at half size).
 const THUMB_SIZE := Vector2(160, 90)
+## The width of a slot's column of verbs (Last inn, Overskriv, Slett).
+const ACTIONS_WIDTH := 132.0
 
 ## A save time (unix seconds, UTC) as the player's local ISO 8601 date and
 ## time: "2026-10-20 19:04".
@@ -241,12 +243,24 @@ func _create_slot(save_info: Dictionary) -> PanelContainer:
 	LakskongenTheme.set_size(details, 13)
 	LakskongenTheme.set_tone(details, &"Muted")
 	info_vbox.add_child(details)
+	# The text gives way (an ellipsis) before the slot outgrows the list.
+	for lbl: Label in [name_lbl, scenario, details]:
+		lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		lbl.clip_text = true
+
+	# The verbs stand in a column beside the text, so the slot keeps the list's width.
+	var actions := VBoxContainer.new()
+	actions.name = "Actions"
+	actions.alignment = BoxContainer.ALIGNMENT_CENTER
+	actions.add_theme_constant_override("separation", 6)
+	actions.custom_minimum_size.x = ACTIONS_WIDTH
+	hbox.add_child(actions)
 
 	var load_btn := Button.new()
 	load_btn.name = "LoadButton"
 	load_btn.text = _tr_or("UI_SAVELOAD_LOAD", "Last inn")
 	load_btn.pressed.connect(_on_load.bind(file_name, slot_name))
-	hbox.add_child(load_btn)
+	actions.add_child(load_btn)
 
 	if _can_save() and not (_modal and _mode == "load"):
 		var save_btn := Button.new()
@@ -254,13 +268,13 @@ func _create_slot(save_info: Dictionary) -> PanelContainer:
 		save_btn.text = _tr_or("UI_SAVELOAD_OVERWRITE", "Overskriv")
 		# Overwrite under the file's own base name so the same file is replaced.
 		save_btn.pressed.connect(_on_save.bind(file_name.get_basename()))
-		hbox.add_child(save_btn)
+		actions.add_child(save_btn)
 
 	var delete_btn := Button.new()
 	delete_btn.name = "DeleteButton"
 	delete_btn.text = _tr_or("UI_SAVELOAD_DELETE", "Slett")
 	delete_btn.pressed.connect(_on_delete.bind(file_name, slot_name, delete_btn))
-	hbox.add_child(delete_btn)
+	actions.add_child(delete_btn)
 
 	return slot
 
