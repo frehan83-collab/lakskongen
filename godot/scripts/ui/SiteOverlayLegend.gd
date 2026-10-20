@@ -19,6 +19,7 @@ extends PanelContainer
 ##   get_site_intensity(site_id) -> float
 ##   get_site_color(site_id) -> Color
 ##   get_zone_intensity(zone_id) -> float   (-1.0 when the zone has no sites)
+##   get_area_intensity(area, zone_area) -> float   (per production area; the map's plates)
 ##   intensity_to_color(t) -> Color
 
 signal metric_changed(metric_id: String)
@@ -189,6 +190,25 @@ func get_zone_intensity(zone_id: String) -> float:
 			continue
 		var sid := str((site as Dictionary).get("id", ""))
 		if _intensity.has(sid):
+			total += float(_intensity[sid])
+			n += 1
+	return total / float(n) if n > 0 else -1.0
+
+## Average overlay intensity of every site in a production area, or -1.0 if
+## none. zone_area maps a site's zone id to its area (the expansion
+## overview's zones[].production_area): the map's plates are per area, while
+## sites carry zone ids such as "fjord_west" or "po04_solund".
+func get_area_intensity(area: int, zone_area: Dictionary) -> float:
+	if area <= 0:
+		return -1.0
+	var total := 0.0
+	var n := 0
+	for site in _sites:
+		var d := site as Dictionary
+		if int(zone_area.get(str(d.get("zone", "")), 0)) != area:
+			continue
+		var sid := str(d.get("id", ""))
+		if _intensity.has(sid) and not _no_data.has(sid):
 			total += float(_intensity[sid])
 			n += 1
 	return total / float(n) if n > 0 else -1.0

@@ -2505,6 +2505,67 @@ LEDGER_OVERDRAFT_INTEREST,Overdraft interest,Renter på overtrekk
 LEDGER_POST_SMOLT_SALES,Post-smolt sales,Salg av postsmolt
 LEDGER_RESCUE_LOAN_FEE,Rescue loan fee,Gebyr for redningslån
 LEDGER_TRANSFERS,Fish transfers,Flytting av fisk
+MAP_GEO_AREA_NUMBER,Production area %d,Produksjonsområde %d
+MAP_GEO_FACTS_HEADER,THE AREA,OMRÅDET
+MAP_GEO_GROUP_ALGAE,algae,alger
+MAP_GEO_GROUP_MARINE_FISH,marine fish,marin fisk
+MAP_GEO_GROUP_OTHER,other species,andre arter
+MAP_GEO_GROUP_SALMONID,salmonids,laksefisk
+MAP_GEO_GROUP_SHELLFISH,shellfish,skjell
+MAP_GEO_KM2,%s km²,%s km²
+MAP_GEO_LAYER_CANDIDATES,Candidates,Kandidater
+MAP_GEO_LAYER_CANDIDATES_TIP,"Show the possible new sites: twelve open-pen sites per area, one star each, and the offshore sites as hexagons","Vis mulige nye lokaliteter: tolv lokaliteter for åpne merder per område, én stjerne hver, og havlokalitetene som sekskanter"
+MAP_GEO_LAYER_FJORDS,Salmon fjords,Laksefjorder
+MAP_GEO_LAYER_FJORDS_TIP,"Show the national salmon fjords, where no new farms are allowed","Vis de nasjonale laksefjordene, der nye anlegg ikke er tillatt"
+MAP_GEO_LAYER_OFFSHORE,Offshore areas,Havområder
+MAP_GEO_LAYER_OFFSHORE_TIP,"Show the areas for farming at sea, dashed while in planning and solid once they can be announced","Vis områdene for havbruk til havs, stiplet mens de planlegges og heltrukket når de kan lyses ut"
+MAP_GEO_LAYER_SITES,Farms,Anlegg
+MAP_GEO_LAYER_SITES_TIP,"Show every active aquaculture site in the register, grouped where they lie close","Vis alle aktive akvakulturlokaliteter i registeret, samlet der de ligger tett"
+MAP_GEO_LEGEND_CANDIDATES,"Possible sites, twelve per area","Mulige lokaliteter, tolv per område"
+MAP_GEO_LEGEND_CLUSTER,Cluster: number of sites,Klynge: antall lokaliteter
+MAP_GEO_LEGEND_FJORD,National salmon fjord,Nasjonal laksefjord
+MAP_GEO_LEGEND_HEXAGON,Possible offshore site,Mulig havlokalitet
+MAP_GEO_LEGEND_LAND,"Land farm, salmonids","Landanlegg, laksefisk"
+MAP_GEO_LEGEND_LIGHT,Badge: the game's traffic light,Merke: trafikklyset i spillet
+MAP_GEO_LEGEND_OFFSHORE,Offshore farm,Havbruksanlegg
+MAP_GEO_LEGEND_OFFSHORE_AREA,"Offshore area, dashed in planning","Havområde, stiplet under planlegging"
+MAP_GEO_LEGEND_OTHER,Other species,Andre arter
+MAP_GEO_LEGEND_PLAYER,Your farms,Dine anlegg
+MAP_GEO_LEGEND_SEA,"Sea farm, salmonids","Sjøanlegg, laksefisk"
+MAP_GEO_LEGEND_TIP,Fold the map key away or open it,Skjul eller vis tegnforklaringen
+MAP_GEO_LEGEND_TITLE,Map key,Tegnforklaring
+MAP_GEO_LOCALITIES,Aquaculture sites,Akvakulturlokaliteter
+MAP_GEO_LOCALITIES_SPLIT,%d salmonid sites at sea · %d on land · %d offshore · %d other species,%d laksefisklokaliteter i sjø · %d på land · %d til havs · %d andre arter
+MAP_GEO_NORTH,N,N
+MAP_GEO_NO_OWNERS,No owner data yet,Ingen eierdata ennå
+MAP_GEO_OFFICIAL_LIGHT,Official traffic light: %s,Offisielt trafikklys: %s
+MAP_GEO_OFFICIAL_LIGHT_TIP,"The area's traffic light as Fiskeridirektoratet publishes it. The game's own light, above, follows the lice in the game.","Områdets trafikklys slik Fiskeridirektoratet publiserer det. Spillets eget lys, over, følger lusa i spillet."
+MAP_GEO_OWNER_ROW,%d sites · %s t,%d lokaliteter · %s t
+MAP_GEO_PLACE_LAND,Land farm,Landanlegg
+MAP_GEO_PLACE_OFFSHORE,Offshore farm,Havbruksanlegg
+MAP_GEO_PLACE_SEA,Sea farm,Sjøanlegg
+MAP_GEO_PLATE_CODE,PO %d,PO %d
+MAP_GEO_SCALE_KM,%d km,%d km
+MAP_GEO_SEA_AREA,Sea area,Sjøareal
+MAP_GEO_SEA_MTB,Grow-out MTB at sea,MTB matfisk i sjø
+MAP_GEO_SITE_KIND,"%s, %s","%s, %s"
+MAP_GEO_SOURCE_NOTE,Sites and areas: Fiskeridirektoratet's register. The owners are the game's companies.,Lokaliteter og områder: Fiskeridirektoratets register. Eierne er spillets selskaper.
+MAP_GEO_STAGE_2019,recommended in 2019,tilrådd i 2019
+MAP_GEO_STAGE_2022,recommended for study in 2022,anbefalt utredet i 2022
+MAP_GEO_STAGE_2024,impact assessed in 2024,konsekvensutredet i 2024
+MAP_GEO_STAGE_2026,can be announced from 2026,kan lyses ut fra 2026
+MAP_GEO_TIP_CANDIDATES,"%d possible sites in %s · the best near %s, suitability %s","%d mulige lokaliteter i %s · den beste ved %s, egnethet %s"
+MAP_GEO_TIP_CLUSTER,%d sites,%d lokaliteter
+MAP_GEO_TIP_FJORD,National salmon fjord: %s. No new farms.,Nasjonal laksefjord: %s. Ingen nye anlegg.
+MAP_GEO_TIP_HAV1,The game's open-sea plot lies here,Spillets havlokalitet ligger her
+MAP_GEO_TIP_HEXAGON,"Possible offshore site in %s, near %s · %s m deep","Mulig havlokalitet i %s, ved %s · %s m dyp"
+MAP_GEO_TIP_MAJORS,%s held by the large companies,%s eies av de store selskapene
+MAP_GEO_TIP_MTB,MTB %s t,MTB %s t
+MAP_GEO_TIP_OFFSHORE_AREA,"%s: offshore area, %s","%s: havområde, %s"
+MAP_GEO_TIP_PLAYER,"Your site %s, at %s","Lokaliteten din %s, ved %s"
+MAP_GEO_TIP_PLAYER_APPROX,"Your site %s, near %s (approximate position)","Lokaliteten din %s, nær %s (omtrentlig plassering)"
+MAP_GEO_TONNES,%s t,%s t
+MAP_GEO_TOP_OWNERS,LARGEST OWNERS,STØRSTE EIERE
 TUTORIAL_BUILD_SITE_DO,Press «Build locality» in your zone and confirm.,Trykk «Bygg lokalitet» i din sone og bekreft.
 TUTORIAL_BUILD_SITE_TEXT,"A site gives room, not biomass: the licence's MTB is shared by every site in the area. Two sites let you fallow one and spread the risk.","En lokalitet gir plass, ikke biomasse: lisensens MTB deles av alle lokalitetene i området. To lokaliteter lar deg brakklegge den ene og spre risikoen."
 TUTORIAL_BUILD_SITE_TITLE,Build a second site,Bygg en lokalitet til
