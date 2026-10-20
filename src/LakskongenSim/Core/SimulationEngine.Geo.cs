@@ -34,23 +34,16 @@ public partial class SimulationEngine
     /// <see cref="AdoptSavedState"/> before the plots rejoin their templates
     /// (the load has assigned a pre-S2-02 save's area by then).
     /// </summary>
+    /// <remarks>
+    /// GameBridge keeps one engine for the session, and a New Game with no
+    /// scenario never reaches this method: <see cref="Reset"/> puts
+    /// <see cref="SitePlotCatalog.Default"/> back, so a new game never keeps
+    /// the last scenario's hav_1 binding (captain's review of track A,
+    /// finding 2). The rival layout cache needs no reset: its signature names
+    /// every input of the layout, so another game's roster rebuilds it.
+    /// </remarks>
     internal void SelectGeoPlotCatalog()
         => PlotCatalog = GeoPlotCatalogs.ForHomeArea(State?.HomeProductionArea ?? 0);
-
-    /// <summary>
-    /// Forget the previous game's geo reads (called from <see cref="Reset"/>):
-    /// back to the default plot catalogue, no cached layout, no cached home
-    /// counts. GameBridge keeps one engine for the whole session, and a New
-    /// Game with no scenario never reaches <see cref="SelectGeoPlotCatalog"/>,
-    /// so without this it kept the last scenario's hav_1 binding until a save
-    /// and load moved it (captain's review of track A, finding 2).
-    /// </summary>
-    private void ResetGeoReads()
-    {
-        PlotCatalog = SitePlotCatalog.Default;
-        _rivalLayout = null;
-        _homeSiteCounts = null;
-    }
 
     /// <summary>
     /// The real open-sea candidate behind a plot, or null when the plot is not
