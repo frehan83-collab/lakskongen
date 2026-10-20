@@ -8,7 +8,7 @@ namespace LakskongenSim.Environment
     /// field keeps the slots' water clear of islands, and the sea there is the
     /// open ocean the water bake assumes beyond the play area.
     ///
-    /// F2-19 carves the pads into the heightfield (<see cref="CarvePads"/>):
+    /// F2-19 carves the pads into the heightfield (<see cref="CarvePads(float, float, float)"/>):
     /// every pad is a flat platform at <see cref="PadHeightM"/> (the Indre
     /// Harøy plan level [L:R13]) on the strandflat, cut into the shore and
     /// filled out over the skerries, with a rim that falls to the sea as a
@@ -250,8 +250,22 @@ namespace LakskongenSim.Environment
         /// every profile is continuous. Arithmetic only, like the rest of the
         /// generator, so every process carves the same heightfield.
         /// </summary>
-        internal float CarvePads(float h, float x, float z)
+        internal float CarvePads(float h, float x, float z) => CarvePads(h, x, z, out _);
+
+        /// <summary>
+        /// <see cref="CarvePads(float, float, float)"/>, and in
+        /// <paramref name="keep"/> the share of a change in the given height
+        /// that the carve passes on (its slope in h, the rim's widths held): 1
+        /// where nothing is carved, 0 on a pad and where a shelf fills the
+        /// ground up, a cut face's or a drop's smoothstep where they ease into
+        /// the ground. The wall ledges' terraces (gfx-polish-1) are scaled by
+        /// it, so the carved ground carries none of the uncarved wall's
+        /// terraces (<see cref="Ground"/>). The height is computed exactly as
+        /// without it.
+        /// </summary>
+        internal float CarvePads(float h, float x, float z, out float keep)
         {
+            keep = 1f;
             float half = Settings.WorldSizeM * 0.5f;
             foreach (var p in LandPadLayout)
             {
@@ -272,13 +286,20 @@ namespace LakskongenSim.Environment
                 if (d >= PadRimMaxM)
                     continue;
                 if (d <= 0f)
+                {
+                    keep = 0f;
                     return PadHeightM;
+                }
                 if (h >= PadHeightM)
                 {
                     // A cut face, wider into higher ground so it stays under the slope bound.
                     float cut = Math.Max(PadCutM, (h - PadHeightM) / PadRimSlope);
                     if (d < cut)
-                        h = PadHeightM + (h - PadHeightM) * SmoothStep(0f, cut, d);
+                    {
+                        float face = SmoothStep(0f, cut, d);
+                        h = PadHeightM + (h - PadHeightM) * face;
+                        keep *= face;
+                    }
                     continue;
                 }
                 var (shelf, lip, drop) = PadRimAt(x, z);
@@ -286,13 +307,21 @@ namespace LakskongenSim.Environment
                 // rim ends inside the world, clear of the far field's seam.
                 drop = Math.Min(Math.Max(drop, (lip - h) / PadRimSlope), PadDropMaxM);
                 shelf = Math.Min(shelf, Math.Max((room - PadEdgeMarginM) * PadEdgeShelfShare, 0f));
-                float top;
+                float top, pass;
                 if (d <= shelf)
+                {
                     top = PadHeightM + (lip - PadHeightM) * SmoothStep(0f, shelf, d);
+                    pass = 0f;
+                }
                 else if (d < shelf + drop)
-                    top = lip + (h - lip) * SmoothStep(shelf, shelf + drop, d);
+                {
+                    pass = SmoothStep(shelf, shelf + drop, d);
+                    top = lip + (h - lip) * pass;
+                }
                 else
                     continue;
+                if (top > h)
+                    keep *= pass;
                 h = Math.Max(h, top);
             }
             return h;

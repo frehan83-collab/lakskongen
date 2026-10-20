@@ -188,7 +188,7 @@ namespace LakskongenSim.Environment
             float z = -half + row * spacing;
             for (int col = 0; col < n; col++)
             {
-                var point = Sample(-half + col * spacing, z);
+                var point = Ground(-half + col * spacing, z);
                 heights[row * n + col] = point.Height;
                 if (ledgeOffsets != null)
                     ledgeOffsets[row * n + col] = point.Ledge;
@@ -215,14 +215,40 @@ namespace LakskongenSim.Environment
 
         /// <summary>
         /// Terrain height in metres at world (x, z); sea level is 0. The land
-        /// pads are carved into it (F2-19, <see cref="CarvePads"/>), so the
-        /// heightfield, the far field's seam and every placement query see
-        /// the same flat pads.
+        /// pads are carved into it (F2-19, <see cref="CarvePads(float, float, float)"/>),
+        /// so the heightfield, the far field's seam and every placement query
+        /// see the same flat pads: the grid and this read the same
+        /// <see cref="Ground"/>.
         /// </summary>
-        public float HeightAt(float x, float z)
+        public float HeightAt(float x, float z) => Ground(x, z).Height;
+
+        /// <summary>
+        /// The generated ground at (x, z): the fjord's <see cref="Sample(float, float)"/>
+        /// with the land pads carved into it. <see cref="FillRow"/> and
+        /// <see cref="HeightAt"/> both read it, so the heightfield and every
+        /// placement query agree bit for bit (wave4b int: gfx-polish-1's grid
+        /// read <c>Sample</c> and lost F2-19's pads). The wall ledges'
+        /// terraces carry over as far as the carve keeps the ground it was
+        /// given: none on a pad or a shelf's fill, a cut face's share on a cut
+        /// face, all of them where nothing is carved (heights - offsets is then
+        /// the carve of the ground without its terraces, not the uncarved wall).
+        /// </summary>
+        private Point Ground(float x, float z)
         {
             var s = Sample(x, z);
-            return CarvePads(s.Height, x, z);
+            float h = CarvePads(s.Height, x, z, out float keep);
+            return new Point(h, s.WallU, s.Ledge * keep, s.LedgeStrength * keep);
+        }
+
+        /// <summary>
+        /// The fjord at (x, z) before the pads are carved: the height, the part
+        /// of it the wall ledges' terraces add and their strength (tests: what
+        /// <see cref="Ground"/> and the carve start from).
+        /// </summary>
+        internal (float Height, float Ledge, float LedgeStrength) UncarvedAt(float x, float z)
+        {
+            var s = Sample(x, z);
+            return (s.Height, s.Ledge, s.LedgeStrength);
         }
 
         /// <summary>
