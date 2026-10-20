@@ -42,6 +42,7 @@ public partial class SimulationEngine
         SyncScenarioToState();
         // The HUD temperature reports the scenario's home production area (S2-02).
         SyncSeaTemperatureReference();
+        SelectGeoPlotCatalog();
         return CommandResult.Success($"Scenario '{scenario.Name}' started", id: scenario.Id);
     }
 

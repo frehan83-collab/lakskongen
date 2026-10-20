@@ -635,7 +635,7 @@ namespace LakskongenSim.Finance
                 new InvestmentOpportunity
                 {
                     Id = "acq_nordlaks",
-                    Name = "Acquire NordLaks Nord AS",
+                    Name = "Acquire Kongsemne Havbruk AS",
                     Category = "Acquisition",
                     Description = "Buy conservative family company. 40 licenses, excellent Arctic locations. Willing seller seeking succession.",
                     CapexRequired = 22_000_000_000m,

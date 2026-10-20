@@ -742,6 +742,7 @@ public partial class SimulationEngine
         // F2-03: the plots get their attributes back from the catalogue, and a
         // pre-F2 save's facilities become the F2 unit kinds (offshore sea sites,
         // post-smolt land sites, land sites on pads). Idempotent.
+        SelectGeoPlotCatalog();
         RehydrateSitePlotsAfterLoad();
         MigrateFacilities();
     }
