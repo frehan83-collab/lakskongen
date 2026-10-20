@@ -109,7 +109,6 @@ public partial class SimulationEngine
         if (State == null) return;
         int today = State.Day;
         MaybeOpenDevelopmentRound(today);
-        if (State.DevelopmentRounds.Count == 0) return;
         foreach (var round in State.DevelopmentRounds)
         {
             if (round.Status == DevelopmentRoundStatus.Open && today > round.ClosesDay)
@@ -131,17 +130,28 @@ public partial class SimulationEngine
             ClosesDay = today + LicenceCal.RoundOpenDays,
             RivalAwards = RivalOffshoreActive,
         };
-        // A private stream: the field is the seed's, whatever else happens in
-        // the game, and no game stream moves (the shipped scenarios' traces).
-        var stream = new SimRngStream(SimRng.Mix((ulong)(uint)Rng.Seed ^ StableHash.Of("development_round", round.Id)));
         var roster = CompetitorAI?.Competitors?.Select(c => (c.Id, c.Name)).ToList() ?? new List<(string, string)>();
-        round.Rivals = DevelopmentLicenceRound.DrawField(stream.NextDouble, today, LicenceCal, roster, atLeastOne: round.RivalAwards);
+        round.Rivals = DrawRivalField(Rng.Seed, round.Id, today, LicenceCal, roster, atLeastOne: round.RivalAwards);
         State.DevelopmentRounds.Add(round);
         PublishGameEvent(new GameEventRequest(GameEventType.DevLicenceRoundOpened, today)
         {
             Variant = round.Id,
             Message = SimText.Nb($"Søknadsrunden for utviklingstillatelser er åpen til dag {round.ClosesDay}: {round.Rivals.Count} konkurrenter ventes å søke"),
         });
+    }
+
+    /// <summary>
+    /// A round's rival field for a game seed: drawn from a private stream
+    /// seeded by the seed and the round's id, so the field is the seed's
+    /// whatever else happens in the game and no game stream moves (the shipped
+    /// scenarios' traces). The engine opens its rounds through this; the
+    /// licence tests read the field's spread over many seeds through it.
+    /// </summary>
+    internal static List<RivalApplication> DrawRivalField(int seed, string roundId, int openedDay, OffshoreLicencesCalibration cal,
+        IReadOnlyList<(string Id, string Name)> roster, bool atLeastOne)
+    {
+        var stream = new SimRngStream(SimRng.Mix((ulong)(uint)seed ^ StableHash.Of("development_round", roundId)));
+        return DevelopmentLicenceRound.DrawField(stream.NextDouble, openedDay, cal, roster, atLeastOne);
     }
 
     /// <summary>
