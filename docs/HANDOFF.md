@@ -150,7 +150,7 @@ The stage branches' finished heads above exist only in this checkout's local bra
 **Found and fixed at integration:** F2-09 builds an offshore unit only on a development-licence award, which F2-31's dialog predated. The Hav confirm now files the application while a round is open (as Land files its permits), then contracts the unit once the award comes (RUN_LOG §7, "F2-31 meets F2-09").
 
 **Still deferred (they need windows, so they wait for the owner's OK):**
-- `wave4/gfx-farm-1` (F2-19 carved shore pads, F2-20 facility presenter): WIP, unverified, not merged.
+- `wave4/gfx-farm-1` (F2-19 carved shore pads, F2-20 facility presenter): finished and verified windowed on `wave4b/gfx-farm-1` (2026-10-20; `docs/run/evidence/f2_19_pads.md`, `f2_20_presenter.md`; remainder in RUN_LOG §8), waiting for the wave-4b merge.
 - `wave4/gfx-polish-1` (the §5.3 polish list, idle-machine perf, chip clipping, whitecaps inside pens): WIP, unverified, not merged.
 - `wave4/gfx-farm-2` (F2-21 camera bookmarks and offshore swell, F2-23 first-sight sequence and showcase shots): not started.
 - Deferred visual checks of the merged stages (no frame was rendered or looked at on any of them):

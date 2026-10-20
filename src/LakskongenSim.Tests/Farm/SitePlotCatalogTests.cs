@@ -127,8 +127,9 @@ public class SitePlotCatalogTests
     /// The geometry seam: a terrain or a bake's meta.json gives the positions,
     /// pad sizes, water depths and the computed intake, joined by id; plots it
     /// does not know keep the file's fallback. The procedural terrain agrees
-    /// with the file for every plot but pad_a, whose terrain slot F2-19 moves
-    /// to the F2-18 read gate's centre (the file already has it).
+    /// with the file for every plot within 1 m, pad_a included since F2-19
+    /// moved its terrain slot to the F2-18 read gate's centre (the stronger
+    /// replacement of the pending-move check, RUN_LOG §7 2026-10-17).
     /// </summary>
     [Fact]
     public void TheGeometrySeam_JoinsThePlotsById_AndTheTerrainAgreesWithTheFile()
@@ -144,11 +145,9 @@ public class SitePlotCatalogTests
             var file = Catalog.Find(pad.Id)!;
             Assert.Equal(file.PhaseLots, pad.Id == "pad_delta" ? 0 : pad.Lots); // pad_delta's 4 are post-smolt modules
             if (pad.Id == "pad_a")
-            {
-                Assert.Equal((-700f, -1650f), (pad.CentreX, pad.CentreZ)); // F2-19 moves it to the file's
-                continue;
-            }
+                Assert.Equal((-450f, -1720f), (pad.CentreX, pad.CentreZ)); // the F2-18 read gate's centre (F2-19)
             Assert.True(Math.Abs(file.WorldX - pad.CentreX) <= 1.0 && Math.Abs(file.WorldZ - pad.CentreZ) <= 1.0, pad.Id);
+            Assert.Equal((file.PadWidthM, file.PadDepthM), ((double)pad.WidthM, (double)pad.DepthM));
         }
         foreach (var slot in terrain.OffshoreSlots())
         {

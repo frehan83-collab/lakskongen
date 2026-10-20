@@ -248,13 +248,38 @@ def test_hall_roofs_carry_roof_lights(aid):
     for lod in ("LOD0", "LOD1"):
         side = _sidecar(aid, lod)
         assert side["parts"].get("Skylights", 0) > 0 and side["part_strips"]["Skylights"] == "skylight", (aid, lod)
-    shader = (GODOT / "shaders" / "facility_kit.gdshader").read_text()
-    assert "EMISSION = roof_light_color * night_light * emission_energy * roof_light_glow;" in shader
+    for name in ("facility_kit.gdshader", "facility_kit_build.gdshader"):
+        shader = _kit_shader(name)
+        assert "EMISSION = roof_light_color * night_light * emission_energy * roof_light_glow;" in shader, name
+
+
+def _kit_shader(name):
+    """A kit shader's text with its res:// includes inlined (F2-20 moved the
+    kit's body to include/facility_kit_body.gdshaderinc, shared by the
+    back-face-culled kit and its double-sided build twin)."""
+    text = (GODOT / "shaders" / name).read_text()
+    return re.sub(r'#include "res://([^"]+)"', lambda m: (GODOT / m.group(1)).read_text(), text)
+
+
+def test_the_build_twin_is_the_kit_drawn_double_sided():
+    # F2-20: a shell cut open by its build progress shows the inside of its
+    # far wall: the same body, culling off, the inner face shaded.
+    kit = (GODOT / "shaders" / "facility_kit.gdshader").read_text()
+    build = (GODOT / "shaders" / "facility_kit_build.gdshader").read_text()
+    include = '#include "res://shaders/include/facility_kit_body.gdshaderinc"'
+    assert include in kit and include in build
+    assert "render_mode cull_back," in kit and "render_mode cull_disabled," in build
+    assert "#define LK_FACILITY_BUILD" in build and "#define LK_FACILITY_BUILD" not in kit
+    body = (GODOT / "shaders" / "include" / "facility_kit_body.gdshaderinc").read_text()
+    assert "#ifdef LK_FACILITY_BUILD" in body and "!FRONT_FACING" in body
+    tres = (FACILITY / "LK_FacilityKitBuild.tres").read_text()
+    assert 'path="res://shaders/facility_kit_build.gdshader"' in tres
+    assert 'path="res://assets/models/facility_kit/textures/facility_atlas.png"' in tres
 
 
 def test_shader_rows_follow_the_strip_order():
     names = [s[0] for s in _strips()]
-    shader = (GODOT / "shaders" / "facility_kit.gdshader").read_text()
+    shader = _kit_shader("facility_kit.gdshader")
     rows = dict(re.findall(r"const float ROW_(\w+) = ([\d.]+);", shader))
     for const, strip in (("TANK_WALL", "tank_wall"), ("TANK_BAND", "tank_band"), ("TANK_LID", "tank_lid"),
                          ("ROTOR", "rotor"), ("BRIDGE_LEG", "bridge_leg"), ("SKYLIGHT", "skylight")):

@@ -57,9 +57,13 @@ namespace LakskongenSim.Environment
         /// Props for a heightfield of n² vertices spanning worldSize metres
         /// (row-major by Z, centred on the origin). shoreDistance is the
         /// WaterBake G channel (signed distance to the shoreline, positive over
-        /// water); landExposure the vegetation masks' exposure.
+        /// water); landExposure the vegetation masks' exposure. Nothing is
+        /// built on the <paramref name="cleared"/> ground (F2-19: the land pads
+        /// and their rims, whose flat +3.6 m tops would otherwise draw every
+        /// naust row of the coast).
         /// </summary>
-        public static List<ShoreProp> Place(float[] heights, int n, float worldSize, float[] shoreDistance, float[] landExposure, ShorePropSettings? settings = null)
+        public static List<ShoreProp> Place(float[] heights, int n, float worldSize, float[] shoreDistance, float[] landExposure,
+            ShorePropSettings? settings = null, IReadOnlyList<GroundRect>? cleared = null)
         {
             var s = settings ?? new ShorePropSettings();
             float spacing = worldSize / (n - 1);
@@ -75,6 +79,8 @@ namespace LakskongenSim.Environment
                     if (h < s.MinHeightM || h > s.MaxHeightM || d < s.MinShoreDistanceM || d > s.MaxShoreDistanceM || landExposure[i] > s.MaxExposure)
                         continue;
                     float x = -half + c * spacing, z = -half + r * spacing;
+                    if (GroundRect.AnyContains(cleared, x, z))
+                        continue;
                     float slope = VegetationScatter.SlopeTanAt(heights, n, spacing, half, x, z);
                     if (slope > s.MaxSlopeTan)
                         continue;
@@ -96,12 +102,12 @@ namespace LakskongenSim.Environment
                     far &= (g.x - cx) * (g.x - cx) + (g.z - cz) * (g.z - cz) >= s.GroupSpacingM * s.GroupSpacingM;
                 if (!far)
                     continue;
-                var row = NaustRow(heights, n, spacing, half, shoreDistance, s, cx, cz, groups.Count);
+                var row = NaustRow(heights, n, spacing, half, shoreDistance, s, cx, cz, groups.Count, cleared);
                 if (row.Count < 2)
                     continue;
                 groups.Add((cx, cz));
                 props.AddRange(row);
-                if (!quayPlaced && TryQuay(heights, n, spacing, half, shoreDistance, s, row, out var quay))
+                if (!quayPlaced && TryQuay(heights, n, spacing, half, shoreDistance, s, row, cleared, out var quay))
                 {
                     props.Add(quay);
                     quayPlaced = true;
@@ -133,7 +139,24 @@ namespace LakskongenSim.Environment
             return VegetationScatter.Bilinear(heights, n, spacing, half, x + fx * ahead, z + fz * ahead) < 0f;
         }
 
-        private static List<ShoreProp> NaustRow(float[] heights, int n, float spacing, float half, float[] shoreDistance, ShorePropSettings s, float cx, float cz, int group)
+        /// <summary>True when any corner of a naust at (x, z) facing (fx, fz) lies on cleared ground.</summary>
+        private static bool OnCleared(IReadOnlyList<GroundRect>? cleared, ShorePropSettings s, float x, float z, float fx, float fz)
+        {
+            if (cleared == null)
+                return false;
+            float hw = s.NaustWidthM * 0.5f, hl = s.NaustLengthM * 0.5f;
+            float lx = -fz, lz = fx;
+            for (int k = 0; k < 4; k++)
+            {
+                float a = (k & 1) == 0 ? -hw : hw, b = (k & 2) == 0 ? -hl : hl;
+                if (GroundRect.AnyContains(cleared, x + lx * a + fx * b, z + lz * a + fz * b))
+                    return true;
+            }
+            return false;
+        }
+
+        private static List<ShoreProp> NaustRow(float[] heights, int n, float spacing, float half, float[] shoreDistance, ShorePropSettings s, float cx, float cz, int group,
+            IReadOnlyList<GroundRect>? cleared)
         {
             var row = new List<ShoreProp>();
             var (fx, fz) = Facing(shoreDistance, n, spacing, half, cx, cz);
@@ -147,7 +170,8 @@ namespace LakskongenSim.Environment
                 float x = cx + lx * step * s.RowSpacingM, z = cz + lz * step * s.RowSpacingM;
                 var (ffx, ffz) = Facing(shoreDistance, n, spacing, half, x, z);
                 // A row keeps one heading, near the local one.
-                if (ffx * fx + ffz * fz < 0.85f || !NaustFits(heights, n, spacing, half, shoreDistance, s, x, z, fx, fz))
+                if (ffx * fx + ffz * fz < 0.85f || !NaustFits(heights, n, spacing, half, shoreDistance, s, x, z, fx, fz)
+                    || OnCleared(cleared, s, x, z, fx, fz))
                     continue;
                 float baseY = BaseHeight(heights, n, spacing, half, s, x, z, fx, fz);
                 row.Add(new ShoreProp(ShorePropKind.Naust, x, baseY, z, Yaw(fx, fz), (group + row.Count) % 2, fx, fz));
@@ -155,7 +179,8 @@ namespace LakskongenSim.Environment
             return row;
         }
 
-        private static bool TryQuay(float[] heights, int n, float spacing, float half, float[] shoreDistance, ShorePropSettings s, List<ShoreProp> row, out ShoreProp quay)
+        private static bool TryQuay(float[] heights, int n, float spacing, float half, float[] shoreDistance, ShorePropSettings s, List<ShoreProp> row,
+            IReadOnlyList<GroundRect>? cleared, out ShoreProp quay)
         {
             quay = default;
             // Beside the row: one spacing past its last naust, from the waterline out.
@@ -172,7 +197,8 @@ namespace LakskongenSim.Environment
                     if (VegetationScatter.Bilinear(heights, n, spacing, half, px, pz) > 0.3f)
                         continue;
                     float headDepth = -VegetationScatter.Bilinear(heights, n, spacing, half, px + fx * s.QuayLengthM, pz + fz * s.QuayLengthM);
-                    if (headDepth < s.QuayMinDepthM)
+                    if (headDepth < s.QuayMinDepthM || GroundRect.AnyContains(cleared, px, pz)
+                        || GroundRect.AnyContains(cleared, px + fx * s.QuayLengthM, pz + fz * s.QuayLengthM))
                         break;
                     quay = new ShoreProp(ShorePropKind.Quay, px, 0f, pz, Yaw(fx, fz), 0, fx, fz);
                     return true;

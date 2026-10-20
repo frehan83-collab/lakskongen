@@ -1149,6 +1149,8 @@ Assets are built headless by Python scripts, following the `build_vessels.py` ex
    - Status markers over offshore units are therefore Ink chips with glyphs, and a lint requires ΔE ≥ 20 between any world-anchored marker and the hull swatch.
    - The orange accents never carry status.
 
+**As built (F2-19, F2-20).** The pads are carved by `TerrainGenerator.CarvePads` (golden `a7b58a2c48dd4a8f`, headless = windowed). The presenter (`FarmFacilityVisualManager`, `LandCampusBuilder`, `OffshoreUnitVisual`, `FacilityWorldCard`) draws `SimulationEngine.FacilityVisualViews`: the engine's lots and tanks and their construction projects. The §6.3 land rows map onto the land lane's phases as built (`site_works` = blast pad, then foundations over its last 40 %; `tank_rings`; `treatment_hall`; `sea_works` = intake, outfall, quay and bridge; `first_tanks` = commissioning, the first half of the grow-out tanks handed over; `completion` = the rest); the offshore rows are the sea lane's (`yard_contract`, `hull`, `voyage`, `tow`, `mooring`, `commissioning`). A shell under construction draws double-sided (`LK_FacilityKitBuild`). Evidence: `docs/run/evidence/f2_19_pads.md`, `docs/run/evidence/f2_20_presenter.md`.
+
 ---
 
 ## 6. UX

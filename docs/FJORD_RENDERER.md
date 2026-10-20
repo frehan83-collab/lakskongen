@@ -130,8 +130,10 @@ black per building) on sheltered, gentle (under 14°), dry shore 1.8-9 m above
 the sea and 5-28 m from it, doors turned to the water by the shore distance
 field's gradient, rows 300 m apart; one solid quay beside a row, from the
 waterline 18 m out to at least 2.5 m of water. The trees keep a 14 m yard
-around each. On the seed-42 fjord: two rows on the head delta and a row with
-the quay on the spruce spit by the mouth (in the default FJORD view). Meshes:
+around each. Nothing stands or grows on a land pad or its rim (F2-19). On
+the seed-42 fjord: a row on the head delta east of pad_delta (the delta's
+second row stood where pad_delta is carved) and a row with the quay on the
+spruce spit by the mouth (in the default FJORD view). Meshes:
 `blender/build_shore_props.py` (manifest entries `naust`, `quay`).
 
 ## Far field (G2-01)
@@ -197,9 +199,40 @@ facing the nearest water) with `IntakeReachM(pad)` (computed: the nearest
 heightfield vertex at −95 m or the world edge), and `OffshoreSlots()` (off_1
 Ytre kyst, off_2 Havkanten, hav_1 Havområde beyond the world, exposure 1,
 depth from the far field). `FjordTerrain.land_pad_slots()` /
-`offshore_slots()` hand them to GDScript. The pads are not carved yet (F2-19
-carves them with their `pad_state` heath/granite and the vegetation and shore
-exclusions); the heightfield, and its golden hash, are unchanged.
+`offshore_slots()` hand them to GDScript; a baked region (G2-01) names the same
+fields in its `meta.json` (`schemas/terrain/meta.schema.json`: `land_pads[]`,
+`offshore_slots[]`, the intake reach never authored).
+
+The pads are carved (F2-19, `TerrainGenerator.CarvePads` over `Sample`): each
+pad flat at +3.6 m over its rectangle, and round it a rim of up to 105 m
+(`PadRimMaxM`). Where the ground stands higher, the rim is a cut face into the
+hill (24 m, wider where the slope bound needs it); toward the sea it is a low
+rock shelf 6-70 m wide (its width wanders along the edge, read at the nearest
+edge point) down to a lip 0.4 m over the sea, then a drop to the seabed at
+least 18 m wide, never steeper than 1:3 and at most 35 m wide; in front of the
+quay edge a quay face (lip 3.0 m, shelf 1.5 m, drop 9 m) lets a wellboat lie
+alongside. The quay edge is fixed from the uncarved ground (`QuaySides`: the
+water-facing edge nearest the channel's centreline); near the world edge the
+shelf takes at most 40% of the room left. Trees, meadow and shore buildings
+keep off every pad and its rim (`FjordGroundCover`: the masks are zeroed and
+the scatter and `ShorePropPlacer` skip `PadClearings()`). The seed-42 golden
+hash is `a7b58a2c48dd4a8f` (headless and windowed equal); pad_a's quay at
+(−130, −1720) has 25 m of water 80 m out and its −95 m intake line at the
+world edge 280 m out (BALANCE §1p).
+
+The terrain shader paints each pad by `pad_state` (0 heath, 1 built;
+`FjordTerrain.set_pad_state(id, state, blast)`, at most four pads): unbuilt,
+the pad and its rim keep the heath with a few granite slabs; built, the
+blasted rectangle `blast` (world x0, z0, x1, z1; zero = the whole pad; the
+facility presenter passes its campus's footprint + 22 m) turns crushed stone
+(the shingle layer tinted to granite #6B7378, with fines and warm patches),
+its edge broken by noise, and the rim's cut faces and the armoured shelf turn
+bare granite (wet #3E4448 toward the sea). The yard is graded crushed rock:
+its stones' tone contrast is a power of 0.8 on the shingle's luma
+(`yard_contrast`) and 70 % of their relief is rolled flat (`yard_flatten`),
+so a built pad reads as one even granite yard, not as stones (F2-20's
+frames). Shots `45_pads_*` measure the
+pads' mean colour built against heath (ΔE76; `docs/run/evidence/f2_19_pads.md`).
 
 ## Camera (G1-03)
 
@@ -227,6 +260,16 @@ mouth looks up the fjord from out at sea. Camera input acts only while the Fjord
 shows the world (`GameUI.world_view_changed` → `FjordVistaBridge` →
 `input_enabled`), letters are ignored while a text field has focus and arrows
 while any Control has focus. Idle auto-orbit starts after 30 s.
+
+Focus targets (F2-20, farm-types spec §4): `register_focus_target(id, pos,
+distance, pitch, radius)` names a place the camera frames at its own distance
+and pitch (a campus at 520 m and −40°, one lot at 380 m, an OF1-class unit at
+220 m and −18°); `focus_target(id)` and `frame_position(pos, distance, pitch)`
+fly there, the pitch kept as an offset from the distance table's so Home
+restores the table. The focus clamp and the camera-position clamp both take
+the union of the world box and every target's disc, so a unit beyond the
+world's edge can be framed and orbited. The facility presenter registers each
+unit; the bookmark key and the framings' horizon rule are F2-21's.
 
 The water grid (`WaterGrid.gd`, below) runs out to ±32.8 km under the far
 field, so the view out of the mouth ends at a horizon.
@@ -680,6 +723,82 @@ column (`SiteBerths.gd` through `get_berth` and `site_zones`).
 channel with keel depth under its whole length, clear of every other site's
 grid and berths, and runs it straight in along the grid to its berth.
 
+### Land campuses and offshore units (F2-20)
+
+`FarmFacilityVisualManager.gd` (under `FjordEnvironment` in `GameScene`)
+draws the company's land sites and offshore units from the engine's own
+units: `SimBridge.get_facility_visuals()` is a pure read of
+`SimulationEngine.FacilityVisualViews` (`Core/FacilityVisualViews.cs`): each
+unit's plot, its lots or post-smolt modules with their tanks in tank order
+(role, diameter, handed over or not, fish), each lot's construction project
+(the land lane's F2-14 phases `site_works` … `completion`), an offshore
+unit's project (the sea lane's F2-07 phases `yard_contract` …
+`commissioning`, with why it waits), and whether the unit feeds. The fjord's
+pens and barges never see these units (`GetSeaSiteDetails` lists fjord sites
+only). The sync diffs by unit id: a new unit is built, a known one takes its
+state, a unit whose lots changed is laid out again, a unit the engine no
+longer has (a cancelled build) is freed, and nothing else moves.
+
+- **A land site** is a `LandCampusBuilder` on its carved pad, in the pad's
+  own frame (u toward the quay edge, v along it): lot slots back from the
+  quay (a full HFS lot two rows of six Ø28 m tanks 4 m apart, the process
+  hall between them, a Ø16 m pre-grow tank closing each row; a pilot four
+  and one with a hall stub; a RAS hall 6 × 3 bays), the quay, the dark
+  harvest hall, the orange pipe bridge, the intake basin, the utilities row
+  behind the lots, roads, a concrete apron and an asphalt car park; a
+  post-smolt site's modules (two Ø16 m tanks under a lean-to bay) side by
+  side with the river intake on the delta. Draws: one MultiMesh per tank
+  type per LOD band (re-bucketed as the camera moves: LOD0 < 350 m, LOD1 <
+  1,200 m), a double-sided twin of each for tanks under construction, the
+  feeders at LOD0/LOD1, and each building group merged into one surface per
+  LOD (LOD0 < 500 m, LOD1 < 2,000 m, no hysteresis margins: with fade off a
+  pair of margins leaves a band where a camera that jumped there sees
+  neither LOD): roads, the harvest hall, the sea works, the utilities, and
+  each lot's hall bays. LOD2 casts no shadow; of LOD1 only the tanks do.
+- **Construction** follows each lot's project: the site works spread the
+  pad's blasted granite (`FjordTerrain.set_pad_state` with the campus's
+  footprint + 22 m) over their first 60 % and then pour the ring
+  foundations and lay the roads; the walls rise through the tank rings
+  (`INSTANCE_CUSTOM.r`, open-topped); the lot's hall bays and the harvest
+  hall rise in the treatment hall, the quay, apron, bridge and basin in the
+  sea works, the utilities in the first-tanks phase (`build_cut_m`); a tank
+  the engine has handed over stands whole with its lid and its feeder, which
+  turns while the tank holds fish and the site feeds. A shell cut open by
+  its build progress is drawn with `LK_FacilityKitBuild`
+  (`facility_kit_build.gdshader`: the kit's body, double-sided, the inner
+  face the wall swatch × 0.72), so the inside of its far wall shows.
+- **An offshore unit** is an `OffshoreUnitVisual`: yard contract, four
+  yellow survey buoys at the slot; hull, the pre-laid moorings' eight pick-up
+  buoys; voyage, the unit coming in from 2.6 km behind a tug; tow, three
+  anchor tugs bringing it the last 600 m (holding it there while the
+  project waits for "Start slep nå" or shelters); mooring, the tugs at the
+  anchor bearings; commissioning, the crew boat at the boat landing;
+  operational, the orange service vessel at the walk-to-work landing. It
+  heaves on `WaveField.hull`, damped; its net stays on
+  `PlanarReflection.NO_MIRROR_LAYER`. The Havfarm-class hull has no model
+  before F2-29 and draws nothing.
+- **Lights** (presentation clock, D20): from a sun elevation of 6° down to
+  −2° the kits' windows, lid work-lights and roof lights come up to 0.8
+  (`night_light` on `LK_FacilityKit`, its build twin and `LK_OffshoreKit`);
+  the offshore lanterns flash at night.
+- **Picking**: a click on a tank (an `Area3D` cylinder per tank) or a unit
+  opens `FacilityWorldCard` (the unit, its variant and plot, the tank's
+  number, lot and fish, the engine's phase name with "Byggefase n av m", why
+  it waits or stands still, a progress ring of the whole build; once built,
+  fish and biomass) hanging from the clicked point, and frames it: a tank its
+  lot at 380 m and −40°, the campus at 520 m and −40°, an OF1-class unit at
+  220 m and −18° (spec §4). Esc closes it; so does covering the world.
+
+QA staging (never the player's UI, `tests/test_facility_presenter.py`): the
+bridge's `QaPlaceFarmTypeSet`, `QaStartLandBuild`, `QaExpandLandSite`
+(the engine's own permit, grid-project and expansion verbs, the cases
+approved at once), `QaContractOffshore` (the engine's
+`QaContractOffshoreUnit`: `BuildOffshoreUnit`'s contract with the unlock
+gates waived and a QA award) and `QaStageConstruction` (a project stood in a
+named phase). The capture scene `qa/scenes/FacilityPresenterCapture.tscn`
+renders shots `45_pads_*`, `32_land_construction_*` and `44_facilities_*`
+from them; evidence `docs/run/evidence/f2_20_presenter.md`.
+
 ## Image pipeline (G1-06, post and anti-aliasing)
 
 MSAA 4× plus SMAA (`screen_space_aa = 2`); no tilt-shift pass (removed with
@@ -780,3 +899,5 @@ runs, the cost breakdown and the frames.
 | `shaders/fish_school.gdshaderinc` (in `salmon_school`, `fish_shoal`) | the salmon schools (G3-01) |
 | `shaders/light_glow.gdshaderinc` (in `mooring_light_glow`, `vessel_light_glow`) | night lights and their glitter |
 | `shaders/site_float.gdshaderinc` (in `feed_hose`, `mooring_buoy`, `mooring_lamp`, `mooring_light_glow`, `mooring_rope`, `site_kit_float`) | the site's floating gear |
+| `shaders/facility_kit.gdshader`, `shaders/facility_kit_build.gdshader` (+ `shaders/include/facility_kit_body.gdshaderinc`) | the land kit (`LK_FacilityKit`; its double-sided twin `LK_FacilityKitBuild` for shells under construction, F2-20) |
+| `shaders/offshore_kit.gdshader` | the OF1-class unit's solids (`LK_OffshoreKit`, F2-26) |

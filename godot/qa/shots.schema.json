@@ -58,6 +58,53 @@
           }
         },
         "variant_of": {"type": "string"},
+        "pad_state": {
+          "type": "object",
+          "description": "F2-19: land pad id -> terrain pad_state (0 heath, 1 blasted granite); pads left out stay heath.",
+          "additionalProperties": {"type": "number", "minimum": 0, "maximum": 1}
+        },
+        "measure_pads": {"type": "boolean", "description": "F2-19: record each pad's mean CIE Lab in the frame."},
+        "facilities": {
+          "type": "object",
+          "description": "F2-20: the farm-type QA set the presenter draws, stood in the engine through the bridge's QA verbs (the engine's own build verbs); the set only grows over a run.",
+          "additionalProperties": false,
+          "properties": {
+            "land": {
+              "type": "object",
+              "description": "An HFS site on pad_a: 'operational' commissions its lots at once, a phase key builds it lot by lot and stands its projects in that phase.",
+              "required": ["lots", "phase"],
+              "additionalProperties": false,
+              "properties": {
+                "lots": {"type": "integer", "minimum": 1, "maximum": 4},
+                "phase": {"enum": ["site_works", "tank_rings", "treatment_hall", "sea_works", "first_tanks", "completion", "operational"]},
+                "progress": {"type": "number", "minimum": 0, "maximum": 1}
+              }
+            },
+            "post_smolt": {
+              "type": "object",
+              "description": "A post-smolt site on pad_delta, built.",
+              "required": ["modules"],
+              "additionalProperties": false,
+              "properties": {"modules": {"type": "integer", "minimum": 1, "maximum": 4}}
+            },
+            "offshore": {
+              "type": "object",
+              "description": "An OF1-class unit on off_1, contracted on a QA award and stood in a phase of its project.",
+              "required": ["phase"],
+              "additionalProperties": false,
+              "properties": {
+                "phase": {"enum": ["yard_contract", "hull", "voyage", "tow", "mooring", "commissioning", "operational"]},
+                "progress": {"type": "number", "minimum": 0, "maximum": 1}
+              }
+            }
+          }
+        },
+        "perf_units": {
+          "type": "array",
+          "description": "F2-20: with perf, only these QA-set units are shown in the A/B's 'on' frame, so one unit's own draw calls are measured.",
+          "items": {"enum": ["land", "post_smolt", "offshore"]},
+          "uniqueItems": true
+        },
         "state": {"type": "string", "description": "A UI shot's game state, named by its capture scene (U2-01: map, build_refused, auction_preview, auction_live, auction_won, build_new_zone, built_view)."},
         "purpose": {"type": "string", "minLength": 10}
       }

@@ -634,6 +634,18 @@ UI_FARM_STATE_CTA_OXYGEN,Open telemetry,Til telemetri
 UI_FARM_STATE_CTA_FCR,Open the feeding plan,Til fôringsplanen
 UI_FARM_STATE_CTA_BALANCE,Open finance,Til økonomi
 UI_FARM_STATE_CTA_TIP,Opens the panel where this is handled,Åpner panelet der dette håndteres
+FACILITY_CARD_CLOSE,Close,Lukk
+FACILITY_CARD_LOT,Lot %s,Byggetrinn %s
+FACILITY_CARD_MODULE,Module %s,Modul %s
+FACILITY_CARD_OPERATIONAL,Operational,I drift
+FACILITY_CARD_PHASE,Phase %s of %s,Byggefase %s av %s
+FACILITY_CARD_STOCK,%s fish · %s,%s fisk · %s
+FACILITY_CARD_SUSPENDED,Sea works stand still in April–June,Sjøarbeidet står stille i april–juni
+FACILITY_CARD_TANK,Tank %s,Kar %s
+FACILITY_CARD_TANK_FISH,%s fish,%s fisk
+FACILITY_CARD_WAITING_FUNDS,Waiting for the money for the next payment,Venter på penger til neste betaling
+FACILITY_CARD_WAITING_SHELTERING,Sheltering after the tow broke off,Ligger i le etter avbrutt slep
+FACILITY_CARD_WAITING_TOW,Ready to be towed out,Klar til slep
 FARM_FACTOR_LICE_CRITICAL,lice %s (limit %s),lus %s (grense %s)
 FARM_FACTOR_LICE,lice %s,lus %s
 FARM_FACTOR_OXYGEN,O₂ %s mg/L,O₂ %s mg/L
