@@ -96,6 +96,20 @@ const MODULE_PITCH := 44.0
 const BRIDGE_SPAN := 25.0
 const BRIDGE_DECK_ABOVE_PAD := 10.0
 const BRIDGE_SPANS := 8
+## Half the bridge's width (m, the span's sidecar box) and the gap (m) the
+## harvest hall keeps from it (wave4b review: on pad_b a hall at a fixed v
+## stood across the bridge's line).
+const BRIDGE_HALF_WIDTH := 2.5
+const HALL_CLEAR_M := 10.0
+## The harvest hall turns its long side along the quay.
+const HALL_YAW := PI * 0.5
+## The cross road runs this far (m) into the quay zone, and a road keeps this
+## gap (m) from a building.
+const CROSS_ROAD_IN_M := 15.0
+const ROAD_CLEAR_M := 3.0
+## A plot the terrain has no pad for (a migrated save's overflow plot) gets a
+## frame the campus fits in; this much ground (m) is kept round it.
+const FRAME_MARGIN_M := 10.0
 ## Roads (asphalt, the atlas's dark fender strip) and aprons (concrete), m.
 const ROAD_WIDTH := 8.0
 const ROAD_Y := 0.12
@@ -103,14 +117,6 @@ const ROAD_Y := 0.12
 const ROW_ASPHALT := 18
 const ROW_CONCRETE := 17
 const ATLAS_STRIPS := 32.0
-## Half the footprint (m, model x and z: the sidecars' bounding boxes) of
-## each piece, for the blasted area round the campus.
-const FOOTPRINT_M := {
-	"harvest_hall": Vector2(62.5, 37.0), "process_hall_bay": Vector2(15.0, 10.0), "quay": Vector2(60.0, 13.0),
-	"pipe_bridge_span": Vector2(13.0, 2.5), "intake_basin": Vector2(43.0, 33.0), "river_intake": Vector2(15.5, 4.5),
-	"feed_silo_land": Vector2(5.0, 5.0), "sludge_station": Vector2(10.0, 6.0), "substation": Vector2(9.0, 5.0),
-	"genset_container": Vector2(6.1, 1.3), "lox_tank": Vector2(1.8, 1.8),
-}
 ## The blast clears this much (m) round the campus's footprint (spec §6.3:
 ## only the ground a phase builds on is blasted; the rest of the pad stays heath).
 const BLAST_MARGIN_M := 22.0
@@ -153,13 +159,36 @@ var _footprint := Rect2()
 var _has_footprint := false
 
 static var _mesh_cache := {}
+static var _box_cache := {}
+## The kit's assets (blender/build_land_base.py), each with three LODs.
+const KIT_ASSETS := ["tank_growout", "tank_pregrow", "tank_feeder", "harvest_hall", "process_hall_bay", "quay",
+	"pipe_bridge_span", "intake_basin", "river_intake", "feed_silo_land", "sludge_station", "substation",
+	"genset_container", "lox_tank"]
 
 
-## The single mesh of a kit glb (each LOD is one mesh with one surface).
+## Every kit glb path (the presenter loads them in the background at start,
+## so the first campus built does not stall a frame reading them).
+static func kit_paths() -> PackedStringArray:
+	var out := PackedStringArray()
+	for asset: String in KIT_ASSETS:
+		for lod: String in LODS:
+			# The feeder has no LOD2 (it is drawn in the near bands only).
+			if ResourceLoader.exists(KIT_DIR + asset + "_" + lod + ".glb"):
+				out.append(KIT_DIR + asset + "_" + lod + ".glb")
+	return out
+
+
+## The single mesh of a kit glb (each LOD is one mesh with one surface); a
+## glb the presenter requested in the background is taken from that load.
 static func kit_mesh(asset: String, lod: String) -> Mesh:
 	var key := asset + "_" + lod
 	if not _mesh_cache.has(key):
-		var scene := load(KIT_DIR + key + ".glb") as PackedScene
+		var path := KIT_DIR + key + ".glb"
+		var scene: PackedScene = null
+		if ResourceLoader.load_threaded_get_status(path) != ResourceLoader.THREAD_LOAD_INVALID_RESOURCE:
+			scene = ResourceLoader.load_threaded_get(path) as PackedScene
+		if scene == null:
+			scene = load(path) as PackedScene
 		if scene == null:
 			push_error("[LandCampusBuilder] missing kit mesh %s" % key)
 			return null
@@ -182,9 +211,19 @@ static func layout_key(row: Dictionary) -> String:
 ## Build the campus for `unit_view` on `pad_slot`. Call once; later states go
 ## through apply_state().
 func build(unit_view: Dictionary, pad_slot: Dictionary) -> void:
+	plan(unit_view, pad_slot)
+	name = "Campus_%s" % str(view.get("unit_id", "unit")).validate_node_name()
+	_build_tank_multimeshes()
+	_build_groups()
+	_build_area()
+	apply_state(unit_view)
+
+
+## Lay the campus out without drawing it: `tanks` and each group's pieces
+## and rects (build() draws them; the layout checks read them).
+func plan(unit_view: Dictionary, pad_slot: Dictionary) -> void:
 	view = unit_view
 	pad = pad_slot
-	name = "Campus_%s" % str(view.get("unit_id", "unit")).validate_node_name()
 	_make_frame()
 	tanks.clear()
 	groups.clear()
@@ -194,10 +233,25 @@ func build(unit_view: Dictionary, pad_slot: Dictionary) -> void:
 		_layout_post_smolt()
 	else:
 		_layout_grow_out()
-	_build_tank_multimeshes()
-	_build_groups()
-	_build_area()
-	apply_state(unit_view)
+
+
+## The ground (m, along u and v) a campus of `row`'s lots stands on when the
+## terrain has no pad for its plot (a migrated save's overflow plot): a
+## grow-out campus gets the columns and rows its lots fill (two columns at
+## most, as on pad_a) with the quay side and the utilities; a post-smolt site
+## the generic 260 x 180 m.
+static func frame_size_for(row: Dictionary) -> Vector2:
+	var n := maxi(1, (row.get("lots", []) as Array).size())
+	if str(row.get("variant", "")) == "post_smolt":
+		return Vector2(260.0, maxf(180.0, (n - 1) * MODULE_PITCH + MODULE_TANK_PITCH + PREGROW_D + 2.0 * FRAME_MARGIN_M))
+	var cols := mini(n, 2)
+	var rows := int(ceil(float(n) / float(cols)))
+	var u := QUAY_ZONE_M + LOT_MARGIN.x + cols * LOT_SIZE.x + (cols - 1) * LOT_GAP.x + FRAME_MARGIN_M
+	# Along v: the lot rows and the utilities behind them (parking 58 m past
+	# the last row), and the quay side (the hall's far end past the bridge).
+	var lots_v := LOT_MARGIN.y + rows * LOT_SIZE.y + (rows - 1) * LOT_GAP.y + UTILITY_GAP_M + 32.0
+	var quay_v := LOT_MARGIN.y + LOT_SIZE.y + LOT_GAP.y * 0.5 + BRIDGE_HALF_WIDTH + HALL_CLEAR_M + turned_box("harvest_hall", HALL_YAW).size.y
+	return Vector2(u, maxf(lots_v, quay_v) + FRAME_MARGIN_M)
 
 
 ## The pad's frame: origin at its centre on its top, +X toward the quay (u),
@@ -317,16 +371,69 @@ func _add_tank(asset: String, xform: Transform3D, slot: int, lot: Dictionary, k:
 		"k": k})
 
 
+## The pipe bridge's line along the pad (v): over the first lot road,
+## between the first two lot rows (spec §5.1, ref L1). The quay side is laid
+## out from it on every pad: the intake basin beside the first lot row on its
+## -v side, the harvest hall HALL_CLEAR_M clear of it on its +v side, and the
+## quay fronting the hall from the bridge on, so the bridge runs between the
+## basin and the hall onto the quay whatever the pad's size.
+static func bridge_line_v(h: Vector2) -> float:
+	return lot_v(h, 0) + LOT_SIZE.y * 0.5 + LOT_GAP.y * 0.5
+
+
+## The harvest hall's origin (u, v): its long side along v, its -v wall
+## HALL_CLEAR_M off the bridge, its inland wall ROAD_CLEAR_M off the cross road.
+static func hall_at(h: Vector2) -> Vector2:
+	var box := turned_box("harvest_hall", HALL_YAW)
+	return Vector2(cross_road_u(h) + ROAD_WIDTH * 0.5 + ROAD_CLEAR_M - box.position.x,
+		bridge_line_v(h) + BRIDGE_HALF_WIDTH + HALL_CLEAR_M - box.position.y)
+
+
+## The harvest hall's footprint (u, v) on the pad.
+static func hall_rect(h: Vector2) -> Rect2:
+	var box := turned_box("harvest_hall", HALL_YAW)
+	return Rect2(hall_at(h) + box.position, box.size)
+
+
+## Centre u of the cross road between the lots and the quay side.
+static func cross_road_u(h: Vector2) -> float:
+	return h.x - QUAY_ZONE_M + CROSS_ROAD_IN_M
+
+
+## A kit piece's footprint (u, v) relative to its origin when turned by
+## `yaw` about +Y: its LOD0 model box (the kit's pieces are not centred on
+## their origins: the harvest hall reaches 44 m to one side and 30 m to the
+## other). A missing model counts as a 20 m square.
+static func turned_box(asset: String, yaw: float) -> Rect2:
+	var key := "%s@%.4f" % [asset, yaw]
+	if _box_cache.has(key):
+		return _box_cache[key]
+	var mesh := kit_mesh(asset, LODS[0])
+	var box := mesh.get_aabb() if mesh != null else AABB(Vector3(-10.0, 0.0, -10.0), Vector3(20.0, 10.0, 20.0))
+	var turn := Basis(Vector3.UP, yaw)
+	var lo := Vector2(INF, INF)
+	var hi := Vector2(-INF, -INF)
+	for k in 8:
+		var p := turn * box.get_endpoint(k)
+		lo = Vector2(minf(lo.x, p.x), minf(lo.y, p.z))
+		hi = Vector2(maxf(hi.x, p.x), maxf(hi.y, p.z))
+	_box_cache[key] = Rect2(lo, hi - lo)
+	return _box_cache[key]
+
+
 ## The grow-out site's own pieces: the quay, the dark harvest hall and the
 ## orange pipe bridge on the quay side, the intake basin beside the quay,
 ## and the utilities in a row behind the lot rows in use (from `inland` to
 ## the hall).
 func _site_pieces(h: Vector2, inland: float, back: float) -> void:
-	_piece("harvest", "harvest_hall", h.x - 90.0, -30.0, 0.0, PI * 0.5)
-	_piece("intake", "quay", h.x + 12.5, -40.0, QUAY_DECK_Y - PAD_TOP_Y, PI * 0.5)
+	var bridge_v := bridge_line_v(h)
+	var hall := hall_at(h)
+	_piece("harvest", "harvest_hall", hall.x, hall.y, 0.0, HALL_YAW)
+	# The quay's -v end meets the bridge; it fronts the hall from there.
+	_piece("intake", "quay", h.x + 12.5, bridge_v - BRIDGE_HALF_WIDTH - turned_box("quay", PI * 0.5).position.y,
+		QUAY_DECK_Y - PAD_TOP_Y, PI * 0.5)
 	# The orange bridge from the quay inland over the first lot road; a span
 	# carries its leg frame at its model -X end, faced away from the quay.
-	var bridge_v := lot_v(h, 0) + LOT_SIZE.y * 0.5 + LOT_GAP.y * 0.5
 	for k in BRIDGE_SPANS:
 		_piece("intake", "pipe_bridge_span", h.x + 10.0 - BRIDGE_SPAN * (k + 0.5), bridge_v, BRIDGE_DECK_ABOVE_PAD, 0.0)
 	# The intake basin on the quay edge beside the first lot row.
@@ -347,19 +454,41 @@ func _site_pieces(h: Vector2, inland: float, back: float) -> void:
 ## lot road between lot rows (the bridge crosses the first), a service road
 ## between the lots and the utilities, a cross road from it to the pad's -v
 ## edge between the lots and the hall, the concrete apron on the hall's quay
-## side, and an asphalt parking lot by the substation.
+## side, and an asphalt parking lot by the substation. A road along the pad
+## runs on to the apron through the bridge's corridor (between the basin and
+## the hall) and otherwise ends at the cross road: no road runs under a
+## building.
 func _roads(h: Vector2, rows: int, inland: float, back: float) -> void:
-	var cross_u := h.x - QUAY_ZONE_M + 15.0
+	var cross_u := cross_road_u(h)
 	for r in rows - 1:
 		var v := lot_v(h, r) + LOT_SIZE.y * 0.5 + LOT_GAP.y * 0.5
-		_rect("roads", ROW_ASPHALT, Vector2(inland - 6.0, v - ROAD_WIDTH * 0.5), Vector2(cross_u, v + ROAD_WIDTH * 0.5))
+		_rect("roads", ROW_ASPHALT, Vector2(inland - 6.0, v - ROAD_WIDTH * 0.5),
+			Vector2(_road_end_u(h, v, cross_u), v + ROAD_WIDTH * 0.5))
 	var service := back + 10.0
-	_rect("roads", ROW_ASPHALT, Vector2(inland - 6.0, service - ROAD_WIDTH * 0.5), Vector2(h.x - 64.0, service + ROAD_WIDTH * 0.5))
+	_rect("roads", ROW_ASPHALT, Vector2(inland - 6.0, service - ROAD_WIDTH * 0.5),
+		Vector2(_road_end_u(h, service, cross_u), service + ROAD_WIDTH * 0.5))
 	_rect("roads", ROW_ASPHALT, Vector2(cross_u - ROAD_WIDTH * 0.5, -h.y + 8.0), Vector2(cross_u + ROAD_WIDTH * 0.5, service))
-	# The concrete apron between the harvest hall and the quay comes with the sea works.
-	_rect("intake", ROW_CONCRETE, Vector2(h.x - 64.0, -100.0), Vector2(h.x - 1.0, 24.0))
+	# The concrete apron from the hall's quay-side wall to the quay, along
+	# the hall from the bridge; it comes with the sea works.
+	var hall := hall_rect(h)
+	_rect("intake", ROW_CONCRETE, Vector2(hall.end.x, bridge_line_v(h) - BRIDGE_HALF_WIDTH),
+		Vector2(h.x - 1.0, hall.end.y - 8.5))
 	var row_v := back + UTILITY_GAP_M
 	_rect("roads", ROW_ASPHALT, Vector2(inland + 2.0, row_v + 16.0), Vector2(inland + 38.0, row_v + 32.0))
+
+
+## Where a road along the pad at `v` ends: at the apron (the hall's
+## quay-side wall) when its band runs clear of the harvest hall and the
+## intake basin (the bridge's corridor), else at the cross road.
+static func _road_end_u(h: Vector2, v: float, cross_u: float) -> float:
+	var half := ROAD_WIDTH * 0.5
+	var hall := hall_rect(h)
+	var basin := turned_box("intake_basin", PI * 0.5)
+	var basin_lo := lot_v(h, 0) + basin.position.y
+	var basin_hi := lot_v(h, 0) + basin.end.y
+	var clear_hall := v + half < hall.position.y or v - half > hall.end.y
+	var clear_basin := v + half < basin_lo or v - half > basin_hi
+	return hall.end.x if clear_hall and clear_basin else cross_u + half
 
 
 ## A post-smolt site: its modules side by side along v (the engine's order),
@@ -392,12 +521,9 @@ func _piece(group: String, asset: String, u: float, v: float, y: float, yaw: flo
 	if asset == "pipe_bridge_span":
 		xf.origin.y = _frame_origin.y + y
 	groups[group]["pieces"].append([asset, xf])
-	var half: Vector2 = FOOTPRINT_M.get(asset, Vector2(10.0, 10.0))
-	# A quarter turn swaps the model's x and z on the pad.
-	if absf(sin(yaw)) > 0.7:
-		half = Vector2(half.y, half.x)
-	_grow_footprint(Vector2(u, v) - half, 0.0)
-	_grow_footprint(Vector2(u, v) + half, 0.0)
+	var box := turned_box(asset, yaw)
+	_grow_footprint(Vector2(u, v) + box.position, 0.0)
+	_grow_footprint(Vector2(u, v) + box.end, 0.0)
 
 
 func _rect(group: String, row: int, lo: Vector2, hi: Vector2) -> void:
@@ -472,7 +598,10 @@ func _new_mmi(node_name: String, mesh: Mesh) -> MultiMeshInstance3D:
 
 
 ## Every building group merged per LOD into one single-surface mesh at the
-## group's centroid, switched by visibility range.
+## group's centroid, switched by visibility range. The merge runs on the
+## kit's CPU copies (kit_arrays): SurfaceTool.append_from read every piece
+## back from the GPU (~0.6 ms each on Metal; 84 ms for a 4-lot campus, the
+## wave4b review's main-thread stall).
 func _build_groups() -> void:
 	for group_name: String in groups:
 		var group: Dictionary = groups[group_name]
@@ -494,24 +623,20 @@ func _build_groups() -> void:
 		group["origin"] = centroid
 		var nodes: Array = []
 		for band in 3:
-			var st := SurfaceTool.new()
-			st.begin(Mesh.PRIMITIVE_TRIANGLES)
 			var to_local := Transform3D(Basis.IDENTITY, -centroid)
-			var any := false
+			var parts: Array = []
 			for p in pieces:
-				var mesh := kit_mesh(str(p[0]), LODS[band])
-				if mesh != null:
-					st.append_from(mesh, 0, to_local * (p[1] as Transform3D))
-					any = true
+				var arrays := kit_arrays(str(p[0]), LODS[band])
+				if not arrays.is_empty():
+					parts.append([arrays, to_local * (p[1] as Transform3D)])
 			if band < 2:
 				for r in rects:
-					_append_rect(st, to_local, int(r[0]), r[1], r[2])
-					any = true
-			if not any:
+					parts.append([_rect_arrays(to_local, int(r[0]), r[1], r[2]), Transform3D.IDENTITY])
+			if parts.is_empty():
 				continue
 			var mi := MeshInstance3D.new()
 			mi.name = "%s_LOD%d" % [group_name, band]
-			mi.mesh = st.commit()
+			mi.mesh = KitMeshMerge.merge(parts)
 			mi.material_override = MATERIAL
 			mi.position = centroid
 			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if band == 0 and group_name != "roads" \
@@ -528,23 +653,35 @@ func _build_groups() -> void:
 		group["nodes"] = nodes
 
 
-## A flat quad (road or apron) ROAD_Y over the pad, its UVs on one atlas row
-## (U every 16 m along its length, as the kit's strips repeat).
-func _append_rect(st: SurfaceTool, to_local: Transform3D, row: int, lo: Vector2, hi: Vector2) -> void:
+## A flat quad (road or apron) ROAD_Y over the pad as surface arrays, its UVs
+## on one atlas row (U every 16 m along its length, as the kit's strips
+## repeat).
+func _rect_arrays(to_local: Transform3D, row: int, lo: Vector2, hi: Vector2) -> Array:
 	var v_uv := (float(row) + 0.5) / ATLAS_STRIPS
 	var corners := [Vector2(lo.x, lo.y), Vector2(hi.x, lo.y), Vector2(hi.x, hi.y), Vector2(lo.x, hi.y)]
 	var long_u := (hi.x - lo.x) >= (hi.y - lo.y)
-	var pts: Array[Vector3] = []
-	var uvs: Array[Vector2] = []
+	var pts := PackedVector3Array()
+	var uvs := PackedVector2Array()
 	for c: Vector2 in corners:
 		pts.append(to_local * world_xform(c.x, c.y, ROAD_Y, 0.0).origin)
 		uvs.append(Vector2((c.x if long_u else c.y) / 16.0, v_uv))
+	var normals := PackedVector3Array([Vector3.UP, Vector3.UP, Vector3.UP, Vector3.UP])
+	var colors := PackedColorArray([Color.WHITE, Color.WHITE, Color.WHITE, Color.WHITE])
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = pts
+	arrays[Mesh.ARRAY_NORMAL] = normals
+	arrays[Mesh.ARRAY_COLOR] = colors
+	arrays[Mesh.ARRAY_TEX_UV] = uvs
 	# Two triangles, clockwise seen from above (Godot's front faces).
-	for idx in [0, 1, 2, 0, 2, 3]:
-		st.set_normal(Vector3.UP)
-		st.set_color(Color(1, 1, 1, 1))
-		st.set_uv(uvs[idx])
-		st.add_vertex(pts[idx])
+	arrays[Mesh.ARRAY_INDEX] = PackedInt32Array([0, 1, 2, 0, 2, 3])
+	return arrays
+
+
+## The CPU copy of a kit mesh's surface, read from the GPU once per asset
+## and LOD per session (KitMeshMerge.arrays_of).
+static func kit_arrays(asset: String, lod: String) -> Array:
+	return KitMeshMerge.arrays_of(KIT_DIR + asset + "_" + lod, kit_mesh(asset, lod))
 
 
 ## A click target: a cylinder per tank (shape index = tank index) and a thin
@@ -795,6 +932,17 @@ func shadow_report() -> Array:
 			out.append({"name": String(mi.name), "band": int(String(mi.name).get_slice("_LOD", 1)), "kind": "building",
 				"casts": mi.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF})
 	return out
+
+
+## The pad's frame (origin at its centre on its top, +X toward the quay,
+## +Z along the quay edge): world = pad_frame() * (u, y, v).
+func pad_frame() -> Transform3D:
+	return Transform3D(_frame_basis, _frame_origin)
+
+
+## Half the pad along u and v (the frame's extents).
+func half_extents() -> Vector2:
+	return _half()
 
 
 ## World position of tank `index` (its base centre), or the pad's centre.

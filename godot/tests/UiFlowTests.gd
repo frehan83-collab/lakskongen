@@ -7351,7 +7351,10 @@ func _layout_change(before: Dictionary, after: Dictionary) -> String:
 ## others where they stood, and a lot more re-lays only its own campus; no
 ## fjord site, pen grid or feed barge stands for a farm-type unit; the net
 ## stays out of the planar mirror; LOD2 casts no shadow and of LOD1 only the
-## tanks do.
+## tanks do. Wave4b review: every campus the engine allows is laid out clear
+## (tests/FacilityLayoutChecks.gd); the first Esc closes only the card; a
+## card whose anchor is behind the camera hides; the land card says why a
+## build waits; a second campus reads no kit mesh back from the GPU.
 func _test_facilities_render() -> void:
 	_check(_sim.start_qa_scenario("po3_red_sone", 91), "facilities: seeded scenario starts")
 	_sim.set_paused(true)
@@ -7373,6 +7376,8 @@ func _test_facilities_render() -> void:
 		await get_tree().process_frame
 	var fjord_before := _fjord_layout(pens, barges)
 	_check(manager.visuals.is_empty(), "facilities: a game without farm-type units draws none")
+	# Wave4b review: every campus the engine allows stands clear (tests/FacilityLayoutChecks.gd).
+	preload("res://tests/FacilityLayoutChecks.gd").new().run(self, manager)
 
 	var placed: Dictionary = bridge.QaPlaceFarmTypeSet(1, 2, 1)
 	_check(bool(placed.get("success", false)), "facilities: the QA set is built through the engine (%s)" % str(placed.get("message", "")))
@@ -7402,6 +7407,9 @@ func _test_facilities_render() -> void:
 	var campus: LandCampusBuilder = manager.visual_of(land_id)
 	var smolt: LandCampusBuilder = manager.visual_of(smolt_id)
 	var unit: OffshoreUnitVisual = manager.visual_of(off_id)
+	# Wave4b review (a build stalled the main thread): the kit is read back
+	# from the GPU once per mesh and the terrain computes its pads once.
+	var read_backs := KitMeshMerge.read_backs
 	_check(campus != null and campus.drawn_tanks("tank_growout") == 12 and campus.drawn_tanks("tank_pregrow") == 2
 		and smolt != null and smolt.drawn_tanks("tank_pregrow") == 4,
 		"facilities: one HFS lot is 12 grow-out and 2 pre-grow tanks, the post-smolt site 2 modules of 2")
@@ -7445,6 +7453,9 @@ func _test_facilities_render() -> void:
 	var land_sigs := await _phase_signatures(bridge, manager, terrain, build_id, land_keys)
 	_check(land_sigs.size() == land_keys.size() and _all_distinct(land_sigs.values()),
 		"facilities: the land build's six phases and its handover draw seven different states (%s)" % str(land_sigs.keys()))
+	_check(KitMeshMerge.read_backs == read_backs and terrain.pad_slot_computations == 1,
+		"facilities: a second campus (pad_b, its seven phases) reads no kit mesh back from the GPU (%d more) and the pads were computed once (%d)"
+		% [KitMeshMerge.read_backs - read_backs, terrain.pad_slot_computations])
 	var off_keys := ["yard_contract", "hull", "voyage", "tow", "mooring", "commissioning", "operational"]
 	var off_sigs := await _phase_signatures(bridge, manager, terrain, off_id, off_keys)
 	_check(off_sigs.size() == off_keys.size() and _all_distinct(off_sigs.values()),
@@ -7485,7 +7496,21 @@ func _test_facilities_render() -> void:
 		"facilities: the camera's focus is on the lot's centre")
 	_press_key(KEY_ESCAPE)
 	await get_tree().process_frame
-	_check(not manager.card.visible, "facilities: Esc closes the card (back to the dashboard, the world covered)")
+	_check(not manager.card.is_open() and not manager.card.visible and ui.get_active_tab() == "fjord",
+		"facilities: the first Esc closes the card and the Fjord tab stays (%s)" % ui.get_active_tab())
+	_press_key(KEY_ESCAPE)
+	await get_tree().process_frame
+	_check(ui.get_active_tab() == "dashboard", "facilities: with no card open, Esc leaves the Fjord tab (%s)" % ui.get_active_tab())
+	# The land card says why a build waits (the engine's waiting reason, wave4b review).
+	var waiting_row: Dictionary = _facility_row(land_id).duplicate(true)
+	waiting_row["build"] = {"status": "waiting", "phase_key": "sea_works", "phase_index": 3, "phase_count": 6,
+		"progress": 0.5, "suspended": false, "waiting_reason": "closed_season"}
+	manager.card.open(waiting_row, -1, {}, "", campus.centre())
+	var waiting_text := (manager.card.find_child("Status", true, false) as Label).text
+	manager.card.close()
+	_check(tr("LAND_PHASE_SEA_WORKS") in waiting_text and tr("FACILITY_CARD_WAITING_CLOSED_SEASON") in waiting_text
+		and not "FACILITY_CARD_" in waiting_text and "juli" in waiting_text,
+		"facilities: a land build waiting for the sea-works season says so on its card ('%s')" % waiting_text.replace("\n", " / "))
 
 	# A click on the offshore unit opens its card and frames it.
 	await _click_control(ui.find_child("Tab_fjord", true, false))
@@ -7496,6 +7521,19 @@ func _test_facilities_render() -> void:
 		"facilities: clicking the unit opens its card (%s)" % manager.card.unit_id)
 	_check(is_equal_approx(cam.get_zoom_distance(), FarmFacilityVisualManager.OF1_FRAMING.x),
 		"facilities: the camera frames the unit at the OF1 framing (%.0f m)" % cam.get_zoom_distance())
+	# Wave4b review: an anchor behind the camera hides the card (a hidden card
+	# takes no clicks) and leaves it open; it shows again when the anchor is back.
+	var card_anchor := manager.card.anchor
+	cam.set_process(false)
+	cam.look_at(cam.global_position * 2.0 - card_anchor, Vector3.UP)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_check(cam.is_position_behind(card_anchor) and manager.card.is_open() and not manager.card.visible,
+		"facilities: with its anchor behind the camera the card hides and stays open (visible %s)" % manager.card.visible)
+	cam.set_process(true)
+	cam.focus_target(off_id, 0.0)
+	await _settle_camera(cam)
+	_check(manager.card.is_open() and manager.card.visible, "facilities: the card shows again when its anchor is back in front")
 	_press_key(KEY_ESCAPE)
 	await get_tree().process_frame
 

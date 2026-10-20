@@ -13,11 +13,17 @@ extends PanelContainer
 ## under way (the engine's phase name, "phase n of m", why it waits or stands
 ## still) with a progress ring of the whole build, or, once built, its fish
 ## and biomass. Every number is the engine's (SimBridge.get_facility_visuals);
-## every word a translation key. Esc or the close button closes it. Built in
-## code, like DriftsplanCard.
+## every word a translation key. Esc or the close button closes it: the card
+## is in WORLD_CARD_GROUP, which GameUI closes on Esc before it leaves the
+## tab (the first Esc closes the card, the next leaves the world). While its
+## anchor is behind the camera the card is hidden (it takes no clicks) and
+## stays open; it shows again when the anchor comes back. Built in code,
+## like DriftsplanCard.
 
 signal closed
 
+## Cards over the 3D world that Esc closes before the tab (GameUI._input).
+const WORLD_CARD_GROUP := &"world_card"
 ## Screen gap (px) between the anchor and the card's bottom edge.
 const ANCHOR_GAP_PX := 18.0
 ## Margin (px) the card keeps from the viewport's edges.
@@ -43,6 +49,8 @@ var _status: Label
 var _ring: Control
 var _ring_value := 0.0
 var _close: Button
+## Open (shown, or hidden only while its anchor is behind the camera).
+var _open := false
 
 
 func _init() -> void:
@@ -96,6 +104,7 @@ func _init() -> void:
 	_status.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(_status)
 	visible = false
+	add_to_group(WORLD_CARD_GROUP)
 
 
 ## Show the card for `view` (a get_facility_visuals row), the clicked tank
@@ -107,9 +116,11 @@ func open(view: Dictionary, index: int, clicked: Dictionary, plot_name: String, 
 	tank = clicked
 	anchor = at
 	refresh(view, plot_name)
+	_open = true
 	visible = true
-	_close.grab_focus()
 	reposition()
+	if visible:
+		_close.grab_focus()
 
 
 ## The card's text and ring from the unit's view now.
@@ -178,9 +189,15 @@ func _draw_ring() -> void:
 		_ring.draw_arc(c, r, -PI * 0.5, -PI * 0.5 + TAU * _ring_value, 48, RING_FILL, RING_STROKE_PX, true)
 
 
+## True while the card is open (shown, or hidden behind the camera).
+func is_open() -> bool:
+	return _open
+
+
 func close() -> void:
-	if not visible:
+	if not _open:
 		return
+	_open = false
 	visible = false
 	unit_id = ""
 	tank_index = -1
@@ -195,20 +212,21 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _process(_delta: float) -> void:
-	if visible:
+	if _open:
 		reposition()
 
 
 ## Hang the card above its anchor's screen point, inside the viewport; hide
-## it while the anchor is behind the camera.
+## it while the anchor is behind the camera (hidden, it takes no clicks: an
+## invisible card at the edge ate the clicks under it).
 func reposition() -> void:
 	var cam := get_viewport().get_camera_3d()
 	if cam == null:
 		return
 	if cam.is_position_behind(anchor):
-		modulate.a = 0.0
+		visible = false
 		return
-	modulate.a = 1.0
+	visible = true
 	var p := cam.unproject_position(anchor)
 	var vp := get_viewport().get_visible_rect().size
 	var s := get_combined_minimum_size()

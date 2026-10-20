@@ -108,6 +108,9 @@ var _requested: Array[String] = []
 var _pad_states: Dictionary = {}
 var _pad_cache: Array = []
 var _pad_blasts: Dictionary = {}
+## How many times the pads were computed (once per generation; the
+## presenter's checks hold it there).
+var pad_slot_computations := 0
 ## Most pads the terrain shader paints (its pad_rects[] size).
 const MAX_SHADER_PADS := 4
 
@@ -423,7 +426,7 @@ func _apply_pads() -> void:
 	# The pads are fixed for the generator's settings (and computing their
 	# intake reach walks the grid): read them once.
 	if _pad_cache.is_empty():
-		_pad_cache = land_pad_slots()
+		land_pad_slots()
 	var pads := _pad_cache
 	var rects := PackedVector4Array()
 	var states := PackedFloat32Array()
@@ -544,11 +547,16 @@ func far_field_half_extent() -> float:
 
 
 ## The land pads reserved for land-based farms (farm-types spec §4): an Array
-## of {id, name, centre, size, lots, quay, intake_reach_m}.
+## of {id, name, centre, size, lots, quay, intake_reach_m}. Computed once per
+## generation (the intake reach walks the grid round each quay, ~21 ms) and
+## handed out as copies: the presenter and the shader read the same pads.
 func land_pad_slots() -> Array:
-	if _generator == null and not _ensure_generator():
-		return []
-	return _generator.call("LandPadSlots")
+	if _pad_cache.is_empty():
+		if _generator == null and not _ensure_generator():
+			return []
+		_pad_cache = _generator.call("LandPadSlots")
+		pad_slot_computations += 1
+	return _pad_cache.duplicate(true)
 
 
 ## The open-sea slots reserved for offshore units (spec §4): an Array of

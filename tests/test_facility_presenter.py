@@ -177,6 +177,155 @@ def test_the_presenter_only_reads_the_engine():
         assert "/root/GameBridge" not in text, path.name
 
 
+# The presenter's only way into the engine: a local bound to the SimBridge
+# autoload by its node path. Everything done with such a local must be one of
+# the three reads (or has_method / has_signal, or connecting to state_updated).
+SIM_BINDING = re.compile(r'(?:var\s+)?([A-Za-z_]\w*)\s*(?::\s*[A-Za-z_]\w*\s*)?:?=\s*get_node(?:_or_null)?\(\s*"/root/SimBridge"\s*\)')
+SIM_SAFE_MEMBERS = {"has_method", "has_signal"}
+SIM_READS = {"get_facility_visuals", "get_land_plots", "get_offshore_plots"}
+
+
+def _code_only(text: str) -> str:
+    """The script without its comments (a '#' outside a string starts one)."""
+    out_lines = []
+    for line in text.splitlines():
+        out, quote, i = [], None, 0
+        while i < len(line):
+            ch = line[i]
+            if quote:
+                out.append(ch)
+                if ch == "\\" and i + 1 < len(line):
+                    out.append(line[i + 1])
+                    i += 1
+                elif ch == quote:
+                    quote = None
+            elif ch in "\"'":
+                quote = ch
+                out.append(ch)
+            elif ch == "#":
+                break
+            else:
+                out.append(ch)
+            i += 1
+        out_lines.append("".join(out))
+    return "\n".join(out_lines)
+
+
+def _strings_masked(code: str) -> str:
+    """`code` with every string literal's content blanked (same length)."""
+    return re.sub(r'"(?:[^"\\\n]|\\.)*"|\'(?:[^\'\\\n]|\\.)*\'', lambda m: m.group(0)[0] + "_" * (len(m.group(0)) - 2) + m.group(0)[-1], code)
+
+
+def engine_rule_breaches(text: str) -> list:
+    """What a presenter script does with the engine beyond its reads.
+
+    Wave4b review: the first source rule caught only calls through a local
+    named `sim`. This one tracks every local bound to /root/SimBridge (by any
+    name, and the parameters of this file's functions it is passed to), and
+    refuses any other way in: the SimBridge or GameBridge autoload by name,
+    another path to them, a QA verb, an alias, call()/callv() of anything but
+    a read, emitting state_updated.
+    """
+    code = _code_only(text)
+    breaches = [f"QA verb {verb}" for verb in QA_VERBS + ["QaContractOffshoreUnit"] if verb in code]
+    names = set(SIM_BINDING.findall(code))
+    rest = SIM_BINDING.sub(lambda m: "", code)
+    for word in ("SimBridge", "GameBridge"):
+        if word in rest:
+            breaches.append(f"{word} reached other than by a local bound to /root/SimBridge")
+    funcs = {m.group(1): [p.split(":")[0].strip() for p in m.group(2).split(",") if p.strip()]
+             for m in re.finditer(r"func\s+([A-Za-z_]\w*)\s*\(([^)]*)\)", rest)}
+    loops = {m.group(1): re.findall(r'"([^"]*)"', m.group(2))
+             for m in re.finditer(r"for\s+([A-Za-z_]\w*)\s+in\s+\[([^\]]*)\]", rest)}
+    # A bound local passed to this file's own function binds that parameter too.
+    changed = True
+    while changed:
+        changed = False
+        for fname, params in funcs.items():
+            for m in re.finditer(rf"\b{fname}\s*\(([^()]*)\)", rest):
+                args = [a.strip() for a in m.group(1).split(",")]
+                for k, arg in enumerate(args):
+                    if arg in names and k < len(params) and params[k] not in names:
+                        names.add(params[k])
+                        changed = True
+    masked = _strings_masked(rest)
+    for name in sorted(names):
+        for m in re.finditer(rf"\b{name}\b", masked):
+            after = rest[m.end():]
+            before = rest[:m.start()]
+            member = re.match(r"\s*\.\s*([A-Za-z_]\w*)", after)
+            if member:
+                what = member.group(1)
+                tail = after[member.end():]
+                if what in SIM_READS or what in SIM_SAFE_MEMBERS:
+                    continue
+                if what == "state_updated" and re.match(r"\s*\.\s*connect\s*\(", tail):
+                    continue
+                if what == "call":
+                    arg = re.match(r'\s*\(\s*(?:"([^"]*)"|([A-Za-z_]\w*))\s*[,)]', tail)
+                    if arg and arg.group(1) in SIM_READS:
+                        continue
+                    if arg and arg.group(2) and loops.get(arg.group(2)) and set(loops[arg.group(2)]) <= SIM_READS:
+                        continue
+                breaches.append(f"{name}.{what}")
+                continue
+            if re.match(r"\s*[!=]=\s*null\b", after) or re.search(r"(?:\bnot|\bif|\band|\bor)\s*$", before) and not re.match(r"\s*=", after):
+                continue
+            # A parameter declaration of this file's function, or an argument to one that binds it.
+            if re.search(r"func\s+[A-Za-z_]\w*\s*\([^)]*$", before):
+                continue
+            call = re.search(r"\b([A-Za-z_]\w*)\s*\(([^()]*)$", before)
+            if call and call.group(1) in funcs:
+                args = (call.group(2) + name).split(",")
+                k = len(args) - 1
+                params = funcs[call.group(1)]
+                if k < len(params) and params[k] in names:
+                    continue
+            breaches.append(f"{name} used as a value (an alias the rule cannot follow)")
+    return breaches
+
+
+def test_no_presenter_script_reaches_the_engine_but_through_its_reads():
+    for path in PRESENTER:
+        assert engine_rule_breaches(path.read_text()) == [], path.name
+
+
+def _with_line_after(path, anchor: str, line: str) -> str:
+    text = path.read_text()
+    assert anchor in text, (path.name, anchor)
+    return text.replace(anchor, anchor + "\n" + line, 1)
+
+
+def test_the_engine_rule_catches_the_known_ways_round_it():
+    manager, campus = PRESENTER[0], PRESENTER[1]
+    anchor_m = "func _on_state_updated() -> void:"
+    anchor_c = "func _process(_delta: float) -> void:"
+    bypasses = [
+        # The review's two mutations (they passed the first rule).
+        _with_line_after(manager, anchor_m, '\tvar bridge := get_node_or_null("/root/SimBridge"); bridge.stock_land_tank("ras_1", "t01", 50000, "standard")'),
+        _with_line_after(campus, anchor_c, '\tvar sb := get_node("/root/SimBridge"); sb.set_paused(false)'),
+        # The autoload by name, the other bridge, a QA verb, an alias, a write through call().
+        _with_line_after(campus, anchor_c, "\tSimBridge.set_paused(false)"),
+        _with_line_after(manager, anchor_m, '\tget_node("/root/GameBridge").call("SetPaused", true)'),
+        _with_line_after(manager, anchor_m, '\tvar s := get_node("/root/SimBridge")\n\tvar other = s\n\tother.set_paused(false)'),
+        _with_line_after(manager, anchor_m, '\tvar s := get_node("/root/SimBridge")\n\ts.call("set_paused", false)'),
+        _with_line_after(manager, anchor_m, '\tvar s := get_node("/root/SimBridge")\n\ts.state_updated.emit()'),
+        _with_line_after(campus, anchor_c, '\tget_tree().root.get_node("SimBridge").set_paused(false)'),
+    ]
+    for text in bypasses:
+        assert engine_rule_breaches(text), text[-400:]
+    # What the rule lets through: a null check and has_method, a read, the
+    # bound local handed to this file's own function (its parameter is held
+    # to the same rule).
+    allowed = [
+        _with_line_after(manager, anchor_m, '\tvar s := get_node("/root/SimBridge")\n\tif s != null and not s.has_method("get_land_plots"):\n\t\treturn'),
+        _with_line_after(manager, anchor_m, '\tvar s := get_node("/root/SimBridge")\n\t_refresh_plot_names(s)'),
+        _with_line_after(manager, anchor_m, '\tvar s := get_node("/root/SimBridge")\n\tvar rows_again: Array = s.call("get_facility_visuals")'),
+    ]
+    for text in allowed:
+        assert engine_rule_breaches(text) == [], text[-400:]
+
+
 def test_the_qa_staging_verbs_are_never_called_from_the_players_ui():
     allowed = ("godot/tests/", "godot/scripts/qa/", "godot/scripts/tools/PerfHarness.gd",
                "godot/scripts/autoload/GameBridge.FacilityVisuals.cs")
@@ -204,5 +353,5 @@ def test_the_cards_text_is_one_sorted_block_of_keys_that_exist():
         assert f"LAND_PHASE_{phase.upper()}" in keys, phase
     for phase in SEA_PHASES:
         assert f"BUILD_SEA_PHASE_{phase.upper()}" in keys, phase
-    for reason in ["tow", "sheltering", "funds"]:
+    for reason in ["tow", "sheltering", "funds", "closed_season"]:
         assert f"FACILITY_CARD_WAITING_{reason.upper()}" in keys, reason

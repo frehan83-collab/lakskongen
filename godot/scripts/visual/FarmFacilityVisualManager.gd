@@ -67,6 +67,11 @@ var _director: Node = null
 var _light_level := -1.0
 ## Units with no model yet (the Havfarm-class hull, F2-29), warned once.
 var _unsupported: Dictionary = {}
+## Main-thread time (ms) of the latest sync and the slowest this session:
+## building a campus is a frame the player waits on (the perf harness
+## reports them against the P0-04 spike line).
+var last_sync_ms := 0.0
+var max_sync_ms := 0.0
 
 
 func _ready() -> void:
@@ -81,6 +86,11 @@ func _ready() -> void:
 	add_child(_card_layer)
 	card = FacilityWorldCard.new()
 	_card_layer.add_child(card)
+	# The land kit loads in the background, so the first campus built (a
+	# player's build, a loaded save) does not stall a frame reading it.
+	for path: String in LandCampusBuilder.kit_paths():
+		if not ResourceLoader.has_cached(path) and ResourceLoader.load_threaded_get_status(path) == ResourceLoader.THREAD_LOAD_INVALID_RESOURCE:
+			ResourceLoader.load_threaded_request(path)
 	var sim := get_node_or_null("/root/SimBridge")
 	if sim != null and sim.has_signal("state_updated"):
 		sim.state_updated.connect(_on_state_updated)
@@ -118,6 +128,7 @@ func _refresh_plot_names(sim: Node) -> void:
 ## Bring the 3D world in line with the engine's units (rows of
 ## get_facility_visuals): build the new, update the known, free the gone.
 func sync_units(rows: Array) -> void:
+	var started := Time.get_ticks_usec()
 	var seen := {}
 	for row: Dictionary in rows:
 		var id := str(row.get("unit_id", ""))
@@ -141,10 +152,12 @@ func sync_units(rows: Array) -> void:
 			views.erase(id)
 			_unsupported.erase(id)
 	_paint_pads()
-	if card != null and card.visible and views.has(card.unit_id):
+	if card != null and card.is_open() and views.has(card.unit_id):
 		card.refresh(views[card.unit_id], plot_names.get(str(views[card.unit_id].get("plot_id", "")), ""))
-	elif card != null and card.visible:
+	elif card != null and card.is_open():
 		card.close()
+	last_sync_ms = (Time.get_ticks_usec() - started) / 1000.0
+	max_sync_ms = maxf(max_sync_ms, last_sync_ms)
 
 
 ## What a unit's layout depends on: its plot, kind and lots. A row whose key
@@ -160,10 +173,11 @@ func _create(row: Dictionary) -> void:
 	if str(row.get("family", "")) == "land":
 		var campus := LandCampusBuilder.new()
 		add_child(campus)
-		campus.build(row, _pad_for(row))
+		var pad := _pad_for(row)
+		campus.build(row, pad)
 		campus.clicked.connect(_on_campus_clicked.bind(id))
 		visuals[id] = campus
-		_register_target(id, campus.focus_point(), LAND_FRAMING, _pad_radius(row))
+		_register_target(id, campus.focus_point(), LAND_FRAMING, (pad.get("size", GENERIC_PAD) as Vector2).length() * 0.5 + 60.0)
 	elif str(row.get("variant", "")) != "of1":
 		# The Havfarm-class hull is stage 3 art (F2-29): nothing to draw yet.
 		push_warning("[FarmFacilityVisualManager] no model for %s (%s) yet" % [id, row.get("variant", "")])
@@ -188,9 +202,10 @@ func _remove(id: String) -> void:
 		card.close()
 
 
-## The terrain's pad a land unit stands on (centre, size, quay); a pad the
-## terrain does not carve (a migrated save's overflow pad) gets a generic
-## frame round the plot's centre.
+## The terrain's pad a land unit stands on (centre, size, quay; the
+## terrain computes its pads once); a pad the terrain does not carve (a
+## migrated save's overflow pad) gets a frame round the plot's centre that
+## the unit's campus fits in (LandCampusBuilder.frame_size_for).
 func _pad_for(row: Dictionary) -> Dictionary:
 	var plot_id := str(row.get("plot_id", ""))
 	if terrain != null and terrain.has_method("land_pad_slots"):
@@ -198,12 +213,8 @@ func _pad_for(row: Dictionary) -> Dictionary:
 			if str(pad.get("id", "")) == plot_id:
 				return pad
 	var c := Vector3(float(row.get("plot_x", 0.0)), LandCampusBuilder.PAD_TOP_Y, float(row.get("plot_z", 0.0)))
-	return {"id": plot_id, "centre": c, "size": GENERIC_PAD, "quay": c + Vector3(GENERIC_PAD.x * 0.5, 0.0, 0.0)}
-
-
-func _pad_radius(row: Dictionary) -> float:
-	var size: Vector2 = _pad_for(row).get("size", GENERIC_PAD)
-	return size.length() * 0.5 + 60.0
+	var size := LandCampusBuilder.frame_size_for(row)
+	return {"id": plot_id, "centre": c, "size": size, "quay": c + Vector3(size.x * 0.5, 0.0, 0.0)}
 
 
 func _register_target(id: String, pos: Vector3, framing: Vector2, radius: float) -> void:

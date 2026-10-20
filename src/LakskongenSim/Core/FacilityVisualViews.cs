@@ -23,7 +23,7 @@ namespace LakskongenSim.Core;
 /// <param name="PhaseProgress">Worked share of the phase (0-1; 1 once built).</param>
 /// <param name="Progress">Share of the whole build done (0-1).</param>
 /// <param name="Suspended">True on a closed-season day the phase stands still.</param>
-/// <param name="WaitingReason">Why a waiting offshore project waits ("tow", "sheltering", "funds"), else "".</param>
+/// <param name="WaitingReason">Why a waiting project waits: offshore "tow", "sheltering" or "funds"; on land <see cref="FacilityBuildStatus.ClosedSeason"/> (a phase that never starts in its closed months, F2-14's sea works in April-June) or "funds" (its start payment cannot be paid); else "".</param>
 public sealed record FacilityBuildView(string ProjectId, string Status, string PhaseKey, int PhaseIndex, int PhaseCount,
     double PhaseProgress, double Progress, bool Suspended, string WaitingReason)
 {
@@ -44,6 +44,10 @@ public static class FacilityBuildStatus
     public const string Complete = "complete";
     /// <summary>The phase key of a built unit.</summary>
     public const string Operational = "operational";
+    /// <summary>A waiting land phase's reason: its month is closed to it (the sea works in April-June).</summary>
+    public const string ClosedSeason = "closed_season";
+    /// <summary>A waiting phase's reason: its start payment cannot be paid.</summary>
+    public const string Funds = "funds";
 }
 
 /// <summary>One tank of a land unit as the presenter draws it (F2-20).</summary>
@@ -284,9 +288,14 @@ public partial class SimulationEngine
         int index = Math.Clamp(project.CurrentPhase, 0, Math.Max(0, count - 1));
         var phase = project.Current;
         bool building = project.Status == ConstructionStatus.Building;
-        bool suspended = building && phase is { SuspendedInClosedMonths: true } && phase.ClosedMonths.Contains(SimCalendar.Month(State.Day));
+        bool closedNow = phase != null && phase.ClosedMonths.Contains(SimCalendar.Month(State.Day));
+        bool suspended = building && phase is { SuspendedInClosedMonths: true } && closedNow;
+        // A land phase waits only when it could not start today (TryStartCurrentPhase):
+        // its month is closed to it, or its start payment could not be paid.
+        string waiting = project.Status != ConstructionStatus.Waiting ? ""
+            : closedNow ? FacilityBuildStatus.ClosedSeason : FacilityBuildStatus.Funds;
         return new FacilityBuildView(project.Id, building ? FacilityBuildStatus.Building : FacilityBuildStatus.Waiting,
-            project.Phases[index].Key, index, count, PhaseProgressOf(project), ProjectProgressOf(project), suspended, "");
+            project.Phases[index].Key, index, count, PhaseProgressOf(project), ProjectProgressOf(project), suspended, waiting);
     }
 
     private static FacilityBuildView NoBuild(bool built, IReadOnlyList<string> keys)

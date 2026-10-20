@@ -167,6 +167,66 @@ public class FacilityVisualViewsTests
     }
 
     /// <summary>
+    /// A land phase that cannot start says why (wave4b review, spec §6.3): the
+    /// sea works reached in May wait for the open season ("closed_season",
+    /// not suspended: they never started) and start in July; a phase whose
+    /// start payment the cash cannot meet waits for the money ("funds") and
+    /// starts once the money is there. A phase under way waits for nothing.
+    /// </summary>
+    [Fact]
+    public void AWaitingLandPhase_SaysWhy_TheClosedSeasonOrTheMoney()
+    {
+        var engine = PermittedEngine(22, LandTemplate.HfsLot);
+        var built = engine.BuildLandSite("pad_a", LandTemplate.HfsLot);
+        Assert.True(built.Ok, built.Message);
+        var site = engine.FindLandSite(built.Id!)!;
+        var project = engine.ConstructionProjects.Single(p => p.Id == site.Lots[0].ConstructionProjectId);
+        var building = ViewOf(engine, site.Id).Build;
+        Assert.Equal((FacilityBuildStatus.Building, ""), (building.Status, building.WaitingReason));
+
+        // The phase before the sea works ends on a day in May: the sea works cannot start.
+        int sea = project.Phases.FindIndex(p => p.Key == LandConstructionPhases.SeaWorks);
+        Assert.True(sea > 0);
+        Assert.Contains(5, project.Phases[sea].ClosedMonths);
+        int guard = 0;
+        while (SimCalendar.Month(engine.State.Day) != 5 && guard++ < SimCalendar.DaysPerYear) engine.Advance(1);
+        EndCurrentPhaseTomorrow(engine, project, sea - 1);
+        engine.Advance(1);
+        Assert.Equal(5, SimCalendar.Month(engine.State.Day));
+        var closed = ViewOf(engine, site.Id).Build;
+        Assert.Equal((FacilityBuildStatus.Waiting, LandConstructionPhases.SeaWorks, sea), (closed.Status, closed.PhaseKey, closed.PhaseIndex));
+        Assert.Equal(FacilityBuildStatus.ClosedSeason, closed.WaitingReason);
+        Assert.False(closed.Suspended);
+        while (SimCalendar.Month(engine.State.Day) != 7 && guard++ < 2 * SimCalendar.DaysPerYear) engine.Advance(1);
+        var open = ViewOf(engine, site.Id).Build;
+        Assert.Equal((FacilityBuildStatus.Building, LandConstructionPhases.SeaWorks, ""), (open.Status, open.PhaseKey, open.WaitingReason));
+
+        // The sea works end with no cash left: the next phase waits for the money.
+        engine.FinanceManager.Spend(engine.FinanceManager.Balance);
+        EndCurrentPhaseTomorrow(engine, project, sea);
+        engine.Advance(1);
+        var broke = ViewOf(engine, site.Id).Build;
+        Assert.Equal((FacilityBuildStatus.Waiting, sea + 1), (broke.Status, broke.PhaseIndex));
+        Assert.Equal(FacilityBuildStatus.Funds, broke.WaitingReason);
+        engine.ReceiveLoan(project.BudgetNok);
+        engine.Advance(1);
+        var paid = ViewOf(engine, site.Id).Build;
+        Assert.Equal((FacilityBuildStatus.Building, sea + 1, ""), (paid.Status, paid.PhaseIndex, paid.WaitingReason));
+    }
+
+    /// <summary>Stand <paramref name="project"/> in phase <paramref name="index"/>, under way, its last day today.</summary>
+    private static void EndCurrentPhaseTomorrow(SimulationEngine engine, ConstructionProject project, int index)
+    {
+        project.PhaseCompletedDays.Clear();
+        for (int k = 0; k < index; k++) project.PhaseCompletedDays.Add(Math.Max(0, engine.State.Day - (index - k)));
+        project.CurrentPhase = index;
+        project.Status = ConstructionStatus.Building;
+        project.PhaseStartDay = engine.State.Day;
+        project.PhaseDays = 1;
+        project.SuspendedDays = 0;
+    }
+
+    /// <summary>
     /// An OF1-class unit through the sea lane's verbs: its build walks yard
     /// contract, hull, voyage, the tow (waiting for the player's "Start slep
     /// nå", then towing), mooring and commissioning, and the unit is

@@ -443,9 +443,20 @@ func _place_facilities() -> bool:
 	var presenter := _env.get_node_or_null("FarmFacilityVisualManager")
 	if presenter != null and presenter.has_method("sync_units"):
 		presenter.call("sync_units", gb.GetFacilityVisuals())
+		# The set's first build (the kit read and merged) is one sync; build it
+		# again from nothing (the kit warm) for a re-layout's cost. A sync over
+		# SPIKE_MS is a frame the player waits on (wave4b review).
+		_facility_set["create_ms"] = snappedf(float(presenter.get("max_sync_ms")), 0.01)
+		for i in 10:
+			await get_tree().process_frame
+		presenter.call("sync_units", [])
+		var started := Time.get_ticks_usec()
+		presenter.call("sync_units", gb.GetFacilityVisuals())
+		_facility_set["rebuild_ms"] = snappedf((Time.get_ticks_usec() - started) / 1000.0, 0.01)
+		_facility_set["create_spike"] = float(_facility_set["create_ms"]) > SPIKE_MS or float(_facility_set["rebuild_ms"]) > SPIKE_MS
 	for i in 30:
 		await get_tree().process_frame
-	print("PERF_FACILITIES units=%s" % ",".join(ids))
+	print("PERF_FACILITIES units=%s create_ms=%s rebuild_ms=%s" % [",".join(ids), _facility_set.get("create_ms", -1), _facility_set.get("rebuild_ms", -1)])
 	return true
 
 

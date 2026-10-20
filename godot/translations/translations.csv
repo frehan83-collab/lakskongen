@@ -643,6 +643,7 @@ FACILITY_CARD_STOCK,%s fish · %s,%s fisk · %s
 FACILITY_CARD_SUSPENDED,Sea works stand still in April–June,Sjøarbeidet står stille i april–juni
 FACILITY_CARD_TANK,Tank %s,Kar %s
 FACILITY_CARD_TANK_FISH,%s fish,%s fisk
+FACILITY_CARD_WAITING_CLOSED_SEASON,Sea works wait for July: they never start in April–June,Sjøarbeidet venter til juli: det startes aldri i april–juni
 FACILITY_CARD_WAITING_FUNDS,Waiting for the money for the next payment,Venter på penger til neste betaling
 FACILITY_CARD_WAITING_SHELTERING,Sheltering after the tow broke off,Ligger i le etter avbrutt slep
 FACILITY_CARD_WAITING_TOW,Ready to be towed out,Klar til slep
