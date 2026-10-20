@@ -2624,6 +2624,7 @@ UI_BANK_TEXT_CALM,The cash is not falling. The bank has no remarks.,Kontantene f
 UI_BANK_TEXT_FALLING,The cash falls by %s a day and reaches the credit limit of %s in %s days.,Kontantene faller med %s om dagen og når kredittrammen på %s om %s dager.
 UI_BANK_TEXT_WARNING,"Liquidity warning on day %d: at today's burn the cash reaches the credit limit of %s in %s days. Harvest, borrow or cut costs.","Likviditetsvarsel dag %d: på dagens forbruk når kontantene kredittrammen på %s om %s dager. Slakt, lån eller kutt kostnader."
 UI_BANK_TITLE,The bank,Banken
+UI_CREDITS_ROLE_SOUND,"Ambience and sound effects, synthesised in the project","Naturlyder og lydeffekter, syntetisert i prosjektet"
 UI_ENDSCREEN_AUTOSAVE,Load autosave,Last inn autolagring
 UI_ENDSCREEN_AUTOSAVE_OFF,No autosave from before the end,Ingen autolagring fra før slutten
 UI_ENDSCREEN_AUTOSAVE_TIP,Go back to the latest autosave,Gå tilbake til siste autolagring
@@ -2710,6 +2711,7 @@ UI_ENDSCREEN_VERDICT_LOST,Scenario lost,Scenarioet er tapt
 UI_ENDSCREEN_VERDICT_WON,Goal reached,Målet er nådd
 UI_EVENT_VERB_BID_LICENCE,See the auction,Se auksjonen
 UI_PEN_ACTION_FEED_PLAN,Feeding plan,Fôringsplan
+UI_SAVELOAD_NO_SCENARIO,Free play,Fritt spill
 UI_SCENARIO_CAMPAIGN_BEST,Your best: %s,Ditt beste: %s
 UI_SCENARIO_CAMPAIGN_LOCKED,Win %s to open this scenario.,Vinn %s for å åpne dette scenarioet.
 UI_SCENARIO_CAMPAIGN_OR, or , eller 
@@ -2717,6 +2719,12 @@ UI_SCENARIO_MEDAL_BRONZE,Bronze,Bronse
 UI_SCENARIO_MEDAL_GOLD,Gold,Gull
 UI_SCENARIO_MEDAL_NONE,No medal,Ingen medalje
 UI_SCENARIO_MEDAL_SILVER,Silver,Sølv
+UI_SETTINGS_AUTOSAVE_TIP,"Saves the game every so many minutes you play, at the end of a day. Off: only when you save.","Lagrer spillet hvert så mange minutter du spiller, ved slutten av en dag. Av: bare når du lagrer selv."
+UI_SETTINGS_AUTO_PAUSE_LABEL,Pause at critical events,Stopp ved kritiske varsler
+UI_SETTINGS_HIGH_CONTRAST_TIP,"Solid panels, brighter text and borders, and a wider focus frame.","Tette paneler, sterkere tekst og kanter og en bredere fokusramme."
+UI_SETTINGS_LANGUAGE_LABEL,Language,Språk
+UI_SETTINGS_NOTIFICATIONS_TIP,Warnings show as a notice with a sound. Off: they go to the inbox and the bell only. Critical events still stop the game.,Advarsler vises som et varsel med lyd. Av: de havner bare i innboksen og på bjella. Kritiske hendelser stopper fortsatt spillet.
+UI_SETTINGS_UI_SCALE_LABEL,Interface scale,Grensesnittskala
 UI_TOAST_FEED_PLAN_ALL_OK,Feeding plan set for every site,Fôringsplan satt for alle lokaliteter
 UI_TOAST_FEED_PLAN_OK,Feeding plan for %s set,Fôringsplan for %s satt
 UI_TOAST_HARVEST_DONE,"Harvest done at %s: %s gutted, %s net. Click for the report.","Slakting ferdig på %s: %s sløyd, %s netto. Klikk for rapporten."

@@ -10,6 +10,8 @@ extends SceneTree
 ##   res://theme/fonts/<key>.tres          FontVariations (Inter tnum, display)
 ##   res://theme/lakskongen_theme.tres     Ink — the project theme (gui/theme/custom)
 ##   res://theme/lakskongen_chart_theme.tres  Chart — document panels
+##   res://theme/lakskongen_theme_hc.tres, lakskongen_chart_theme_hc.tres
+##       the high-contrast variants (U2-08, D21), merged in by the setting
 ## Each theme is stamped with the SHA-256 of tokens.json and of the builder
 ## sources, so tools/sync_tokens.py --check can detect a stale theme without Godot.
 
@@ -56,12 +58,14 @@ func _run() -> int:
 	var targets := {
 		Builder.SURFACE_INK: Builder.PROJECT_THEME_PATH,
 		Builder.SURFACE_CHART: Builder.CHART_THEME_PATH,
+		Builder.SURFACE_INK_HC: Builder.HC_THEME_PATH,
+		Builder.SURFACE_CHART_HC: Builder.HC_CHART_THEME_PATH,
 	}
 	for surface in Builder.SURFACES:
 		var theme := Builder.build(tokens, surface, fonts)
 		theme.set_meta(Builder.META_TOKENS_SHA, tokens_sha)
 		theme.set_meta(Builder.META_BUILDER_SHA, builder_sha)
-		_assign_theme_ids(theme, surface)
+		_assign_theme_ids(theme, surface.replace("-", "_"))
 		var path: String = targets[surface]
 		if ResourceSaver.save(theme, path) != OK:
 			push_error("build_theme: could not save %s" % path)

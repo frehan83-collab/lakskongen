@@ -32,7 +32,7 @@ grow_vertical = 2
 [node name="DialogPanel" type="PanelContainer" parent="./Center"]
 theme_type_variation = &"Dialog"
 unique_name_in_owner = true
-custom_minimum_size = Vector2(600, 450)
+custom_minimum_size = Vector2(760, 560)
 layout_mode = 2
 
 [node name="DialogVBox" type="VBoxContainer" parent="./Center/DialogPanel"]
@@ -57,6 +57,7 @@ text = "✕"
 [node name="SlotsScroll" type="ScrollContainer" parent="./Center/DialogPanel/DialogVBox"]
 layout_mode = 2
 size_flags_vertical = 3
+horizontal_scroll_mode = 0
 
 [node name="SlotsContainer" type="VBoxContainer" parent="./Center/DialogPanel/DialogVBox/SlotsScroll"]
 unique_name_in_owner = true

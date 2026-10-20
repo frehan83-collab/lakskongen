@@ -15,7 +15,7 @@ UI SOUNDS & ALERT SFX
 Source: Kenney.nl - UI Audio Pack
 License: CC0 1.0 Universal (Public Domain)
 URL: https://kenney.nl/assets/ui-audio
-Files Used: 11 sound files (6 UI + 5 alert sounds)
+Files Used: 7 sound files (6 UI + 1 alert)
 
 No attribution required under CC0 license, but credit is appreciated:
 "UI Audio Pack" by Kenney.nl (www.kenney.nl)
@@ -43,27 +43,27 @@ Files:
 No attribution required under CC0 license.
 
 -------------------------------------------------------------------------------
-AMBIENT SOUNDS
+AMBIENCE AND VERB SOUNDS (original work of the project)
 -------------------------------------------------------------------------------
 
-Source: Mixkit - Free Sound Effects Library
-License: Mixkit Sound Effects Free License
-URL: https://mixkit.co/free-sound-effects/
-Files Used: 10 ambient sound files
+Source: synthesised in the repository by tools/audio/gen_audio.py (roadmap
+Au2-01) from seeded noise, sines and filters; encoded to Ogg Vorbis with
+Blender's Audaspace. No third-party sample or recording is used, so there is
+nothing to attribute. Every file's source, level and SHA-256 are in
+godot/assets/audio/audio_manifest.json; what each one models is in
+godot/assets/audio/AUDIO_SOURCES.md.
 
-No attribution required for free license use.
+Ambience loops (60 s each): fjord_wind_light.ogg, fjord_wind_strong.ogg,
+water_lap.ogg, gulls.ogg, feed_barge.ogg, boat_engine.ogg, rain_light.ogg,
+rain_heavy.ogg, storm.ogg, harbor_ambience.ogg, underwater.ogg
 
-Files:
-- ocean_waves.ogg
-- seagulls.ogg
-- wind_light.ogg
-- wind_strong.ogg
-- rain_light.ogg
-- rain_heavy.ogg
-- storm.ogg
-- harbor_ambience.ogg
-- underwater.ogg
-- ice_cracking.ogg
+Verb cues: verb_stock.wav, verb_feed_plan.wav, verb_delouse.wav,
+verb_auction.wav, verb_storm.wav; and harvest_stinger.wav
+(tools/gen_harvest_stinger.py, roadmap U2-05).
+
+The Mixkit ambience files listed here before (ocean_waves, seagulls,
+wind_light, wind_strong, rain_light, rain_heavy, storm, harbor_ambience,
+underwater, ice_cracking) no longer ship: Au2-01 replaced every one.
 
 -------------------------------------------------------------------------------
 MUSIC
@@ -117,15 +117,6 @@ Under the following terms:
 - Attribution — You must give appropriate credit, provide a link to the
   license, and indicate if changes were made.
 
--------------------------------------------------------------------------------
-
-Mixkit Sound Effects Free License
-URL: https://mixkit.co/license/#sfxFree
-
-You are free to use these sound effects in personal or commercial projects,
-including feature films, broadcast, commercial, industrial, or educational
-purposes.
-
 ===============================================================================
 TOOLS USED
 ===============================================================================
@@ -135,10 +126,15 @@ License: GPL v3+
 URL: https://ffmpeg.org/
 Used for converting audio files to WAV/OGG formats for Godot Engine.
 
+Audio encoding: Blender 5.2 (Audaspace, FFmpeg's libvorbis), GPL
+URL: https://www.blender.org/
+Encodes the generated ambience loops to Ogg Vorbis (tools/audio/blender_ogg.py).
+Tools that do not ship.
+
 ===============================================================================
 
 This CREDITS.txt file is part of the Lakskongen project.
 For questions or licensing inquiries, contact the development team.
 
-Last Updated: 2026-03-15
-Version: 1.0 (T69 Audio Integration)
+Last Updated: 2026-10-20
+Version: 1.1 (Au2-01 audio floor)

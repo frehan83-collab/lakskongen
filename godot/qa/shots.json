@@ -783,6 +783,97 @@
       "camera": {"mode": "home"},
       "state": "season_won",
       "purpose": "The season won by input alone (seed 7, day 294): the end screen's verdict over the finished card ('Første sesong er fullført'), no ring left on screen."
+    },
+    {
+      "id": "44_save_slots",
+      "item": "U2-08",
+      "scene": "res://qa/scenes/SettingsCapture.tscn",
+      "kind": "ui",
+      "resolution": [1920, 1080],
+      "scenario": "po3_red_sone",
+      "seed": 91,
+      "weather": "clear",
+      "camera": {"mode": "home"},
+      "state": "save_slots",
+      "purpose": "The pause menu's save list: each slot shows its picture of the world (rendered without the UI), the slot name, the scenario ('PO3 Rød Sone') and the local ISO date and time with the game day and the cash; the autosave reads 'Siste autolagring'."
+    },
+    {
+      "id": "44_settings_gameplay_nb",
+      "item": "U2-08",
+      "scene": "res://qa/scenes/SettingsCapture.tscn",
+      "kind": "ui",
+      "resolution": [1920, 1080],
+      "scenario": "po3_red_sone",
+      "seed": 91,
+      "weather": "clear",
+      "camera": {"mode": "home"},
+      "state": "settings_gameplay_nb",
+      "purpose": "Innstillinger > Spill in Norwegian: the new 'Språk' row (Norsk (bokmål) / English) above Autolagring, every label from translation keys."
+    },
+    {
+      "id": "44_settings_gameplay_en",
+      "item": "U2-08",
+      "scene": "res://qa/scenes/SettingsCapture.tscn",
+      "kind": "ui",
+      "resolution": [1920, 1080],
+      "scenario": "po3_red_sone",
+      "seed": 91,
+      "weather": "clear",
+      "camera": {"mode": "home"},
+      "state": "settings_gameplay_en",
+      "purpose": "The same tab after picking English: the menu redraws in English at once (Settings, Audio, Graphics, Gameplay, Accessibility)."
+    },
+    {
+      "id": "44_settings_high_contrast",
+      "item": "U2-08",
+      "scene": "res://qa/scenes/SettingsCapture.tscn",
+      "kind": "ui",
+      "resolution": [1920, 1080],
+      "scenario": "po3_red_sone",
+      "seed": 91,
+      "weather": "clear",
+      "camera": {"mode": "home"},
+      "state": "settings_high_contrast",
+      "purpose": "Settings > Tilgjengelighet with Høykontrast ticked: the high-contrast theme applies at once (opaque panels, white text, bright borders, a 3 px yellow focus ring)."
+    },
+    {
+      "id": "44_hud_high_contrast",
+      "item": "U2-08",
+      "scene": "res://qa/scenes/SettingsCapture.tscn",
+      "kind": "ui",
+      "resolution": [1920, 1080],
+      "scenario": "po3_red_sone",
+      "seed": 91,
+      "weather": "clear",
+      "camera": {"mode": "home"},
+      "state": "hud_high_contrast",
+      "purpose": "The game with high contrast on: the HUD, the tab rail and the dashboard on the high-contrast Ink and Chart surfaces over the fjord."
+    },
+    {
+      "id": "44_main_menu_load_slots",
+      "item": "U2-08",
+      "scene": "res://qa/scenes/SettingsCapture.tscn",
+      "kind": "ui",
+      "resolution": [1920, 1080],
+      "scenario": "po3_red_sone",
+      "seed": 91,
+      "weather": "clear",
+      "camera": {"mode": "home"},
+      "state": "main_menu_load_slots",
+      "purpose": "The main menu's load list over the live fjord: the same slots with their pictures, scenario and ISO time."
+    },
+    {
+      "id": "44_world_at_save",
+      "item": "U2-08",
+      "scene": "res://qa/scenes/SettingsCapture.tscn",
+      "kind": "ui",
+      "resolution": [1920, 1080],
+      "scenario": "po3_red_sone",
+      "seed": 91,
+      "weather": "clear",
+      "camera": {"mode": "home"},
+      "state": "world_at_save",
+      "purpose": "The fjord tab as the first save ('Vårutsett 2027', day 40) is made: the slot's picture in 44_save_slots should show this view without the HUD."
     }
   ]
 }
