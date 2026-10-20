@@ -121,6 +121,9 @@ const CALM_SKY := {"weather_state": "Calm", "cloud_cover": 0.15, "wind_ms": 1.5,
 const MIRROR_SKY := {"weather_state": "Calm", "cloud_cover": 0.15, "wind_ms": 0.4, "visibility_km": 50.0,
 	"precip_mm_h": 0.0, "sea_fog": 0.0, "wave_m": 0.02}
 const SHORE_FOAM_SDF_M := 5.0
+## 19's shore lies at this world Z (it was MIRROR_FOCUS_Z - 900 and moved
+## with 18's re-staging; gfx-polish-1 keeps it where it was).
+const SHORE_FOAM_Z := -200.0
 const MIN_SHORE_FOAM_LIFT := 0.04
 const MIN_AURORA_REFLECTION := 0.01
 
@@ -1280,7 +1283,7 @@ func _capture_fjord_shore_foam() -> void:
 	_env.call("set_season", 0.5)
 	_env.call("set_time", 12.0)
 	ws.call("apply_sky_context", CALM_SKY)
-	var z := MIRROR_FOCUS_Z - 900.0
+	var z := SHORE_FOAM_Z
 	var x := float(terrain.call("channel_center_x", z))
 	for i in 400:
 		x += 4.0
