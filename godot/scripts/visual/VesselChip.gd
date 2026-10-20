@@ -23,6 +23,15 @@ const DOT_GAP_PX := 8.0
 const LIFT_PX := 38.0
 const CHIP_SHADER := preload("res://shaders/world_chip.gdshader")
 
+## Screen edges (gfx-polish-1): a chip whose boat is on screen slides inward
+## so its whole pill stays at least EDGE_MARGIN_PX inside the view (08b cut a
+## barge's chip in half at the left edge); once the boat itself is more than
+## OFFSCREEN_PX outside the view the chip hides, so no chip points at
+## nothing. Shifts under SHIFT_STEP_PX are not re-applied.
+const EDGE_MARGIN_PX := 8.0
+const OFFSCREEN_PX := 4.0
+const SHIFT_STEP_PX := 0.5
+
 ## The eye's exposure the chip is compensated for now (G3-05): the night's
 ## exposure (up to 16x, EnvironmentDirector) would otherwise bloom the text
 ## and wash the Ink glass out; the chip keeps its day brightness on screen.
@@ -32,6 +41,10 @@ const EXPOSURE_STEP := 0.02
 
 var _text := ""
 var _accent := Color.WHITE
+## The chip's slide off the screen edge (chip pixels, view up = +y) and
+## whether its boat is on screen (tests read them).
+var edge_shift := Vector2.ZERO
+var on_screen := true
 var _quad: MeshInstance3D
 var _label: Label3D
 var _material: ShaderMaterial
@@ -93,8 +106,13 @@ func set_chip(text: String, accent: Color) -> void:
 	var width := PAD_PX * 2.0 + dot_w + text_w
 	_quad.set_instance_shader_parameter("size_px", Vector2(width, HEIGHT_PX))
 	_quad.set_instance_shader_parameter("accent", accent)
-	# Centre the text in the space right of the dot (Label3D offset is in px).
-	_label.offset = Vector2(dot_w * 0.5, LIFT_PX)
+	_place_text()
+
+
+## Centre the text in the space right of the dot, with the pill's slide off
+## the screen edge (Label3D offset is in px, up positive like the pill's).
+func _place_text() -> void:
+	_label.offset = Vector2((DOT_PX + DOT_GAP_PX) * 0.5, LIFT_PX) + edge_shift
 
 func get_text() -> String:
 	return _text
@@ -110,6 +128,49 @@ func _process(_delta: float) -> void:
 	var director := get_tree().get_first_node_in_group(RenderQuality.DIRECTOR_GROUP) as EnvironmentDirector
 	var exposure := float(director.get_composed().get("exposure", 1.0)) if director != null else 1.0
 	set_exposure(exposure)
+	var cam := get_viewport().get_camera_3d()
+	if cam != null and cam.projection == Camera3D.PROJECTION_PERSPECTIVE:
+		keep_on_screen(cam, get_viewport().get_visible_rect().size)
+
+
+## Slide the pill and its text inward to keep the whole chip EDGE_MARGIN_PX
+## inside a view of `view_size` (viewport px) seen through `cam`; hide it
+## while its boat (the anchor) is off screen or behind the camera.
+func keep_on_screen(cam: Camera3D, view_size: Vector2) -> void:
+	var anchor := global_position
+	var visible_now := not cam.is_position_behind(anchor)
+	var shift := Vector2.ZERO
+	if visible_now:
+		var at := cam.unproject_position(anchor)
+		visible_now = at.x >= -OFFSCREEN_PX and at.x <= view_size.x + OFFSCREEN_PX \
+			and at.y >= -OFFSCREEN_PX and at.y <= view_size.y + OFFSCREEN_PX
+		if visible_now:
+			shift = edge_shift_for(at, get_size_px(), cam.fov, view_size)
+	if visible_now != on_screen:
+		on_screen = visible_now
+		_quad.visible = visible_now
+		_label.visible = visible_now
+	if shift.distance_to(edge_shift) > SHIFT_STEP_PX:
+		edge_shift = shift
+		_material.set_shader_parameter("offset_px", Vector2(0.0, LIFT_PX) + edge_shift)
+		_place_text()
+
+
+## The slide (chip px, up = +y) that keeps a pill of `size_px` lifted
+## LIFT_PX above its anchor at screen point `at` EDGE_MARGIN_PX inside a view
+## of `view_size` with a vertical field of view `fov_deg`. The chip scales
+## with depth like a fixed-size Label3D: a chip pixel spans
+## PIXEL_SIZE * view height / (2 tan(fov / 2)) screen pixels.
+static func edge_shift_for(at: Vector2, size_px: Vector2, fov_deg: float, view_size: Vector2) -> Vector2:
+	var k := PIXEL_SIZE * view_size.y / (2.0 * tan(deg_to_rad(fov_deg) * 0.5))
+	if k <= 0.0:
+		return Vector2.ZERO
+	var half := size_px * k * 0.5
+	var centre := at - Vector2(0.0, LIFT_PX * k)
+	var dx := maxf(EDGE_MARGIN_PX + half.x - centre.x, 0.0) - maxf(centre.x + half.x - (view_size.x - EDGE_MARGIN_PX), 0.0)
+	var dy := maxf(EDGE_MARGIN_PX + half.y - centre.y, 0.0) - maxf(centre.y + half.y - (view_size.y - EDGE_MARGIN_PX), 0.0)
+	# Screen y runs down, the chip's up.
+	return Vector2(dx, -dy) / k
 
 ## Keep the chip's screen brightness at the eye's `exposure` (the text's and
 ## the pill's light divided by it, in linear light).

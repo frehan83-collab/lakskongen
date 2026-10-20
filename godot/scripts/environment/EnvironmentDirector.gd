@@ -56,6 +56,9 @@ extends Node
 ## Cloud shadows on the land (G3-05) and the pens' submerged lamps.
 @export var cloud_shadows: CloudShadows
 @export var pen_lamps: PenLamps
+## The pens' spray (G2-03), which also lists every pen's collar: the water
+## draws no whitecaps inside a collar (gfx-polish-1).
+@export var pen_spray: PenSpray
 
 # ── Atmosphere (mirrors sky_shader.gdshader) ──────────────────────────────────
 const R_EARTH := 6360.0
@@ -173,6 +176,14 @@ const WAVE_FOLD_LIMIT := 0.75
 const RIPPLE_PER_MS := 0.06
 const RIPPLE_MIN := 0.12
 const RIPPLE_MAX := 0.75
+## Beaufort 0 (under 0.5 m/s, WMO: "sea like a mirror"): no wind ripples,
+## only a residual stir (RIPPLE_GLASS), growing to the force-1 ripples
+## ("ripples with the appearance of scales") by GLASS_TO_MS (gfx-polish-1:
+## a dead calm was drawn with the same ripples as 1.5 m/s and never held a
+## mirror image, harness 18).
+const RIPPLE_GLASS := 0.03
+const GLASS_FROM_MS := 0.5
+const GLASS_TO_MS := 1.5
 ## The shader's whitecap field (a peak-band crest gate plus breaker noise,
 ## a wave-group field and foam lace) is not a standard normal: its threshold
 ## is mapped from the normal quantile of Monahan's share so that the drawn
@@ -180,6 +191,9 @@ const RIPPLE_MAX := 0.75
 ## (W 0.7 %, 3.1 %, 10.5 %; G2-03, the cores brighter than luminance 0.45
 ## under an overcast sky): the cover hits W at thresholds 3.46, 2.72 and
 ## 1.96; a least-squares line through them.
+## The share of whitecaps under which the water draws none (the water
+## shader's own gate, `whitecaps > 0.0008`).
+const WHITECAP_MIN_SHARE := 0.0008
 const WHITECAP_Z_SCALE := 1.25
 const WHITECAP_Z_OFFSET := 0.39
 ## Whitecaps break on the components round the spectral peak (peak_weight).
@@ -319,6 +333,8 @@ var wave_field := WaveField.new()
 ## Quality tier (P0-04, G5-01 groundwork): the knobs this director composes
 ## with, and the global render settings it applies through RenderQuality.
 var quality := RenderQuality.new()
+## The menu's hero view draws its clouds one pass finer (set_hero_sky).
+var hero_sky := false
 ## Sky uniform writes made so far (tests read it: none while the world is
 ## hidden, so the sky's radiance map is not re-rendered behind a panel).
 var sky_updates := 0
@@ -399,6 +415,23 @@ func set_render_scale_cap(cap: float) -> void:
 	quality.scale_cap = clampf(cap, 0.25, 1.0)
 	if is_inside_tree():
 		quality.apply_scale(get_viewport())
+
+
+## The main menu's hero view (MenuBackdrop): its low camera looks along the
+## horizon, where the clouds' half-resolution pass shows its texels most, so
+## the clouds are drawn one pass finer than the tier's (High per pixel,
+## Medium and Low in the half pass). Holds across tier changes.
+func set_hero_sky(on: bool) -> void:
+	hero_sky = on
+
+
+## The cloud pass the sky draws now: per pixel underwater, one finer than the
+## tier's in the hero view, else the tier's (RenderQuality cloud_pass).
+func cloud_pass_now(underwater: bool) -> int:
+	if underwater:
+		return 0
+	var tier_pass := int(quality.knobs["cloud_pass"])
+	return maxi(tier_pass - 1, 0) if hero_sky else tier_pass
 
 
 func get_quality_knobs() -> Dictionary:
@@ -640,7 +673,7 @@ func _apply_sky(delta: float, sun_elev: float, cloud: float, density: float, vis
 		mat.set_shader_parameter("grade_deck_amount", float(mood.get("deck_grade", 0.0)))
 		mat.set_shader_parameter("grade_deck_value", float(mood.get("deck_value", 1.0)))
 		mat.set_shader_parameter("grade_horizon_lift", float(mood.get("horizon_lift", 0.0)))
-		mat.set_shader_parameter("cloud_pass", 0 if underwater else int(quality.knobs["cloud_pass"]))
+		mat.set_shader_parameter("cloud_pass", cloud_pass_now(underwater))
 		mat.set_shader_parameter("cloud_steps", int(quality.knobs["cloud_steps"]))
 		mat.set_shader_parameter("cloud_octaves", int(quality.knobs["cloud_octaves"]))
 		mat.set_shader_parameter("cloud_search", int(quality.knobs["cloud_search"]))
@@ -1018,7 +1051,8 @@ func _apply_water(delta: float, c: Dictionary) -> void:
 	mat.set_shader_parameter("planar_distort", lerpf(MIRROR_DISTORT_CALM, MIRROR_DISTORT_BREEZE, smoothstep(1.0, 6.0, wind)))
 	mat.set_shader_parameter("whitecaps", sea_state["whitecaps"])
 	mat.set_shader_parameter("whitecap_threshold", whitecap_threshold(float(sea_state["whitecaps"])))
-	mat.set_shader_parameter("ripple_strength", clampf(RIPPLE_MIN + RIPPLE_PER_MS * wind, RIPPLE_MIN, RIPPLE_MAX))
+	_apply_pen_calm(mat, float(sea_state["whitecaps"]), c)
+	mat.set_shader_parameter("ripple_strength", ripple_strength_for(wind))
 	mat.set_shader_parameter("sea_height", Vector2(sea_state["sheltered_hs"], sea_state["exposed_hs"]))
 	mat.set_shader_parameter("sea_peak", Vector2(sea_state["sheltered_peak_m"], sea_state["exposed_peak_m"]))
 	mat.set_shader_parameter("sea_direction", sea_state["direction"])
@@ -1031,6 +1065,29 @@ func _apply_water(delta: float, c: Dictionary) -> void:
 	mat.set_shader_parameter("underside_light", Vector3(horizon.r, horizon.g, horizon.b) * lerpf(0.05, 0.9, day))
 	c["sea_hs_sheltered"] = sea_state["sheltered_hs"]
 	c["sea_hs_exposed"] = sea_state["exposed_hs"]
+
+
+## A pen's collar and net damp the sea inside it: the water breaks no
+## whitecap there (gfx-polish-1; spray still flies off the collar, PenSpray).
+## The collars come from PenSpray (collars), nearest the camera first; nothing is
+## sent while no whitecap breaks anywhere.
+func _apply_pen_calm(mat: ShaderMaterial, whitecaps: float, c: Dictionary) -> void:
+	var entries := PackedVector4Array()
+	if pen_spray != null and whitecaps > WHITECAP_MIN_SHARE:
+		entries = pen_spray.collars
+	var padded := PackedVector4Array(entries)
+	padded.resize(PenSpray.MAX_CALM_PENS)
+	mat.set_shader_parameter("pen_calm", padded)
+	mat.set_shader_parameter("pen_calm_count", entries.size())
+	c["pen_calm_count"] = entries.size()
+
+
+## The wind's ripples on the water (normal-map strength) at `wind_ms`: a
+## mirror in a Beaufort-0 calm, then RIPPLE_MIN + RIPPLE_PER_MS per m/s
+## (unchanged from GLASS_TO_MS up).
+static func ripple_strength_for(wind_ms: float) -> float:
+	var breeze := clampf(RIPPLE_MIN + RIPPLE_PER_MS * wind_ms, RIPPLE_MIN, RIPPLE_MAX)
+	return lerpf(RIPPLE_GLASS, breeze, smoothstep(GLASS_FROM_MS, GLASS_TO_MS, wind_ms))
 
 
 ## The water material (null without a water surface).

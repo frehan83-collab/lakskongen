@@ -37,6 +37,12 @@ namespace LakskongenSim.Environment
             public float[] Uvs { get; init; } = Array.Empty<float>();
             /// <summary>r, g, b, a per vertex: r = cavity, g = wood density, b = birch share, a = meadow.</summary>
             public float[] Colors { get; init; } = Array.Empty<float>();
+            /// <summary>
+            /// Slope (rise over run) and cavity per vertex over <see cref="MacroStride"/> cells
+            /// either side (the wall ledges' terraces averaged out): the terrain shader's masks
+            /// use them where a terrace is too small on screen to draw (gfx-polish-1).
+            /// </summary>
+            public float[] Macro { get; init; } = Array.Empty<float>();
             /// <summary>Three vertex indices per triangle (chunk-local).</summary>
             public int[] Indices { get; init; } = Array.Empty<int>();
             public int FirstColumn { get; init; }
@@ -49,6 +55,13 @@ namespace LakskongenSim.Environment
         private const float CavityGain = 3f;
         /// <summary>Laplacian stencil stride in grid cells (smooths out single-cell noise).</summary>
         private const int CavityStride = 2;
+        /// <summary>
+        /// Macro gradient stride in grid cells: a central difference over ±4 cells (±31 m on the
+        /// game's 7.8 m grid) is the slope averaged over 63 m, a whole cycle of the wall ledges
+        /// (<see cref="TerrainGenerator"/> LedgeStepM 48 m of height on 40-60° walls repeats every
+        /// 28-55 m across the ground), so the terraces' flats and risers average out.
+        /// </summary>
+        public const int MacroStride = 4;
 
         public IReadOnlyList<Chunk> Chunks { get; }
         public int Resolution { get; }
@@ -98,6 +111,7 @@ namespace LakskongenSim.Environment
             var tangents = new float[count * 4];
             var uvs = new float[count * 2];
             var colors = new float[count * 4];
+            var macro = new float[count * 2];
             for (int r = 0; r < rows; r++)
             {
                 int row = row0 + r;
@@ -129,6 +143,9 @@ namespace LakskongenSim.Environment
                     colors[v * 4 + 1] = masks != null ? masks.Forest[g] : 0f;
                     colors[v * 4 + 2] = masks != null ? masks.Birch[g] : 1f;
                     colors[v * 4 + 3] = masks != null ? masks.Meadow[g] : 0f;
+                    var (gx, gz) = MacroGradient(heights, n, spacing, col, row);
+                    macro[v * 2] = MathF.Sqrt(gx * gx + gz * gz);
+                    macro[v * 2 + 1] = Cavity(heights, n, spacing, col, row, MacroStride);
                 }
             }
 
@@ -154,6 +171,7 @@ namespace LakskongenSim.Environment
                 Tangents = tangents,
                 Uvs = uvs,
                 Colors = colors,
+                Macro = macro,
                 Indices = indices,
                 FirstColumn = col0,
                 FirstRow = row0,
@@ -194,12 +212,31 @@ namespace LakskongenSim.Environment
         }
 
         /// <summary>
+        /// The slope at grid vertex (col, row) averaged over <see cref="MacroStride"/> cells either
+        /// side: (dh/dx, dh/dz) from a central difference over the wider stencil, one-sided where the
+        /// grid ends (the border's far-field neighbours carry no ledges to average out).
+        /// </summary>
+        public static (float dhdx, float dhdz) MacroGradient(float[] heights, int n, float spacing, int col, int row)
+        {
+            int s = MacroStride;
+            int cl = Math.Max(col - s, 0), cr = Math.Min(col + s, n - 1);
+            int rd = Math.Max(row - s, 0), ru = Math.Min(row + s, n - 1);
+            float dhdx = (heights[row * n + cr] - heights[row * n + cl]) / ((cr - cl) * spacing);
+            float dhdz = (heights[ru * n + col] - heights[rd * n + col]) / ((ru - rd) * spacing);
+            return (dhdx, dhdz);
+        }
+
+        /// <summary>
         /// Cavity at grid vertex (col, row): 0.5 on a plane, toward 1 in a
         /// gully or on a ledge (concave), toward 0 on a ridge (convex).
         /// </summary>
         public static float Cavity(float[] heights, int n, float spacing, int col, int row)
+            => Cavity(heights, n, spacing, col, row, CavityStride);
+
+        /// <summary>The cavity with a Laplacian stencil of <paramref name="stride"/> cells.</summary>
+        public static float Cavity(float[] heights, int n, float spacing, int col, int row, int stride)
         {
-            int s = CavityStride;
+            int s = stride;
             int cl = Math.Max(col - s, 0), cr = Math.Min(col + s, n - 1);
             int rd = Math.Max(row - s, 0), ru = Math.Min(row + s, n - 1);
             float h = heights[row * n + col];
