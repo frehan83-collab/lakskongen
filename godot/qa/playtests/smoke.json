@@ -1,0 +1,21 @@
+{
+  "name": "smoke",
+  "_note": "Generic first session: boots whatever the main scene is, pokes universal inputs, leaves frames and a timeline for the judge. Real per-scenario act lists are authored in SHIP_PLAN cycle 1; optional acts produce a skip, not an error.",
+  "acts": [
+    { "do": "wait", "sec": 4 },
+    { "do": "frame", "note": "first_screen" },
+    { "do": "click_text", "text": "Fortsett", "optional": true, "timeout_sec": 5 },
+    { "do": "click_text", "text": "Start", "optional": true, "timeout_sec": 5 },
+    { "do": "wait", "sec": 3 },
+    { "do": "frame", "note": "after_start" },
+    { "do": "key", "key": "Space" },
+    { "do": "wait", "sec": 6 },
+    { "do": "frame", "note": "time_running" },
+    { "do": "key", "key": "N" },
+    { "do": "wait", "sec": 2 },
+    { "do": "frame", "note": "after_next_event" },
+    { "do": "key", "key": "Escape" },
+    { "do": "wait", "sec": 2 },
+    { "do": "frame", "note": "after_escape" }
+  ]
+}
