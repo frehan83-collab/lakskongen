@@ -163,6 +163,8 @@ func _run() -> void:
 	await _test_driftsplan_card_sets_and_runs_standing_orders()
 	# F2-12/F2-14: the land lane's bridge verbs (previews, permits, construction).
 	await _test_land_bridge_previews_and_applies()
+	# F2-13/F2-15: the land boards' bridge verbs (board, presets, competence, planners).
+	await _test_land_boards_bridge_reads()
 	# U2-01: the expansion flow (map, build dialog, licence auction, inbox).
 	await _test_expansion_builds_the_tutorials_second_site()
 	await _test_auction_card_wins_a_green_zone_licence()
@@ -7451,3 +7453,87 @@ func _test_land_bridge_previews_and_applies() -> void:
 		"land bridge: a second application is refused as text (%s)" % tr(str(again.get("label_key", ""))))
 	_check(_sim.get_land_construction().is_empty() and str(_sim.get_land_site_detail("ras_9").get("reason_key", "")) == "not_found",
 		"land bridge: no construction yet, and an unknown site is not found")
+
+
+## F2-13 / F2-15 (wave4/sim-land-2): the land boards' bridge verbs marshal
+## from GDScript and read as text: a QA-commissioned HFS lot's board (a water
+## ring of five segments per tank, the binding constraint with its Norwegian
+## name), the three Vannstrategi presets with the engine's projection and one
+## applied, the competence with its Oppkjøring milestones and levers (a lever
+## pulled through the bridge), the harvest planner's weeks and a plan made, and
+## a post-smolt module's planner with a tier, a salinity change and a sale.
+func _test_land_boards_bridge_reads() -> void:
+	_check(_sim.start_qa_scenario("po3_red_sone", 95), "land boards: seeded scenario starts")
+	_sim.set_paused(true)
+	var built: Dictionary = _sim.commission_land_site("pad_a", "hfs_lot", 1, "Storholmen")
+	var site_id := str(built.get("id", ""))
+	_check(bool(built.get("success", false)) and site_id != "", "land boards: a QA lot is commissioned (%s)" % site_id)
+	var stocked: Dictionary = _sim.stock_land_tank(site_id, site_id + "/t01", 60000, "standard")
+	_check(bool(stocked.get("success", false)), "land boards: a tank is stocked (%s)" % str(stocked.get("message", "")))
+	_sim.advance_days(20)
+	var board: Dictionary = _sim.get_land_board(site_id)
+	var lots: Array = board.get("lots", [])
+	var tanks: Array = lots[0].get("tanks", []) if lots.size() > 0 else []
+	var stocked_tank: Dictionary = tanks[0] if tanks.size() > 0 else {}
+	var segments: Array = stocked_tank.get("segments", [])
+	_check(lots.size() == 1 and tanks.size() == 14 and segments.size() == 5
+			and str(lots[0].get("worst_tank_id", "")) == str(stocked_tank.get("id", "")),
+		"land boards: one lot, 14 tanks, five ring segments, the stocked tank is the worst (%d, %d, %d)" % [lots.size(), tanks.size(), segments.size()])
+	var binding_key := str(stocked_tank.get("binding_label_key", ""))
+	_check(binding_key.begins_with("LAND_CONSTRAINT_") and tr(binding_key) != binding_key
+			and str(stocked_tank.get("level", "")) in ["ok", "warn", "critical"],
+		"land boards: the binding constraint reads as text (%s, %s)" % [tr(binding_key), str(stocked_tank.get("level", ""))])
+	var presets: Array = _sim.get_vannstrategi_presets(site_id)
+	var names: Array = presets.map(func(p: Dictionary) -> String: return tr(str(p.get("label_key", ""))))
+	_check(presets.size() == 3 and names == ["Sparsom", "Balansert", "Høy tetthet"]
+			and presets.all(func(p: Dictionary) -> bool: return float(p.get("kwh_per_kg", 0.0)) > 0.0 and int(p.get("cycle_days", 0)) > 0),
+		"land boards: three presets with the engine's projection (%s)" % str(names))
+	_check(float(presets[2].get("maturation_risk", 0.0)) > float(presets[0].get("maturation_risk", 1.0)),
+		"land boards: the warm preset carries more maturation risk (%.2f > %.2f)" % [float(presets[2].get("maturation_risk", 0.0)), float(presets[0].get("maturation_risk", 1.0))])
+	var applied: Dictionary = _sim.apply_vannstrategi_preset(site_id, "sparsom")
+	var active: Array = _sim.get_vannstrategi_presets(site_id).filter(func(p: Dictionary) -> bool: return bool(p.get("active", false)))
+	_check(bool(applied.get("success", false)) and active.size() == 1 and str(active[0].get("id", "")) == "sparsom",
+		"land boards: applying a preset makes it the active one")
+	var competence: Dictionary = _sim.get_land_competence(site_id)
+	var levers: Array = competence.get("levers", [])
+	var untranslated: Array = levers.filter(func(l: Dictionary) -> bool: return tr(str(l.get("label_key", ""))) == str(l.get("label_key", "")))
+	_check(is_equal_approx(float(competence.get("utilisation_cap", 0.0)), 0.55) and competence.get("milestones", []).size() == 4
+			and levers.size() == 6 and untranslated.is_empty(),
+		"land boards: competence 0.4, cap 55 %%, four milestones, six levers as text (%s)" % str(untranslated))
+	var hired: Dictionary = _sim.hire_driftsleder(site_id)
+	_check(bool(hired.get("success", false)) and float(_sim.get_land_competence(site_id).get("utilisation_cap", 0.0)) > 0.55,
+		"land boards: hiring a driftsleder raises the cap")
+	var planner: Dictionary = _sim.get_land_harvest_planner(site_id)
+	var weeks: Array = planner.get("weeks", [])
+	var planner_tanks: Array = planner.get("tanks", [])
+	_check(weeks.size() == 26 and planner_tanks.size() == 1 and planner_tanks[0].get("weight_by_week_kg", []).size() == 26
+			and float(weeks[0].get("expected_price_nok", 0.0)) > 0.0,
+		"land boards: the harvest planner's 26 weeks with prices and the tank's projected weights")
+	var too_soon: Dictionary = _sim.quote_land_harvest_plan(site_id, [site_id + "/t01"], int(weeks[0].get("week_start_day", 0)) - 14)
+	_check(str(too_soon.get("reason_key", "")) == "no_slot" and tr(str(too_soon.get("label_key", ""))) != str(too_soon.get("label_key", "")),
+		"land boards: a past week is refused as text (%s)" % tr(str(too_soon.get("label_key", ""))))
+	var planned: Dictionary = _sim.plan_land_harvest(site_id, [site_id + "/t01"], int(weeks[20].get("week_start_day", 0)))
+	_check(bool(planned.get("success", false)) and _sim.get_land_harvest_planner(site_id).get("plans", []).size() == 1,
+		"land boards: a harvest is planned into week %d" % int(weeks[20].get("iso_week", 0)))
+	var account: Dictionary = _sim.get_land_account(site_id)
+	_check(bool(account.get("success", false)) and float(account.get("since_built", {}).get("energy_nok", 0.0)) > 0.0,
+		"land boards: the site's books carry its electricity")
+	# A new game for the post-smolt module (the HFS lot's running costs would empty the scenario's cash).
+	_check(_sim.start_qa_scenario("po3_red_sone", 96), "land boards: a second seeded scenario starts")
+	_sim.set_paused(true)
+	var module: Dictionary = _sim.commission_land_site("pad_delta", "post_smolt_module", 1, "Elveøyra")
+	var module_id := str(module.get("id", ""))
+	_sim.advance_days(61)
+	var module_stocked: Dictionary = _sim.stock_land_tank(module_id, module_id + "/t01", 40000, "standard")
+	_check(bool(module_stocked.get("success", false)),
+		"land boards: the post-smolt module takes smolts once its biofilter matured (%s)" % str(module_stocked.get("message", "")))
+	var salinity: Dictionary = _sim.set_salinity(module_id, 20.0)
+	var smolt: Dictionary = _sim.get_post_smolt_planner(module_id)
+	var smolt_tanks: Array = smolt.get("tanks", [])
+	_check(bool(salinity.get("success", false)) and is_equal_approx(float(smolt.get("salinity_ppt", 0.0)), 20.0)
+			and bool(smolt.get("has_river_intake", false)) and smolt_tanks.size() == 2
+			and tr(str(smolt_tanks[0].get("tier_label_key", ""))) != str(smolt_tanks[0].get("tier_label_key", "")),
+		"land boards: the post-smolt planner reads the blend and the tier as text (%s)" % tr(str(smolt_tanks[0].get("tier_label_key", ""))))
+	var small: Dictionary = _sim.sell_post_smolt(module_id, module_id + "/t01", 0)
+	_check(str(small.get("reason_key", "")) == "below_min_weight" and tr(str(small.get("label_key", ""))) != str(small.get("label_key", "")),
+		"land boards: 80 g smolts cannot be sold as post-smolt, as text (%s)" % tr(str(small.get("label_key", ""))))

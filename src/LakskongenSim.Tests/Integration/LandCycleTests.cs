@@ -333,6 +333,42 @@ public class LandCycleTests
     }
 
     /// <summary>
+    /// The cap binds: stocking every tank to its room, harvesting and stocking
+    /// again within the rolling year is refused with util_cap once the year's
+    /// planned production would pass 55 % of the nameplate, and never sooner
+    /// than the room allows (the planned production stays within the cap).
+    /// </summary>
+    [Fact]
+    public void Acceptance4_AStockingPastTheUtilisationCap_IsRefused()
+    {
+        var engine = NewEngine(442);
+        var site = Commission(engine);
+        var cal = engine.LandCalibration;
+        double hogPerSmolt = cal.Hfs.PlanHarvestWeightKg * cal.Production.CycleSurvival * cal.Production.HogPerLw;
+        double capKg = 0.55 * cal.Hfs.NameplateTonnesHogPerYear * 1000.0;
+        int stocked = 0;
+        string? refusal = null;
+        for (int round = 0; round < 5 && refusal == null; round++)
+        {
+            foreach (var tank in site.Lots[0].Tanks)
+            {
+                int room = engine.PreviewLandStocking(site.Id, tank.Id, 0).DensityRoomSmolts;
+                if (room <= 0 || !tank.Pen.IsEmpty) continue;
+                var result = engine.StockLandTank(site.Id, tank.Id, room);
+                if (!result.Ok) { refusal = result.ErrorKey; break; }
+                stocked += room;
+            }
+            foreach (var tank in site.Lots[0].Tanks.Where(k => !k.Pen.IsEmpty).ToList())
+                Assert.True(engine.HarvestLandTank(site.Id, tank.Id).Ok);
+        }
+        Assert.Equal(LandSiteReasons.UtilCap, refusal);
+        Assert.True(stocked * hogPerSmolt <= capKg + 1e-6, $"{stocked * hogPerSmolt / 1000.0:N0} t planned over the cap");
+        Assert.True(stocked * hogPerSmolt > 0.5 * capKg);
+        Assert.Equal(engine.PreviewLandStocking(site.Id, "t01", 0).UtilisationRoomSmolts,
+            (int)Math.Max(0.0, Math.Floor((capKg - site.StockingLog.Sum(r => r.PlannedHogKg)) / hogPerSmolt)));
+    }
+
+    /// <summary>
     /// Harvesting a full rotation of the grow-out tanks' planned fish completes
     /// a cycle (+0.2 competence, the cap 55 → 70 %), as the Oppkjøring shows.
     /// </summary>
