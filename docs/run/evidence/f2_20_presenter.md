@@ -79,9 +79,11 @@ best of 3 x 300 updates: 6.4 µs with no farm-type unit (the read 4.8 µs);
 the C# view and its Godot dictionaries) 374 µs. A day that changes nothing in
 a campus or unit writes nothing to the renderer.
 
-U2-07's "30×: p95 of the UI side of a day" check failed in three of five
-full UI-flow runs on this branch, at load averages of 11-67 from other
-agents; it passed in the first (p95 10.1 ms). A/B of that check alone (the
+U2-07's "30×: p95 of the UI side of a day" check failed in five of six
+full UI-flow runs on this branch (20.2-225 ms, the clock reaching only 26-65
+of its usual 74 days in some), at load averages of 11-240 from other agents;
+it passed in the first (p95 10.1 ms). Every other check passed in the last
+run (1669 of 1670). A/B of that check alone (the
 presenter in GameScene vs removed, 6 pairs in alternating order, load 11-17):
 p50 4.56 vs 4.72 ms, p95 10.95 vs 24 ms (medians): no effect from the
 presenter; the failures follow the load (RUN_LOG §8).
