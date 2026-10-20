@@ -162,7 +162,6 @@ static func sea_candidates(sim: Object, po: int) -> Array:
 		row["taken_by_site_label"] = ""
 		row["suggested"] = out.is_empty() and bool(zone.get("can_build", false))
 		row["build_zone_id"] = String(zone.get("zone_id", ""))
-		row["build_zone_label"] = String(zone.get("label", ""))
 		row["can_build"] = bool(zone.get("can_build", false))
 		row["build_reason_key"] = String(zone.get("build_reason_key", ""))
 		row["build_label_key"] = String(zone.get("build_label_key", ""))

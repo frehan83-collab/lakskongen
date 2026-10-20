@@ -139,7 +139,7 @@ func show_candidate(row: Dictionary, view: GeoRegionView) -> void:
 		_fact("current", "MAP_SITE_FACT_CURRENT", tr("MAP_SITE_UNIT_MS") % SimFormatters.num(float(ocean.get("current_speed_ms", 0.0)), 2))
 		_fact("waves", "MAP_SITE_FACT_WAVES", tr("MAP_SITE_UNIT_M_DEC") % SimFormatters.num(float(ocean.get("hs_m", 0.0)), 1))
 		_fact("oxygen", "MAP_SITE_FACT_OXYGEN", tr("MAP_SITE_UNIT_O2") % SimFormatters.integer(int(round(float(ocean.get("o2_mmol_m3", 0.0))))))
-	_fact("zone", "MAP_SITE_FACT_ZONE", String(row.get("build_zone_label", row.get("build_zone_id", ""))))
+	_fact("zone", "MAP_SITE_FACT_ZONE", SimLabels.zone(String(row.get("build_zone_id", ""))))
 	_note.text = tr("MAP_SITE_HONEST_NOTE")
 	_note.get_parent().visible = true
 	var zone := String(row.get("build_zone_id", ""))
@@ -148,7 +148,7 @@ func show_candidate(row: Dictionary, view: GeoRegionView) -> void:
 	elif bool(row.get("can_build", false)):
 		_set_action("build", "MAP_SITE_BUILD_HERE", true, "MAP_SITE_BUILD_HERE_TIP")
 	elif String(row.get("build_reason_key", "")) == LICENCE_REASON:
-		_subtitle.text = tr("MAP_SITE_LICENCE_ZONE") % String(row.get("build_zone_label", zone))
+		_subtitle.text = tr("MAP_SITE_LICENCE_ZONE") % SimLabels.zone(zone)
 		_set_action("licence", "MAP_SITE_APPLY_LICENCE", true, "MAP_SITE_APPLY_LICENCE_TIP")
 	else:
 		var why := String(row.get("build_label_key", ""))
