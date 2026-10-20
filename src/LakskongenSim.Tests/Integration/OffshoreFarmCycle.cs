@@ -38,6 +38,18 @@ public static class OffshoreFarmCycle
 
         /// <summary>Operating cost ex feed, ex smolts, per kilo of gutted fish sold (NOK/kg HOG).</summary>
         public double OpexPerKgHog => HogKg > 0 ? (double)OpexExFeedNok / HogKg : double.NaN;
+
+        /// <summary>
+        /// Every operating cost line with the feed, its spill and the smolts
+        /// kept (tax and interest left out; depreciation is no cash line), per
+        /// kilo of gutted fish sold (NOK/kg HOG): the basis of [O:R37]'s
+        /// "driftskostnader (kr per kg)" 56 against conventional production's
+        /// about 43 (Menon 131/2023, its scenario table, after Fiskeridir's 2021
+        /// profitability survey). Information beside acceptance 7's ex-feed band.
+        /// </summary>
+        public double AllInPerKgHog => HogKg > 0
+            ? (double)Lines.Where(kv => kv.Key is not ("tax" or "interest")).Sum(kv => kv.Value) / HogKg
+            : double.NaN;
     }
 
     /// <summary>
