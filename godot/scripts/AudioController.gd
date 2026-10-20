@@ -420,7 +420,8 @@ func _hook_subtree(node: Node) -> void:
 		_hook_subtree(child)
 
 func _on_node_added(node: Node) -> void:
-	if node is BaseButton and not (node as BaseButton).pressed.is_connected(play_button_click):
+	if node is BaseButton and not bool(node.get_meta(NO_CLICK_META, false)) \
+			and not (node as BaseButton).pressed.is_connected(play_button_click):
 		(node as BaseButton).pressed.connect(play_button_click)
 
 ## True when `button` clicks on press (the global hook reached it).

@@ -370,6 +370,21 @@ func _the_settings_menu_applies_through_its_widgets() -> void:
 	(menu.get_node("%ApplyButton") as Button).pressed.emit()
 	menu.queue_free()
 	await t.get_tree().process_frame
+	# The menus around it redraw too when the language changes.
+	var main: Control = await t._spawn_main_menu()
+	var pause: Control = (load("res://scenes/PauseMenu.tscn") as PackedScene).instantiate()
+	t.add_child(pause)
+	await t.get_tree().process_frame
+	_apply_settings({"general": {"language": "en"}})
+	await t.get_tree().process_frame
+	var en_ok: bool = main.btn_settings.text == "Settings" and pause.btn_resume.text == "Resume"
+	_apply_settings({"general": {"language": "nb"}})
+	await t.get_tree().process_frame
+	_check(en_ok and main.btn_settings.text == "Innstillinger" and pause.btn_resume.text == "Fortsett",
+		"settings: a language change redraws the main menu and the pause menu at once")
+	pause.queue_free()
+	main.queue_free()
+	await t.get_tree().process_frame
 	TranslationServer.set_locale("no")
 	_apply_settings({})
 

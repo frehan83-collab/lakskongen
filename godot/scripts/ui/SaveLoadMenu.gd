@@ -42,6 +42,13 @@ func _ready() -> void:
 				_refresh_slots())
 	hide()
 
+## The language changed (U2-08): redraw the title, the button and the slots.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_TRANSLATION_CHANGED and is_node_ready():
+		_apply_localization()
+		if is_visible_in_tree():
+			_refresh_slots()
+
 func _apply_localization() -> void:
 	_update_title_text()
 	_new_save_button.text = _tr_or("UI_SAVELOAD_NEW_SAVE", "💾 Nytt Lagringspunkt")

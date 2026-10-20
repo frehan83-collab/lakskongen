@@ -1,120 +1,35 @@
-# Lakskongen Audio Assets
+# Lakskongen audio
 
-## 📁 Directory Structure
+What ships, where it comes from and how loud it is:
+
+- `AUDIO_SOURCES.md`: every file with its licence, source and level, the
+  level targets with their sources, and what each generated sound models.
+- `audio_manifest.json`: the same, machine-readable (kind, length, channels,
+  BS.1770 loudness and true peak, SHA-256, licence, source). CI reads it:
+  `tests/test_audio_floor.py` (no unlisted or missing file, no loop under
+  30 s, every licence recorded in AUDIO_SOURCES.md, THIRD_PARTY.md and
+  `godot/data/credits.json`).
 
 ```
 audio/
-├── README.md                        ← You are here
-├── AUDIO_ASSET_REQUIREMENTS.md      ← Full asset specifications
-├── AUDIO_SYSTEM_QUICKREF.md         ← Developer quick reference
-├── music/                           ← Background music (8 files needed)
-├── ambient/                         ← Environmental ambience (9 files needed)
-├── sfx/                             ← Event sound effects (5 files needed)
-└── ui/                              ← UI sounds (6 files needed)
+├── ambient/  60 s ambience loops, generated (tools/audio/gen_audio.py)
+├── sfx/      verb cues (generated), the harvest stinger (generated), alerts (Kenney, Freesound CC0)
+├── ui/       UI cues (Kenney CC0); the click plays on every Button
+└── music/    Kevin MacLeod, CC BY 4.0 (notice in THIRD_PARTY.md and the credits)
 ```
 
-## 🚨 Current Status: **MISSING ASSETS**
+To add or change a sound: generate it with `python3 tools/audio/gen_audio.py`
+(needs Blender 5.2 for the Ogg step; `--check` rebuilds and compares bytes),
+or, for a third-party file, add it to `THIRD_PARTY_FILES` in that script with a
+THIRD_PARTY.md row and a credits.json entry, then re-run it to refresh the
+manifest. Name it in `scripts/MusicLibrary.gd`.
 
-**Total Assets Required:** 27 audio files  
-**Total Assets Present:** 0 (placeholders only)
+The game plays audio through `scripts/AudioController.gd` (music, cues, the
+UI click, verb cues, the engines as 3D emitters) and
+`scripts/audio/AmbienceMixer.gd` (the ambience bed from the weather and the
+camera on screen).
 
-## ✅ Audio System Status
-
-| Component | Status | Notes |
-|-----------|--------|-------|
-| Architecture | ✅ Complete | Multi-layer C#/GDScript design |
-| Crossfading | ✅ Complete | Smooth 1.5-2.0s fades |
-| Weather Reactivity | ✅ Complete | Dynamic ambient layers |
-| Alert System | ✅ Complete | 5 alert types wired |
-| Volume Controls | ✅ Complete | Full API for settings menu |
-| SFX Pooling | ✅ Complete | 8-player pool |
-| Resource Paths | ✅ Complete | MusicLibrary.gd catalog |
-| Audio Assets | ❌ **MISSING** | **BLOCKING RELEASE** |
-
-## 📋 Required Files (27 total)
-
-### Music (8 files)
-- `music/spring_theme.ogg`
-- `music/summer_theme.ogg`
-- `music/autumn_theme.ogg`
-- `music/winter_theme.ogg`
-- `music/main_theme.ogg`
-- `music/storm_music.ogg`
-- `music/harbor_theme.ogg`
-- `music/menu_theme.ogg`
-
-### Ambient Base (6 files)
-- `ambient/calm_sea.ogg`
-- `ambient/storm.ogg`
-- `ambient/wind.ogg`
-- `ambient/rain.ogg`
-- `ambient/harbor.ogg`
-- `ambient/processing_plant.ogg`
-
-### Ambient Weather Overlays (3 files)
-- `ambient/overlay_wind.ogg`
-- `ambient/overlay_rain.ogg`
-- `ambient/overlay_storm.ogg`
-
-### Alert SFX (5 files)
-- `sfx/alert_disease.ogg`
-- `sfx/alert_market_crash.ogg`
-- `sfx/achievement.ogg`
-- `sfx/harvest_complete.ogg`
-- `sfx/alert_lice.ogg`
-
-### UI SFX (6 files)
-- `ui/button_click.ogg`
-- `ui/button_hover.ogg`
-- `ui/notification.ogg`
-- `ui/day_advance.ogg`
-- `ui/menu_open.ogg`
-- `ui/menu_close.ogg`
-
-## 🎵 Free Audio Sources
-
-### Royalty-Free Music
-- [Incompetech (Kevin MacLeod)](https://incompetech.com/) — CC BY, Nordic ambient available
-- [Purple Planet Music](https://www.purple-planet.com/) — Royalty-free
-- [Bensound](https://www.bensound.com/) — Free tier available
-
-### Sound Effects & Ambience
-- [Freesound.org](https://freesound.org/) — CC0/CC BY, filter for "ocean", "wind", "rain"
-- [Sonniss GDC Audio Archive](https://sonniss.com/gameaudiogdc) — Annual free bundle
-- [Zapsplat](https://www.zapsplat.com/) — Free tier
-
-### UI Sounds
-- [Kenney.nl](https://kenney.nl/assets?q=audio) — CC0 UI sound packs
-
-## 🔧 Technical Specs
-
-- **Format:** Ogg Vorbis (.ogg)
-- **Sample Rate:** 44.1 kHz or 48 kHz
-- **Bit Depth:** 16-bit
-- **Normalization:** -3 dB peak
-- **Channels:** Stereo (music/ambient), Mono (UI)
-- **Looping:** Music and ambient files must loop seamlessly
-
-## 📖 Documentation
-
-- **Full Requirements:** See `AUDIO_ASSET_REQUIREMENTS.md`
-- **Developer Guide:** See `AUDIO_SYSTEM_QUICKREF.md`
-- **System Review:** See `/T63_SOUND_DESIGN_REPORT.md` (workspace root)
-
-## 🚀 Next Steps
-
-1. **Source or create 27 audio files** (prioritize UI + alerts + calm_sea + main_theme)
-2. Place files in correct subdirectories (`music/`, `ambient/`, `sfx/`, `ui/`)
-3. Enable `loop=true` in Godot import settings for music/ambient files
-4. Test in-game (see `AUDIO_SYSTEM_QUICKREF.md` for test checklist)
-
-## ⚠️ Known Issues
-
-- Harvest alert (`sfx/harvest_complete.ogg`) defined but not yet triggered (harvest system not implemented)
-- Spatial 3D audio for boats/pens not yet implemented (future enhancement)
-
----
-
-**Status:** Ready for audio asset integration  
-**Last Updated:** 2026-03-15  
-**Contact:** Audio team or project lead
+The T65/T69 documents and the `download_*.ps1` scripts in this folder are
+history from before Au2-01 (2026-03): they describe files that no longer ship.
+Do not use the download scripts; anything they fetch would be unrecorded, and
+the CI audio check fails on an unlisted file.

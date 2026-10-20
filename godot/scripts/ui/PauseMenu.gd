@@ -93,6 +93,11 @@ func _ready() -> void:
 	UIPolish.attach_press_feedback(_panel)
 	hide()
 
+## The language changed (Innstillinger > Spill > Språk, U2-08): redraw at once.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_TRANSLATION_CHANGED and is_node_ready():
+		_apply_texts()
+
 func _apply_texts() -> void:
 	_overline.text = tr("UI_PAUSE_OVERLINE")
 	_title.text = tr("UI_PAUSE_TITLE")
