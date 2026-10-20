@@ -542,6 +542,38 @@ public class LandCycleTests
         return site.Account.Minus(start!);
     }
 
+    // ── Determinism: twins agree, a land game saves and resumes bit for bit ─
+
+    [Fact]
+    public void TwinLandGames_WithEveryNewVerb_AgreeBitForBit_AndKeepEveryFishInOneUnit()
+    {
+        string Run()
+        {
+            var engine = NewEngine(471, events: true);
+            var site = Commission(engine);
+            var module = engine.FindLandSite(engine.CommissionLandSite("pad_delta", LandTemplate.PostSmoltModule, 1, "Elveøyra").Id)!;
+            engine.Advance(61);
+            var sea = new SeaSite("sea_twin", "zone-twin") { MABTonnes = 3_000 };
+            engine.State.SeaSites.Add(sea);
+            Assert.True(engine.HireConsultancy(site.Id).Ok);
+            Assert.True(engine.StockLandTank(site.Id, "t01", 60_000).Ok);
+            Assert.True(engine.StockLandTank(site.Id, "t02", 60_000).Ok);
+            Assert.True(engine.StockLandTank(module.Id, module.Lots[0].Tanks[0].Id, 50_000).Ok);
+            Assert.True(engine.ApplyVannstrategiPreset(site.Id, "balansert").Ok);
+            engine.Advance(150);
+            Assert.True(engine.SellPostSmolt(module.Id, module.Lots[0].Tanks[0].Id, 10_000).Ok);
+            Assert.True(engine.TransferTankToSea(module.Id, module.Lots[0].Tanks[0].Id, sea.Id, 0).Ok);
+            var weeks = engine.LandHarvestPlannerOf(site.Id)!.Weeks;
+            Assert.True(engine.PlanLandHarvest(site.Id, new[] { "t02" }, weeks[12].WeekStartDay).Ok);
+            Assert.True(engine.SetLandFeedPlan(site.Id, 90.0).Ok);
+            engine.Advance(200);
+            Assert.Empty(UnitResolver.Violations(engine.State));
+            Assert.Contains(sea.Pens, p => p.TotalCount > 0);
+            return SaveStateComparer.Normalize(SaveStateComparer.Serialize(engine));
+        }
+        Assert.Equal(Run(), Run());
+    }
+
     // ── Determinism: a land game saves and resumes bit for bit ─────────────
 
     [Fact]
