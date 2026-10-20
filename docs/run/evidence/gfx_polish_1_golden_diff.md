@@ -1,7 +1,7 @@
 # Golden-trace diff report
 
-- expected: `/var/folders/q4/52l4rkg548l_9pvgj9fxbj000000gn/T/golden_traces.mRi80Q/out/base` (commit e98944df1dc4, rid osx-arm64, runtime .NET 10.0.12, math 8481617aed3cdd1d)
-- actual: `/var/folders/q4/52l4rkg548l_9pvgj9fxbj000000gn/T/golden_traces.mRi80Q/out/head` (commit 11ec4444f413, rid osx-arm64, runtime .NET 10.0.12, math 8481617aed3cdd1d)
+- expected: `/var/folders/q4/52l4rkg548l_9pvgj9fxbj000000gn/T/golden_traces.umk8RB/out/base` (commit e98944df1dc4, rid osx-arm64, runtime .NET 10.0.12, math 8481617aed3cdd1d)
+- actual: `/var/folders/q4/52l4rkg548l_9pvgj9fxbj000000gn/T/golden_traces.umk8RB/out/head` (commit 08bbc059b3c9, rid osx-arm64, runtime .NET 10.0.12, math 8481617aed3cdd1d)
 - math fingerprints are equal: the traces are comparable bit for bit
 
 | scenario | seed | verdict | first divergence (day: group › field) | days differing | final cash NOK (expected → actual) | final live biomass kg (expected → actual) |
