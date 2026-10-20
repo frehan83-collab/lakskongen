@@ -66,6 +66,8 @@ var buoys: MultiMeshInstance3D = null
 var station := Vector3.ZERO
 var _area: Area3D = null
 var _phase_key := ""
+## How far out (m) the unit stands along its approach (-1: not placed yet).
+var _offset := -1.0
 var _fleet_key := ""
 var _buoy_mesh: Mesh = null
 
@@ -172,9 +174,13 @@ func apply_state(unit_view: Dictionary) -> void:
 		offset = lerpf(VOYAGE_FROM_M, TOW_FROM_M, p)
 	elif key == "tow":
 		offset = TOW_FROM_M if waiting else lerpf(TOW_FROM_M, 0.0, p)
-	unit.position = station + APPROACH_DIR * offset
-	unit.rotation = Vector3.ZERO
-	unit.set_build_stage(6.0)
+	# Moved only when its place changes (the heave and roll are _process's).
+	if not is_equal_approx(offset, _offset):
+		_offset = offset
+		unit.position = station + APPROACH_DIR * offset
+		unit.rotation = Vector3.ZERO
+	if not is_equal_approx(unit.get_build_stage(), 6.0):
+		unit.set_build_stage(6.0)
 	var fleet_key := key
 	if key == "voyage" or key == "tow":
 		fleet_key += ":%d:%s" % [int(offset / 25.0), waiting]

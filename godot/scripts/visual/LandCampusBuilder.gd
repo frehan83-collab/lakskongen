@@ -140,6 +140,9 @@ var _feeder_mm := {} # band -> MultiMeshInstance3D
 var _bands := PackedInt32Array()
 var _progress := PackedFloat32Array()
 var _spins := []
+var _uploaded_once := false
+## Each group's share of its rise as last set (the same share sets nothing).
+var _group_share := {}
 var _last_cam := Vector3(INF, INF, INF)
 var _blast := 0.0
 var _area: Area3D = null
@@ -614,14 +617,18 @@ func apply_state(unit_view: Dictionary) -> void:
 	var site_build: Dictionary = view.get("build", {})
 	var lots: Array = view.get("lots", [])
 	var feeding := bool(view.get("feeding", false))
+	var tanks_changed := false
 	for i in tanks.size():
 		var t: Dictionary = tanks[i]
 		var lot: Dictionary = lots[t["slot"]] if int(t["slot"]) < lots.size() else {}
 		var row: Dictionary = (lot.get("tanks", []) as Array)[t["k"]] if lot.has("tanks") and int(t["k"]) >= 0 \
 			and int(t["k"]) < (lot["tanks"] as Array).size() else {}
 		var ready := bool(row.get("ready", false))
-		_progress[i] = tank_progress(lot.get("build", site_build), ready)
-		_spins[i] = feeding and ready and bool(row.get("stocked", false))
+		var progress := tank_progress(lot.get("build", site_build), ready)
+		var spins := feeding and ready and bool(row.get("stocked", false))
+		tanks_changed = tanks_changed or progress != _progress[i] or spins != _spins[i]
+		_progress[i] = progress
+		_spins[i] = spins
 	var works := phase_share(site_build, "site_works")
 	_blast = clampf(works / BLAST_SHARE, 0.0, 1.0)
 	_set_group("roads", 1.0 if works >= BLAST_SHARE else 0.0)
@@ -630,15 +637,19 @@ func apply_state(unit_view: Dictionary) -> void:
 	_set_group("utility", phase_share(site_build, "first_tanks"))
 	for k in lots.size():
 		_set_group("lot%d" % k, phase_share((lots[k] as Dictionary).get("build", site_build), "treatment_hall"))
-	_last_cam = Vector3(INF, INF, INF)
-	_bands.fill(-1)
-	refresh_lods(_camera_position(), true)
+	# A day that changes no tank uploads nothing (most days of a running site).
+	if tanks_changed or _uploaded_once == false:
+		_uploaded_once = true
+		_last_cam = Vector3(INF, INF, INF)
+		_bands.fill(-1)
+		refresh_lods(_camera_position(), true)
 
 
 ## A group shown to `share` of its rise (0 hidden, 1 whole).
 func _set_group(group_name: String, share: float) -> void:
-	if not groups.has(group_name):
+	if not groups.has(group_name) or is_equal_approx(float(_group_share.get(group_name, -1.0)), share):
 		return
+	_group_share[group_name] = share
 	var key := "lot" if group_name.begins_with("lot") else group_name
 	var rise: Vector2 = GROUP_RISE.get(key, Vector2(0.0, 16.0))
 	for mi: MeshInstance3D in groups[group_name].get("nodes", []):
