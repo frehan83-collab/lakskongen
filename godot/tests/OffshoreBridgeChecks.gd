@@ -16,6 +16,14 @@ extends RefCounted
 ##    and their charter; the operation verbs refuse an unfinished unit before
 ##    any change.
 ## 5. A day later the forecast is issued for the new day.
+## 6. F2-08: the unit's handling clock (the 21/45/75 thresholds, days without
+##    a window, MTB headroom) and its tilt hazard with the drivers whose
+##    product it is; no incident report yet; the counter-verbs refuse an
+##    unfinished unit before any change.
+## 7. F2-09: the development round shows its gate (research done, no harvest
+##    sold yet) and takes no application; a scenario unit holds no licences
+##    yet (its locality MTB, rent-liable) and its checklist lists every
+##    criterion; the conversion and placement verbs refuse before any change.
 
 const SCENARIO := "po3_red_sone"
 const PLOT := "off_1"
@@ -47,6 +55,8 @@ func run(runner: Node) -> void:
 	sim.set_paused(true)
 	_forecast_and_gauges(sim, unit_id)
 	_booking_preview_and_refusals(sim, unit_id)
+	_handling_and_incidents(sim, unit_id)
+	_licences_and_round(sim, unit_id)
 	var issued := int(sim.get_sea_state_forecast(unit_id).get("issued_day", -1))
 	sim.advance_days(1)
 	sim.set_paused(true)
@@ -198,3 +208,71 @@ func _booking_preview_and_refusals(sim: Node, unit_id: String) -> void:
 		and [int(odds.get("shelter_days_min", 0)), int(odds.get("shelter_days_max", 0))] == TOW_SHELTER_DAYS
 		and float(odds.get("expected_cost_nok", 0.0)) >= float(odds.get("cost_if_holds_nok", 1.0)),
 		"sea bridge: the tow preview gives P(the window holds) and its cost (%.2f, %.0f NOK expected)" % [p_hold, float(odds.get("expected_cost_nok", 0.0))])
+
+
+## F2-08: the handling clock, the tilt hazard's drivers and the counter-verbs' refusals.
+func _handling_and_incidents(sim: Node, unit_id: String) -> void:
+	var h: Dictionary = sim.get_offshore_handling_state(unit_id)
+	var warn := int(h.get("warn_days", 0))
+	var order := int(h.get("order_days", 0))
+	var withdrawal := int(h.get("withdrawal_days", 0))
+	_check(bool(h.get("ok", false)) and str(h.get("requirement", "")) == "none" and int(h.get("overdue_days", -1)) == 0
+		and int(h.get("days_without_window", -1)) == 0 and warn > 0 and warn < order and order < withdrawal,
+		"sea bridge: the handling clock stands at 0 against its %d/%d/%d days" % [warn, order, withdrawal])
+	_check(is_equal_approx(float(h.get("headroom_tonnes", -1.0)), float(h.get("mtb_tonnes", 0.0)) - float(h.get("biomass_tonnes", 0.0)))
+		and float(h.get("mtb_tonnes", 0.0)) > 0.0
+		and float(h.get("relief_threshold_tonnes", -1.0)) > 0.0 and float(h.get("relief_threshold_tonnes", 0.0)) < float(h.get("mtb_tonnes", 0.0)),
+		"sea bridge: the MTB headroom is the MTB less the standing biomass, relief due below the MTB (%.0f t)" % float(h.get("headroom_tonnes", -1.0)))
+	var drivers: Array = h.get("tilt_drivers", [])
+	var product := 1.0
+	var names: Array = []
+	for d in drivers:
+		product *= float((d as Dictionary).get("value", 0.0))
+		names.append(str((d as Dictionary).get("driver", "")))
+	_check(names == ["base", "procedure", "alarm", "crew", "teething"]
+		and is_equal_approx(product, float(h.get("tilt_hazard_per_day", -1.0))),
+		"sea bridge: the tilt hazard is the product of its drivers (%s = %.2e a day)" % [str(names), float(h.get("tilt_hazard_per_day", -1.0))])
+	var reports: Dictionary = sim.get_offshore_incident_reports(unit_id)
+	_check(bool(reports.get("ok", false)) and (reports.get("reports", null) as Array).is_empty()
+		and not bool(sim.get_offshore_incident_reports("no_unit").get("ok", true)),
+		"sea bridge: a new unit has no incident report")
+	var balance := float(sim.balance)
+	var review: Dictionary = sim.start_offshore_alarm_review(unit_id)
+	var reinforce: Dictionary = sim.install_offshore_reinforcement(unit_id)
+	var upgrade: Dictionary = sim.start_offshore_procedure_upgrade(unit_id, "teleport")
+	var appeal: Dictionary = sim.appeal_site_withdrawal(unit_id)
+	_check(str(review.get("error", "")) == "not_operational" and str(reinforce.get("error", "")) == "not_operational"
+		and str(upgrade.get("error", "")) == "out_of_range" and str(appeal.get("error", "")) == "not_appealable"
+		and is_equal_approx(float(sim.balance), balance),
+		"sea bridge: the counter-verbs refuse an unfinished unit before any change (%s, %s, %s, %s)" % [str(review.get("error", "")), str(reinforce.get("error", "")), str(upgrade.get("error", "")), str(appeal.get("error", ""))])
+
+
+## F2-09: the round's gate, the unit's licences and checklist, and the licence verbs' refusals.
+func _licences_and_round(sim: Node, unit_id: String) -> void:
+	var round: Dictionary = sim.get_development_round()
+	_check(bool(round.get("ok", false)) and str(round.get("id", "x")) == "" and not bool(round.get("open", true))
+		and bool(round.get("research_done", false)) and not bool(round.get("gate_met", true))
+		and int(round.get("escape_free_target", 0)) > 0 and (round.get("awards", null) as Array).is_empty(),
+		"sea bridge: the development round waits for its gate (research done, %d harvests sold)" % int(round.get("harvests_sold", -1)))
+	var preview: Dictionary = sim.preview_development_application("of1", PLOT)
+	var applied: Dictionary = sim.apply_development_licence("of1", PLOT)
+	_check(not bool(preview.get("ok", true)) and str(applied.get("error", "")) == "round_closed",
+		"sea bridge: no round open, no score preview and no application (%s)" % str(applied.get("error", "")))
+	var licences: Dictionary = sim.get_offshore_licences(unit_id)
+	var keys: Array = []
+	for c in licences.get("checklist", []):
+		keys.append(str((c as Dictionary).get("key", "")))
+	_check(bool(licences.get("ok", false)) and not bool(licences.get("holds_licences", true)) and bool(licences.get("rent_liable", false))
+		and float(licences.get("mtb_tonnes", 0.0)) > 0.0 and (licences.get("licences", null) as Array).is_empty()
+		and keys == ["completed_cycles", "mortality", "escape_free_days", "no_order_or_withdrawal", "licences_in_force"]
+		and float(licences.get("fee_per_licence_today_nok", 0.0)) > 0.0,
+		"sea bridge: a scenario unit holds no licences, pays the rent and lists the conversion checklist (%d criteria)" % keys.size())
+	var balance := float(sim.balance)
+	var request: Dictionary = sim.request_licence_conversion(unit_id)
+	var pay: Dictionary = sim.pay_licence_conversion(unit_id)
+	var appeal: Dictionary = sim.appeal_licence_conversion(unit_id)
+	var place: Dictionary = sim.place_converted_licences(["tl_none"], "po3_nord")
+	_check(str(request.get("error", "")) == "licence_missing" and str(pay.get("error", "")) == "nothing_due"
+		and str(appeal.get("error", "")) == "not_appealable" and str(place.get("error", "")) == "not_found"
+		and is_equal_approx(float(sim.balance), balance),
+		"sea bridge: the conversion and placement verbs refuse before any change (%s, %s, %s, %s)" % [str(request.get("error", "")), str(pay.get("error", "")), str(appeal.get("error", "")), str(place.get("error", ""))])

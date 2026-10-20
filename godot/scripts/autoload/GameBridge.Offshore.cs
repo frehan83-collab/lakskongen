@@ -546,6 +546,344 @@ public partial class GameBridge : Node
     public Godot.Collections.Dictionary BuyOutOffshorePartner(string siteId)
         => FacilityResult(SimulationEngine?.BuyOutPartner(siteId ?? ""));
 
+    // ── F2-08: handling overdue, incidents and their counter-verbs ──
+
+    /// <summary>
+    /// F2-08: an offshore unit's handling and incident state (the window
+    /// board's clock, spec §6.5; F2-33 acceptance 5). Keys: "ok", "site_id",
+    /// "requirement" ("none", "delouse", "mtb_relief", "harvest",
+    /// "net_inspection"), "requirement_since_day", "overdue_days",
+    /// "days_without_window", "warn_days", "order_days", "withdrawal_days"
+    /// (the 21/45/75 thresholds), "stage" ("None", "Warned", "Ordered",
+    /// "Withdrawal"), "order_day", "clock_anchor_day", "last_handling_day",
+    /// "window_row", "next_window_day" (-1 none at P ≥ 0.8),
+    /// "next_window_probability", "mtb_tonnes", "biomass_tonnes",
+    /// "projected_biomass_tonnes", "relief_threshold_tonnes",
+    /// "headroom_tonnes", "net_known_day", "net_inspection_due_day",
+    /// "net_inspection_overdue_day", "withdrawal_case_id",
+    /// "withdrawal_status", "withdrawal_effective_day",
+    /// "withdrawal_appealable", "tilt_drivers" [ { "driver", "value" } ]
+    /// (their product is "tilt_hazard_per_day"), "tilt_hazard_per_year",
+    /// "active_incident_id", "active_incident_kind", "alarm_review_started_day",
+    /// "alarm_review_done_day", "alarm_review_running", "alarm_review_in_force",
+    /// "alarm_review_cost_nok", "hatch_procedure_level",
+    /// "procedure_upgrade_done_day", "procedure_upgrade_cost_nok",
+    /// "reinforcement_done_day", "design_hs_m", "reinforcement_capex_nok".
+    /// </summary>
+    public Godot.Collections.Dictionary GetOffshoreHandlingState(string siteId)
+    {
+        var result = new Godot.Collections.Dictionary { ["ok"] = false, ["site_id"] = siteId ?? "" };
+        var v = SimulationEngine?.State == null ? null : SimulationEngine.GetOffshoreHandlingState(siteId ?? "");
+        if (v == null) return result;
+        result["ok"] = true;
+        result["requirement"] = v.Requirement;
+        result["requirement_since_day"] = v.RequirementSinceDay;
+        result["overdue_days"] = v.OverdueDays;
+        result["days_without_window"] = v.DaysWithoutWindow;
+        result["warn_days"] = v.WarnDays;
+        result["order_days"] = v.OrderDays;
+        result["withdrawal_days"] = v.WithdrawalDays;
+        result["stage"] = v.Stage;
+        result["order_day"] = v.OrderDay;
+        result["clock_anchor_day"] = v.ClockAnchorDay;
+        result["last_handling_day"] = v.LastHandlingDay;
+        result["window_row"] = v.WindowRow;
+        result["next_window_day"] = v.NextWindowDay;
+        result["next_window_probability"] = v.NextWindowProbability;
+        result["mtb_tonnes"] = v.MtbTonnes;
+        result["biomass_tonnes"] = v.BiomassTonnes;
+        result["projected_biomass_tonnes"] = v.ProjectedBiomassTonnes;
+        result["relief_threshold_tonnes"] = v.ReliefThresholdTonnes;
+        result["headroom_tonnes"] = v.HeadroomTonnes;
+        result["net_known_day"] = v.NetKnownDay;
+        result["net_inspection_due_day"] = v.NetInspectionDueDay;
+        result["net_inspection_overdue_day"] = v.NetInspectionOverdueDay;
+        result["withdrawal_case_id"] = v.WithdrawalCaseId;
+        result["withdrawal_status"] = v.WithdrawalStatus;
+        result["withdrawal_effective_day"] = v.WithdrawalEffectiveDay;
+        result["withdrawal_appealable"] = v.WithdrawalAppealable;
+        result["tilt_drivers"] = SeaDrivers(v.TiltDrivers);
+        result["tilt_hazard_per_day"] = v.TiltHazardPerDay;
+        result["tilt_hazard_per_year"] = v.TiltHazardPerYear;
+        result["active_incident_id"] = v.ActiveIncidentId;
+        result["active_incident_kind"] = v.ActiveIncidentKind;
+        result["alarm_review_started_day"] = v.AlarmReviewStartedDay;
+        result["alarm_review_done_day"] = v.AlarmReviewDoneDay;
+        result["alarm_review_running"] = v.AlarmReviewRunning;
+        result["alarm_review_in_force"] = v.AlarmReviewInForce;
+        result["alarm_review_cost_nok"] = (double)v.AlarmReviewCostNok;
+        result["hatch_procedure_level"] = v.HatchProcedureLevel;
+        result["procedure_upgrade_done_day"] = v.ProcedureUpgradeDoneDay;
+        result["procedure_upgrade_cost_nok"] = (double)v.ProcedureUpgradeCostNok;
+        result["reinforcement_done_day"] = v.ReinforcementDoneDay;
+        result["design_hs_m"] = v.DesignHsM;
+        result["reinforcement_capex_nok"] = (double)v.ReinforcementCapexNok;
+        return result;
+    }
+
+    /// <summary>
+    /// F2-08: an offshore unit's incident reports, newest last (spec §3.3:
+    /// every escape, order and withdrawal writes one with its driver chain).
+    /// Keys: "ok", "site_id", "reports" [ { "id", "unit_id", "day", "kind",
+    /// "incident_id", "fish_lost", "cost_nok", "procedure_unlocked", "steps"
+    /// [ { "order", "key", "day", "value", "text", "record_ref", "drivers"
+    /// [ { "driver", "value" } ] } ] } ].
+    /// </summary>
+    public Godot.Collections.Dictionary GetOffshoreIncidentReports(string siteId)
+    {
+        var result = new Godot.Collections.Dictionary { ["ok"] = false, ["site_id"] = siteId ?? "" };
+        if (SimulationEngine?.State == null || SimulationEngine.FindOffshoreUnit(siteId) == null) return result;
+        var reports = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        foreach (var report in SimulationEngine.IncidentReportsOf(siteId))
+        {
+            var steps = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+            foreach (var step in report.Steps)
+            {
+                steps.Add(new Godot.Collections.Dictionary
+                {
+                    ["order"] = step.Order,
+                    ["key"] = step.Key,
+                    ["day"] = step.Day,
+                    ["value"] = step.Value,
+                    ["text"] = step.Text,
+                    ["record_ref"] = step.RecordRef,
+                    ["drivers"] = SeaDrivers(step.Drivers),
+                });
+            }
+            reports.Add(new Godot.Collections.Dictionary
+            {
+                ["id"] = report.Id,
+                ["unit_id"] = report.UnitId,
+                ["day"] = report.Day,
+                ["kind"] = report.Kind,
+                ["incident_id"] = report.IncidentId,
+                ["fish_lost"] = report.FishLost,
+                ["cost_nok"] = (double)report.CostNok,
+                ["procedure_unlocked"] = report.ProcedureUnlocked,
+                ["steps"] = steps,
+            });
+        }
+        result["ok"] = true;
+        result["reports"] = reports;
+        return result;
+    }
+
+    /// <summary>F2-08: start an alarm review ("Alarmgjennomgang": value = its price, value2 = the day it is done).</summary>
+    public Godot.Collections.Dictionary StartOffshoreAlarmReview(string siteId)
+        => FacilityResult(SimulationEngine?.StartAlarmReview(siteId ?? ""));
+
+    /// <summary>F2-08: upgrade a procedure ("hatch"): value = its price, value2 = the day the level rises.</summary>
+    public Godot.Collections.Dictionary StartOffshoreProcedureUpgrade(string siteId, string kind)
+        => FacilityResult(SimulationEngine?.StartProcedureUpgrade(siteId ?? "", kind ?? ""));
+
+    /// <summary>F2-08: reinforce the unit ("Forsterkning": value = the capex, value2 = the day its design Hs rises).</summary>
+    public Godot.Collections.Dictionary InstallOffshoreReinforcement(string siteId)
+        => FacilityResult(SimulationEngine?.InstallReinforcement(siteId ?? ""));
+
+    /// <summary>F2-08: appeal a decided site withdrawal (lifted once the requirement is handled by the effective day).</summary>
+    public Godot.Collections.Dictionary AppealSiteWithdrawal(string siteId)
+        => FacilityResult(SimulationEngine?.AppealSiteWithdrawal(siteId ?? ""));
+
+    // ── F2-09: development licences, conversion, placement ──
+
+    /// <summary>
+    /// F2-09: the development-licence round (spec §6.1 act 3). Keys: "ok",
+    /// "id" ("" before any round), "opened_day", "closes_day", "open",
+    /// "rival_awards", "rivals_expected", "rivals_filed", "field_min",
+    /// "field_median", "field_max", "award_bar", "gate_met", "research_done",
+    /// "harvests_sold", "escape_free_days", "escape_free_target",
+    /// "applications" [ { "case_id", "plot_id", "status", "submitted_day",
+    /// "decision_day", "score", "bar" } ], "awards" [ { "id", "round_id",
+    /// "concept", "plot_id", "company", "holder", "awarded_day",
+    /// "construction_deadline_day", "licences", "licence_tonnes", "status",
+    /// "unit_id" } ].
+    /// </summary>
+    public Godot.Collections.Dictionary GetDevelopmentRound()
+    {
+        var result = new Godot.Collections.Dictionary { ["ok"] = false };
+        var v = SimulationEngine?.State == null ? null : SimulationEngine.GetDevelopmentRoundView();
+        if (v == null) return result;
+        var applications = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        foreach (var c in v.Applications)
+        {
+            applications.Add(new Godot.Collections.Dictionary
+            {
+                ["case_id"] = c.Id,
+                ["plot_id"] = c.PlotId,
+                ["status"] = c.Status.ToString(),
+                ["submitted_day"] = c.SubmittedDay,
+                ["decision_day"] = c.DecisionDay,
+                ["score"] = c.Conditions.TryGetValue("score", out var score) ? score : 0.0,
+                ["bar"] = c.Conditions.TryGetValue("bar", out var bar) ? bar : 0.0,
+            });
+        }
+        var awards = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        foreach (var a in v.Awards)
+        {
+            awards.Add(new Godot.Collections.Dictionary
+            {
+                ["id"] = a.Id,
+                ["round_id"] = a.RoundId,
+                ["concept"] = a.Concept,
+                ["plot_id"] = a.PlotId,
+                ["company"] = a.IsCompany,
+                ["holder"] = a.Holder,
+                ["awarded_day"] = a.AwardedDay,
+                ["construction_deadline_day"] = a.ConstructionDeadlineDay,
+                ["licences"] = a.Licences,
+                ["licence_tonnes"] = a.LicenceTonnes,
+                ["status"] = a.Status,
+                ["unit_id"] = a.UnitId,
+            });
+        }
+        result["ok"] = true;
+        result["id"] = v.Id;
+        result["opened_day"] = v.OpenedDay;
+        result["closes_day"] = v.ClosesDay;
+        result["open"] = v.Open;
+        result["rival_awards"] = v.RivalAwards;
+        result["rivals_expected"] = v.RivalsExpected;
+        result["rivals_filed"] = v.RivalsFiled;
+        result["field_min"] = v.FieldMin;
+        result["field_median"] = v.FieldMedian;
+        result["field_max"] = v.FieldMax;
+        result["award_bar"] = v.AwardBar;
+        result["gate_met"] = v.GateMet;
+        result["research_done"] = v.ResearchDone;
+        result["harvests_sold"] = v.HarvestsSold;
+        result["escape_free_days"] = v.EscapeFreeDays;
+        result["escape_free_target"] = v.EscapeFreeTarget;
+        result["applications"] = applications;
+        result["awards"] = awards;
+        return result;
+    }
+
+    /// <summary>
+    /// F2-09: the score breakdown a dossier would get if filed today, against
+    /// the round's field (spec §6.1: "Sterk / Middels / Svak"). Keys: "ok"
+    /// (false when no round is open), "concept", "plot_id", "novelty",
+    /// "escape_free", "lice_compliance", "financing", "total", "field_min",
+    /// "field_median", "field_max", "award_bar", "band" ("strong", "middle",
+    /// "weak"), "would_be_awarded", "escape_free_months",
+    /// "lice_compliance_share", "financing_coverage". Never draws.
+    /// </summary>
+    public Godot.Collections.Dictionary PreviewDevelopmentApplication(string concept, string plotId)
+    {
+        var result = new Godot.Collections.Dictionary { ["ok"] = false, ["concept"] = concept ?? "", ["plot_id"] = plotId ?? "" };
+        var p = SimulationEngine?.State == null ? null : SimulationEngine.PreviewDevelopmentApplication(concept ?? "", plotId ?? "");
+        if (p == null) return result;
+        result["ok"] = true;
+        result["novelty"] = p.Novelty;
+        result["escape_free"] = p.EscapeFree;
+        result["lice_compliance"] = p.LiceCompliance;
+        result["financing"] = p.Financing;
+        result["total"] = p.Total;
+        result["field_min"] = p.FieldMin;
+        result["field_median"] = p.FieldMedian;
+        result["field_max"] = p.FieldMax;
+        result["award_bar"] = p.AwardBar;
+        result["band"] = p.Band;
+        result["would_be_awarded"] = p.WouldBeAwarded;
+        result["escape_free_months"] = p.EscapeFreeMonths;
+        result["lice_compliance_share"] = p.LiceComplianceShare;
+        result["financing_coverage"] = p.FinancingCoverage;
+        return result;
+    }
+
+    /// <summary>F2-09: file a development-licence application (value = its score, value2 = its decision day, id = the case).</summary>
+    public Godot.Collections.Dictionary ApplyDevelopmentLicence(string concept, string plotId)
+        => FacilityResult(SimulationEngine?.ApplyDevelopmentLicence(concept ?? "", plotId ?? ""));
+
+    /// <summary>
+    /// F2-09: a unit's licences and their conversion (spec §2C, §6.1 act 4).
+    /// Keys: "ok", "site_id", "holds_licences", "award_id", "mtb_tonnes",
+    /// "placed", "rent_liable", "counts_in_area_pool", "production_area",
+    /// "licences" [ { "id", "kind" ("commercial", "development",
+    /// "offshore_area"), "mtb_tonnes", "expires_day" (-1 never),
+    /// "in_force", "bound_unit_id", "awaiting_placement", "placed_zone_id",
+    /// "pooled_area" } ], "checklist" [ { "key", "value", "target", "met" } ],
+    /// "conversion_case_id", "conversion_status", "conversion_decision_day",
+    /// "conversion_decided_day", "conversion_appealable", "payment_due_day",
+    /// "fee_due_nok", "fee_today_nok", "fee_per_licence_today_nok".
+    /// </summary>
+    public Godot.Collections.Dictionary GetOffshoreLicences(string siteId)
+    {
+        var result = new Godot.Collections.Dictionary { ["ok"] = false, ["site_id"] = siteId ?? "" };
+        var v = SimulationEngine?.State == null ? null : SimulationEngine.GetOffshoreLicenceView(siteId ?? "");
+        if (v == null) return result;
+        int today = SimulationEngine.State.Day;
+        var licences = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        foreach (var l in v.Licences)
+        {
+            licences.Add(new Godot.Collections.Dictionary
+            {
+                ["id"] = l.Id,
+                ["kind"] = SeaKey(l.Kind),
+                ["mtb_tonnes"] = l.MtbTonnes,
+                ["expires_day"] = l.ExpiresDay == int.MaxValue ? -1 : l.ExpiresDay,
+                ["in_force"] = l.IsInForce(today),
+                ["bound_unit_id"] = l.BoundUnitId,
+                ["awaiting_placement"] = l.AwaitingPlacement,
+                ["placed_zone_id"] = l.PlacedZoneId,
+                ["pooled_area"] = l.PooledArea,
+            });
+        }
+        var checklist = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        foreach (var c in v.Checklist)
+            checklist.Add(new Godot.Collections.Dictionary { ["key"] = c.Key, ["value"] = c.Value, ["target"] = c.Target, ["met"] = c.Met });
+        result["ok"] = true;
+        result["holds_licences"] = v.HoldsLicences;
+        result["award_id"] = v.AwardId;
+        result["mtb_tonnes"] = v.MtbTonnes;
+        result["placed"] = v.Placed;
+        result["rent_liable"] = v.RentLiable;
+        result["counts_in_area_pool"] = v.CountsInAreaPool;
+        result["production_area"] = v.ProductionArea;
+        result["licences"] = licences;
+        result["checklist"] = checklist;
+        result["conversion_case_id"] = v.ConversionCaseId;
+        result["conversion_status"] = v.ConversionStatus;
+        result["conversion_decision_day"] = v.ConversionDecisionDay;
+        result["conversion_decided_day"] = v.ConversionDecidedDay;
+        result["conversion_appealable"] = v.ConversionAppealable;
+        result["payment_due_day"] = v.PaymentDueDay;
+        result["fee_due_nok"] = (double)v.FeeDueNok;
+        result["fee_today_nok"] = (double)v.FeeTodayNok;
+        result["fee_per_licence_today_nok"] = (double)v.FeePerLicenceTodayNok;
+        return result;
+    }
+
+    /// <summary>F2-09: file the conversion of a unit's development licences (value = 1 when every criterion is met today, value2 = the decision day).</summary>
+    public Godot.Collections.Dictionary RequestLicenceConversion(string siteId)
+        => FacilityResult(SimulationEngine?.RequestConversion(siteId ?? ""));
+
+    /// <summary>F2-09: appeal a refused conversion (decided 180 days on by the criteria met then).</summary>
+    public Godot.Collections.Dictionary AppealLicenceConversion(string siteId)
+        => FacilityResult(SimulationEngine?.AppealConversion(siteId ?? ""));
+
+    /// <summary>F2-09: pay an approved conversion (value = the fee; the licences then await placement).</summary>
+    public Godot.Collections.Dictionary PayLicenceConversion(string siteId)
+        => FacilityResult(SimulationEngine?.PayConversion(siteId ?? ""));
+
+    /// <summary>F2-09: place converted licences (their ids) in a zone's production area (value = their MTB, value2 = the area).</summary>
+    public Godot.Collections.Dictionary PlaceConvertedLicences(Godot.Collections.Array holdingIds, string zoneId)
+    {
+        var ids = new System.Collections.Generic.List<string>();
+        if (holdingIds != null)
+            foreach (var id in holdingIds)
+                ids.Add(id.AsString());
+        return FacilityResult(SimulationEngine?.PlaceLicences(ids, zoneId ?? ""));
+    }
+
+    /// <summary>Drivers as the bridge hands them: [ { "driver", "value" } ] in the engine's order.</summary>
+    private static Godot.Collections.Array<Godot.Collections.Dictionary> SeaDrivers(System.Collections.Generic.IEnumerable<Farm.Offshore.OffshoreDriver> drivers)
+    {
+        var list = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        foreach (var d in drivers)
+            list.Add(new Godot.Collections.Dictionary { ["driver"] = d.Name, ["value"] = d.Value });
+        return list;
+    }
+
     /// <summary>A refusal before the engine is asked (an argument the bridge cannot parse).</summary>
     private static Godot.Collections.Dictionary SeaRefusal(string errorKey, string message) => new()
     {

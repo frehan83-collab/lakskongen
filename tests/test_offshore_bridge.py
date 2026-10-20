@@ -28,6 +28,20 @@ SEA_VERBS = {
     "ServiceOffshoreSensors": "service_offshore_sensors",
     "RepairOffshoreUnit": "repair_offshore_unit",
     "BuyOutOffshorePartner": "buy_out_offshore_partner",
+    "GetOffshoreHandlingState": "get_offshore_handling_state",
+    "GetOffshoreIncidentReports": "get_offshore_incident_reports",
+    "StartOffshoreAlarmReview": "start_offshore_alarm_review",
+    "StartOffshoreProcedureUpgrade": "start_offshore_procedure_upgrade",
+    "InstallOffshoreReinforcement": "install_offshore_reinforcement",
+    "AppealSiteWithdrawal": "appeal_site_withdrawal",
+    "GetDevelopmentRound": "get_development_round",
+    "PreviewDevelopmentApplication": "preview_development_application",
+    "ApplyDevelopmentLicence": "apply_development_licence",
+    "GetOffshoreLicences": "get_offshore_licences",
+    "RequestLicenceConversion": "request_licence_conversion",
+    "AppealLicenceConversion": "appeal_licence_conversion",
+    "PayLicenceConversion": "pay_licence_conversion",
+    "PlaceConvertedLicences": "place_converted_licences",
 }
 
 

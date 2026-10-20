@@ -6,6 +6,12 @@
     "perSensorPastService": 0.1,
     "perUnfixedRevealedDefect": 0.15
   },
+  "alarmReview": {
+    "costNok": 4000000,
+    "cut": 0.3,
+    "days": 30,
+    "effectDays": 365
+  },
   "costs": {
     "anchorTugNokPerDay": 480000,
     "buyoutMultiple": 1.2,
@@ -25,6 +31,75 @@
     "towShelterDaysMin": 5,
     "towTugs": 3,
     "wellboatNokPerDay": 150000
+  },
+  "handling": {
+    "appealDays": 120,
+    "delousingTonnesPerHandlingDay": 2000,
+    "mtbProjectionDays": 14,
+    "mtbReliefShare": 0.97,
+    "netInspectionIntervalDays": 90,
+    "netInspectionOverdueDays": 30,
+    "orderActDays": 30,
+    "orderDays": 45,
+    "warnDays": 21,
+    "withdrawalDays": 75
+  },
+  "incidents": {
+    "autoCloseHours": 1,
+    "autoCloseProcedureMin": 0.8,
+    "escapeFeeNokPerFish": 221,
+    "escapeMeasuresNokPerFish": 1190,
+    "investigationMaxDays": 30,
+    "jellyDayMortality": 0.003,
+    "jellyDayShareNovDec": 0.05,
+    "mooringEscapeMax": 0.1,
+    "mooringHazardOverDesign": 0.02,
+    "netTearBelowPct": 70,
+    "netTearEscapeMax": 0.03,
+    "netTearEscapeMin": 0.005,
+    "netTearHazardAtZero": 0.05,
+    "netTearLeakPerDay": 0.002,
+    "tiltAlarmFactor": 2,
+    "tiltBaseDays": 9000,
+    "tiltDurationMaxHours": 24,
+    "tiltDurationMinHours": 1,
+    "tiltEscapeFraction": 0.015,
+    "tiltFullEscapeHours": 12,
+    "tiltPerCrewOverdueDay": 0.05,
+    "tiltProcedureCeiling": 2
+  },
+  "liceCoupling": {
+    "seedCap": 0.05,
+    "seedScale": 0.02,
+    "unitToUnitCoupling": 0.08,
+    "zoneOutputWeight": 0.08
+  },
+  "licences": {
+    "awardDelayDays": 180,
+    "awardFloorScore": 0.45,
+    "constructionStartDays": 365,
+    "conversionAppealDays": 180,
+    "conversionDecisionDaysMax": 120,
+    "conversionDecisionDaysMin": 60,
+    "conversionEscapeFreeDays": 365,
+    "conversionMinCompletedCycles": 1,
+    "conversionPaymentDays": 90,
+    "cpiAnnualRate": 0.02,
+    "developmentLicenceYears": 15,
+    "escapeFreeFullMonths": 24,
+    "escapeFreeWeight": 0.2,
+    "fallbackAreaMortality": 0.142,
+    "financingShareOfEquityCapex": 0.3,
+    "financingWeight": 0.3,
+    "fixedGrowthPriceNokPerTonne": 170000,
+    "liceComplianceWeight": 0.2,
+    "noveltyBonus": 0.3,
+    "rivalApplicantsMax": 3,
+    "rivalNoApplicantShare": 0.1,
+    "rivalScoreMax": 0.85,
+    "rivalScoreMin": 0.35,
+    "rivalSubmissionWindowDays": 365,
+    "roundOpenDays": 730
   },
   "logistics": {
     "crewChangeIntervalDays": 7,
@@ -162,6 +237,16 @@
       "hs100M": 6.5,
       "hsScale": 1.376
     }
+  },
+  "procedures": {
+    "costNok": 2000000,
+    "days": 60,
+    "hatchStep": 0.2
+  },
+  "reinforcement": {
+    "capexNok": 60000000,
+    "days": 90,
+    "designHsBonusM": 1
   },
   "sensors": {
     "aisBroadband": {
