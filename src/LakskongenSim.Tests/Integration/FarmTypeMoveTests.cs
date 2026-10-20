@@ -347,18 +347,22 @@ public class FarmTypeMoveTests
     /// unit kinds: the pre-F2 facilities save (a RAS facility with stocked
     /// tanks, an offshore farm with stocked pens, a post-smolt facility with
     /// batches, a hatchery cohort) loads into a grow-out land site, an offshore
-    /// unit and a post-smolt land site and runs 365 days as recorded on F2-07's
+    /// unit and a post-smolt land site and runs 365 days as recorded on F2-08's
     /// engine: every day's traced state (populations by tank and zone, the
     /// ledger, cash, every stream) and the whole save every 30 days (carbon
     /// trackers, facility water, crew rotation). Replaced F2-02's pre-move pins
     /// (<see cref="PreMoveRecording"/>; RUN_LOG §7, F2-03) and F2-03's
     /// (<see cref="F2_03Recording"/>; RUN_LOG §7, F2-04) and the wave-3
     /// integration's (<see cref="U2_03Recording"/>; RUN_LOG §7, F2-07, with what
-    /// F2-07 left unmoved pinned against it), and asserts more: the
+    /// F2-07 left unmoved pinned against it) and F2-07's (<see cref="F2_07Recording"/>;
+    /// RUN_LOG §7, F2-08, with what F2-08 leaves unmoved pinned against
+    /// F2-07's engine), and asserts more: the
     /// land sites and the offshore unit are the save's facilities by id, each
     /// on its plot, the offshore unit's fish in its zones, and no unit whose
     /// capex was paid before F2 enters the asset register, and the unit runs its
-    /// F2-07 day (commissioned, fed from its silo, its standing orders, its draws).
+    /// F2-07 day (commissioned, fed from its silo, its standing orders, its draws)
+    /// and F2-08's (its lice split, every escape an incident's, no forced
+    /// delousing at the unit).
     /// </summary>
     [Theory]
     [MemberData(nameof(Variants))]

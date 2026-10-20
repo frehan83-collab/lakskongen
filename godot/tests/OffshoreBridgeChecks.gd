@@ -231,7 +231,7 @@ func _handling_and_incidents(sim: Node, unit_id: String) -> void:
 		names.append(str((d as Dictionary).get("driver", "")))
 	_check(names == ["base", "procedure", "alarm", "crew", "teething"]
 		and is_equal_approx(product, float(h.get("tilt_hazard_per_day", -1.0))),
-		"sea bridge: the tilt hazard is the product of its drivers (%s = %.2e a day)" % [str(names), float(h.get("tilt_hazard_per_day", -1.0))])
+		"sea bridge: the tilt hazard is the product of its drivers (%s = %s a day)" % [str(names), String.num_scientific(float(h.get("tilt_hazard_per_day", -1.0)))])
 	var reports: Dictionary = sim.get_offshore_incident_reports(unit_id)
 	_check(bool(reports.get("ok", false)) and (reports.get("reports", null) as Array).is_empty()
 		and not bool(sim.get_offshore_incident_reports("no_unit").get("ok", true)),
