@@ -21,6 +21,8 @@ const WIN_SEED := 9
 ## Real seconds the input player may take for the whole season.
 const WIN_TIMEOUT_S := 300.0
 const SETTLE_S := 0.25
+## Wheel ticks per scroll attempt.
+const WHEEL_TICKS := 3
 const NO_EVENT_SCENARIOS := ["po3_red_sone", "isa_utbrudd", "algekatastrofe"]
 
 var t: Node = null
@@ -311,15 +313,19 @@ func _wheel_into_view(control: Control) -> bool:
 		return false
 	var down := r.end.y > view.end.y
 	var before := scroll.scroll_vertical
-	for i in 3:
-		var wheel := InputEventMouseButton.new()
-		wheel.button_index = MOUSE_BUTTON_WHEEL_DOWN if down else MOUSE_BUTTON_WHEEL_UP
-		wheel.pressed = true
-		wheel.position = view.get_center()
-		wheel.global_position = wheel.position
-		t.get_viewport().push_input(wheel, true)
+	# A wheel tick is a press and a release, as the OS sends it: a press
+	# alone stays in the viewport's mouse-focus mask and every later click
+	# goes to the control under the wheel.
+	for i in WHEEL_TICKS:
+		for pressed: bool in [true, false]:
+			var wheel := InputEventMouseButton.new()
+			wheel.button_index = MOUSE_BUTTON_WHEEL_DOWN if down else MOUSE_BUTTON_WHEEL_UP
+			wheel.pressed = pressed
+			wheel.factor = 1.0
+			wheel.position = view.get_center()
+			wheel.global_position = wheel.position
+			t.get_viewport().push_input(wheel, true)
 	await _frames(2)
-	print("[U2-02 dbg] wheel %s: view=%s r=%s scroll %d -> %d" % [control.name, str(view), str(r), before, scroll.scroll_vertical])
 	return scroll.scroll_vertical != before   # at the end of the list: click what shows
 
 
@@ -332,26 +338,11 @@ func _feed_plan_by_input(scene: Node, card: Control) -> void:
 		await _follow_pointer(card)
 		return
 	var h: TutorialHighlight = card.highlight()
-	print("[U2-02 dbg] feed: scrolled_away=%s apply_disabled=%s target=%s apply_rect=%s option_rect=%s sel=%d" % [str(h.is_scrolled_away()), str(plan.apply_button().disabled), str(h.target().name if h.target() else "none"), str(plan.apply_button().get_global_rect()), str(plan._window_option.get_global_rect()), plan._window_option.selected])
 	if h.is_scrolled_away():
 		await _click(card.show_me_button)
 		return
 	if not plan.apply_button().disabled:
-		var mv := InputEventMouseMotion.new()
-		mv.position = plan.apply_button().get_global_rect().get_center()
-		mv.global_position = mv.position
-		t.get_viewport().push_input(mv, true)
-		await _frames(2)
-		var hov := t.get_viewport().gui_get_hovered_control()
-		var hits := [0]
-		var on_p := func() -> void: hits[0] += 1
-		plan.apply_button().pressed.connect(on_p)
-		print("[U2-02 dbg] before click: scrolled=%s target=%s focus=%s" % [str(h.is_scrolled_away()), str(h.target().name if h.target() else "none"), str(t.get_viewport().gui_get_focus_owner())])
 		await _follow_pointer(card)   # the pointer has moved to "Bruk på …"
-		plan.apply_button().pressed.disconnect(on_p)
-		print("[U2-02 dbg] pressed hits=%d" % hits[0])
-		var site := str(t._sim.get_all_pens()[0].get("id", ""))
-		print("[U2-02 dbg] hovered=%s after click: plan=%s status=%s" % [str(hov.name if hov else "none"), str(t._sim.get_feed_plan(site)), str(t._sim.get_tutorial_status().get("id"))])
 		return
 	var option: OptionButton = plan._window_option
 	if await _wheel_into_view(option):

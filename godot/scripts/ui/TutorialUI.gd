@@ -227,11 +227,16 @@ func _on_done_pressed() -> void:
 func _on_step_completed(step_number: int, title_key: String) -> void:
 	if not visible:
 		return
-	reward_label.text = tr("TUTORIAL_CARD_STEP_DONE") % [step_number, tr(title_key)]
+	reward_label.text = _tr_step_complete(step_number, title_key)
 	reward_label.visible = true
 	_reward_timer = STEP_DONE_S
 	if _minimised:
 		_set_minimised(false)
+
+
+## "Steg n fullført: <tittel>" — the step's number and title, never an amount (D16).
+func _tr_step_complete(step_number: int, title_key: String) -> String:
+	return tr("TUTORIAL_CARD_STEP_DONE") % [step_number, tr(title_key)]
 
 # ── Progress dots: one per step ───────────────────────────────────────────────
 
