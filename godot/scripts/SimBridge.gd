@@ -680,6 +680,14 @@ func get_next_planned(unit_id: String) -> Dictionary: return _proxies.get_next_p
 func get_notification_meter() -> Array[Dictionary]: return _proxies.get_notification_meter()
 func get_notification_budget() -> Dictionary: return _proxies.get_notification_budget()
 
+# ── F2-31: the family-first build flow (ui·farm) ─────────────────────────────
+func preview_farm_build(variant_id: String, plot_id: String, option: String, contract: String, equity_share: float, mitigations: Array) -> Dictionary: return _proxies.preview_farm_build(variant_id, plot_id, option, contract, equity_share, mitigations)
+func get_build_diagnosis() -> Dictionary: return _proxies.get_build_diagnosis()
+func get_build_plots(family_id: String) -> Array[Dictionary]: return _proxies.get_build_plots(family_id)
+func get_farm_type_starts() -> Dictionary: return _proxies.get_farm_type_starts()
+func qa_state_digest() -> String: return _proxies.qa_state_digest()
+func qa_open_farm_family(research_node_id: String, post_smolt_plot_id: String, first_harvest: bool) -> bool: return _proxies.qa_open_farm_family(research_node_id, post_smolt_plot_id, first_harvest)
+
 # ── F2-03: farm types (land sites, offshore units, their plots) ───────────────
 # Each lane forwards only inside its own block (FARM_TYPES_SPEC §7.6).
 

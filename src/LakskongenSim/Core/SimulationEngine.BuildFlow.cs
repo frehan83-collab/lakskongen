@@ -65,6 +65,29 @@ public partial class SimulationEngine
         return new FarmBuildPreview(true, "", family, null, null, sea, OffshoreEconomics(variantId, sea));
     }
 
+    /// <summary>
+    /// The unlock gates a family's build path waives when it starts: money
+    /// (paid phase by phase), on land the zoned pad (the permit package zones
+    /// the chosen pad), at sea the development licence (F2-09's round; until it
+    /// lands the build stands in for the award). The same rules as
+    /// <see cref="ApplyLandPermits"/> and <see cref="BuildOffshoreUnit"/>.
+    /// </summary>
+    public static IReadOnlyList<FarmTypeGateKind> StartWaivedGates(string familyId) => familyId switch
+    {
+        FarmTypeIds.Land => new[] { FarmTypeGateKind.ZonedPad, FarmTypeGateKind.Funds },
+        FarmTypeIds.Hav => new[] { FarmTypeGateKind.DevelopmentLicence, FarmTypeGateKind.Funds },
+        _ => new[] { FarmTypeGateKind.Funds },
+    };
+
+    /// <summary>True when every gate of <paramref name="variantId"/> its build path does not waive is met (the player may start it).</summary>
+    public bool CanStartFarmType(string variantId)
+    {
+        var status = FarmTypeStatus(variantId);
+        if (status == null) return false;
+        var waived = StartWaivedGates(status.Variant.FamilyId);
+        return status.Gates.Where(g => !waived.Contains(g.Gate.Kind)).All(g => g.Met);
+    }
+
     /// <summary>The family of a catalogue variant ("" for an unknown id).</summary>
     public static string FamilyOfVariant(string? variantId) => variantId switch
     {

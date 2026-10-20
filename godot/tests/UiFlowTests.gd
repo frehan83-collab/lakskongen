@@ -169,6 +169,8 @@ func _run() -> void:
 	await _test_expansion_builds_the_tutorials_second_site()
 	await _test_auction_card_wins_a_green_zone_licence()
 	await _test_every_build_refusal_reads_as_text()
+	# F2-31: the family-first build flow (tests/BuildFlowChecks.gd).
+	await preload("res://tests/BuildFlowChecks.gd").new().run(self)
 	# U2-03: end screens, the liquidity ladder, the rescue loan, campaign progress.
 	await preload("res://tests/EndScreenFlowChecks.gd").new().run(self)
 
@@ -6869,22 +6871,41 @@ func _test_expansion_builds_the_tutorials_second_site() -> void:
 			and (ledger.get_node("ValueRunning") as Label).text.contains(SimFormatters.format_nok(float(plan["running_cost_per_month_nok"]))),
 		"expansion: the running cost per month is previewed (%s)" % (ledger.get_node("ValueRunning") as Label).text)
 	var families: Node = dialog.get_node("%FamilyRow")
-	var land: Node = families.get_node_or_null("Family_land")
-	var offshore: Node = families.get_node_or_null("Family_offshore")
+	var land: FarmFamilyCard = families.get_node_or_null("Family_land") as FarmFamilyCard
+	var offshore: FarmFamilyCard = families.get_node_or_null("Family_offshore") as FarmFamilyCard
+	# F2-31 (stronger than U2-01's "Land and Hav point to their tabs and show no
+	# numbers", RUN_LOG §7): the three family cards come first with Sjø chosen;
+	# Land and Hav are real families whose cards open their variants, and every
+	# number they show is the engine's catalogue's.
+	var catalog: Dictionary = _sim.get_farm_type_catalog()
+	var starts: Dictionary = _sim.get_farm_type_starts()
+	var open_count := func(fid: String) -> int:
+		var n := 0
+		for f in catalog.get("families", []):
+			if str(f.get("id", "")) == fid:
+				for v in f.get("variants", []):
+					if bool((starts.get(str(v.get("id", "")), {}) as Dictionary).get("startable", false)):
+						n += 1
+		return n
 	_check(families.get_child_count() == 3 and families.get_child(0).name == "Family_sea"
-			and land != null and land.find_child("OpenTab", true, false) != null
-			and offshore != null and offshore.find_child("OpenTab", true, false) != null,
-		"expansion: the farm type comes first: Sjø chosen, Land and Hav point to their tabs")
-	# Land and Hav say where those builds live today and invent no figures.
-	var digits := RegEx.create_from_string("[0-9]")
-	var figures := []
-	for card in [land, offshore]:
-		if card == null:
-			continue
-		for l in card.find_children("*", "Label", true, false):
-			if digits.search((l as Label).text) != null:
-				figures.append((l as Label).text)
-	_check(figures.is_empty(), "expansion: the Land and Hav cards show no numbers %s" % str(figures))
+			and (families.get_child(0) as FarmFamilyCard).is_selected()
+			and land != null and not land.is_selected() and land.choose_button() != null
+			and offshore != null and not offshore.is_selected() and offshore.choose_button() != null,
+		"expansion: the farm type comes first: Sjø chosen, Land and Hav are families of their own")
+	var status_ok := land != null and offshore != null \
+		and (land.get_node("%Status") as Label).text == (tr("BUILD_FAMILY_LOCKED_ALL") if open_count.call("land") == 0 else tr("BUILD_FAMILY_OPEN_SOME") % [open_count.call("land"), 3]) \
+		and (offshore.get_node("%Status") as Label).text == (tr("BUILD_FAMILY_LOCKED_ALL") if open_count.call("hav") == 0 else tr("BUILD_FAMILY_OPEN_SOME") % [open_count.call("hav"), 2])
+	_check(status_ok, "expansion: the Land and Hav cards count their open variants from the engine (land %d, hav %d)" % [open_count.call("land"), open_count.call("hav")])
+	var bars := dialog.comparison()
+	var open_pen: Dictionary = {}
+	for f in catalog.get("families", []):
+		for v in f.get("variants", []):
+			if str(v.get("id", "")) == "open_pen":
+				open_pen = v
+	var cap: Dictionary = (open_pen.get("axes", {}) as Dictionary).get("capex_nok_per_t_year", {})
+	_check(bars != null and bars.is_visible_in_tree() and bars.value_label("open_pen", "capex_nok_per_t_year") != null
+			and bars.value_label("open_pen", "capex_nok_per_t_year").text == ComparisonBars.format_axis(cap),
+		"expansion: the Sjø variants' bars show the catalogue's numbers (%s)" % ComparisonBars.format_axis(cap))
 	await _lint_screen("build dialog")
 	var confirm: Button = dialog.get_node("%ConfirmBtn")
 	_check(not confirm.disabled, "expansion: the confirm is enabled")

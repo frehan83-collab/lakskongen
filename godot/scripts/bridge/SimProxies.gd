@@ -634,6 +634,28 @@ func get_notification_meter() -> Array[Dictionary]:
 func get_notification_budget() -> Dictionary:
 	return game_bridge.GetNotificationBudget() if game_bridge else {}
 
+# ── F2-31: the family-first build flow (ui·farm) ─────────────────────────────
+## The build preview of a farm-type variant on a plot: the lane's own preview
+## plus the money (capex, capacity cost with the licence, first harvest,
+## payback year, 36-month cash runway, the bank's loan). A read.
+func preview_farm_build(variant_id: String, plot_id: String, option: String, contract: String, equity_share: float, mitigations: Array) -> Dictionary:
+	return game_bridge.PreviewFarmBuild(variant_id, plot_id, option, contract, equity_share, mitigations) if game_bridge else {"ok": false, "reason_key": "engine_not_ready"}
+## The diagnosis strip: the binding constraint and every other one.
+func get_build_diagnosis() -> Dictionary:
+	return game_bridge.GetBuildDiagnosis() if game_bridge else {"binding": {}, "constraints": []}
+## The site lens's plots of a family ("land" pads, "hav" slots).
+func get_build_plots(family_id: String) -> Array[Dictionary]:
+	return _arr(game_bridge.GetBuildPlots(family_id)) if game_bridge else []
+## Which variants the player may start now (variant id → startable, waived gates).
+func get_farm_type_starts() -> Dictionary:
+	return game_bridge.GetFarmTypeStarts() if game_bridge else {}
+## QA-only: a digest of the whole engine state (equal digests: nothing changed).
+func qa_state_digest() -> String:
+	return game_bridge.QaStateDigest() if game_bridge else ""
+## QA-only: research a node at once, commission a post-smolt module on a pad, count a first harvest.
+func qa_open_farm_family(research_node_id: String, post_smolt_plot_id: String, first_harvest: bool) -> bool:
+	return game_bridge.QaOpenFarmFamily(research_node_id, post_smolt_plot_id, first_harvest) if game_bridge else false
+
 # ── F2-03: farm types (land sites, offshore units, their plots) ───────────────
 # Two lane blocks (FARM_TYPES_SPEC §7.6): the land lane (F2-12 … F2-16) appends
 # only inside the land block, the sea lane (F2-06 … F2-11) only inside the sea

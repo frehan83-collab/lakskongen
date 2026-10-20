@@ -31,13 +31,13 @@ mouse_filter = 2
 
 [node name="Dialog" type="PanelContainer" parent="Center"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(780, 0)
+custom_minimum_size = Vector2(900, 0)
 layout_mode = 2
 theme_type_variation = &"Dialog"
 
 [node name="Body" type="VBoxContainer" parent="Center/Dialog"]
 layout_mode = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 10
 
 [node name="HeaderRow" type="HBoxContainer" parent="Center/Dialog/Body"]
 layout_mode = 2
@@ -77,6 +77,10 @@ size_flags_vertical = 0
 theme_type_variation = &"GhostButton"
 text = "✕"
 
+[node name="DiagnosisHost" type="VBoxContainer" parent="Center/Dialog/Body"]
+unique_name_in_owner = true
+layout_mode = 2
+
 [node name="HeaderSep" type="HSeparator" parent="Center/Dialog/Body"]
 layout_mode = 2
 
@@ -92,25 +96,66 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="PreviewHeader" type="Label" parent="Center/Dialog/Body"]
+[node name="StepScroll" type="ScrollContainer" parent="Center/Dialog/Body"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 160)
+layout_mode = 2
+follow_focus = true
+horizontal_scroll_mode = 0
+
+[node name="StepBody" type="VBoxContainer" parent="Center/Dialog/Body/StepScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="VariantHeader" type="Label" parent="Center/Dialog/Body/StepScroll/StepBody"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"OverlineMuted"
 text = "–"
 uppercase = true
 
-[node name="PreviewRow" type="HBoxContainer" parent="Center/Dialog/Body"]
+[node name="ComparisonHost" type="VBoxContainer" parent="Center/Dialog/Body/StepScroll/StepBody"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="OptionRow" type="HBoxContainer" parent="Center/Dialog/Body/StepScroll/StepBody"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="PlotHeader" type="Label" parent="Center/Dialog/Body/StepScroll/StepBody"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"OverlineMuted"
+text = "–"
+uppercase = true
+
+[node name="PlotHost" type="VBoxContainer" parent="Center/Dialog/Body/StepScroll/StepBody"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="PreviewHeader" type="Label" parent="Center/Dialog/Body/StepScroll/StepBody"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"OverlineMuted"
+text = "–"
+uppercase = true
+
+[node name="PreviewRow" type="HBoxContainer" parent="Center/Dialog/Body/StepScroll/StepBody"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 20
 
-[node name="GridSlot" type="PanelContainer" parent="Center/Dialog/Body/PreviewRow"]
+[node name="GridSlot" type="PanelContainer" parent="Center/Dialog/Body/StepScroll/StepBody/PreviewRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(280, 200)
 layout_mode = 2
 theme_type_variation = &"Inset"
 
-[node name="Ledger" type="GridContainer" parent="Center/Dialog/Body/PreviewRow"]
+[node name="Ledger" type="GridContainer" parent="Center/Dialog/Body/StepScroll/StepBody/PreviewRow"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -118,18 +163,22 @@ theme_override_constants/h_separation = 18
 theme_override_constants/v_separation = 8
 columns = 2
 
-[node name="ExplainCallout" type="PanelContainer" parent="Center/Dialog/Body"]
+[node name="ExplainCallout" type="PanelContainer" parent="Center/Dialog/Body/StepScroll/StepBody"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"CalloutInfo"
 
-[node name="ExplainLabel" type="Label" parent="Center/Dialog/Body/ExplainCallout"]
+[node name="ExplainLabel" type="Label" parent="Center/Dialog/Body/StepScroll/StepBody/ExplainCallout"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(700, 0)
+custom_minimum_size = Vector2(600, 0)
 layout_mode = 2
 theme_type_variation = &"BodySmall"
 text = "–"
 autowrap_mode = 3
+
+[node name="FacilityHost" type="VBoxContainer" parent="Center/Dialog/Body/StepScroll/StepBody"]
+unique_name_in_owner = true
+layout_mode = 2
 
 [node name="VerdictLabel" type="Label" parent="Center/Dialog/Body"]
 unique_name_in_owner = true

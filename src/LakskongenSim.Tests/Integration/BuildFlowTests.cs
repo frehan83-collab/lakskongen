@@ -6,6 +6,7 @@ using LakskongenSim.Data;
 using LakskongenSim.Environment;
 using LakskongenSim.Farm;
 using LakskongenSim.Farm.Land;
+using LakskongenSim.Farm.Offshore;
 using LakskongenSim.Finance;
 using LakskongenSim.Tests.FacilityFinance;
 using LakskongenSim.Tests.Farm;
@@ -94,6 +95,37 @@ public class BuildFlowTests
         Assert.Equal(SimulationEngine.BuildFlowReasons.NotAPlotBuild, engine.PreviewFarmBuild(FarmTypeIds.ClosedPen, "pad_a").ReasonKey);
         Assert.Equal(SimulationEngine.BuildFlowReasons.UnknownVariant, engine.PreviewFarmBuild("salmon_castle", "pad_a").ReasonKey);
         Assert.False(engine.PreviewFarmBuild(FarmTypeIds.Hfs, "pad_a").Economics.Runway.Count == 0);
+    }
+
+    // ── Which cards the player may start (acceptance 3) ──────────────────
+
+    [Fact]
+    public void ACardIsStartable_ExactlyWhenItsBuildVerbWouldNotRefuseItAsLocked()
+    {
+        // A bare game: nothing off the fjord is open.
+        var bare = OffshoreTestUnits.RichEngine(39);
+        Assert.False(bare.CanStartFarmType(FarmTypeIds.Hfs));
+        Assert.Equal(LandSiteReasons.NotUnlocked, bare.ApplyLandPermits("pad_a", LandTemplate.HfsPilotLot).ErrorKey);
+        Assert.False(bare.CanStartFarmType(FarmTypeIds.Of1));
+        Assert.Equal(SimulationEngine.OffshoreReasons.NotUnlocked, bare.BuildOffshoreUnit("off_1", OffshoreType.SemiSubmersible, ContractForm.Managed).ErrorKey);
+        Assert.True(bare.CanStartFarmType(FarmTypeIds.OpenPen));
+
+        // The land family open but no zoned free pad (the module holds the pre-zoned delta):
+        // the catalogue says locked, yet the permit package zones the chosen pad.
+        var land = LandPermitTests.LandReadyEngine(40);
+        var hfs = land.FarmTypeStatus(FarmTypeIds.Hfs)!;
+        Assert.False(hfs.Unlocked);
+        Assert.Contains(hfs.Gates, g => g.Gate.Kind == FarmTypeGateKind.ZonedPad && !g.Met);
+        Assert.True(land.CanStartFarmType(FarmTypeIds.Hfs));
+        Assert.True(land.ApplyLandPermits("pad_a", LandTemplate.HfsPilotLot).Ok);
+
+        // OF1 with every gate but the development licence F2-09 brings.
+        var sea = OffshoreTestUnits.UnlockedForOf1(41);
+        Assert.False(sea.FarmTypeStatus(FarmTypeIds.Of1)!.Unlocked);
+        Assert.True(sea.CanStartFarmType(FarmTypeIds.Of1));
+        Assert.True(sea.BuildOffshoreUnit("off_1", OffshoreType.SemiSubmersible, ContractForm.Managed).Ok);
+        Assert.Equal(new[] { FarmTypeGateKind.ZonedPad, FarmTypeGateKind.Funds }, SimulationEngine.StartWaivedGates(FarmTypeIds.Land));
+        Assert.Equal(new[] { FarmTypeGateKind.DevelopmentLicence, FarmTypeGateKind.Funds }, SimulationEngine.StartWaivedGates(FarmTypeIds.Hav));
     }
 
     // ── The land preview (acceptance 1) ──────────────────────────────────
