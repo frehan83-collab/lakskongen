@@ -497,7 +497,17 @@ func _camera_half() -> Vector2:
 
 func _clamp_camera(p: Vector3) -> Vector3:
 	var half := _camera_half()
-	return Vector3(clampf(p.x, -half.x, half.x), p.y, clampf(p.z, -half.y, half.y))
+	var boxed := Vector3(clampf(p.x, -half.x, half.x), p.y, clampf(p.z, -half.y, half.y))
+	if boxed.is_equal_approx(p):
+		return boxed
+	# F2-20 (spec §4): the camera may also stand anywhere a registered focus
+	# target is framed from: within its disc grown by its framing distance.
+	for target: Dictionary in _focus_targets.values():
+		var c: Vector3 = target["pos"]
+		var reach: float = float(target["radius"]) + float(target["distance"])
+		if Vector2(p.x - c.x, p.z - c.z).length() <= reach:
+			return p
+	return boxed
 
 
 # ── Input ─────────────────────────────────────────────────────────────────────

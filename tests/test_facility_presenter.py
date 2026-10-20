@@ -171,7 +171,8 @@ def test_the_presenter_only_reads_the_engine():
         for verb in QA_VERBS:
             assert verb not in text, (path.name, verb)
         called = set(re.findall(r'sim\.(?:call\(")?([a-z_]+)', text))
-        called |= set(re.findall(r'"(get_[a-z_]+)"', text))
+        for getters in re.findall(r"for getter in \[([^\]]*)\]", text):
+            called |= set(re.findall(r'"([a-z_]+)"', getters))
         assert called <= reads | {"call", "has_method", "has_signal", "state_updated"}, (path.name, called - reads)
         assert "/root/GameBridge" not in text, path.name
 

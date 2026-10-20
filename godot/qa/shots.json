@@ -1062,9 +1062,9 @@
       "scenario": "po3_red_sone",
       "seed": 20261012,
       "season": 0.65,
-      "hour": 19.0,
+      "hour": 19.3,
       "weather": "clear",
-      "camera": {"mode": "focus", "target": "unit:land", "distance_m": 430.0, "pitch_deg": -12.0, "focus_y": 8.0},
+      "camera": {"mode": "focus", "target": "unit:land", "distance_m": 320.0, "pitch_deg": -10.0, "focus_y": 8.0},
       "facilities": {"land": {"lots": 1, "phase": "operational"}, "post_smolt": {"modules": 2}},
       "purpose": "Ref L2's wow from low over the sound at dusk: the lit campus against the low sun's sky and its reflection, the orange bridge, the lid work-lights and hall windows on."
     },
