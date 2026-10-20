@@ -37,14 +37,25 @@ namespace LakskongenSim.Tests.Calibration
         public void EveryLandLeaf_IsWalkedByTheGuard_WithItsRangeAndOneProvenance()
         {
             var leaves = CalibrationProvenanceGuard.Leaves(Registry.Facilities.Land, "facilities.land");
-            // 4 templates × 21 leaves, intake 4, oxygen 8, CO2 4, TAN 5, density 3, energy 14, production 4,
-            // build 10 + 5 plans × 12, permits 31, operations 1.
-            Assert.Equal(4 * 21 + 4 + 8 + 4 + 5 + 3 + 14 + 4 + 10 + 5 * 12 + 31 + 1, leaves.Count);
+            // 4 templates × 22 leaves (F2-15: + the FCR factor), intake 4, oxygen 8, CO2 4, TAN 5, density 3, energy 14,
+            // production 5 (F2-15: + the plan's growth multiplier), build 10 + 5 plans × 12, permits 31, operations 1;
+            // F2-13 smolt 17; F2-15 competence 16, growth 6, costs 5, maturation 6, Vannstrategi 3 presets × 4, status 5.
+            Assert.Equal(4 * 22 + 4 + 8 + 4 + 5 + 3 + 14 + 5 + 10 + 5 * 12 + 31 + 1 + 17 + 16 + 6 + 5 + 6 + 3 * 4 + 5, leaves.Count);
             Assert.Empty(CalibrationProvenanceGuard.Violations(Registry.Facilities.Land, "facilities.land"));
             Assert.Contains(leaves, l => l.Path == "facilities.land.Permits.SeaWorksFeeNok" && l.Source!.Keys.SequenceEqual(new[] { "L:R12" }));
             Assert.Contains(leaves, l => l.Path == "facilities.land.Build.HfsLotCapexNok" && l.Source != null);
             Assert.Contains(leaves, l => l.Path == "facilities.land.Permits.Moratorium" && l.GameBalance != null);
             Assert.DoesNotContain(leaves, l => l.Path.EndsWith(".TankCount", StringComparison.Ordinal)); // derived, not a leaf
+            // F2-13/F2-15: the new sections are walked, sourced where a source exists.
+            Assert.Contains(leaves, l => l.Path == "facilities.land.Smolt.TransferTonnesPerDay" && l.Source != null);
+            Assert.Contains(leaves, l => l.Path == "facilities.land.Smolt.TierPremiumSuperSmolt" && l.GameBalance != null);
+            Assert.Contains(leaves, l => l.Path == "facilities.land.Operations.StaffCostNokPerFteYear" && l.Source != null);
+            Assert.Contains(leaves, l => l.Path == "facilities.land.Costs.MaintenanceShareOfCapexPerYear" && l.Source != null);
+            Assert.Contains(leaves, l => l.Path == "facilities.land.Production.PlanGrowthMultiplier" && l.GameBalance != null);
+            Assert.Contains(leaves, l => l.Path == "facilities.land.Competence.GrowthAtStart" && l.GameBalance != null);
+            Assert.Contains(leaves, l => l.Path == "facilities.land.Vannstrategi.HoyTetthet.SetpointC");
+            Assert.Contains(leaves, l => l.Path == "facilities.land.Status.DoCriticalMgL" && l.Source != null);
+            Assert.Contains(leaves, l => l.Path == "facilities.land.Maturation.MaleShare" && l.Source != null);
         }
 
         [Fact]

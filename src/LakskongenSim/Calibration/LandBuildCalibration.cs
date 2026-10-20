@@ -531,13 +531,17 @@ namespace LakskongenSim.Calibration
     public sealed record LandOperationsCalibration
     {
         /// <summary>
-        /// Cost of one employee a year (unit NOK per FTE): 650,000. Range:
-        /// 300,000-1,500,000. Source: [code] the pre-F2 RAS facility's staff
-        /// cost (RASFacility.TickDay).
+        /// Cost of one employee a year (unit NOK per FTE): 1,028,208. Range:
+        /// 300,000-1,500,000. Source: Fiskeridirektoratet, Lønnsomhetsundersøkelse
+        /// for produksjon av laks og regnbueørret 2023 (published 14.11.2024),
+        /// table C.4.5: gross labour cost per årsverk in food-fish production in
+        /// 2023 (wages, sick pay, employer's tax, pensions and insurances). F2-15
+        /// replaced F2-12's 650,000 (the pre-F2 RAS facility's salary, [code]),
+        /// which left out the employer's costs.
         /// </summary>
         [Range(300_000, 1_500_000)]
-        [Source("code")]
-        public decimal StaffCostNokPerFteYear { get; init; } = 650_000m;
+        [Source("Fiskeridirektoratet, Lønnsomhetsundersøkelse 2023, table C.4.5")]
+        public decimal StaffCostNokPerFteYear { get; init; } = 1_028_208m;
     }
 
     #endregion

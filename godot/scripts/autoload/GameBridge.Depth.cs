@@ -1191,8 +1191,9 @@ public partial class GameBridge : Node
     }
 
     /// <summary>
-    /// Plan a cohort transfer between sites (Phase 5.3).
-    /// Returns plan with cost, mortality estimate, ETA. Does not execute.
+    /// Plan a cohort transfer between sites (Phase 5.3; F2-13: a thin call into
+    /// SimulationEngine.PlanCohortTransfer). Returns the plan with cost,
+    /// mortality estimate and ETA; does not execute.
     /// Keys: "source_id", "dest_id", "fish_count", "mean_weight_kg", "reason",
     ///       "eta_days", "estimated_cost_nok", "estimated_mortality_pct", "requires_wellboat".
     /// </summary>
@@ -1200,18 +1201,9 @@ public partial class GameBridge : Node
         string sourceSiteId, string destSiteId, int fishCount, double meanWeightKg, string reasonStr)
     {
         var result = new Godot.Collections.Dictionary();
-        if (!System.Enum.TryParse<Farm.CohortTransferSystem.TransferReason>(reasonStr, true, out var reason))
-        {
-            result["error"] = "Invalid reason";
-            return result;
-        }
-
-        var state = SimulationEngine?.State;
-        if (state == null) { result["error"] = "Engine not initialized"; return result; }
-
-        bool hasVet = LakskongenSim.Core.CrewEffects.HasRole(state, "veterinaer");
-        var plan = Farm.CohortTransferSystem.PlanTransfer(sourceSiteId, destSiteId, fishCount, meanWeightKg, reason, state, hasVet);
-
+        if (SimulationEngine?.State == null) { result["error"] = "Engine not initialized"; return result; }
+        var plan = SimulationEngine.PlanCohortTransfer(sourceSiteId, destSiteId, fishCount, meanWeightKg, reasonStr);
+        if (plan == null) { result["error"] = "Invalid reason"; return result; }
         result["source_id"] = plan.SourceSiteId;
         result["dest_id"] = plan.DestSiteId;
         result["fish_count"] = plan.FishCount;
@@ -1225,43 +1217,25 @@ public partial class GameBridge : Node
     }
 
     /// <summary>
-    /// Execute a planned cohort transfer (Phase 5.3).
-    /// Called when wellboat arrives (or immediately for testing).
-    /// Returns result dict: "success", "fish_transferred", "fish_lost", "actual_cost_nok", "message".
+    /// Execute a planned cohort transfer (Phase 5.3; F2-13: a thin call into
+    /// SimulationEngine.ExecuteCohortTransfer, which moves the fish and books
+    /// the cost: no money, fish or random source in the bridge).
+    /// Returns: "success", "fish_transferred", "fish_lost", "actual_cost_nok", "message".
     /// </summary>
     public Godot.Collections.Dictionary ExecuteCohortTransfer(
         string sourceSiteId, string destSiteId, int fishCount, double meanWeightKg, string reasonStr)
     {
         var result = new Godot.Collections.Dictionary();
-        if (!System.Enum.TryParse<Farm.CohortTransferSystem.TransferReason>(reasonStr, true, out var reason))
-        {
-            result["success"] = false;
-            result["message"] = "Invalid reason";
-            return result;
-        }
-
-        var engine = SimulationEngine;
-        if (engine?.State == null) { result["success"] = false; result["message"] = "Engine not initialized"; return result; }
-
-        bool hasVet = LakskongenSim.Core.CrewEffects.HasRole(engine.State, "veterinaer");
-        var plan = Farm.CohortTransferSystem.PlanTransfer(sourceSiteId, destSiteId, fishCount, meanWeightKg, reason, engine.State, hasVet);
-        // Phase 1.4: deterministic per (game seed, source, destination) transfer
-        // losses instead of Random.Shared (which the determinism ban cannot see
-        // because the Godot layer is outside its scan scope).
-        int transferRngSeed = engine.Rng.Stream(
-            LakskongenSim.Core.SimRngStreams.CohortTransfer, plan.SourceSiteId, plan.DestSiteId)
-            .Next(int.MaxValue);
-        var execResult = Farm.CohortTransferSystem.ExecuteTransfer(
-            plan, engine.State,
-            cost => engine.PayCost(cost, LakskongenSim.Core.CostBooking.Opex, "transfers"),
-            new Random(transferRngSeed), engine.Growth, engine.Mortality);
-
-        result["success"] = execResult.Success;
-        result["fish_transferred"] = execResult.FishTransferred;
-        result["fish_lost"] = execResult.FishLost;
-        result["actual_cost_nok"] = (double)execResult.ActualCostNok;
-        result["message"] = execResult.Message;
-
+        if (SimulationEngine?.State == null) { result["success"] = false; result["message"] = "Engine not initialized"; return result; }
+        var outcome = SimulationEngine.ExecuteCohortTransfer(sourceSiteId, destSiteId, fishCount, meanWeightKg, reasonStr);
+        result["success"] = outcome.Ok;
+        result["fish_transferred"] = outcome.Ok ? (int)outcome.Value : 0;
+        result["fish_lost"] = outcome.Ok ? (int)outcome.Value2 : 0;
+        result["actual_cost_nok"] = outcome.Ok
+            ? (double)(SimulationEngine.PlanCohortTransfer(sourceSiteId, destSiteId, fishCount, meanWeightKg, reasonStr)?.EstimatedCostNok ?? 0m)
+            : outcome.Value;
+        result["message"] = outcome.Message;
+        if (outcome.ErrorKey == "invalid_reason") result["message"] = "Invalid reason";
         EmitSignal(SignalName.GameStateUpdated);
         return result;
     }

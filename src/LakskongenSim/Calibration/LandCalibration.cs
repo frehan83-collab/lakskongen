@@ -85,6 +85,15 @@ namespace LakskongenSim.Calibration
         /// <summary>Maintenance, insurance, sludge and the other running costs (F2-15).</summary>
         public LandCostCalibration Costs { get; init; } = new();
 
+        /// <summary>Early maturation: the index and the maturing share of males (F2-15 projection, F2-16 tick).</summary>
+        public LandMaturationCalibration Maturation { get; init; } = new();
+
+        /// <summary>The three Vannstrategi presets the land board projects (F2-15, spec §6.5).</summary>
+        public LandVannstrategiCalibration Vannstrategi { get; init; } = new();
+
+        /// <summary>The land board's comfort bands, the critical edges (F2-15, spec §6.5).</summary>
+        public LandStatusCalibration Status { get; init; } = new();
+
         /// <summary>The code defaults (the values the draft JSON holds).</summary>
         public static LandCalibration Default { get; } = new();
 
@@ -854,6 +863,20 @@ namespace LakskongenSim.Calibration
         [Range(0.8, 0.9)]
         [Source("L:R1")]
         public double HogPerLw { get; init; } = 0.83;
+
+        /// <summary>
+        /// The plan's multiplier on the growth law's potential for land fish
+        /// under continuous light (unit ×, F2-15): what a plant at competence 1.0
+        /// grows, the plan the stocking check, the projections and the cohort
+        /// plans run on. 0.92. Range: 0.7-1.1. Game balance: fitted to the plan
+        /// of [L:R1] (Q2 2026: 400 g → 5.2 kg LW in 8-9 months at the 12-14 °C
+        /// rearing target, an implied TGC of 2.8-3.3, research dossier); without
+        /// it the law's continuous-light factor (×1.2) took the plan's fish to
+        /// 5.2 kg in 7.6 months at 13 °C. F2-15 acceptance 1 decides it.
+        /// </summary>
+        [Range(0.7, 1.1)]
+        [GameBalance("fitted to the [L:R1] plan: 400 g -> 5.2 kg LW in 8-9 months at 12-14 degC (implied TGC 2.8-3.3); F2-15 acceptance 1")]
+        public double PlanGrowthMultiplier { get; init; } = 0.92;
     }
 
     #endregion

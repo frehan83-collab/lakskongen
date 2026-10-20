@@ -707,6 +707,67 @@ func set_vannstrategi(site_id: String, reuse: float, deep_intake_share: float, s
 ## Fit heat recovery to a lot.
 func install_heat_recovery(lot_id: String) -> Dictionary:
 	return game_bridge.InstallHeatRecovery(lot_id) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+# F2-13 / F2-15: the land boards' reads and verbs (F2-32 draws them).
+## The land board: lots and tanks against their comfort bands, the binding constraint, the cohorts against their plans.
+func get_land_board(site_id: String) -> Dictionary:
+	return game_bridge.GetLandBoard(site_id) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## The three Vannstrategi presets with the engine's projection (kWh/kg, growth, maturation risk).
+func get_vannstrategi_presets(site_id: String) -> Array[Dictionary]:
+	return _arr(game_bridge.GetVannstrategiPresets(site_id)) if game_bridge else []
+## Set a site's Vannstrategi to a preset ("sparsom", "balansert", "hoy_tetthet").
+func apply_vannstrategi_preset(site_id: String, preset_id: String) -> Dictionary:
+	return game_bridge.ApplyVannstrategiPreset(site_id, preset_id) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## A site's competence, utilisation cap, Oppkjøring milestones and levers.
+func get_land_competence(site_id: String) -> Dictionary:
+	return game_bridge.GetLandCompetence(site_id) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## Hire an operations manager (driftsleder).
+func hire_driftsleder(site_id: String) -> Dictionary:
+	return game_bridge.HireDriftsleder(site_id) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## Start the site's training programme.
+func start_training_programme(site_id: String) -> Dictionary:
+	return game_bridge.StartTrainingProgramme(site_id) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## Hire an external consultancy (12 months).
+func hire_consultancy(site_id: String) -> Dictionary:
+	return game_bridge.HireConsultancy(site_id) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## Hire the operating staff before the first fish.
+func hire_land_staff_early(site_id: String) -> Dictionary:
+	return game_bridge.HireLandStaffEarly(site_id) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## Set a land site's feeding plan (50-100 % of the appetite).
+func set_land_feed_plan(site_id: String, ration_pct: float) -> Dictionary:
+	return game_bridge.SetLandFeedPlan(site_id, ration_pct) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## The harvest planner: weeks with the expected price, tanks' projected weights and size grades, plans.
+func get_land_harvest_planner(site_id: String) -> Dictionary:
+	return game_bridge.GetLandHarvestPlanner(site_id) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## What harvesting tanks in a week would bring.
+func quote_land_harvest_plan(site_id: String, tank_ids: Array, week_start_day: int) -> Dictionary:
+	return game_bridge.QuoteLandHarvestPlan(site_id, tank_ids, week_start_day) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## Plan tanks' harvest into a week.
+func plan_land_harvest(site_id: String, tank_ids: Array, week_start_day: int) -> Dictionary:
+	return game_bridge.PlanLandHarvest(site_id, tank_ids, week_start_day) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## Cancel a harvest plan whose order is not placed yet.
+func cancel_land_harvest_plan(site_id: String, plan_id: String) -> Dictionary:
+	return game_bridge.CancelLandHarvestPlan(site_id, plan_id) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## The post-smolt planner: salinity, tiers, destinations with MTB headroom.
+func get_post_smolt_planner(site_id: String) -> Dictionary:
+	return game_bridge.GetPostSmoltPlanner(site_id) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## What moving a tank's fish to a fjord site would do (count 0 = the whole tank).
+func preview_transfer_tank_to_sea(site_id: String, tank_id: String, sea_site_id: String, count: int) -> Dictionary:
+	return game_bridge.PreviewTransferTankToSea(site_id, tank_id, sea_site_id, count) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## Book a wellboat to move a tank's fish to a fjord site.
+func transfer_tank_to_sea(site_id: String, tank_id: String, sea_site_id: String, count: int) -> Dictionary:
+	return game_bridge.TransferTankToSea(site_id, tank_id, sea_site_id, count) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## Sell a post-smolt tank's fish alive.
+func sell_post_smolt(site_id: String, tank_id: String, count: int) -> Dictionary:
+	return game_bridge.SellPostSmolt(site_id, tank_id, count) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## Set a post-smolt site's salinity (a pad with a river intake).
+func set_salinity(site_id: String, salinity_ppt: float) -> Dictionary:
+	return game_bridge.SetSalinity(site_id, salinity_ppt) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## A land site's own books: farming cost per kg HOG and its energy share.
+func get_land_account(site_id: String) -> Dictionary:
+	return game_bridge.GetLandAccount(site_id) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## QA and scenario path: a land site built at once on a pad (no permits, no payment).
+func commission_land_site(plot_id: String, template: String, lots: int, site_name: String) -> Dictionary:
+	return game_bridge.CommissionLandSite(plot_id, template, lots, site_name) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
 # ═══ END sim·land lane block ═══
 
 # ═══ BEGIN sim·sea lane block (F2-03 list verbs; F2-06 … F2-11 append below) ═══

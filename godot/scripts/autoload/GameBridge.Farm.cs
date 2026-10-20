@@ -2044,141 +2044,52 @@ public partial class GameBridge : Node
     }
 
     /// <summary>
-    /// Start a new smolt batch in a post-smolt facility.
-    /// Returns true on success, false if facility not found or insufficient capacity.
+    /// Start a new smolt batch at a post-smolt site (F2-13: a thin call into
+    /// SimulationEngine.StartSmoltBatch, which stocks the site's first ready
+    /// empty tank, or a pre-F2 site's batch). Returns true on success.
     /// </summary>
     public bool StartSmoltBatch(string facilityId, int count)
     {
-        if (SimulationEngine?.PostSmoltFacilities == null)
-        {
-            GD.PrintErr("GameBridge: StartSmoltBatch failed - engine not initialized");
-            EmitSignal(SignalName.FarmActionCompleted, "start_smolt_batch", facilityId, false);
-            return false;
-        }
-
-        var facility = SimulationEngine.PostSmoltFacilities.FirstOrDefault(f => f.Id == facilityId);
-        if (facility == null)
-        {
-            GD.PrintErr($"GameBridge: StartSmoltBatch failed - facility '{facilityId}' not found");
-            EmitSignal(SignalName.FarmActionCompleted, "start_smolt_batch", facilityId, false);
-            return false;
-        }
-
-        // Cost per smolt (hatchery production cost)
-        decimal smoltCost = 15m; // 15 NOK per smolt (industry average)
-        decimal totalCost = smoltCost * count;
-
-        if (SimulationEngine.FinanceManager.Balance < totalCost)
-        {
-            GD.PrintErr($"GameBridge: StartSmoltBatch failed - insufficient funds (need {totalCost:N0} NOK)");
-            EmitSignal(SignalName.FarmActionCompleted, "start_smolt_batch", facilityId, false);
-            return false;
-        }
-
-        SimulationEngine.PayCost(totalCost, LakskongenSim.Core.CostBooking.Cogs, "smolts");
-
-        // Create new batch (simplified - actual batch tracking would be in SmoltBatch class)
-        SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
-        {
-            Day = SimulationEngine.State.Day,
-            Name = "Ny smoltgruppe",
-            Category = LakskongenSim.Events.EventCategory.Equipment,
-            Description = LakskongenSim.Core.SimText.Nb($"{count:N0} smolt satt inn i postsmoltanlegget {facility.Name}"),
-            BalanceChange = -totalCost
-        });
-
-        EmitSignal(SignalName.FarmActionCompleted, "start_smolt_batch", facilityId, true);
-        EmitSignal(SignalName.GameStateUpdated);
-        GD.Print($"GameBridge: Started smolt batch in '{facilityId}' ({count:N0} smolts, {totalCost:N0} NOK)");
-        return true;
+        var outcome = SimulationEngine?.StartSmoltBatch(facilityId, count)
+            ?? LakskongenSim.Core.CommandResult.Fail("engine_not_ready", "Engine not initialized");
+        if (!outcome.Ok) GD.PrintErr($"GameBridge: StartSmoltBatch failed - {outcome.Message}");
+        EmitSignal(SignalName.FarmActionCompleted, "start_smolt_batch", facilityId, outcome.Ok);
+        if (outcome.Ok) EmitSignal(SignalName.GameStateUpdated);
+        return outcome.Ok;
     }
 
     /// <summary>
-    /// Vaccinate a smolt batch (disease prevention before sea transfer).
-    /// Returns vaccination cost in NOK.
+    /// Vaccinate a post-smolt batch before it goes to sea (F2-13: a thin call
+    /// into SimulationEngine.VaccinateSmoltBatch). Returns the cost in NOK, 0
+    /// when refused.
     /// </summary>
     public float VaccinateBatch(string batchId)
     {
-        if (SimulationEngine?.PostSmoltFacilities == null)
+        var outcome = SimulationEngine?.VaccinateSmoltBatch(batchId)
+            ?? LakskongenSim.Core.CommandResult.Fail("engine_not_ready", "Engine not initialized");
+        if (!outcome.Ok)
         {
-            GD.PrintErr("GameBridge: VaccinateBatch failed - engine not initialized");
+            GD.PrintErr($"GameBridge: VaccinateBatch failed - {outcome.Message}");
             return 0f;
         }
-
-        // Vaccination cost: ~5 NOK per fish (multi-component vaccine)
-        int fishCount = 100_000; // Placeholder - would fetch from actual batch
-        decimal vaccineCost = 5m * fishCount;
-
-        if (SimulationEngine.FinanceManager.Balance < vaccineCost)
-        {
-            GD.PrintErr($"GameBridge: VaccinateBatch failed - insufficient funds (need {vaccineCost:N0} NOK)");
-            return 0f;
-        }
-
-        SimulationEngine.PayCost(vaccineCost, LakskongenSim.Core.CostBooking.Opex, "vaccination");
-
-        SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
-        {
-            Day = SimulationEngine.State.Day,
-            Name = "Vaksinering av smoltgruppe",
-            Category = LakskongenSim.Events.EventCategory.Disease,
-            Description = LakskongenSim.Core.SimText.Nb($"Smoltgruppen er vaksinert ({fishCount:N0} fisk)"),
-            BalanceChange = -vaccineCost
-        });
-
         EmitSignal(SignalName.GameStateUpdated);
-        GD.Print($"GameBridge: Vaccinated batch '{batchId}' for {vaccineCost:N0} NOK");
-        return (float)vaccineCost;
+        return (float)outcome.Value;
     }
 
     /// <summary>
-    /// Transfer a post-smolt batch to sea (move to sea site).
-    /// Returns true on success, false if batch not found or sea site unavailable.
+    /// Move a post-smolt batch to sea (F2-13: a thin call into
+    /// SimulationEngine.TransferSmoltBatchToSea: an F2 site books a wellboat,
+    /// 1-3 days, to the fjord site with the most MTB headroom that takes the
+    /// fish). Returns true when the transfer is booked or done.
     /// </summary>
     public bool TransferBatchToSea(string batchId)
     {
-        if (SimulationEngine?.PostSmoltFacilities == null || SimulationEngine?.State?.SeaSites == null)
-        {
-            GD.PrintErr("GameBridge: TransferBatchToSea failed - engine not initialized");
-            EmitSignal(SignalName.FarmActionCompleted, "transfer_batch", batchId, false);
-            return false;
-        }
-
-        // Transfer cost: logistics, stress mitigation
-        decimal transferCost = 2_000_000m; // 2M NOK for batch transfer
-
-        if (SimulationEngine.FinanceManager.Balance < transferCost)
-        {
-            GD.PrintErr($"GameBridge: TransferBatchToSea failed - insufficient funds (need {transferCost:N0} NOK)");
-            EmitSignal(SignalName.FarmActionCompleted, "transfer_batch", batchId, false);
-            return false;
-        }
-
-        if (SimulationEngine.State.SeaSites.Count == 0)
-        {
-            GD.PrintErr("GameBridge: TransferBatchToSea failed - no sea sites available");
-            EmitSignal(SignalName.FarmActionCompleted, "transfer_batch", batchId, false);
-            return false;
-        }
-
-        SimulationEngine.PayCost(transferCost, LakskongenSim.Core.CostBooking.Opex, "transfers");
-
-        // Move batch to first available sea site (simplified)
-        var targetSite = SimulationEngine.State.SeaSites.First();
-
-        SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
-        {
-            Day = SimulationEngine.State.Day,
-            Name = "Postsmolt flyttet til sjø",
-            Category = LakskongenSim.Events.EventCategory.Equipment,
-            Description = $"Postsmoltgruppen er flyttet til {targetSite.Label}",
-            BalanceChange = -transferCost
-        });
-
-        EmitSignal(SignalName.FarmActionCompleted, "transfer_batch", batchId, true);
-        EmitSignal(SignalName.GameStateUpdated);
-        GD.Print($"GameBridge: Transferred batch '{batchId}' to sea site '{targetSite.Id}' for {transferCost:N0} NOK");
-        return true;
+        var outcome = SimulationEngine?.TransferSmoltBatchToSea(batchId, "")
+            ?? LakskongenSim.Core.CommandResult.Fail("engine_not_ready", "Engine not initialized");
+        if (!outcome.Ok) GD.PrintErr($"GameBridge: TransferBatchToSea failed - {outcome.Message}");
+        EmitSignal(SignalName.FarmActionCompleted, "transfer_batch", batchId, outcome.Ok);
+        if (outcome.Ok) EmitSignal(SignalName.GameStateUpdated);
+        return outcome.Ok;
     }
 
 }

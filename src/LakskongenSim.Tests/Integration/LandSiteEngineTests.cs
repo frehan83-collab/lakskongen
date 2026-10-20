@@ -143,7 +143,7 @@ public class LandSiteEngineTests
         var plan = LandStockingPlan.For(engine.LandCalibration.Hfs, engine.LandCalibration.Production) with
         {
             TemperatureC = site.TargetWaterTemp,
-            GrowthMultiplier = SmoltStrainRegistry.Get("standard").BuildGenome().GetGrowthMultiplier(),
+            GrowthMultiplier = engine.LandCalibration.Production.PlanGrowthMultiplier * SmoltStrainRegistry.Get("standard").BuildGenome().GetGrowthMultiplier(),
         };
         Assert.Equal(LandStockingPlanner.Check(engine.Growth.Law, plan, tank.VolumeM3, room + 1, 85.0).Reason, over.Reason);
     }
@@ -199,6 +199,8 @@ public class LandSiteEngineTests
     {
         var engine = NewEngine(47);
         var site = Commission(engine, LandTemplate.HfsPilotLot);
+        // F2-15: at competence 1.0 the utilisation cap is the nameplate (at 0.4 it refuses at 55 %, LandCycleTests).
+        site.Competence.CompletedCycles = 3;
         var cal = engine.LandCalibration;
         double hogPerSmolt = cal.HfsPilot.PlanHarvestWeightKg * cal.Production.CycleSurvival * cal.Production.HogPerLw;
         int yearRoom = (int)Math.Floor(cal.HfsPilot.NameplateTonnesHogPerYear * 1000.0 / hogPerSmolt);
@@ -381,15 +383,20 @@ public class LandSiteEngineTests
         var engine = NewEngine(54);
         engine.State.HomeProductionArea = LakskongenSim.Tests.Farm.LandTestSites.SalmonEvolutionArea;
         var site = Commission(engine);
+        // F2-15: the projection is the plan, which a plant at competence 1.0 grows (and its cap is the nameplate).
+        site.Competence.CompletedCycles = 3;
         var lot = site.Lots[0];
         var cal = engine.LandCalibration;
         double harvestedKg = 0.0, stockedKg = 0.0, kwh = 0.0, lox = 0.0, startKg = 0.0;
         var planForecast = LandStockingPlanner.Project(engine.Growth.Law, LandStockingPlan.For(cal.Hfs, cal.Production) with
         {
             TemperatureC = site.TargetWaterTemp,
-            GrowthMultiplier = SmoltStrainRegistry.Get("standard").BuildGenome().GetGrowthMultiplier(),
+            GrowthMultiplier = engine.LandCalibration.Production.PlanGrowthMultiplier * SmoltStrainRegistry.Get("standard").BuildGenome().GetGrowthMultiplier(),
         });
         int stagger = 365 / lot.Tanks.Count;
+        // F2-15: a harvested tank stands its fallow days before it is restocked, as the projection's do.
+        var harvestedOn = Enumerable.Repeat(int.MinValue / 2, lot.Tanks.Count).ToArray();
+        var shallow = new double[2 * SimCalendar.DaysPerYear];
         for (int day = 0; day < 2 * SimCalendar.DaysPerYear; day++)
         {
             bool measuring = day >= SimCalendar.DaysPerYear;
@@ -403,8 +410,9 @@ public class LandSiteEngineTests
                     var harvest = engine.HarvestLandTank(site.Id, tank.Id);
                     Assert.True(harvest.Ok, harvest.Message);
                     if (measuring) harvestedKg += harvest.Value;
+                    harvestedOn[i] = day;
                 }
-                else if (tank.Pen.IsEmpty && day >= i * stagger)
+                else if (tank.Pen.IsEmpty && day >= i * stagger && day >= harvestedOn[i] + cal.Production.FallowDays)
                 {
                     // The plan stocks each tank for its 80 kg/m³ peak (LandProjectionSettings' plan).
                     int room = planForecast.MaxSmolts(tank.VolumeM3, cal.Hfs.PlanPeakDensityKgM3);
@@ -414,6 +422,7 @@ public class LandSiteEngineTests
                 }
             }
             engine.Advance(1);
+            shallow[day] = engine.SeaTemperatureOfZone(site.ZoneId);
             if (measuring)
             {
                 kwh += site.DailyEnergyKWh;
@@ -428,8 +437,24 @@ public class LandSiteEngineTests
         Assert.InRange(kwhPerKg, 6.0, 7.5);
         Assert.InRange(loxPerKg, 0.45, 0.65);
         // And the engine path is the standalone physics: within 6 % of the projection's year (§1p).
-        var standalone = LandLotProjector.Run(LakskongenSim.Tests.Farm.LandTestSites.SalmonEvolutionYear(cal), cal);
-        _output.WriteLine($"standalone: {standalone.KWhPerKgGrowth:F2} kWh/kg, {standalone.LoxPerKgGrowth:F3} kg O2/kg");
+        // F2-15: like with like, the projection grows the engine's fish (the plan's multiplier × the
+        // standard strain's genome, planForecast's plan; the engine's fish keep the plan's survival)
+        // on the engine's pad (its intake lines) and the shallow water the engine's year drew.
+        var standalone = LandLotProjector.Run(LakskongenSim.Tests.Farm.LandTestSites.SalmonEvolutionYear(cal) with
+        {
+            Site = engine.LandIntakeOf(site),
+            ShallowWaterC = d => d >= 0 && d < shallow.Length
+                ? shallow[d]
+                : ProductionAreas.ClimatologyC(LakskongenSim.Tests.Farm.LandTestSites.SalmonEvolutionArea, d),
+            Plan = LandStockingPlan.For(cal.Hfs, cal.Production) with
+            {
+                TemperatureC = site.TargetWaterTemp,
+                GrowthMultiplier = cal.Production.PlanGrowthMultiplier * SmoltStrainRegistry.Get("standard").BuildGenome().GetGrowthMultiplier(),
+            },
+        }, cal);
+        _output.WriteLine($"standalone: {standalone.NetGrowthKg / 1000.0:N0} t growth ({standalone.HarvestedKg / 1000.0:N0} t harvested), " +
+                          $"{standalone.Energy.TotalKWh / 1e6:N2} GWh, {standalone.KWhPerKgGrowth:F2} kWh/kg, {standalone.LoxPerKgGrowth:F3} kg O2/kg, " +
+                          $"mean density {standalone.MeanDensityKgM3:F1} kg/m³, appetite {standalone.MeanAppetite:F3}");
         Assert.InRange(kwhPerKg / standalone.KWhPerKgGrowth, 0.94, 1.06);
         Assert.InRange(loxPerKg / standalone.LoxPerKgGrowth, 0.94, 1.06);
     }

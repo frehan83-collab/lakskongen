@@ -475,7 +475,8 @@ public partial class SimulationEngine
         site.Tanks.Add(population);
         State.Populations.Add(population);
         tank.Pen.PopulationId = population.Id;
-        NoteLandStocking(site, tank, population, strain); // F2-13/F2-15: the fish's record, plan and feeding plan
+        // F2-13/F2-15: the fish's record, plan (with the plan's daily hazard) and feeding plan.
+        NoteLandStocking(site, tank, population, strain, 1.0 - preview.DailySurvival);
         site.StockingLog.Add(new LandStockingRecord(State.Day, tank.Id, count, preview.PlannedHogKg));
         PruneStockingLog(site);
 
@@ -507,7 +508,8 @@ public partial class SimulationEngine
         double releaseKg = t.PlanReleaseWeightKg;
         var tier = TierOfWeight(releaseKg);
         double growth = strain.BuildGenome().GetGrowthMultiplier(); // the cohort's: land fish carry no sea-phase tier bonus
-        var plan = LandStockingPlan.For(t, cal.Production) with { TemperatureC = site.TargetWaterTemp, GrowthMultiplier = growth };
+        var basePlan = LandStockingPlan.For(t, cal.Production);
+        var plan = basePlan with { TemperatureC = site.TargetWaterTemp, GrowthMultiplier = basePlan.GrowthMultiplier * growth };
         var verdict = LandStockingPlanner.Check(Growth.Law, plan, tank.VolumeM3, Math.Max(0, count), t.MaxDensityKgM3);
         double hogPerSmolt = t.PlanHarvestWeightKg * cal.Production.CycleSurvival * cal.Production.HogPerLw;
         double nameplateKg = AnnualProductionCapTonnes(site) * 1000.0;
@@ -522,7 +524,7 @@ public partial class SimulationEngine
         int maxSmolts = Math.Min(Math.Min(verdict.MaxSmolts, annualRoom), utilisationRoom);
         var preview = new LandStockingPreview(true, "", "", tank.Id, releaseKg, tier, verdict.PeakDensityKgM3,
             verdict.Forecast.CycleDays, maxSmolts, verdict.MaxSmolts, annualRoom, Math.Max(0, count) * hogPerSmolt, cost,
-            utilisationCap, utilisationRoom);
+            utilisationCap, utilisationRoom, verdict.Forecast.DailySurvival);
 
         int index = lot.Tanks.IndexOf(tank);
         if (count <= 0)
@@ -648,12 +650,14 @@ public partial class SimulationEngine
         var cal = LandCalibration;
         var t = cal.For(toLot.Template);
         double meanKg = moves.Sum(m => m.Count * m.Cohort.MeanWeightKg) / fish;
-        var plan = LandStockingPlan.For(t, cal.Production) with
+        var basePlan = LandStockingPlan.For(t, cal.Production);
+        var plan = basePlan with
         {
             ReleaseWeightKg = meanKg,
             HarvestWeightKg = Math.Max(meanKg, t.PlanHarvestWeightKg),
             TemperatureC = site.TargetWaterTemp,
-            GrowthMultiplier = source.Cohorts.Where(c => c.Count > 0).Select(CohortGrowthMultiplier).DefaultIfEmpty(1.0).Max(),
+            GrowthMultiplier = basePlan.GrowthMultiplier
+                * source.Cohorts.Where(c => c.Count > 0).Select(CohortGrowthMultiplier).DefaultIfEmpty(1.0).Max(),
         };
         var verdict = LandStockingPlanner.Check(Growth.Law, plan, to.VolumeM3, fish, t.MaxDensityKgM3);
         if (!verdict.Allowed)
@@ -878,10 +882,11 @@ public sealed record LandStockingRecord(int Day, string TankId, int Smolts, doub
 /// <param name="CostNok">Price of the smolts.</param>
 /// <param name="UtilisationCap">The site's utilisation cap (share of nameplate a year; 1 at a post-smolt site, F2-15).</param>
 /// <param name="UtilisationRoomSmolts">Fish the utilisation cap leaves room for in the rolling year (int.MaxValue when it does not bind).</param>
+/// <param name="DailySurvival">The plan's share of the fish alive the next day (its cycle survival over its cycle days, F2-15).</param>
 public sealed record LandStockingPreview(bool Allowed, string Reason, string Message, string TankId, double ReleaseWeightKg,
     SmoltQualityTier Tier, double PeakDensityKgM3, int CycleDays, int MaxSmolts, int DensityRoomSmolts, int AnnualRoomSmolts,
     double PlannedHogKg,
-    decimal CostNok, double UtilisationCap = 1.0, int UtilisationRoomSmolts = int.MaxValue)
+    decimal CostNok, double UtilisationCap = 1.0, int UtilisationRoomSmolts = int.MaxValue, double DailySurvival = 1.0)
 {
     /// <summary>A refusal before the tank is known.</summary>
     public static LandStockingPreview Refused(string reason, string message)

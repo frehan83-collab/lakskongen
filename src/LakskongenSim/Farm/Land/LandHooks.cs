@@ -109,12 +109,25 @@ internal static class LandHooks
     {
         var site = holding.LandFacility;
         var tank = site != null && site.HasLots ? site.TankOf(population) : null;
-        return tank == null ? 1.0 : engine.LandCompetenceGrowthMultiplierOf(site!);
+        return tank == null ? 1.0 : engine.LandGrowthMultiplierOf(site!);
     }
 
-    /// <summary>A land tank's own mortality terms: the anchor × 1 and no extra cause before F2-15/F2-16.</summary>
+    /// <summary>
+    /// A land tank's own mortality terms (F2-15): the fish in a tank of an F2
+    /// site die at their plan's daily hazard (the stocking plan's cycle survival,
+    /// about 97 % a land cycle [L:R2], spread over its cycle days), booked as
+    /// the baseline anchor, in place of the sea's anchor (15 % a sea cycle,
+    /// which put a land cycle near 90 %). A tank without a plan (fish seated by
+    /// a load) and a pre-F2 site keep the anchor × 1 and no extra cause.
+    /// F2-16 adds the land incident causes.
+    /// </summary>
     internal static MortalityTerms MortalityTermsFor(SimulationEngine engine, in PopulationHolding holding, FishPopulation population)
-        => MortalityTerms.None;
+    {
+        var site = holding.LandFacility;
+        var tank = site != null && site.HasLots ? site.TankOf(population) : null;
+        if (tank?.Plan is not { DailyHazard: > 0.0 } plan) return MortalityTerms.None;
+        return new MortalityTerms(0.0, new[] { new UnitHazard(MortalityCause.BaselineAnchor, plan.DailyHazard) });
+    }
 
     /// <summary>
     /// Smolt-quality multiplier on the anchor hazard (F2-13): the sea-phase

@@ -320,17 +320,17 @@ namespace LakskongenSim.Calibration
         public double UtilisationCapAtStart { get; init; } = 0.55;
 
         /// <summary>
-        /// Growth multiplier on the growth law at the start competence (unit ×
-        /// the plan's TGC). 0.73. Range: 0.4-1. Game balance: fitted so a cohort
-        /// at competence 0.4 reaches the achieved result, 400 g → 3.5-4.2 kg HOG
-        /// in 9-11 months ([L:R1] Q2 2026: 3.5 kg HOG average; [V:17] guidance cut
-        /// for weak biomass growth); F2-15 acceptance 1 decides it. The multiplier
-        /// rises linearly to 1 at competence 1 (the plan, 400 g → 5.2 kg in 8-9
-        /// months, [L:R1]).
+        /// Growth at the start competence against the plan (unit × the plan's
+        /// growth, <c>production.planGrowthMultiplier</c>). 0.79. Range: 0.4-1.
+        /// Game balance: fitted so a cohort at competence 0.4 reaches the achieved
+        /// result, 400 g → 3.5-4.2 kg HOG in 9-11 months ([L:R1] Q2 2026: 3.5 kg
+        /// HOG average; [V:17] guidance cut for weak biomass growth); F2-15
+        /// acceptance 1 decides it. It rises linearly to 1 (the plan, 400 g →
+        /// 5.2 kg LW in 8-9 months, [L:R1]) at competence 1.
         /// </summary>
         [Range(0.4, 1)]
         [GameBalance("fitted so competence 0.4 gives the achieved result ([L:R1], [V:17]); F2-15 acceptance 1 decides it")]
-        public double GrowthAtStart { get; init; } = 0.73;
+        public double GrowthAtStart { get; init; } = 0.79;
     }
 
     /// <summary>
@@ -454,6 +454,187 @@ namespace LakskongenSim.Calibration
         [Range(0, 20_000)]
         [Source("Bjørndal & Tusvik 2017, tables 4.3-4.4", "SSB table 03014", "L:R1")]
         public decimal OtherNokPerTonneNameplateYear { get; init; } = 3_617m;
+    }
+
+    /// <summary>
+    /// Early maturation of land fish (spec §3.3 "Maturation", §3.9
+    /// <c>maturation</c>): an index that rises with the degree-days over a
+    /// threshold, under continuous or short-day light, slower for all-female
+    /// stock; the share of males maturing by harvest. F2-15 projects it for the
+    /// Vannstrategi presets' maturation risk (<c>Farm/Land/LandMaturation.cs</c>);
+    /// F2-16 runs it in the tick and downgrades the maturing fish.
+    /// </summary>
+    public sealed record LandMaturationCalibration
+    {
+        /// <summary>
+        /// Water temperature over which maturation builds (unit °C). 12. Range:
+        /// 8-16. Source: [L:S8] (Frontiers 2024: post-smolt reared at or under
+        /// 12 °C to hold back early maturation); [L:R6] rearing target 12-14 °C.
+        /// </summary>
+        [Range(8, 16)]
+        [Source("L:S8")]
+        public double ThresholdC { get; init; } = 12.0;
+
+        /// <summary>
+        /// Rise of the index per degree-day over the threshold (unit per °C·day).
+        /// 0.004. Range: 0-0.05. Game balance: spec §3.3 (0.004, [L:S1], [L:S8],
+        /// [L:S10] give the direction; the rate is the game's): a cohort at
+        /// 13 °C for 250 days reaches 1.0.
+        /// </summary>
+        [Range(0, 0.05)]
+        [GameBalance("spec §3.3 rate after [L:S1], [L:S8], [L:S10]; the rate is the game's")]
+        public double RatePerDegreeDay { get; init; } = 0.004;
+
+        /// <summary>
+        /// Factor on the rise under a short-day photoperiod against continuous
+        /// light (unit ×). 0.3. Range: 0-1. Game balance: spec §3.3 after [L:S10]
+        /// (continuous light in RAS advances maturation).
+        /// </summary>
+        [Range(0, 1)]
+        [GameBalance("spec §3.3 after [L:S10]: continuous light advances maturation")]
+        public double ShortDayFactor { get; init; } = 0.3;
+
+        /// <summary>
+        /// Factor on the rise for all-female stock (unit ×). 0.1. Range: 0-1.
+        /// Game balance: spec §3.3: females mature late; all-female stock is the
+        /// industry's counter.
+        /// </summary>
+        [Range(0, 1)]
+        [GameBalance("spec §3.3: all-female stock matures late")]
+        public double AllFemaleFactor { get; init; } = 0.1;
+
+        /// <summary>
+        /// Most of the males that mature by harvest (unit fraction). 0.8.
+        /// Range: 0-1. Game balance: spec §3.3 (the downgrade's cap).
+        /// </summary>
+        [Range(0, 1)]
+        [GameBalance("spec §3.3: the maturing share of males is capped at 80 %")]
+        public double MaxMaleShare { get; init; } = 0.8;
+
+        /// <summary>
+        /// Share of males in a mixed-sex stock (unit fraction). 0.5. Range:
+        /// 0.4-0.6. Source: Atlantic salmon's 1:1 primary sex ratio (Taranger
+        /// et al. 2010, ICES J. Mar. Sci. 67:1176-1182, risks of early maturation
+        /// in farmed salmon).
+        /// </summary>
+        [Range(0.4, 0.6)]
+        [Source("Taranger et al. 2010, ICES J. Mar. Sci. 67:1176-1182")]
+        public double MaleShare { get; init; } = 0.5;
+    }
+
+    /// <summary>
+    /// One named Vannstrategi preset (spec §6.5 "Vannstrategi": three presets,
+    /// each with its predicted kWh/kg, growth and maturation risk from the
+    /// engine's projection; the sliders sit behind "Avansert").
+    /// </summary>
+    public sealed record LandPresetCalibration
+    {
+        /// <summary>
+        /// Reuse r of a flow-through unit (unit fraction). Range: 0-0.99. Game
+        /// balance: spec §6.5. A loop unit (RAS hall, post-smolt module) keeps
+        /// its own reuse.
+        /// </summary>
+        [Range(0, 0.99)]
+        [GameBalance("spec §6.5 preset; a loop unit keeps its own reuse")]
+        public double Reuse { get; init; }
+
+        /// <summary>
+        /// Share of the new water from the deep intake (unit fraction), used
+        /// when the preset does not blend toward the setpoint. Range: 0-1. Game
+        /// balance: spec §6.5 ("max deep share" = 1).
+        /// </summary>
+        [Range(0, 1)]
+        [GameBalance("spec §6.5 preset: max deep share = 1")]
+        public double DeepIntakeShare { get; init; } = 1.0;
+
+        /// <summary>
+        /// True when the intakes blend toward the setpoint every day (unit flag,
+        /// 0 or 1). Range: 0-1. Game balance: spec §6.5 ("seasonal blend").
+        /// </summary>
+        [Range(0, 1)]
+        [GameBalance("spec §6.5 preset: seasonal blend")]
+        public bool BlendTowardSetpoint { get; init; }
+
+        /// <summary>
+        /// Tank setpoint (unit °C). Range: 6-16. Game balance: spec §6.5.
+        /// </summary>
+        [Range(6, 16)]
+        [GameBalance("spec §6.5 preset")]
+        public double SetpointC { get; init; } = 12.0;
+    }
+
+    /// <summary>
+    /// The three Vannstrategi presets of spec §6.5 (F2-15, the land board's
+    /// projections; F2-32 shows them): Sparsom (r 0.75, max deep share, 12 °C),
+    /// Balansert (r 0.65, seasonal blend, 12-13 °C) and Høy tetthet (r 0.80,
+    /// max deep share, 13 °C).
+    /// </summary>
+    public sealed record LandVannstrategiCalibration
+    {
+        /// <summary>"Sparsom": r 0.75, max deep share, 12 °C.</summary>
+        public LandPresetCalibration Sparsom { get; init; } = new() { Reuse = 0.75, DeepIntakeShare = 1.0, BlendTowardSetpoint = false, SetpointC = 12.0 };
+
+        /// <summary>"Balansert": r 0.65, the intakes blended toward the setpoint, 12.5 °C (the middle of 12-13).</summary>
+        public LandPresetCalibration Balansert { get; init; } = new() { Reuse = 0.65, DeepIntakeShare = 0.5, BlendTowardSetpoint = true, SetpointC = 12.5 };
+
+        /// <summary>"Høy tetthet": r 0.80, max deep share, 13 °C.</summary>
+        public LandPresetCalibration HoyTetthet { get; init; } = new() { Reuse = 0.80, DeepIntakeShare = 1.0, BlendTowardSetpoint = false, SetpointC = 13.0 };
+    }
+
+    /// <summary>
+    /// The comfort bands the land board's water glyph reads (spec §6.5
+    /// "Vannmiljø": a 5-segment ring of O2, CO2, TAN, temperature and density
+    /// against its comfort band; status ok / warn / critical). The ok edges are
+    /// the model's own (outlet O2 floor, CO2 and TAN appetite limits, the
+    /// density knee); these are the critical edges.
+    /// </summary>
+    public sealed record LandStatusCalibration
+    {
+        /// <summary>
+        /// Dissolved oxygen under which a tank is critical (unit mg/L). 5.
+        /// Range: 2-8. Source: [L:F2] (an outage takes O2 under 5 mg/L in about
+        /// 40 minutes; the danger line the alarms use).
+        /// </summary>
+        [Range(2, 8)]
+        [Source("L:F2")]
+        public double DoCriticalMgL { get; init; } = 5.0;
+
+        /// <summary>
+        /// Dissolved oxygen under which a tank is in warning (unit mg/L). 7.
+        /// Range: 4-10. Game balance: spec §3.3's usable floor (7.0 mg/L, about
+        /// 80 % saturation at 12 °C); the outlet is held at 8.
+        /// </summary>
+        [Range(4, 10)]
+        [GameBalance("spec §3.3: the usable floor 7.0 mg/L (about 80 % saturation)")]
+        public double DoWarnMgL { get; init; } = 7.0;
+
+        /// <summary>
+        /// TAN over which a tank is critical (unit × the appetite limit). 2.
+        /// Range: 1-5. Game balance: twice the 2 mg/L where appetite starts to
+        /// fall (spec §3.3), where the mortality hazard runs.
+        /// </summary>
+        [Range(1, 5)]
+        [GameBalance("twice the TAN appetite limit of spec §3.3")]
+        public double TanCriticalFactor { get; init; } = 2.0;
+
+        /// <summary>
+        /// Distance from the setpoint at which a tank's temperature is in
+        /// warning (unit °C). 1. Range: 0.2-5. Game balance: the heat pumps
+        /// hold the setpoint within capacity; a degree off means they do not.
+        /// </summary>
+        [Range(0.2, 5)]
+        [GameBalance("the heat pumps hold the setpoint within capacity; a degree off means they do not")]
+        public double TemperatureWarnC { get; init; } = 1.0;
+
+        /// <summary>
+        /// Distance from the setpoint at which a tank's temperature is critical
+        /// (unit °C). 2.5. Range: 0.5-8. Game balance: past it growth and
+        /// maturation leave the plan (the law's optimum 13 °C, the maturation
+        /// threshold 12 °C).
+        /// </summary>
+        [Range(0.5, 8)]
+        [GameBalance("past it growth and maturation leave the plan (optimum 13 degC, maturation from 12 degC)")]
+        public double TemperatureCriticalC { get; init; } = 2.5;
     }
 
     #endregion

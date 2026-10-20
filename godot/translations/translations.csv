@@ -542,7 +542,11 @@ LEDGER_GROWTH_LICENCE,Growth licence,Vekstlisens
 LEDGER_HARVEST,Harvest sales,Slaktesalg
 LEDGER_INSURANCE,Insurance,Forsikring
 LEDGER_INTEREST,Interest,Renter
+LEDGER_LAND_COMPETENCE,Land farm competence,Kompetanse på landanlegg
 LEDGER_LAND_ENERGY,Land farm electricity,Strøm til landanlegg
+LEDGER_LAND_INSURANCE,Land farm insurance,Forsikring på landanlegg
+LEDGER_LAND_MAINTENANCE,Land farm maintenance,Vedlikehold på landanlegg
+LEDGER_LAND_OTHER,Land farm other costs,Andre kostnader på landanlegg
 LEDGER_LAND_OXYGEN,Land farm oxygen,Oksygen til landanlegg
 LEDGER_LAND_STAFF,Land farm staff,Ansatte på landanlegg
 LEDGER_LICENCE_FEES,Licence fees,Lisensavgifter
@@ -553,12 +557,14 @@ LEDGER_NIGHT_SHIFT,Night shift,Nattskift
 LEDGER_OPERATIONS,Operations,Drift
 LEDGER_OTHER,Other,Annet
 LEDGER_PERMIT_FEES,Permit fees,Søknadsgebyrer
+LEDGER_POST_SMOLT_SALES,Post-smolt sales,Salg av postsmolt
 LEDGER_RESEARCH,Research,Forskning
 LEDGER_SEA_SITE,New sea site,Nytt sjøanlegg
 LEDGER_SLUDGE,Sludge,Slam
 LEDGER_SMOLTS,Smolts,Smolt
 LEDGER_STORM_REPAIRS,Storm repairs,Stormreparasjoner
 LEDGER_TAX,Tax,Skatt
+LEDGER_TRANSFERS,Fish transfers,Flytting av fisk
 LEDGER_TUTORIAL_REWARDS,Tutorial rewards,Opplæringsbelønninger
 LEDGER_UNCLASSIFIED,Unclassified,Uklassifisert
 LEDGER_VACCINATION,Vaccination,Vaksinering
@@ -641,6 +647,11 @@ FARM_VARIANT_OF1,Offshore pen,Havmerd
 FARM_VARIANT_OPEN_PEN,Open net pen,Åpen merd
 FARM_VARIANT_POST_SMOLT,Post-smolt module,Postsmoltmodul
 FARM_VARIANT_RAS,Land farm (RAS),Landanlegg (RAS)
+LAND_CONSTRAINT_CO2,CO₂,CO₂
+LAND_CONSTRAINT_DENSITY,Density,Tetthet
+LAND_CONSTRAINT_O2,Oxygen,Oksygen
+LAND_CONSTRAINT_TAN,Ammonia,Ammoniakk
+LAND_CONSTRAINT_TEMPERATURE,Temperature,Temperatur
 LAND_CONTRACT_MANAGED,Managed build (you carry the overrun),Egen byggeledelse (du bærer overskridelsen)
 LAND_CONTRACT_TURNKEY,Turnkey (fixed price with a premium),Totalentreprise (fastpris med påslag)
 LAND_DRIVER_APPEAL,Appeal,Klage
@@ -652,6 +663,12 @@ LAND_DRIVER_REFUSED_CASE,Refused case,Avslått sak
 LAND_DRIVER_SCALE,Plant size,Anleggets størrelse
 LAND_GRID_CAPACITY,More grid capacity,Mer nettkapasitet
 LAND_GRID_SECOND_FEED,Second grid feed,Ny uavhengig nettilførsel
+LAND_LEVER_CONSULTANCY,External consultants,Eksterne konsulenter
+LAND_LEVER_CYCLES,Completed production cycles,Fullførte produksjonssykluser
+LAND_LEVER_DRIFTSLEDER,Operations manager,Driftsleder
+LAND_LEVER_EARLY_HIRING,Staff hired before the first fish,Mannskap ansatt før første utsett
+LAND_LEVER_RESEARCH,Research: land-based farming,Forskning: landbasert oppdrett
+LAND_LEVER_TRAINING,Training programme,Opplæringsprogram
 LAND_MITIGATION_DENITRIFICATION,Commit to denitrification,Forplikte denitrifisering
 LAND_MITIGATION_ENVIRONMENTAL_SURVEY,Environmental survey,Miljøkartlegging
 LAND_PERMIT_BIOSECURITY,Biosecurity approval,Godkjenning fra Mattilsynet
@@ -671,9 +688,14 @@ LAND_PHASE_SEA_WORKS,Intake and outfall,Inntak og utslipp
 LAND_PHASE_SITE_WORKS,Blasting and foundations,Sprengning og fundamenter
 LAND_PHASE_TANK_RINGS,Tank rings,Karringer
 LAND_PHASE_TREATMENT_HALL,Treatment hall,Vannbehandlingshall
+LAND_PRESET_BALANSERT,Balanced,Balansert
+LAND_PRESET_HOY_TETTHET,High density,Høy tetthet
+LAND_PRESET_SPARSOM,Frugal,Sparsom
 LAND_REASON_ALREADY_ACTIVE,Already in place,Allerede på plass
 LAND_REASON_ALREADY_PENDING,A case of this kind is already being decided,En sak av denne typen er allerede til behandling
+LAND_REASON_ALREADY_PLANNED,The tank is already in a harvest plan,Karet er allerede med i en slakteplan
 LAND_REASON_ANNUAL_CAPACITY,The stocking would plan more than a year's production,Utsettet ville planlegge mer enn ett års produksjon
+LAND_REASON_BELOW_MIN_WEIGHT,The fish are too small to leave the tank,Fisken er for liten til å forlate karet
 LAND_REASON_BIOFILTER_IMMATURE,The biofilter is still maturing,Biofilteret modnes fortsatt
 LAND_REASON_DENSITY_EXCEEDED,The fish would grow too dense in this tank,Fisken ville stå for tett i dette karet
 LAND_REASON_ENGINE_NOT_READY,The game is not ready,Spillet er ikke klart
@@ -681,6 +703,7 @@ LAND_REASON_GRID_CAPACITY,The grid at the pad cannot carry the plant,Strømnette
 LAND_REASON_HOLDING_EMPTY,The tank holds no fish,Karet er tomt
 LAND_REASON_INSUFFICIENT_FUNDS,Not enough cash,Ikke nok penger
 LAND_REASON_LOTS_EXHAUSTED,The pad has no room for more,Tomten har ikke plass til mer
+LAND_REASON_MAB_EXCEEDED,The fish would put the sea site over its allowed biomass,Fisken ville gitt lokaliteten mer enn tillatt biomasse
 LAND_REASON_MORATORIUM,A moratorium holds new land applications,Søknader om landbasert oppdrett er satt på vent
 LAND_REASON_NOTHING_TO_APPLY,Every permit is already granted,Alle tillatelser er allerede gitt
 LAND_REASON_NOT_FOUND,Not found,Finnes ikke
@@ -688,15 +711,30 @@ LAND_REASON_NOT_OPERATIONAL,The tank is not built yet,Karet er ikke ferdig bygge
 LAND_REASON_NOT_READY,Not possible right now,Ikke mulig nå
 LAND_REASON_NOT_REFUSED,Only a refused case can be appealed,Bare et avslag kan påklages
 LAND_REASON_NOT_UNLOCKED,This farm type is still locked,Denne anleggstypen er fortsatt låst
+LAND_REASON_NO_RIVER_INTAKE,The pad has no river intake,Tomten har ikke elveinntak
+LAND_REASON_NO_SLOT,The slaughter hall has no room that week,Slakteriet har ikke plass den uken
+LAND_REASON_NO_WELLBOAT_SLOT,No wellboat can take this transfer,Ingen brønnbåt kan ta denne flyttingen
+LAND_REASON_OFFSHORE_UNIT,An offshore farm takes its smolt through its own board,Et havanlegg får smolt via sin egen tavle
 LAND_REASON_OUT_OF_RANGE,A value is out of range,En verdi er utenfor gyldig område
 LAND_REASON_PERMITS_MISSING,Permits are still missing,Det mangler fortsatt tillatelser
 LAND_REASON_PLOT_TAKEN,Someone else holds this plot,Noen andre har denne tomten
+LAND_REASON_SITE_NOT_FOUND,No such sea site,Lokaliteten finnes ikke
 LAND_REASON_TANK_NOT_FOUND,No such tank,Karet finnes ikke
 LAND_REASON_TANK_OCCUPIED,The tank already holds fish,Karet har allerede fisk
+LAND_REASON_UTIL_CAP,The plant's competence cannot run more yet,Anlegget har ikke kompetanse til å drive mer ennå
+LAND_REASON_WRONG_SITE_KIND,Not possible at this kind of land site,Ikke mulig på denne typen landanlegg
+LAND_SHORTFALL_CO2,CO₂ in the tank,CO₂ i karet
+LAND_SHORTFALL_DENSITY,Stocking density,Tettheten
+LAND_SHORTFALL_FEED_PLAN,The feeding plan,Fôringsplanen
+LAND_SHORTFALL_GILL_HEALTH,Gill health (ammonia and oxygen),Gjellehelse (ammoniakk og oksygen)
+LAND_SHORTFALL_TEMPERATURE,Water temperature,Vanntemperaturen
 LAND_TEMPLATE_HFS_LOT,Land farm (hybrid),Landanlegg (hybrid)
 LAND_TEMPLATE_HFS_PILOT_LOT,Pilot lot,Pilottrinn
 LAND_TEMPLATE_POST_SMOLT_MODULE,Post-smolt module,Postsmoltmodul
 LAND_TEMPLATE_RAS_HALL,Land farm (RAS),Landanlegg (RAS)
+LAND_TIER_LARGE,Large smolt,Storsmolt
+LAND_TIER_STANDARD,Standard smolt,Standard smolt
+LAND_TIER_SUPER_SMOLT,SuperSmolt,Supersmolt
 RESEARCH_SCOPE_LAND,land tanks,landtanker
 RESEARCH_SCOPE_OFFSHORE,offshore units,havmerder
 RESEARCH_SCOPE_SEA,fjord pens,fjordmerder

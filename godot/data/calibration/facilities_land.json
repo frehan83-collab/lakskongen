@@ -95,7 +95,7 @@
     "driftslederNokPerYear": 2500000,
     "earlyHiring": 0.1,
     "earlyHiringLeadDays": 180,
-    "growthAtStart": 0.73,
+    "growthAtStart": 0.79,
     "perCycle": 0.2,
     "research": 0.1,
     "start": 0.4,
@@ -195,8 +195,16 @@
     "maxReuse": 0.995,
     "no3NMgL": 0.1
   },
+  "maturation": {
+    "allFemaleFactor": 0.1,
+    "maleShare": 0.5,
+    "maxMaleShare": 0.8,
+    "ratePerDegreeDay": 0.004,
+    "shortDayFactor": 0.3,
+    "thresholdC": 12
+  },
   "operations": {
-    "staffCostNokPerFteYear": 650000
+    "staffCostNokPerFteYear": 1028208
   },
   "oxygen": {
     "injectionEfficiency": 0.7,
@@ -269,7 +277,8 @@
     "biologicalFcrAt2Kg": 1,
     "cycleSurvival": 0.97,
     "fallowDays": 7,
-    "hogPerLw": 0.83
+    "hogPerLw": 0.83,
+    "planGrowthMultiplier": 0.92
   },
   "ras": {
     "baseKWhPerDay": 8000,
@@ -314,11 +323,38 @@
     "transferHireNokPerDay": 150000,
     "transferTonnesPerDay": 450
   },
+  "status": {
+    "doCriticalMgL": 5,
+    "doWarnMgL": 7,
+    "tanCriticalFactor": 2,
+    "temperatureCriticalC": 2.5,
+    "temperatureWarnC": 1
+  },
   "tan": {
     "appetiteLimitMgL": 2,
     "appetiteLossPerMgL": 0.25,
     "kgTanPerKgFeed": 0.03,
     "maturityAtStart": 0.2,
     "passRemovalEfficiency": 0.6
+  },
+  "vannstrategi": {
+    "balansert": {
+      "blendTowardSetpoint": true,
+      "deepIntakeShare": 0.5,
+      "reuse": 0.65,
+      "setpointC": 12.5
+    },
+    "hoyTetthet": {
+      "blendTowardSetpoint": false,
+      "deepIntakeShare": 1,
+      "reuse": 0.8,
+      "setpointC": 13
+    },
+    "sparsom": {
+      "blendTowardSetpoint": false,
+      "deepIntakeShare": 1,
+      "reuse": 0.75,
+      "setpointC": 12
+    }
   }
 }

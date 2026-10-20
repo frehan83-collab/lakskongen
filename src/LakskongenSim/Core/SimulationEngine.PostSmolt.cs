@@ -473,6 +473,92 @@ public partial class SimulationEngine
             SimText.Nb($"{site.Name}: solgte {sold:N0} postsmolt ({weightKg * 1000.0:F0} g) fra {tank.Id} for {revenue:N0} kr"), revenue);
         return CommandResult.Success($"Sold {sold:N0} post-smolt from {tank.Id} for {revenue:N0} NOK", sold, (double)revenue, tank.Id);
     }
+
+    // ── The post-smolt panel's batch verbs (the bridge's thin calls) ───────
+
+    /// <summary>
+    /// Start a smolt batch at a post-smolt site (the panel's "Ny gruppe"; spec
+    /// §3.4: the bridge's post-smolt stubs become thin calls into the engine).
+    /// An F2 site (with lots) stocks its first ready, empty tank through
+    /// <see cref="StockLandTank"/> (the module's 80 g smolts, the density and
+    /// nameplate checks, the smolt price); a pre-F2 site keeps
+    /// <see cref="StartPostSmoltBatch"/>. Fails: facility_not_found, and the
+    /// stocking's own refusals (tank_occupied when every ready tank holds fish).
+    /// Value = fish, Value2 = cost, Id = the batch (its population).
+    /// </summary>
+    public CommandResult StartSmoltBatch(string siteId, int count)
+    {
+        if (State == null || FinanceManager == null)
+            return CommandResult.Fail("engine_not_ready", "Engine not initialized");
+        var site = FindLandSite(siteId);
+        if (site == null || site.Kind != LandSiteKind.PostSmolt || !site.HasLots)
+        {
+            var legacy = StartPostSmoltBatch(siteId, count);
+            return legacy.Ok ? CommandResult.Success(legacy.Message, count, legacy.Value, legacy.Id) : legacy;
+        }
+        SyncLandSite(site);
+        var tank = ReadyEmptyTanks(site).FirstOrDefault();
+        if (tank == null)
+            return CommandResult.Fail(LandSiteReasons.TankOccupied, $"Every ready tank at '{site.Name}' holds fish");
+        var stocked = StockLandTank(site.Id, tank.Id, count);
+        if (!stocked.Ok) return stocked;
+        return CommandResult.Success(stocked.Message, stocked.Value, stocked.Value2, site.PopulationIn(tank)!.Id);
+    }
+
+    /// <summary>
+    /// Vaccinate the post-smolt batch <paramref name="batchId"/> wherever it
+    /// stands (the panel names the batch only): <see cref="VaccinatePostSmoltBatch"/>
+    /// at its site. Fails: batch_not_found, already_vaccinated, insufficient_funds.
+    /// </summary>
+    public CommandResult VaccinateSmoltBatch(string batchId)
+    {
+        if (State == null || FinanceManager == null)
+            return CommandResult.Fail("engine_not_ready", "Engine not initialized");
+        var site = PostSmoltSiteHolding(batchId);
+        return site == null
+            ? CommandResult.Fail("batch_not_found", $"Batch '{batchId}' not found")
+            : VaccinatePostSmoltBatch(site.Id, batchId);
+    }
+
+    /// <summary>
+    /// Move the post-smolt batch <paramref name="batchId"/> to sea (the panel's
+    /// "Flytt til sjø"). An F2 site books a wellboat (<see cref="TransferTankToSea"/>,
+    /// 1-3 days, the MTB checked now and when the boat comes); a pre-F2 site
+    /// moves a ready batch at once (<see cref="TransferPostSmoltToSea"/>). With
+    /// <paramref name="seaSiteId"/> "" the destination is the fjord site with the
+    /// most MTB headroom that takes the fish (ties in list order). Fails:
+    /// batch_not_found, site_not_found (no fjord site takes them), and the
+    /// transfer's own refusals.
+    /// </summary>
+    public CommandResult TransferSmoltBatchToSea(string batchId, string seaSiteId)
+    {
+        if (State == null || FinanceManager == null)
+            return CommandResult.Fail("engine_not_ready", "Engine not initialized");
+        var site = PostSmoltSiteHolding(batchId);
+        var batch = site?.Tanks.FirstOrDefault(p => p.Id == batchId);
+        if (site == null || batch == null)
+            return CommandResult.Fail("batch_not_found", $"Batch '{batchId}' not found");
+        var candidates = string.IsNullOrEmpty(seaSiteId)
+            ? FjordSites().Select((s, i) => (Site: s, Index: i))
+                .OrderByDescending(c => c.Site.MABTonnes - c.Site.CurrentBiomassTonnes).ThenBy(c => c.Index)
+                .Select(c => c.Site.Id).ToList()
+            : new List<string> { seaSiteId };
+        if (candidates.Count == 0)
+            return CommandResult.Fail(LandSiteReasons.SiteNotFound, "No fjord site to move the batch to");
+        if (!site.HasLots)
+            return TransferPostSmoltToSea(site.Id, batchId, candidates[0]);
+        SyncLandSite(site);
+        var tank = site.TankOf(batch);
+        if (tank == null)
+            return CommandResult.Fail("batch_not_found", $"Batch '{batchId}' sits in no tank");
+        string destination = candidates.FirstOrDefault(id => PreviewTransferTankToSea(site.Id, tank.Id, id, 0).Allowed) ?? candidates[0];
+        return TransferTankToSea(site.Id, tank.Id, destination, 0);
+    }
+
+    /// <summary>The post-smolt site holding population <paramref name="batchId"/>, or null.</summary>
+    private RASFacility? PostSmoltSiteHolding(string batchId)
+        => string.IsNullOrEmpty(batchId) ? null
+            : PostSmoltSites.FirstOrDefault(s => s.Tanks.Any(p => p.Id == batchId));
 }
 
 /// <summary>What moving a land tank's fish to sea would do (<see cref="SimulationEngine.PreviewTransferTankToSea"/>).</summary>

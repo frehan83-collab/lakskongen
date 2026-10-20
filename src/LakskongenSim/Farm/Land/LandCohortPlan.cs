@@ -54,6 +54,14 @@ namespace LakskongenSim.Farm.Land
         /// <summary>The plan's growth multiplier: the genome's × the competence's when stocked.</summary>
         public double GrowthMultiplier { get; set; } = 1.0;
 
+        /// <summary>
+        /// The plan's daily hazard (share of the fish lost a day): the stocking
+        /// plan's cycle survival spread over its cycle days ([L:R2]: about 97 %
+        /// survive a land cycle). The land fish's baseline mortality (F2-15,
+        /// <c>LandHooks.MortalityTermsFor</c>); 0 = none planned (the sea anchor).
+        /// </summary>
+        public double DailyHazard { get; set; }
+
         /// <summary>Days in a row the cohort has stood below the shortfall share of the plan.</summary>
         public int ShortfallDays { get; set; }
 
@@ -77,7 +85,8 @@ namespace LakskongenSim.Farm.Land
         /// <paramref name="day"/> at <paramref name="temperatureC"/> with
         /// <paramref name="growthMultiplier"/>.
         /// </summary>
-        public static LandCohortPlan Start(int day, double weightKg, double weightCv, double temperatureC, double growthMultiplier)
+        public static LandCohortPlan Start(int day, double weightKg, double weightCv, double temperatureC, double growthMultiplier,
+            double dailyHazard = 0.0)
             => new()
             {
                 StartDay = day,
@@ -86,6 +95,7 @@ namespace LakskongenSim.Farm.Land
                 PlanWeightCv = weightCv,
                 TemperatureC = temperatureC,
                 GrowthMultiplier = growthMultiplier,
+                DailyHazard = double.IsFinite(dailyHazard) ? Math.Clamp(dailyHazard, 0.0, 1.0) : 0.0,
             };
 
         /// <summary>A copy (grading moves a plan with its fish).</summary>

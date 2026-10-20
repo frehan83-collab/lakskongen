@@ -66,9 +66,18 @@ public partial class SimulationEngine
     public double LandUtilisationCapOf(RASFacility site)
         => HasLandCompetence(site) ? CompetenceModel.UtilisationCap(LandCompetenceOf(site).Total, LandCalibration.Competence) : 1.0;
 
-    /// <summary>The growth the site's competence gives its fish on the law (1 where competence does not apply).</summary>
+    /// <summary>The growth the site's competence gives its fish against the plan (1 at competence 1.0, and where competence does not apply).</summary>
     public double LandCompetenceGrowthMultiplierOf(RASFacility site)
         => HasLandCompetence(site) ? CompetenceModel.GrowthMultiplier(LandCompetenceOf(site).Total, LandCalibration.Competence) : 1.0;
+
+    /// <summary>
+    /// The multiplier on the growth law's potential of a land site's tank fish
+    /// (F2-15): the plan's (<see cref="LandProductionCalibration.PlanGrowthMultiplier"/>,
+    /// competence 1.0) × the site's competence against the plan. A post-smolt
+    /// site grows on the plan; a pre-F2 site (no lots) on the law alone (1.0).
+    /// </summary>
+    public double LandGrowthMultiplierOf(RASFacility site)
+        => site == null || !site.HasLots ? 1.0 : LandCalibration.Production.PlanGrowthMultiplier * LandCompetenceGrowthMultiplierOf(site);
 
     /// <summary>Nameplate production of the site's commissioned lots (t HOG a year, a pure read).</summary>
     public double LandNameplateTonnesNow(RASFacility site)
@@ -216,7 +225,8 @@ public partial class SimulationEngine
     /// setpoint and the site's competence, the site's feeding plan feeds it,
     /// and the site's first fish day is set.
     /// </summary>
-    private void NoteLandStocking(RASFacility site, LandTank tank, FishPopulation population, SmoltStrain strain)
+    private void NoteLandStocking(RASFacility site, LandTank tank, FishPopulation population, SmoltStrain strain,
+        double dailyHazard)
     {
         tank.ClearFishRecord();
         tank.StrainId = strain.Id;
@@ -224,7 +234,7 @@ public partial class SimulationEngine
         var cohort = population.Cohorts[0];
         double cv = cohort.WeightCv > 0.0 ? cohort.WeightCv : Growth.Law.InitialWeightCv(cohort.MeanWeightKg);
         tank.Plan = LandCohortPlan.Start(State.Day, cohort.MeanWeightKg, cv, site.TargetWaterTemp,
-            (cohort.Genetics?.GetGrowthMultiplier() ?? 1.0) * LandCompetenceGrowthMultiplierOf(site));
+            (cohort.Genetics?.GetGrowthMultiplier() ?? 1.0) * LandGrowthMultiplierOf(site), dailyHazard);
         if (site.FeedRationFraction < 1.0)
             population.Ration = RationPolicy.OfAppetite(site.FeedRationFraction);
         if (site.Competence.FirstFishDay < 0)
@@ -430,7 +440,10 @@ public partial class SimulationEngine
                 double share = plan.ShareOfPlan(fish.GetTotalBiomassKg() / fish.TotalCount);
                 if (!plan.NoteStanding(fish.GetTotalBiomassKg() / fish.TotalCount, cal.Growth)) continue;
                 behind++;
-                if (worst == null || share < worst.Value.ShareOfPlan)
+                // Told on the day a tank's shortfall reaches 30 days, and every 30 days while it
+                // lasts (the notification budget of spec §6.6: at most 2 warnings a unit a month).
+                bool due = cal.Growth.ShortfallDays > 0 && plan.ShortfallDays % cal.Growth.ShortfallDays == 0;
+                if (due && (worst == null || share < worst.Value.ShareOfPlan))
                     worst = new LandShortfall(tank.Id, share, plan.Driver(), 0);
             }
         }
@@ -440,8 +453,9 @@ public partial class SimulationEngine
     /// <summary>
     /// Tell the player a cohort has stood below 85 % of its plan for 30 days
     /// (spec §3.5 GrowthShortfall, warning, counter verb build_competence),
-    /// naming the driver that cost it the most. Reported every day it holds:
-    /// the bus keeps it one notification per site and driver.
+    /// naming the driver that cost it the most (the event's variant, so a new
+    /// driver is news). Reported on the day the shortfall reaches 30 days and
+    /// every 30 days while it lasts (<see cref="TrackCohortPlans"/>).
     /// </summary>
     private void PublishGrowthShortfall(RASFacility site, LandShortfall shortfall)
     {
