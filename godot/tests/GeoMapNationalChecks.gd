@@ -6,8 +6,8 @@ extends RefCounted
 ## the checks read node state, the layers' records (redraw counters, what
 ## each _draw drew), the raw po_index on the CPU and real input.
 ##
-## 1. The adapter answers the plan's reads (stubbed until Track A and B),
-##    and calls the facade's reads once they exist.
+## 1. The adapter answers the plan's reads through the facade (Tracks A and
+##    B are merged: no read is missing), and with no facade answers empty.
 ## 2. Plates: each anchor within 1 px of its label_25833 in drawn_rect(), at
 ##    the default size, at a 1280x720 layout (UI at 150 %) and after the
 ##    resize back; no plate overlaps a plate, a city name or another area's
@@ -84,12 +84,12 @@ func run(runner: Node) -> void:
 	await _thirty_times(scene, map, chart)
 	await _rebinding(chart)
 	await _reopen(ui, map)
-	var stubbed := ", ".join(chart.bridge.stubbed())
+	var missing := ", ".join(chart.bridge.missing())
 	scene.queue_free()
 	await t.get_tree().process_frame
 	# Leave a cold cache for the checks that follow (Track D's lazy loads).
 	GeoData.reset_cache()
-	print("  geo C2 checks took %d ms (stubbed reads: %s)" % [Time.get_ticks_msec() - started, stubbed])
+	print("  geo C2 checks took %d ms (missing reads: %s)" % [Time.get_ticks_msec() - started, missing])
 
 
 func _check(ok: bool, label: String) -> void:
@@ -117,19 +117,19 @@ func _adapter(chart: GeoMapView) -> void:
 		ok = ok and int(a.get("id", 0)) == i + 1 and str(a.get("name", "")) != "" \
 			and str(a.get("official_traffic_light", "")) in ["green", "yellow", "red"] \
 			and float(a.get("label_x", 0.0)) != 0.0 and float(a.get("sea_area_km2", 0.0)) > 0.0
-	_check(ok and chart.areas().size() == AREAS,
-		"geo map: get_geo_production_areas gives the 13 areas with names, official lights and label points (stubbed: %s)"
-			% ", ".join(chart.bridge.stubbed()))
+	_check(ok and chart.areas().size() == AREAS and chart.bridge.missing().is_empty(),
+		"geo map: get_geo_production_areas gives the 13 areas with names, official lights and label points (missing reads: %s)"
+			% ", ".join(chart.bridge.missing()))
 
 
-## Once Tracks A and B are merged the facade has the reads: the adapter then
-## calls them, never the stub, and hands the sites over in the plan's packed
-## types whatever the bridge marshals.
+## The facade has the reads: the adapter calls them and hands the sites over
+## in the plan's packed types whatever the bridge marshals. With no facade
+## (a bare scene) every read answers empty: nothing is made up.
 func _adapter_uses_the_real_reads() -> void:
 	var fake := _FakeSim.new()
 	var adapter := GeoBridgeAdapter.new(fake)
 	var sites := adapter.sites()
-	var ok := adapter.stubbed().is_empty() and adapter.production_areas() == [{"id": 99}] \
+	var ok := adapter.missing().is_empty() and adapter.production_areas() == [{"id": 99}] \
 		and adapter.offshore_candidates() == [{"id": "HTH99"}] and adapter.area_at(1.0, 2.0) == 7 \
 		and adapter.sites_signature() == "fake:2" and adapter.rival_summary(3) == {"po": 3} \
 		and adapter.player_site_locations() == [{"site_id": "s1"}]
@@ -139,6 +139,14 @@ func _adapter_uses_the_real_reads() -> void:
 			and is_equal_approx(sites["mtb_t"][0], 1.5) and (sites["owners"] as Array).size() == 1,
 		"geo map: with the lanes merged the adapter calls the seven reads, and normalises the sites' arrays")
 	fake.free()
+	var bare := GeoBridgeAdapter.new(null)
+	var none := bare.sites()
+	_check(bare.missing().size() == GeoBridgeAdapter.READS.size() and bare.production_areas().is_empty()
+			and bare.offshore_candidates().is_empty() and bare.area_at(500000.0, 7000000.0) == 0
+			and bare.sites_signature() == "" and (none["ids"] as PackedInt32Array).is_empty()
+			and (none["owners"] as Array).is_empty() and bare.rival_summary(3).is_empty()
+			and bare.player_site_locations().is_empty(),
+		"geo map: with no facade every read answers empty, nothing is made up (missing %d)" % bare.missing().size())
 
 
 class _FakeSim extends Node:

@@ -14,8 +14,9 @@ C1, the foundation (godot/scripts/ui/map/GeoData.gd, GeoProjection.gd):
 C2, the national map (MapPanel v2): no reference to the retired coastline
 and minimap files (manifest.json excepted); MapPanel.gd under 800 lines with
 its public API and Track D's hooks; the MAP_GEO_* keys in both languages;
-the plan's sim reads through the one adapter; localities parsed only by its
-stub; the tint shader's raw nearest lookup; ThemeLint's lint_background.
+the plan's sim reads through the one adapter, which stubs nothing now that
+Tracks A and B are merged; no GDScript parses localities.geojson; the tint
+shader's raw nearest lookup; ThemeLint's lint_background.
 """
 
 from __future__ import annotations
@@ -225,12 +226,17 @@ def test_no_emoji_in_map_panel_and_the_national_checks():
 
 
 def test_the_sim_is_read_through_the_one_adapter():
-    """The national map calls the plan's reads (§3) by name, in one marked
-    adapter file; no other map script calls the facade for them."""
+    """The national map calls the plan's reads (§3) by name, in one adapter
+    file; no other map script calls the facade for them. Tracks A and B are
+    merged (the captain's C2 merge), so the adapter holds no stub: each read
+    is the facade's own call, guarded only for a scene with no SimBridge, and
+    nothing in it reads the geo files the sim embeds."""
     text = ADAPTER.read_text(encoding="utf-8")
-    assert "STUB ADAPTER" in text
+    code = _code(ADAPTER)
+    assert "STUB" not in text and "_stub" not in code
+    assert "GeoData." not in code and "FileAccess" not in code and "read_json" not in code
     for name in PLAN_READS:
-        assert f'has_real("{name}")' in text and f"_sim.{name}(" in text, name
+        assert f'has_read("{name}")' in code and f"_sim.{name}(" in code, name
     for path in sorted(MAP_SCRIPTS.glob("*.gd")) + [MAP_PANEL]:
         if path == ADAPTER:
             continue
@@ -239,17 +245,14 @@ def test_the_sim_is_read_through_the_one_adapter():
             assert f".{name}(" not in code, f"{path.name} calls {name} outside the adapter"
 
 
-def test_gdscript_parses_localities_only_in_the_adapter_stub():
-    """The 618 KB localities.geojson is never parsed by the map (plan §8);
-    only the adapter's STUB reads it, until Track A's packed arrays arrive."""
-    marker = "# ── STUB (geo C2"
-    for path in sorted((REPO / "godot" / "scripts").rglob("*.gd")):
-        if "localities.geojson" not in _code(path):
-            continue
-        assert path == ADAPTER, path
-        text = path.read_text(encoding="utf-8")
-        head = "\n".join(_strip_comments(ln) for ln in text[: text.index(marker)].splitlines())
-        assert "localities.geojson" not in head and "localities.geojson" in text[text.index(marker):]
+def test_no_gdscript_parses_localities():
+    """The 618 KB localities.geojson is never parsed in GDScript (plan §8): the
+    national icons come from track A's packed arrays (get_geo_sites). This
+    replaces C2's 'only the adapter's stub parses it', which the captain's
+    merge made stronger by deleting the stub."""
+    hits = [str(path.relative_to(REPO)) for path in sorted((REPO / "godot").rglob("*.gd"))
+            if ".godot" not in path.parts and "localities.geojson" in _code(path)]
+    assert not hits, hits
 
 
 def test_the_tint_shader_samples_the_raw_index_nearest():

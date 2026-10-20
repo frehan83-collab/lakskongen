@@ -73,8 +73,8 @@ func _report(tag: String, map: Control) -> void:
 	var chart: GeoMapView = map.chart()
 	var plates: Array = chart.plates().values().map(func(p: MapMarker) -> String:
 		return "%s@%s%s" % [p.region_id, str(p.get_rect()), " leader" if p.leader else ""])
-	print("[GeoMapCapture] %s chart %s drawn %s compact %s stubbed %s" % [tag, str(chart.size),
-		str(chart.drawn_rect()), str(chart.compact), str(chart.bridge.stubbed())])
+	print("[GeoMapCapture] %s chart %s drawn %s compact %s missing reads %s" % [tag, str(chart.size),
+		str(chart.drawn_rect()), str(chart.compact), str(chart.bridge.missing())])
 	print("[GeoMapCapture]   plates %s" % ", ".join(plates))
 	print("[GeoMapCapture]   cities %s" % str(chart.city_label_rects()))
 	print("[GeoMapCapture]   clusters %d totals %s" % [chart.site_layer().clusters().size(),

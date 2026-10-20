@@ -320,6 +320,10 @@ GIS package).
   owners and places the company's farms at their area's label point, and it
   is the only GDScript that parses `localities.geojson` (pinned by
   `tests/test_geo_map_contract.py`).
+  Merged into geo/int (geo int C2, 2026-10-21): A and B were already merged,
+  so the captain deleted the stub. Every read is now the facade's own call;
+  a scene with no SimBridge gets empty answers, never invented ones; and no
+  GDScript parses `localities.geojson` (pinned).
 - Credits: `godot/data/credits.json` already lists the seven map-data
   providers with their attribution notices (translation keys in
   `translations.csv`), so `CreditsScreen` shows them with no code change.
