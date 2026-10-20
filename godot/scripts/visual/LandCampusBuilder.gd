@@ -736,7 +736,7 @@ func spinning_feeders() -> int:
 			continue
 		var mm := mmi.multimesh
 		for k in mm.instance_count:
-			if mm.get_instance_custom_data(k).a >= 1.0:
+			if MultiMeshPack.custom_of(mm, k).a >= 1.0:
 				n += 1
 	return n
 

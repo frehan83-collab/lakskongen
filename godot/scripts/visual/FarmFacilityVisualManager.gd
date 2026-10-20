@@ -97,8 +97,14 @@ func _on_state_updated() -> void:
 	var sim := get_node_or_null("/root/SimBridge")
 	if sim == null or not sim.has_method("get_facility_visuals"):
 		return
-	_refresh_plot_names(sim)
-	sync_units(sim.get_facility_visuals())
+	var rows: Array = sim.get_facility_visuals()
+	# The plots' names are read once a unit stands on a plot not yet named
+	# (a game without farm-type units pays one read a day, not three).
+	for row: Dictionary in rows:
+		if not plot_names.has(str(row.get("plot_id", ""))):
+			_refresh_plot_names(sim)
+			break
+	sync_units(rows)
 
 
 func _refresh_plot_names(sim: Node) -> void:
