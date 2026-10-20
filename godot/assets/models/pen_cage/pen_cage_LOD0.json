@@ -24,7 +24,7 @@
   },
   "file": "pen_cage_LOD0.glb",
   "lod": "LOD0",
-  "material_count": 12,
+  "material_count": 13,
   "materials": [
     "LK_Band",
     "LK_BirdNet",
@@ -35,6 +35,7 @@
     "LK_Net",
     "LK_NetAbove",
     "LK_PoleBlue",
+    "LK_Rope",
     "LK_Skirt",
     "LK_Spreader",
     "LK_Walkway"
@@ -47,12 +48,12 @@
     "BirdNetRimPoles": 716,
     "Collar": 24144,
     "FeedPipe": 2144,
-    "Handrail": 9360,
+    "Handrail": 11520,
     "LiceSkirt": 1800,
     "Net": 3648,
     "SinkerTube": 3252,
     "Walkway": 2160
   },
-  "tri_count": 54772,
-  "tri_count_without_skirt": 52972
+  "tri_count": 56932,
+  "tri_count_without_skirt": 55132
 }

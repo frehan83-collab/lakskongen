@@ -240,12 +240,24 @@ def test_atlas_strips_hold_their_swatch_and_survive_mipmapping():
         assert alphas == ({255} if rough is None else {round(rough * 255)}), (name, alphas)
 
 
+@pytest.mark.parametrize("aid", ["process_hall_bay", "harvest_hall"])
+def test_hall_roofs_carry_roof_lights(aid):
+    # Lookdev wave 4: from the land framing the halls are mostly roof; pale
+    # roof-light bands break the dark roofs at LOD0 and LOD1 (the land
+    # framing's band), on their own strip, which glows at night.
+    for lod in ("LOD0", "LOD1"):
+        side = _sidecar(aid, lod)
+        assert side["parts"].get("Skylights", 0) > 0 and side["part_strips"]["Skylights"] == "skylight", (aid, lod)
+    shader = (GODOT / "shaders" / "facility_kit.gdshader").read_text()
+    assert "EMISSION = roof_light_color * night_light * emission_energy * roof_light_glow;" in shader
+
+
 def test_shader_rows_follow_the_strip_order():
     names = [s[0] for s in _strips()]
     shader = (GODOT / "shaders" / "facility_kit.gdshader").read_text()
     rows = dict(re.findall(r"const float ROW_(\w+) = ([\d.]+);", shader))
     for const, strip in (("TANK_WALL", "tank_wall"), ("TANK_BAND", "tank_band"), ("TANK_LID", "tank_lid"),
-                         ("ROTOR", "rotor"), ("BRIDGE_LEG", "bridge_leg")):
+                         ("ROTOR", "rotor"), ("BRIDGE_LEG", "bridge_leg"), ("SKYLIGHT", "skylight")):
         assert float(rows[const]) == names.index(strip), const
     # The pale lid swatch sits one row under the dark lid (the shader's swap).
     assert names.index("tank_lid_pale") == names.index("tank_lid") + 1

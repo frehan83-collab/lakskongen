@@ -40,10 +40,10 @@
     },
     "pen_cage_LOD0": {
       "path": "godot/assets/models/pen_cage/pen_cage_LOD0.glb",
-      "sha256": "48a4c890df2da9563c089f5e3063e707135c720b01db674ef81ac303f1dd2ec8",
-      "size": 1776716,
-      "tri_count": 54772,
-      "material_count": 12,
+      "sha256": "9c60a9281225b2494b8d968b5810d5a4c6ed25a5df04ebba0ebee720b4fc3e98",
+      "size": 1836724,
+      "tri_count": 56932,
+      "material_count": 13,
       "bbox_size": [
         57.0362,
         46.0,
@@ -52,10 +52,10 @@
     },
     "pen_cage_LOD1": {
       "path": "godot/assets/models/pen_cage/pen_cage_LOD1.glb",
-      "sha256": "9d80fee1c42a503052db037580686d76f4601f07c057e78e148f4b8bb6782ae7",
-      "size": 527948,
-      "tri_count": 13940,
-      "material_count": 12,
+      "sha256": "f2c7c10f0ec67eb68e5c1cb70b77a7471399dc3d708f6979d328262f1e6715ef",
+      "size": 544744,
+      "tri_count": 14660,
+      "material_count": 13,
       "bbox_size": [
         56.8546,
         46.0,
@@ -64,10 +64,10 @@
     },
     "pen_cage_LOD2": {
       "path": "godot/assets/models/pen_cage/pen_cage_LOD2.glb",
-      "sha256": "c1f0a9911513fbab5712c6faa1081afa5f697a1e4842fc9b3cbf09a14903f58d",
-      "size": 61792,
-      "tri_count": 1910,
-      "material_count": 12,
+      "sha256": "96c9ca46e071afcca2f27eba97c5e4eb029254068086285f57d5c94f4d25ff51",
+      "size": 63312,
+      "tri_count": 1982,
+      "material_count": 13,
       "bbox_size": [
         56.8223,
         45.5,
@@ -568,9 +568,9 @@
     },
     "process_hall_bay_LOD0": {
       "path": "godot/assets/models/land_kit/process_hall_bay_LOD0.glb",
-      "sha256": "4de5e08636a3f34cc54438b9a56156824f740f544d8545b2575584add0955bce",
-      "size": 59972,
-      "tri_count": 680,
+      "sha256": "0005814df764f58030fb3441c4928539ef102d7aebe24922536d925eeb28ec15",
+      "size": 60316,
+      "tri_count": 684,
       "material_count": 1,
       "bbox_size": [
         30.6,
@@ -580,9 +580,9 @@
     },
     "process_hall_bay_LOD1": {
       "path": "godot/assets/models/land_kit/process_hall_bay_LOD1.glb",
-      "sha256": "b974c255a03df0e0083bf0aa2d985fa1aacb8fb7179529b13c46fac13e1ee08a",
-      "size": 9904,
-      "tri_count": 98,
+      "sha256": "067a1b7a52dd8e6671e0981ee61733f5eed78cdae5cb9f0be855c63cd11b40ea",
+      "size": 10248,
+      "tri_count": 102,
       "material_count": 1,
       "bbox_size": [
         30.6,
@@ -604,9 +604,9 @@
     },
     "harvest_hall_LOD0": {
       "path": "godot/assets/models/land_kit/harvest_hall_LOD0.glb",
-      "sha256": "8a945d4a06694df0e2e38b0aa889900a23b9abe873d83492792e2bb95bd07bd2",
-      "size": 255408,
-      "tri_count": 2984,
+      "sha256": "8d12c0c39e4a9dcaa24fd2382e33f308f782bdb3448e97f5cd898463d23a4d89",
+      "size": 256440,
+      "tri_count": 2996,
       "material_count": 1,
       "bbox_size": [
         125.05,
@@ -616,9 +616,9 @@
     },
     "harvest_hall_LOD1": {
       "path": "godot/assets/models/land_kit/harvest_hall_LOD1.glb",
-      "sha256": "e1b93d86ac59f06bbfcc0c28b4d3e6f65bcb87476173063159f5d1d636df3e6d",
-      "size": 38660,
-      "tri_count": 434,
+      "sha256": "f8025e4b0ec3253cf8bc3bc45fe50c5b8ddd3bc4e03a181d4584eb261195e3e9",
+      "size": 39692,
+      "tri_count": 446,
       "material_count": 1,
       "bbox_size": [
         120.0,
@@ -964,9 +964,9 @@
     },
     "of1_class_LOD0": {
       "path": "godot/assets/models/offshore/of1_class_LOD0.glb",
-      "sha256": "1cd14e3159cf298076bd137b3c4f4d1cc1d816808b3eb09b4f778ef4a386e0d6",
-      "size": 2663816,
-      "tri_count": 46638,
+      "sha256": "45ef8562e810614add98ef44adee51da0cc14f587cb9da27c9182b582d19adec",
+      "size": 2786300,
+      "tri_count": 48156,
       "material_count": 2,
       "bbox_size": [
         126.0044,
@@ -976,9 +976,9 @@
     },
     "of1_class_LOD1": {
       "path": "godot/assets/models/offshore/of1_class_LOD1.glb",
-      "sha256": "27d4dcba91607cdd1c3f91d931649bdaf9d007958b0a7c13e4d389ce58703f43",
-      "size": 355984,
-      "tri_count": 5478,
+      "sha256": "3ba2a68b061dcdc43ad9c70954648932edefa8638322955a21c6b6d3d50f139f",
+      "size": 366232,
+      "tri_count": 5586,
       "material_count": 2,
       "bbox_size": [
         125.9042,

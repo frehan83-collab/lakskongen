@@ -170,6 +170,35 @@ def tank_feeder(b, lod):
 # Halls
 # --------------------------------------------------------------------------
 
+# Roof lights (lookdev, wave 4): from the land framing (520 m, -40 deg) the
+# halls are mostly roof. Pale polycarbonate roof-light bands, as on real
+# Norwegian process and harvest halls, break the dark roofs into a readable
+# industrial pattern; they are flat quads just proud of the roof (2 triangles
+# each, inside the spec budgets).
+ROOF_LIGHT_LIFT = 0.06
+
+
+def _roof_lights(b, x0, x1, y0, y1, eave, ridge, o=0.3, near=2.0, far=3.6):
+    """A roof-light band on each slope of a duo-pitch shed, `near`..`far`
+    metres (in plan) from the ridge, the whole bay long (bays line up end to
+    end into one band)."""
+    ym = 0.5 * (y0 + y1)
+    run = ym - (y0 - o)
+
+    def z_at(dy):
+        return eave - 0.02 + (ridge - eave + 0.02) * (run - dy) / run + ROOF_LIGHT_LIFT
+    mb = b.part("Skylights", "skylight")
+    for s in (-1, 1):
+        ya, yb = ym + s * far, ym + s * near
+        za, zb = z_at(far), z_at(near)
+        quad = [(x0, ya, za), (x1, ya, za), (x1, yb, zb), (x0, yb, zb)]
+        if s > 0:
+            quad = [quad[1], quad[0], quad[3], quad[2]]
+        idx = tuple(mb.vert(p) for p in quad)
+        length = x1 - x0
+        mb.face(idx, M, False, [(0.0, 0.0), (length, 0.0), (length, far - near), (0.0, far - near)])
+
+
 def process_hall_bay(b, lod):
     """One 30 x 20 x 10 m bay of the process hall between the tank rows:
     pale sandwich cladding, a ribbon of windows on both long sides, a low
@@ -182,6 +211,7 @@ def process_hall_bay(b, lod):
     if lod < 2:
         for x in (-7.5, 7.5):
             roof_unit(b, x, 0.0, ridge - 0.1, 2.2, 2.2, 1.3, lod)
+        _roof_lights(b, x0, x1, y0, y1, eave, ridge)
     if lod == 0:
         for x in (-14.4, 14.4):
             beam(b, "Trim", "steel", (x, y0 - 0.45, 0.2), (x, y0 - 0.45, eave - 0.2), 0.14, sides=4)
@@ -209,6 +239,12 @@ def harvest_hall(b, lod):
               step=5.0, rows=(0.6, 2.4), doors_back=docks, parapet=0.6)
         for k, x in enumerate((-40.0, -20.0, 0.0, 20.0, 40.0)):
             roof_unit(b, x, -12.0 + 6.0 * (k % 2), h - 1.0, 5.0, 3.0, 1.8, lod)
+        # Roof lights across the hall between the roof units (lookdev): six
+        # 2.4 m bands, so the 120 x 60 m dark roof reads as a building, not
+        # a slab, from the land framing.
+        for xc in (-50.0, -30.0, -10.0, 10.0, 30.0, 50.0):
+            grid(b, uniform("Skylights", "skylight"), (xc + 1.2, y0 + 3.0, h - 1.0 + ROOF_LIGHT_LIFT), (0, 1, 0),
+                 (-1, 0, 0), [0.0, y1 - y0 - 6.0], [0.0, 2.4])
         if lod == 0:
             for x in (-48.0, -8.0, 28.0, 52.0):
                 tube(b, "Roofgear", "steel", [(x, 18.0, h - 1.0), (x, 18.0, h + 3.0)], 0.35, 8, caps=True)

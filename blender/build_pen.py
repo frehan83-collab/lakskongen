@@ -43,6 +43,8 @@ Godot .tres files through the .glb.import "use_external" settings:
   LK_Marker        buoy-yellow floats #E8B92A
   LK_Spreader      the light-grey rotor spreader on the centre float
   LK_Hose          the white feed hose #EDEFEF (the site hoses' colour)
+  LK_Rope          green rope ties #2E8B57: the jump net's top rope and its
+                   lashings on the uprights (Handrail node; refs 2 and 4)
 
 Licence: in-house geometry and textures, no third-party assets.
 """
@@ -120,6 +122,16 @@ RIM_LEAN = 0.6                      # the pole tops lean in this far
 RIM_SCALLOP = 0.8                   # the net sags this much between poles
 RIM_CENTRE_POLE_TOP = 5.4
 RIM_ROOF_SAG = 0.45
+# Green rope ties (owner references 2 and 4, lookdev wave 4): the jump net's
+# top rope runs just inside the uprights, scalloped between them, and is
+# lashed to every upright under the handrail. Drawn a little heavier than
+# real 16-24 mm rope so the green reads at the FARM zoom; LOD0 only.
+TIE_TOP = RAIL_Z - 0.14
+TIE_BOTTOM = RAIL_Z - 0.46
+TIE_R = STANCH_R + 0.03
+TOP_ROPE_R = 0.032
+TOP_ROPE_Z = RAIL_Z - 0.30
+TOP_ROPE_SAG = 0.24
 
 # glTF material names -> (base colour hex, roughness, metallic, alpha)
 MATERIALS = {
@@ -135,6 +147,7 @@ MATERIALS = {
     "LK_PoleBlue": ("#2F6DB5", 0.5, 0.0, 1.0),
     "LK_Spreader": ("#A9AFB2", 0.55, 0.0, 1.0),
     "LK_Hose": ("#EDEFEF", 0.42, 0.0, 1.0),
+    "LK_Rope": ("#2E8B57", 0.85, 0.0, 1.0),
 }
 
 # Per-LOD level of detail. Every LOD carries every material, so the asset
@@ -148,7 +161,7 @@ LODS = {
                  hose_pts=110, skirt_around=180, skirt_rows=5, mooring_collars=True,
                  bollards=True, deadfish=True, rim_around=96, rim_side_rows=4,
                  rim_roof_rows=8, rim_poles=N_RIM_POLES, rim_pole_sides=8,
-                 spreader_sides=20),
+                 spreader_sides=20, rope_ties="full"),
     "LOD1": dict(pipe_sides=8, ring_segs=120, rail_sides=6, rail_segs=120,
                  brackets="boxes", stanch_sides=4, walk="ring", band_rows=2,
                  net_around=48, net_wall_rows=5, net_cone_rows=3,
@@ -157,7 +170,7 @@ LODS = {
                  hose_pts=36, skirt_around=96, skirt_rows=3, mooring_collars=False,
                  bollards=False, deadfish=True, rim_around=48, rim_side_rows=2,
                  rim_roof_rows=4, rim_poles=N_RIM_POLES, rim_pole_sides=4,
-                 spreader_sides=10),
+                 spreader_sides=10, rope_ties="ring"),
     "LOD2": dict(pipe_sides=4, ring_segs=40, rail_sides=3, rail_segs=40,
                  brackets="none", stanch_sides=0, walk="flat", band_rows=1,
                  net_around=24, net_wall_rows=2, net_cone_rows=1,
@@ -166,7 +179,7 @@ LODS = {
                  hose_pts=6, skirt_around=24, skirt_rows=1, mooring_collars=False,
                  bollards=False, deadfish=False, rim_around=16, rim_side_rows=1,
                  rim_roof_rows=2, rim_poles=8, rim_pole_sides=3,
-                 spreader_sides=6),
+                 spreader_sides=6, rope_ties="min"),
 }
 
 TRI_LIMITS = {"LOD0": 60000, "LOD2": 2000}
@@ -233,6 +246,7 @@ def build_handrail(p) -> kit.MeshBuilder:
     mb = kit.MeshBuilder()
     kit.ring_tube(mb, R_STANCH, RAIL_Z, RAIL_R, p["rail_segs"], p["rail_sides"], "LK_HDPE")
     if p["stanch_sides"] <= 0:
+        build_rope_ties(mb, p["rope_ties"])
         return mb
     for i in range(N_BRACKETS):
         th = bracket_angle(i)
@@ -249,7 +263,31 @@ def build_handrail(p) -> kit.MeshBuilder:
         else:
             kit.cylinder(mb, polar(R_STANCH, th, BEAM_TOP), polar(R_STANCH, th, RAIL_Z),
                          STANCH_R, p["stanch_sides"], "LK_HDPE", caps=False, smooth=False)
+    build_rope_ties(mb, p["rope_ties"])
     return mb
+
+
+def build_rope_ties(mb, style: str) -> None:
+    """The jump net's green top rope, scalloped between the uprights just
+    inside them, and its lashing round every upright (refs 2 and 4). LOD1
+    and LOD2 keep a plain rope ring (sub-pixel there; it keeps LK_Rope on
+    every LOD, as the manifest's material list requires)."""
+    r = R_STANCH - STANCH_R - TOP_ROPE_R
+    if style != "full":
+        segs, sides = (120, 3) if style == "ring" else (12, 3)
+        kit.ring_tube(mb, r, TOP_ROPE_Z - TOP_ROPE_SAG * 0.5, TOP_ROPE_R, segs, sides, "LK_Rope")
+        return
+    for i in range(N_BRACKETS):
+        th = bracket_angle(i)
+        kit.cylinder(mb, polar(R_STANCH, th, TIE_BOTTOM), polar(R_STANCH, th, TIE_TOP), TIE_R, 6, "LK_Rope",
+                     caps=False)
+    pts = []
+    for i in range(N_BRACKETS):
+        th0, th1 = bracket_angle(i), bracket_angle(i + 1)
+        for s in range(3):
+            t = s / 3
+            pts.append(polar(r, th0 + (th1 - th0) * t, TOP_ROPE_Z - TOP_ROPE_SAG * math.sin(math.pi * t)))
+    kit.path_tube(mb, pts, TOP_ROPE_R, 4, "LK_Rope", closed=True, caps=False)
 
 
 def build_walkway(p) -> kit.MeshBuilder:

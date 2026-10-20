@@ -92,6 +92,8 @@ STRIPS = [
     ("door", "#6B7177", 0.60, "seam", 0.25, 0.08),
     ("lamp", "#FFE7B0", None, "flat", 0.0, 0.0),
     ("safety", "#E8B92A", 0.55, "flat", 0.0, 0.0),
+    # Lookdev wave 4: milky polycarbonate roof lights on the hall roofs.
+    ("skylight", "#C3CDD1", 0.38, "seam", 1.0, 0.07),
 ]
 STRIP_INDEX = {s[0]: i for i, s in enumerate(STRIPS)}
 

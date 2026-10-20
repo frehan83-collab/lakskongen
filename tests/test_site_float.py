@@ -156,7 +156,7 @@ def test_every_pen_lod_carries_both_bird_nets_and_the_spreader(lod):
     side = json.loads((GODOT / "assets" / "models" / "pen_cage" / f"pen_cage_{lod}.json").read_text())
     for part in ("BirdNet", "BirdNetPoles", "BirdNetRim", "BirdNetRimPoles", "FeedPipe"):
         assert side["parts"].get(part, 0) > 0, (lod, part)
-    for mat in ("LK_BirdNetGreen", "LK_PoleBlue", "LK_Spreader", "LK_Hose"):
+    for mat in ("LK_BirdNetGreen", "LK_PoleBlue", "LK_Spreader", "LK_Hose", "LK_Rope"):
         assert mat in side["materials"], (lod, mat)
 
 
@@ -168,6 +168,8 @@ def test_reference_colours_reach_the_pen_materials():
     # Owner palette: pole blue #2F6DB5, hose white #EDEFEF.
     assert colour("pen_pole_blue_material.tres") == (0.184, 0.427, 0.71)
     assert colour("pen_hose_material.tres") == (0.929, 0.937, 0.937)
+    # Rope/net green #2E8B57 on the rope ties (lookdev wave 4).
+    assert colour("pen_rope_material.tres") == (0.18, 0.545, 0.341)
     green = colour("pen_bird_net_green_material.tres")
     assert green[1] > green[0] and green[1] > green[2]
     hose = (GODOT / "assets" / "models" / "site_kit" / "feed_hose_material.tres").read_text()

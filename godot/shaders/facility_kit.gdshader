@@ -21,6 +21,10 @@ render_mode cull_back, diffuse_burley, specular_schlick_ggx;
 //
 // Mips: a strip is one texel tall at mip 5 (32 x 32), so the sampled level
 // stops there and strips never bleed into each other.
+//
+// Roof lights (lookdev, wave 4): the skylight strip is pale polycarbonate by
+// day and, unlike the glow strips, keeps its albedo; with night_light it
+// glows a soft warm interior light (the dusk mood of ref L2).
 
 uniform sampler2D atlas : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform float atlas_strips = 32.0;
@@ -32,6 +36,9 @@ uniform float ao_light_affect : hint_range(0.0, 1.0) = 0.35;
 // every dusk and night). 0 by day; F2-20/F2-23 drive it.
 uniform float night_light : hint_range(0.0, 1.0) = 0.0;
 uniform float emission_energy = 2.4;
+// Roof-light glow at night, relative to the windows (diffuse, dimmer).
+uniform float roof_light_glow : hint_range(0.0, 1.0) = 0.25;
+uniform vec3 roof_light_color : source_color = vec3(1.0, 0.86, 0.62);
 // Daylight look of an emissive strip: dark glass.
 uniform vec3 glass_color : source_color = vec3(0.10, 0.13, 0.15);
 // Material-wide variants (a MultiMesh overrides them per instance).
@@ -47,6 +54,7 @@ const float ROW_TANK_BAND = 1.0;
 const float ROW_TANK_LID = 2.0;
 const float ROW_ROTOR = 5.0;
 const float ROW_BRIDGE_LEG = 14.0;
+const float ROW_SKYLIGHT = 26.0;
 
 varying float model_y;
 varying float row_shift;
@@ -102,11 +110,15 @@ void fragment() {
 	float lod = 0.5 * log2(max(max(dot(dx, dx), dot(dy, dy)), 1e-8));
 	vec4 t = textureLod(atlas, uv, clamp(lod, 0.0, max_lod));
 	bool glow = t.a > 0.985;
+	bool roof_light = row_of(UV) == ROW_SKYLIGHT;
 	ALBEDO = glow ? glass_color : t.rgb;
 	ROUGHNESS = glow ? 0.12 : t.a;
 	METALLIC = 0.0;
 	SPECULAR = glow ? 0.6 : 0.45;
 	EMISSION = glow ? t.rgb * night_light * emission_energy : vec3(0.0);
+	if (roof_light) {
+		EMISSION = roof_light_color * night_light * emission_energy * roof_light_glow;
+	}
 	AO = mix(1.0, COLOR.r, ao_strength);
 	AO_LIGHT_AFFECT = ao_light_affect;
 }

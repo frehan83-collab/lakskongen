@@ -35,7 +35,7 @@
     "Net": 128,
     "Pontoons": 420,
     "Rings": 1092,
-    "Topsides": 1606
+    "Topsides": 1714
   },
   "lod": "LOD1",
   "markers": {
@@ -56,7 +56,7 @@
     "Net"
   ],
   "nodes": {
-    "Hull": 5398,
+    "Hull": 5506,
     "Net": 80
   },
   "parts": {
@@ -70,6 +70,7 @@
     "ColumnCentre": 100,
     "ColumnLarge": 600,
     "ColumnSlim": 780,
+    "Containers": 30,
     "Cranes": 224,
     "Deckhouse": 48,
     "DeckhouseTrim": 44,
@@ -78,6 +79,7 @@
     "Feet": 360,
     "Gantry": 96,
     "GantryWalk": 20,
+    "GearDeck": 78,
     "LanternPosts": 48,
     "Lanterns": 294,
     "Mast": 46,
@@ -135,5 +137,5 @@
       "strip": "hull_splash"
     }
   },
-  "tri_count": 5478
+  "tri_count": 5586
 }
