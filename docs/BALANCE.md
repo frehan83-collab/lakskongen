@@ -2388,6 +2388,59 @@ fee (D16: medals, never cash). The win the UI tests play:
 ressursrente seed 5 harvesting at 4.5 kg, won after 308 days with bronze (16.3 %
 mortality and 7 kNOK of fines missed the other two).
 
+## 1v. U2-02: the first season (2026-10-20, branch `wave4/ui-core-1`)
+
+The first season asks for one verb a step and completes a step on what the
+player did; no step waits for a date, and the steps pay nothing (D16). The
+numbers below are what the new track costs a player in time and cash.
+
+### The funding step's goal
+
+Step 13 waits for the second site's price plus three months of its running
+cost in the bank (`TutorialSystem.FundingReserveMonths`): in Første sesong's
+home zone `PlanSiteBuild` gives 6,000,000 NOK for the build and 354,250 NOK a
+month to run it, so the goal is **7,062,750 NOK**. Three months because the
+new site sells nothing until its first harvest, and the bank's liquidity
+ladder warns at a 60-day runway (§1u). Short of the goal, the step slows the
+clock to 1× and points at the bank's 5 MNOK loan; a loan that leaves the cash
+short does not complete it.
+
+### The minimal player (`Tutorial/TutorialPlayer.cs`, events on, horizon 730 days)
+
+It does each step's verb (a 30-day feeding plan, the "Avlus ved telling"
+order, a planned harvest at 4.5 kg, 10,000 smolts in the first empty pen, the
+cheapest research leaving 200,000 NOK, the panel's 5 MNOK loan when short)
+and nothing else. Days are sim days from 1 January.
+
+| Seed | Won | Finish day | Grown to 4 kg | Harvest ordered | Sold | Cash at the funding step | Loan | Lowest cash | Cash at the end |
+|---|---|---|---|---|---|---|---|---|---|
+| 4 | yes | 292 | 266 | 287 | 292 | 7.95M | — | 0.53M | 1.83M |
+| 7 | yes | 318 | 287 | 313 | 318 | 6.95M | 5M, day 318 | 0.19M | 5.83M |
+| 9 | yes | 283 | 257 | 278 | 283 | 10.88M | — | 0.35M | 4.76M |
+| 13 | yes | 318 | 290 | 313 | 318 | 8.08M | — | 0.86M | 1.96M |
+| 21 | yes | 317 | 284 | 312 | 317 | 6.02M | 5M, day 317 | 0.85M | 4.90M |
+| 42 | yes | 305 | 274 | 300 | 305 | 10.37M | — | 0.76M | 4.25M |
+
+Steps 9-18 complete on the sale day: the minimal player does them at once, as
+a player can while the hold steps stand the clock. Before (§1e, the old track
+without reward cash) four seeds waited 600-1233 days for the cash the old
+player wanted before the second site; now **6 of 6 win within the first year
+(days 283-318)**, two of them with the bank's loan, and the cash never falls
+below 0.19M.
+
+### The input player (`godot/tests/FirstSeasonFlowChecks.gd`, clicks and keys only)
+
+| Seed | Won on day | Actions | Harvest ordered | Cash at the funding step | What the funding step took |
+|---|---|---|---|---|---|
+| 7 (the UI test) | 294 | 54-55 | day 288, at 4.0 kg (the planner as it opens) | 3.67M of 7.06M | a click on «Økonomi», a click on the loan |
+| 9 | 278 | 50 | day 261 | above the goal | nothing: the step completed as it came up |
+
+The input player orders the harvest as soon as the planner opens (the step's
+4.0 kg), so it sells smaller fish than the minimal player and borrows on
+seed 7; a real player who reads the planner's "2, 4, 8 weeks" columns can
+wait and may not need the loan. The season takes about 22 s of real time
+headless at 30×.
+
 ## 2. Key economic knobs
 
 | Knob | Current | Real reference | Source | Recommended playtest band |
@@ -2617,3 +2670,4 @@ S1-01 / S1-02 guards (§1d):
 | 2026-10-14 | wave1/sim-1 (S1-01, S1-02) | F1024 water chemistry merged; seawater O2 solubility (Benson & Krause, 9.02 mg/L at 10 °C/35 PSU, was 10.9); pH baseline 8.05; zones take the sea temperature; F456 storm season renormalized through one helper shared with the forecast; storm damage once per episode; net repair 0.2 -> 0.5; storm cooling Apr-Sep only. Re-measured every band (§1b, §1c updated, before/after in §1d); no band loosened. |
 | 2026-10-14 | wave1/sim-2 (S1-03, D16) | Achievement and tutorial reward cash removed (medals); per-scenario bankruptcy floors in calibration v1.0.5 from measured harvest-only troughs (po3 -15M, isa -24M, algae -26.5M, krise -4.5M, lofoten -2M, default -1M) with a three-rung warning ladder; resource-rent tax on by default (family farm pays 0, a six-site career 11-30M over three years). SimProbe medians unchanged; tutorial still 6 of 6, four seeds finish later (§1e). |
 | 2026-10-14 | wave2/sim-b-3 (S2-04, F270) | Harvest pipeline (calibration v1.0.8 `harvest`, save v6): fish sold as gutted kilos (yield 0.84) at the reference price × size class (HOG ladder, Kontali) × grade (superior/ordinary/production by cause, Fiskehelserapporten 2024) − the harvest cost (5.0 NOK/kg HOG, COGS, F270 closed); fasting in degree-days, wellboat slot, slaughterhouse capacity 150 t HOG/day, partial and per-pen orders, land hall / offshore routes. Player-path EBIT/kg HOG median 18.19 (11.07-23.23, 10 seeds); po3 careers +14.75M to +19.90M (were +23.49M to +31.76M); forste_sesong 36,000 fish and 4M (6/6 seeds win); rent base excludes the harvest cost (§1h). |
+| 2026-10-20 | wave4/ui-core-1 (U2-02, D19) | The first season advances on real events only and runs only in Første sesong (§1v): the funding step waits for the second site's price + 3 months of its running cost (7.06 MNOK) and teaches the bank's loan where the cash is short; the minimal player wins 6 of 6 seeds on days 283-318 (seeds 7 and 21 with the loan, lowest cash 0.19M), the input-only UI player wins seed 7 on day 294 with the loan. No calibration number changed. |
