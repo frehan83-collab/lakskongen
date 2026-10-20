@@ -377,8 +377,17 @@ GIS package).
   locality; `GetPlayerSiteLocations` places built sites at their candidate
   and other sites at their zone's anchor ('approximate'). hav_1's Hav lens
   names its Havbruk til havs area, stage, real distance and depth. The
-  anchor and hav_1 binding read track A's interfaces (stand-ins until A2/A3
-  merge).
+  anchor and hav_1 binding read track A's interfaces (track A's own code
+  since the merge).
+  Merged into geo/int 2026-10-21 (`b4cc97f`; the track-A stand-ins deleted
+  there) with the captain's review fixes: the map's
+  `open_for_candidate(zone, candidate)` keeps the place it is given (the
+  zone follows a place in another area; a held or unknown place stays
+  chosen with its check's text), a build goes to the place chosen, and
+  with every home place held «Nytt anlegg» → Sjø offers the zone's build
+  without a place and says so. The list's last column is 'Trekker ned'
+  (the binding term), and the dialog re-centres after its entrance slide
+  and fits once laid out, so the places and the confirm stay in view.
 - **Rival farms**: `localities.geojson` sea and land salmonid sites, with
   `mtb_t` and `po`, give the real distribution of competitors per area; give
   them generated parody company names (D17: the data has none, by design).
