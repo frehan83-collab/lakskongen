@@ -176,7 +176,9 @@ func show_rival(icon: Dictionary, view: GeoRegionView) -> void:
 	_begin("rival", icon, view)
 	_overline.text = tr("MAP_SITE_OVERLINE_RIVAL")
 	_title.text = String(icon.get("owner_name", ""))
-	_subtitle.text = tr("MAP_SITE_LOCALITY_NUMBER") % int(icon.get("id", 0))
+	var place := String(icon.get("name", ""))
+	_subtitle.text = (tr("MAP_SITE_LOCALITY_NAMED") % [place, int(icon.get("id", 0))]) if place != "" \
+		else tr("MAP_SITE_LOCALITY_NUMBER") % int(icon.get("id", 0))
 	_fact("owner", "MAP_SITE_FACT_OWNER", String(icon.get("owner_name", "")))
 	_fact("kind", "MAP_SITE_FACT_KIND", tr(GeoRegionView.kind_key(String(icon.get("kind", "")))))
 	if icon.has("stage"):

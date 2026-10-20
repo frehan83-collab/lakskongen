@@ -636,23 +636,32 @@ class _SiteLayer extends Control:
 		var mtb: PackedFloat32Array = sites.get("mtb_t", PackedFloat32Array())
 		var owner: PackedInt32Array = sites.get("owner", PackedInt32Array())
 		var owners: Array = sites.get("owners", [])
-		var kind_names: Array = sites.get("kinds", GeoRegionBridge.DEFAULT_SITE_KINDS)
+		# kinds/stages/names arrive as PackedStringArray from the lane.
+		var kind_names: Variant = sites.get("kinds", GeoRegionBridge.DEFAULT_SITE_KINDS)
+		var stage_codes: PackedByteArray = sites.get("stage", PackedByteArray())
+		var stage_names: Variant = sites.get("stages", PackedStringArray())
+		var names: Variant = sites.get("names", PackedStringArray())
 		for i in ids.size():
 			if i >= pos.size() or int(pos[i]) != po or i >= owner.size() or owner[i] < 0 or owner[i] >= owners.size():
 				continue
 			var o: Dictionary = owners[owner[i]]
 			var major := bool(o.get("is_major", false))
 			var kind_code := int(kinds[i]) if i < kinds.size() else 0
-			icons.append({
+			var icon := {
 				"id": ids[i],
 				"px": GeoRegionMath.map_px(po, float(xs[i]), float(ys[i])),
-				"kind": String(kind_names[kind_code]) if kind_code < kind_names.size() else "other",
-				"owner_id": String(o.get("id", "")),
-				"owner_name": String(o.get("name", "")),
+				"kind": str(kind_names[kind_code]) if kind_code < kind_names.size() else "other",
+				"owner_id": str(o.get("id", "")),
+				"owner_name": str(o.get("name", "")),
 				"is_major": major,
 				"mtb_t": float(mtb[i]) if i < mtb.size() else 0.0,
-				"color": CompetitorFarmVisualManager.band_color_for(String(o.get("id", ""))) if major else GeoRegionView.INDEPENDENT,
-			})
+				"color": CompetitorFarmVisualManager.band_color_for(str(o.get("id", ""))) if major else GeoRegionView.INDEPENDENT,
+			}
+			if i < stage_codes.size() and int(stage_codes[i]) < stage_names.size():
+				icon["stage"] = str(stage_names[stage_codes[i]])
+			if i < names.size():
+				icon["name"] = str(names[i])
+			icons.append(icon)
 		queue_redraw()
 
 	func _draw() -> void:

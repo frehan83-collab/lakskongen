@@ -2611,6 +2611,7 @@ MAP_SITE_KIND_OFFSHORE_SALMONID,Offshore unit,Havmerd
 MAP_SITE_KIND_OTHER,Other species,Annen art
 MAP_SITE_KIND_SEA_SALMONID,Sea grow-out,Matfisk i sjø
 MAP_SITE_LICENCE_ZONE,Needs a growth licence in %s,Krever vekstlisens i %s
+MAP_SITE_LOCALITY_NAMED,"%s, locality no. %d","%s, lokalitet nr. %d"
 MAP_SITE_LOCALITY_NUMBER,Locality no. %d,Lokalitet nr. %d
 MAP_SITE_LOCALITY_STAGE_BROODSTOCK,Broodstock,Stamfisk
 MAP_SITE_LOCALITY_STAGE_GROWOUT,Grow-out,Matfisk

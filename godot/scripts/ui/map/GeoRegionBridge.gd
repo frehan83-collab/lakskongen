@@ -43,9 +43,13 @@ const LANE_METHODS := {
 	"plan_site_build_at": "plan_site_build_at",
 	"build_expansion_site_at": "build_expansion_site_at",
 }
-## The localities' kinds when get_geo_sites carries no "kinds" list (its kind
-## bytes index this list; the merge captain checks it against Track A's).
-const DEFAULT_SITE_KINDS: Array[String] = ["sea_salmonid", "land_salmonid", "offshore_salmonid", "other"]
+## The localities' kinds when get_geo_sites carries no "kinds" list: Track A's
+## order (GameBridge.Geo.cs GeoKinds, placement x group), which its kind bytes
+## index. Track A's lane sends the list itself.
+const DEFAULT_SITE_KINDS: Array[String] = [
+	"sea_salmonid", "sea_marine_fish", "sea_shellfish", "sea_algae", "sea_other",
+	"land_salmonid", "land_marine_fish", "land_shellfish", "land_algae", "land_other",
+	"offshore_salmonid", "offshore_marine_fish", "offshore_shellfish", "offshore_algae", "offshore_other"]
 
 
 ## True when the sim has this lane read (a SimBridge method name).
