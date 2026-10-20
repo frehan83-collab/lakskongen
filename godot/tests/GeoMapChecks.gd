@@ -20,6 +20,10 @@ extends RefCounted
 ##    lookups equal test_geodata's.
 ## tests/test_geo_map_contract.py pins PO_INDEX_COUNTS and PO3_CELLS against
 ## test_geodata.py's own PNG decoder, so both sides read the same bytes.
+##
+## C2, the national map (GeoMapView, plates, layers, the detail column):
+## GeoMapNationalChecks.gd, run from here so the suite keeps one _run() line
+## for Track C.
 
 ## Pixels per raw po_index value 0..13 (0 = land or outside every area).
 const PO_INDEX_COUNTS := [3804775, 2038, 5830, 10259, 22494, 20811, 39611, 21844, 40542, 36022, 15798, 20273, 31120, 7659]
@@ -73,6 +77,8 @@ func run(runner: Node) -> void:
 		"geo data: reset_cache leaves a cold cache for the checks that follow")
 	print("  geo C1 checks took %d ms" % (Time.get_ticks_msec() - started))
 	await t.get_tree().process_frame
+	# C2: the national map in the running game (it leaves a cold cache too).
+	await preload("res://tests/GeoMapNationalChecks.gd").new().run(t)
 
 
 func _check(ok: bool, label: String) -> void:

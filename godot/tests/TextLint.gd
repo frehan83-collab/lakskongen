@@ -22,8 +22,10 @@ extends RefCounted
 ## Tokens that look like enums but are names or units the player should see.
 const ALLOWED_TOKENS := [
 	"pH", "kNOK", "kWh", "MWh", "GWh", "kWp", "mNOK", "CO₂e", "LiDAR",
-	# Parody rival companies (D17) and in-game brands.
-	"SalMax", "NordLaks", "GmbH",
+	# Parody rival companies (D17) and in-game brands. The rival name that
+	# copied a real brand's spelling is no longer exempt: MapPanel's REGIONS
+	# named it and are gone (geo stages 2-3, Track C D17 close-out).
+	"SalMax", "GmbH",
 ]
 
 ## Unambiguous English words. Words that are also Norwegian (for, at, to, i,
