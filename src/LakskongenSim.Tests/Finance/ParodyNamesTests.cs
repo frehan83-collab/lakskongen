@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -155,6 +156,31 @@ public class ParodyNamesTests
         Assert.All(coast.Concat(trade), w => Assert.Matches("^[A-ZÆØÅ][a-zæøåôé]+$", w));
         _output.WriteLine($"{coast.Count} × {trade.Count} = {ParodyNames.Combinations.Count} names");
     }
+
+    /// <summary>
+    /// The vocabulary the captain reviewed (ruling OD10, geo/int 2026-10-21):
+    /// 112 coast and nature words and 10 trade words, 1,120 names, pinned by
+    /// content so no word changes unreviewed. The review replaced "Tare" with
+    /// "Stortare": "Tare" equals a hyphen-joined token of one registry holder's
+    /// name (checked offline against ~/.cache/lakskongen-geo, counts only).
+    /// To change a word: check it against BRANDS, the place tokens and,
+    /// offline, the registry's holder names (0 matches under whitespace and
+    /// hyphen tokenisation), then re-pin here and RivalLayoutTests'
+    /// PinnedDigest with a RUN_LOG §7 row.
+    /// </summary>
+    [Fact]
+    public void TheVocabulary_IsTheReviewedOne()
+    {
+        Assert.Equal(112, ParodyNames.CoastVocabulary.Count);
+        Assert.Equal(10, ParodyNames.TradeVocabulary.Count);
+        Assert.Equal(1120, ParodyNames.Combinations.Count);
+        Assert.DoesNotContain("Tare", ParodyNames.CoastVocabulary);
+        string text = string.Join("\n", ParodyNames.CoastVocabulary) + "\n\n" + string.Join("\n", ParodyNames.TradeVocabulary);
+        Assert.Equal(ReviewedVocabulary, StableHash.Of(text).ToString("x16", CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>The digest of the reviewed word lists (<see cref="TheVocabulary_IsTheReviewedOne"/>).</summary>
+    private const string ReviewedVocabulary = "173eaaf258fc7b78";
 
     [Fact]
     public void Of_RefusesAnAreaOutsideTheSlotsOrANegativeIndex()

@@ -48,7 +48,7 @@ namespace LakskongenSim.Finance
             "Sjøorre", "Gråhegre", "Strandsnipe", "Rødstilk", "Steinvender", "Fiskeørn", "Havsule",
             "Polarmåke", "Fjellvåk", "Sandlo", "Myrsnipe",
             // Sea life.
-            "Tare", "Blæretang", "Sukkertare", "Krill", "Raudåte", "Brisling", "Sild", "Makrell", "Sei",
+            "Stortare", "Blæretang", "Sukkertare", "Krill", "Raudåte", "Brisling", "Sild", "Makrell", "Sei",
             "Lyr", "Hyse", "Kveite", "Breiflabb", "Steinbit", "Rognkjeks", "Leppefisk", "Berggylt",
             "Grønngylt", "Sjøstjerne", "Kråkebolle", "Manet", "Krabbe", "Reke", "Sjøpølse", "Sjøanemone",
             "Taskekrabbe", "Strandsnegl", "Albueskjell",

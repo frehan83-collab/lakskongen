@@ -2936,7 +2936,10 @@ the smallest `StableHash.Of("geo_anchor\u0001" + zoneId, localityId)`
 ### The rival layout (rulings OD4 and OD10; `Finance/RivalLayout.cs`)
 
 A static, seed-independent owner for every pool locality, rebuilt only when
-the roster's ids, its MAB to the tonne or the game's anchors change:
+its signature changes: each major's id, exact MAB, home areas and name, or
+the game's anchors (the captain's review made the signature name every input
+of the layout: a stored name from an older save, or a share step inside one
+tonne, deals a different layout):
 
 1. Pool: the 994 producing sea grow-out localities, the 309 land salmonid
    sites and the offshore locality 45196 (1,304), minus the game's anchors.
@@ -2989,7 +2992,7 @@ Coast and nature words (112): birds Skarv, Ærfugl, Måke, Terne, Lunde,
 Alke, Teist, Lomvi, Krykkje, Havhest, Tjeld, Svartbak, Gråmåke, Havørn,
 Storlom, Smålom, Siland, Laksand, Havelle, Sjøorre, Gråhegre, Strandsnipe,
 Rødstilk, Steinvender, Fiskeørn, Havsule, Polarmåke, Fjellvåk, Sandlo,
-Myrsnipe; sea life Tare, Blæretang, Sukkertare, Krill, Raudåte, Brisling,
+Myrsnipe; sea life Stortare, Blæretang, Sukkertare, Krill, Raudåte, Brisling,
 Sild, Makrell, Sei, Lyr, Hyse, Kveite, Breiflabb, Steinbit, Rognkjeks,
 Leppefisk, Berggylt, Grønngylt, Sjøstjerne, Kråkebolle, Manet, Krabbe, Reke,
 Sjøpølse, Sjøanemone, Taskekrabbe, Strandsnegl, Albueskjell; sea and weather
@@ -3015,6 +3018,23 @@ committed or printed): three coast words (and six common trade words) that
 appear in a holder's name were dropped first; then all 1,120 combinations
 and the rename below gave **0 exact matches, 0 first-word token matches and
 0 names contained in a holder name**.
+
+Captain's review (ruling OD10, geo/int, 2026-10-21): approved, with one
+word replaced. The track tokenised holder names on whitespace only; split on
+hyphens too, "Tare" equals a hyphen-joined token of one holder's name, so
+its 10 combinations shared a first word with a holder. "Stortare" (the
+coast's dominant kelp, *Laminaria hyperborea*) takes its place at the same
+list position, which keeps every other name dealt: four independents are
+renamed (ind_05_005, ind_08_022, ind_11_002, ind_13_002 become "Stortare
+<trade> AS"), and no owner or site moves. Re-checked offline: 0 exact
+matches, 0 first words equal to a holder token, 0 generated names inside a
+holder name and 0 holder names inside a generated name, under whitespace
+and hyphen tokenisation alike. Kept after review: Tjeld, Lyng, Reke and
+Kråkebolle begin a longer word in a holder's name or a municipality
+(Tjeldsund, Lyngen), but none equals a token, which is the plan's rule for
+places too; they read as the bird, the heather, the shrimp and the urchin.
+`ParodyNamesTests.TheVocabulary_IsTheReviewedOne` pins the reviewed lists;
+a changed word needs this check and a re-pin with a RUN_LOG §7 row.
 
 ### The D17 rename (ruling OD8: a clearly different parody, not a near-miss)
 
@@ -3259,3 +3279,4 @@ S1-01 / S1-02 guards (§1d):
 | 2026-10-14 | wave1/sim-2 (S1-03, D16) | Achievement and tutorial reward cash removed (medals); per-scenario bankruptcy floors in calibration v1.0.5 from measured harvest-only troughs (po3 -15M, isa -24M, algae -26.5M, krise -4.5M, lofoten -2M, default -1M) with a three-rung warning ladder; resource-rent tax on by default (family farm pays 0, a six-site career 11-30M over three years). SimProbe medians unchanged; tutorial still 6 of 6, four seeds finish later (§1e). |
 | 2026-10-14 | wave2/sim-b-3 (S2-04, F270) | Harvest pipeline (calibration v1.0.8 `harvest`, save v6): fish sold as gutted kilos (yield 0.84) at the reference price × size class (HOG ladder, Kontali) × grade (superior/ordinary/production by cause, Fiskehelserapporten 2024) − the harvest cost (5.0 NOK/kg HOG, COGS, F270 closed); fasting in degree-days, wellboat slot, slaughterhouse capacity 150 t HOG/day, partial and per-pen orders, land hall / offshore routes. Player-path EBIT/kg HOG median 18.19 (11.07-23.23, 10 seeds); po3 careers +14.75M to +19.90M (were +23.49M to +31.76M); forste_sesong 36,000 fish and 4M (6/6 seeds win); rent base excludes the harvest cost (§1h). |
 | 2026-10-20 | wave4/ui-core-1 (U2-02, D19) | The first season advances on real events only and runs only in Første sesong (§1aa): the funding step waits for the second site's price + 3 months of its running cost (7.06 MNOK) and teaches the bank's loan where the cash is short; the minimal player wins 6 of 6 seeds on days 283-318 (seeds 7 and 21 with the loan, lowest cash 0.19M), the input-only UI player wins seed 7 on day 294 with the loan. No calibration number changed. |
+| 2026-10-21 | geo/int captain (geo A2/A3 merge, OD10) | §1ab reviewed before merging track A: the word lists approved with "Tare" replaced by "Stortare" (a hyphen-joined token of one registry holder's name; 4 independents renamed, no owner or site moved; 0 registry matches under whitespace and hyphen tokenisation, offline, counts only); the rename "Kongsemne Havbruk AS" approved; the rival layout's signature now names every input (names, home areas, exact MAB, anchors). No calibration number, traced field or RNG stream changes; golden 27 of 27 identical. |

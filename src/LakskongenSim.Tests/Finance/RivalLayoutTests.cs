@@ -185,8 +185,15 @@ public class RivalLayoutTests
         Assert.Equal(PinnedDigest, first);
     }
 
-    /// <summary>The layout digest for the starting roster with Første sesong's anchor excluded.</summary>
-    private const string PinnedDigest = "96b964c47ae4d738";
+    /// <summary>
+    /// The layout digest for the starting roster with Første sesong's anchor
+    /// excluded. Re-pinned from 96b964c47ae4d738 by the captain's OD10 review
+    /// (geo/int, 2026-10-21): "Tare" became "Stortare", which renames four
+    /// independents (ind_05_005, ind_08_022, ind_11_002, ind_13_002); every
+    /// owner and every site is unchanged. ParodyNamesTests pins the reviewed
+    /// word lists.
+    /// </summary>
+    private const string PinnedDigest = "d6c4842ddbce331e";
 
     [Fact]
     public void TheSignature_FollowsIdsTonnesAndAnchors()
