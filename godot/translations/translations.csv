@@ -2526,13 +2526,13 @@ SEA_CANDIDATE_BINDING_TEMPERATURE,Temperature costs the most here: the area's se
 SEA_CANDIDATE_BINDING_WAVES,Waves cost the most here: the winter sea is higher than at the sheltered places open pens use.,Bølgene trekker mest ned her: vintersjøen er høyere enn på de skjermede stedene der åpne merder står.
 SEA_CANDIDATE_BUILD_TITLE,Build a locality near %s,Bygg lokalitet ved %s
 SEA_CANDIDATE_CHIP_TAKEN,Yours,Ditt anlegg
+SEA_CANDIDATE_COL_BINDING,Costs most,Trekker ned
 SEA_CANDIDATE_COL_DEPTH,Depth,Dybde
 SEA_CANDIDATE_COL_MEASURED,Measured,Målt
 SEA_CANDIDATE_COL_PLACE,Place,Sted
 SEA_CANDIDATE_COL_POINTS,Points,Poeng
 SEA_CANDIDATE_COL_RANK,No.,Nr.
 SEA_CANDIDATE_COL_SCORE,Suitability,Egnethet
-SEA_CANDIDATE_COL_WEAKEST,Weakest,Svakest
 SEA_CANDIDATE_COL_WEIGHT,Weight,Vekt
 SEA_CANDIDATE_COMPONENT_CURRENT,Current,Strøm
 SEA_CANDIDATE_COMPONENT_DEPTH,Depth,Dybde

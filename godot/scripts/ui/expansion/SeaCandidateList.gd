@@ -54,7 +54,9 @@ func _init() -> void:
 	head.add_child(place)
 	head.add_child(_cell("Depth", &"CaptionMuted", W_DEPTH, HORIZONTAL_ALIGNMENT_RIGHT))
 	head.add_child(_cell("Score", &"CaptionMuted", W_BAR + GAP + W_SCORE, HORIZONTAL_ALIGNMENT_RIGHT))
-	head.add_child(_cell("Weakest", &"CaptionMuted", W_CHIP + PAD, HORIZONTAL_ALIGNMENT_CENTER))
+	# The term that costs the place most (the binding term, which is not always
+	# the lowest-scoring one: captain's review of track B, finding 7).
+	head.add_child(_cell("Binding", &"CaptionMuted", W_CHIP + PAD, HORIZONTAL_ALIGNMENT_CENTER))
 	_scroll = ScrollContainer.new()
 	_scroll.name = "Scroll"
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -76,7 +78,7 @@ func _ready() -> void:
 	(head.get_node("Place") as Label).text = tr("SEA_CANDIDATE_COL_PLACE")
 	(head.get_node("Depth") as Label).text = tr("SEA_CANDIDATE_COL_DEPTH")
 	(head.get_node("Score") as Label).text = tr("SEA_CANDIDATE_COL_SCORE")
-	(head.get_node("Weakest") as Label).text = tr("SEA_CANDIDATE_COL_WEAKEST")
+	(head.get_node("Binding") as Label).text = tr("SEA_CANDIDATE_COL_BINDING")
 
 
 ## Show the candidates (the bridge's rows, by rank) with `selected` chosen ("" none).
