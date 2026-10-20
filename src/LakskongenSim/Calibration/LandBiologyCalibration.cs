@@ -398,10 +398,15 @@ namespace LakskongenSim.Calibration
     /// (roadmap F2-15, the farming-cost band of spec §2A): maintenance and
     /// insurance on the plant, fish insurance, sludge disposal, and the
     /// laboratory, chemicals and office costs. Sourced from Bjørndal &amp;
-    /// Tusvik's land-based cost model (NTNU Working Paper 1/2017, 2017 NOK;
-    /// published in Aquaculture Economics &amp; Management 2019) and brought to
-    /// 2025 NOK with SSB's consumer price index (table 03014: 105.5 in 2017,
-    /// 137.7 in 2025, ×1.305).
+    /// Tusvik's land-based cost model (NTNU Working Paper 1/2017, 2017 NOK,
+    /// https://www.ntnu.no/documents/1265701259/1281473463/WPS+1+2017.pdf;
+    /// published in Aquaculture Economics &amp; Management 2019,
+    /// doi:10.1080/13657305.2019.1654558; checked 2026-10-20: table 4.1
+    /// buildings and equipment 398.6 M NOK, table 4.3 maintenance 3.5 M, office
+    /// 1.5 M, other 10 M, waste 800 NOK/t at 1.5 t per t feed, the facility
+    /// insurance 0.6 ‰ of buildings and 2.5 ‰ of equipment, table 4.5 fish
+    /// insurance 0.7 NOK/kg) and brought to 2025 NOK with SSB's consumer price
+    /// index (table 03014: 105.5 in 2017, 137.7 in 2025, ×1.305).
     /// </summary>
     public sealed record LandCostCalibration
     {

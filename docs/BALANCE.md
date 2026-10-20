@@ -2540,6 +2540,15 @@ replaces F2-12's 650 k salary from code), maintenance 3.1 (0.88 % of capex a yea
 hall: slaughter only). Feed is 43 % of the cost against Salmon Evolution's "roughly half" (SalmonBusiness
 18.08.2026): the game's feed costs 22.3 NOK/kg against 19.56 in 2023 (Fiskeridirektoratet).
 
+Sources checked 2026-10-20: Bjørndal & Tusvik, NTNU Working Paper 1/2017
+(https://www.ntnu.no/documents/1265701259/1281473463/WPS+1+2017.pdf: tables 4.1, 4.3-4.5, the insurance rates in
+§4.1); Fiskeridirektoratet, Lønnsomhetsundersøkelse for produksjon av laks og regnbueørret 2023 (published
+14.11.2024, https://www.fiskeridir.no/Akvakultur/Tall-og-analyse/Statistiske-publikasjoner: table C.4.5 gross labour
+cost per årsverk 1,028,208 NOK, table C.5.3 feed price 19.56 NOK/kg, table C.4.1 cost per kg); Salmon Evolution Q2
+2026 and 2025 (https://www.salmonbusiness.com/salmon-evolution-targets-nok-53-kg-farming-cost-as-production-doubles/,
+https://www.salmonbusiness.com/?p=136206: 70.7 NOK/kg in Q2 2026, run-rate 70-75, 77.1 in 2025 on 4,403 t HOG, 67.8 in
+2024, eFCR 1.06).
+
 ### The post-smolt bridge (`PostSmoltBridgeTests`)
 
 | Measure | Value |

@@ -535,7 +535,9 @@ namespace LakskongenSim.Calibration
         /// 300,000-1,500,000. Source: Fiskeridirektoratet, Lønnsomhetsundersøkelse
         /// for produksjon av laks og regnbueørret 2023 (published 14.11.2024),
         /// table C.4.5: gross labour cost per årsverk in food-fish production in
-        /// 2023 (wages, sick pay, employer's tax, pensions and insurances). F2-15
+        /// 2023 (wages, sick pay, employer's tax, pensions and insurances),
+        /// https://www.fiskeridir.no/Akvakultur/Tall-og-analyse/Statistiske-publikasjoner
+        /// (rap-lonnsomhet-akvakultur-2023.pdf, checked 2026-10-20). F2-15
         /// replaced F2-12's 650,000 (the pre-F2 RAS facility's salary, [code]),
         /// which left out the employer's costs.
         /// </summary>
