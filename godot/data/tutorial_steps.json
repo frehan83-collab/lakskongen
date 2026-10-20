@@ -1,169 +1,164 @@
 [
   {
-    "id": "welcome",
+    "id": "open_pens",
     "stepNumber": 1,
-    "title": "Velkommen til Lakskongen!",
-    "description": "Du har overtatt et lite lakseoppdrett på norskekysten. Målet er å bygge et lønnsomt og bærekraftig oppdrettsanlegg — fra smolt til slakteklar laks. Denne opplæringen tar deg gjennom de første 30 minuttene av bedriften.",
-    "hint": "Hold øye med nøkkeltallene i dashbordet: kontanter (NOK), antall fisk, lakselus per fisk og bærekraft.",
-    "highlightTarget": "dashboard",
-    "completionCondition": "game_started"
+    "kind": "do",
+    "pace": "hold",
+    "completionCondition": "ui:tab:pens",
+    "highlightTarget": "tab:pens",
+    "unlocks": []
   },
   {
-    "id": "setup-sea-site",
+    "id": "feed_plan",
     "stepNumber": 2,
-    "title": "Sett opp din første lokalitet",
-    "description": "En lokalitet (lokalitet/merd) er der laksen vokser i sjøen. Velg en fjord med god vanngjennomstrømning og temperatur mellom 8 og 14 °C. Legg til minst én sone for å aktivere overvåking av vannkjemi.",
-    "hint": "Gå til Kart → Ny lokalitet og velg en fjord. Legg til en sone for å komme i gang.",
-    "highlightTarget": "map",
-    "completionCondition": "pens_inspected"
+    "kind": "do",
+    "pace": "hold",
+    "completionCondition": "feed_plan_set",
+    "highlightTarget": "pens:feed_plan",
+    "unlocks": []
   },
   {
-    "id": "stock-smolts",
+    "id": "lice_order",
     "stepNumber": 3,
-    "title": "Sett ut smolt",
-    "description": "Smolt er ung laks (80–100 g) som er klar for sjøvann. Sett ut smolt fra klekkeriet i merden din for å starte den første produksjonssyklusen.",
-    "hint": "Åpne Merder → Sett ut smolt og velg merden din. Start med et moderat antall.",
-    "highlightTarget": "pens",
-    "completionCondition": "pen_1_stocked"
+    "kind": "do",
+    "pace": "hold",
+    "completionCondition": "lice_order_set",
+    "highlightTarget": "pens:lice_order",
+    "unlocks": []
   },
   {
-    "id": "manage-feed",
+    "id": "inbox",
     "stepNumber": 4,
-    "title": "Fôr fisken",
-    "description": "Fôr utgjør rundt halvparten av produksjonskostnadene. Fôrkonverteringsforholdet (FCR) viser hvor effektivt fisken gjør fôr om til vekt. Et godt FCR er 1,1–1,2. Åpne fôrpanelet og gjør deg kjent med strategien.",
-    "hint": "Sjekk FCR på produksjonspanelet. Ved temperatur over 16 °C bør du redusere fôringen.",
-    "highlightTarget": "production",
-    "completionCondition": "feed_panel_opened"
+    "kind": "do",
+    "pace": "hold",
+    "completionCondition": "ui:inbox",
+    "highlightTarget": "hud:inbox",
+    "unlocks": []
   },
   {
-    "id": "monitor-health",
+    "id": "start_clock",
     "stepNumber": 5,
-    "title": "Overvåk fiskehelse",
-    "description": "Lakselus er den største parasitt-trusselen i norsk oppdrett. Grensen er 0,5 voksne hunnlus per fisk. Over 2,0 risikerer du pålegg; over 5,0 er kritisk. Følg også med på IPN, ILA og AGD.",
-    "hint": "Sjekk helsepanelet daglig. Røde indikatorer krever umiddelbar handling.",
-    "highlightTarget": "pens",
-    "completionCondition": "health_panel_opened"
+    "kind": "do",
+    "pace": "run",
+    "completionCondition": "ui:clock",
+    "highlightTarget": "hud:clock",
+    "unlocks": []
   },
   {
-    "id": "apply-delousing",
+    "id": "grow",
     "stepNumber": 6,
-    "title": "Første avlusing",
-    "description": "Når lusepresset blir høyt nok, må du behandle. Du kan velge badbehandling, biologisk kontroll (leppefisk) eller mekanisk fjerning. Hver metode har ulik kostnad, effekt og stress på fisken. Få lusenivået under 0,5 per fisk.",
-    "hint": "Gå til Helse → Behandlinger. Badbehandling er rask men stressende; leppefisk gir kontinuerlig kontroll.",
-    "highlightTarget": "pens",
-    "triggerCondition": "lice_detection_acknowledged",
-    "completionCondition": "delousing_completed"
+    "kind": "wait",
+    "pace": "run",
+    "completionCondition": "harvest_weight_reached",
+    "highlightTarget": "hud:clock",
+    "unlocks": []
   },
   {
-    "id": "grow-to-harvest",
+    "id": "order_harvest",
     "stepNumber": 7,
-    "title": "Vent på slaktevekt",
-    "description": "Atlantisk laks trenger 14–22 måneder i sjøen for å nå slaktevekt. Målet er 4–6 kg sløyd vekt (5–7 kg levende). Vekst avhenger av temperatur, fôrkvalitet, genetikk og helse. En sunn fisk i 12 °C vann legger på seg rundt 10 g per dag.",
-    "hint": "Produksjonspanelet viser gjennomsnittsvekt. Hold helsen optimal og FCR lav for raskest vekst.",
-    "highlightTarget": "production",
-    "completionCondition": "average_weight >= 4.0"
+    "kind": "do",
+    "pace": "hold",
+    "completionCondition": "harvest_planned",
+    "highlightTarget": "pens:harvest",
+    "unlocks": []
   },
   {
-    "id": "first-harvest",
+    "id": "sale",
     "stepNumber": 8,
-    "title": "Første høsting",
-    "description": "Når fisken har nådd målvekt, starter du høsting. Laksen overføres med brønnbåt til slakteriet, sorteres etter størrelse og kvalitet, og selges fersk. Timing påvirker både kvalitet og pris.",
-    "hint": "Gå til Prosessering → Start høsting for den klare bestanden. Selg på spotmarkedet eller forhandle kontrakt.",
-    "highlightTarget": "production",
-    "completionCondition": "first_harvest_initiated"
+    "kind": "wait",
+    "pace": "run",
+    "completionCondition": "fish_sold",
+    "highlightTarget": "hud:clock",
+    "unlocks": []
   },
   {
-    "id": "first-sale",
+    "id": "harvest_report",
     "stepNumber": 9,
-    "title": "Selg fisken",
-    "description": "Nå kan du selge fisken din. Spotmarkedet gir umiddelbar betaling, men prisene varierer med sesong og global etterspørsel. Norske laksepriser ligger typisk på 60–90 NOK/kg HOG.",
-    "hint": "Velg en solgt kvantum på finanspanelet og bekreft salget.",
-    "highlightTarget": "finance",
-    "completionCondition": "first_sale_completed"
+    "kind": "do",
+    "pace": "hold",
+    "completionCondition": "ui:harvest_report",
+    "highlightTarget": "pens:harvest_report",
+    "unlocks": ["analytics", "telemetry"]
   },
   {
-    "id": "check-pl",
+    "id": "restock",
     "stepNumber": 10,
-    "title": "Sjekk resultatet",
-    "description": "Etter første salg bør du gjennomgå økonomien. Se på inntekter (pris × HOG-volum), fôrkostnad (rundt 50 % av driftskostnadene), EBIT/kg og avkastning på investert kapital (ROIC).",
-    "hint": "Åpne Økonomi → Resultat for å se full kostnad-per-kg-analyse. Sammenlign FCR og dødelighet med bransjen.",
-    "highlightTarget": "finance",
-    "completionCondition": "pl_report_viewed"
+    "kind": "do",
+    "pace": "hold",
+    "completionCondition": "restocked",
+    "highlightTarget": "pens:stock",
+    "unlocks": []
   },
   {
-    "id": "explore-genetics",
+    "id": "research",
     "stepNumber": 11,
-    "title": "Utforsk genetikk og avl",
-    "description": "Norsk lakseavl har doblet veksthastigheten på 40 år. I Lakskongen kan du velge stamfisk for egenskaper som vekst, sykdomsresistens, fôreffektivitet og kjøttkvalitet. Genomisk seleksjon gir raskere genetisk fremgang per generasjon, men innavl over 15 % koster vekst og helse. Åpne genetikkpanelet og se på avlsverdier, arvelighet (h²) og innavlsstatus.",
-    "hint": "Gå til Genetikk → Avlsprogram. Velg foreldre med høy vekst og lav innavl. Hold innavelskoeffisienten under 15 %.",
-    "highlightTarget": "genetics",
-    "triggerCondition": "day >= 60",
-    "completionCondition": "genetics_viewed"
+    "kind": "do",
+    "pace": "hold",
+    "completionCondition": "research_started",
+    "highlightTarget": "research:start",
+    "unlocks": ["research"]
   },
   {
-    "id": "explore-research",
+    "id": "regulation",
     "stepNumber": 12,
-    "title": "Utforsk forskning",
-    "description": "Invester i forskning og utvikling for å forbedre driften: bedre fôr, lusebehandling, overvåking eller sykdomsforebygging. Forskning tar tid, men gir varig effekt på produksjon og lønnsomhet.",
-    "hint": "Åpne Forskning og start ditt første prosjekt. Prioriter det som løser din største flaskehals.",
-    "highlightTarget": "research",
-    "completionCondition": "research_project_started"
+    "kind": "do",
+    "pace": "hold",
+    "completionCondition": "ui:tab:sustainability",
+    "highlightTarget": "tab:sustainability",
+    "unlocks": ["sustainability", "carbon"]
   },
   {
-    "id": "catastrophe-insurance",
+    "id": "funding",
     "stepNumber": 13,
-    "title": "Sikre deg mot katastrofer",
-    "description": "Dødelighet, oppblomstring, storm/rømming og ILA kan utslette marginer. Forsikring per katastrofe lar deg velge dekning og egenandel: høyere dekning gir høyere årspremie, høyere egenandel gir lavere premie. Åpne økonomipanelet og tegn den forsikringen som passer din risikoprofil.",
-    "hint": "Gå til Økonomi → Forsikring per katastrofe. Aktiver minst én dekning og juster egenandelen.",
-    "highlightTarget": "finance",
-    "triggerCondition": "day >= 60",
-    "completionCondition": "day >= 90"
+    "kind": "do",
+    "pace": "slow",
+    "completionCondition": "build_funded",
+    "highlightTarget": "finance:loan",
+    "unlocks": []
   },
   {
-    "id": "bloom-mitigation",
+    "id": "open_map",
     "stepNumber": 14,
-    "title": "Dempe oppblomstring",
-    "description": "Maneter (sep–jan), alger (mai–jul) og oksygensvikt kan skade gjellene og øke dødeligheten. Mottiltak som boblegardin, O2-diffuser, dypvannspumping og dypfôring reduserer tapet, men koster både installasjon og drift. Åpne vær- og sykdomspanelet og installer et mottiltak på en utsatt lokalitet.",
-    "hint": "Gå til Vær & Sykdom → Mottiltak. Boblegardin er best mot maneter; O2-diffuser mot alger/hypoksi.",
-    "highlightTarget": "health",
-    "triggerCondition": "day >= 90",
-    "completionCondition": "day >= 120"
+    "kind": "do",
+    "pace": "hold",
+    "completionCondition": "ui:tab:map",
+    "highlightTarget": "tab:map",
+    "unlocks": []
   },
   {
-    "id": "sustainability",
+    "id": "home_area",
     "stepNumber": 15,
-    "title": "Bærekraft og regulering",
-    "description": "Norsk oppdrett reguleres strengt. Trafikklyssystemet styrer hvor mye biomasse du får lov til å ha per sone, basert på lusepress og miljøpåvirkning. Sjekk bærekraftsscoren og hold deg innenfor regelverket.",
-    "hint": "Åpne Regulering for å se trafikklysstatus per sone og gjeldende MAB-grenser.",
-    "highlightTarget": "sustainability",
-    "completionCondition": "sustainability_checked"
+    "kind": "do",
+    "pace": "hold",
+    "completionCondition": "ui:map_area_home",
+    "highlightTarget": "map:home_area",
+    "unlocks": []
   },
   {
-    "id": "expand-second-site",
+    "id": "build_site",
     "stepNumber": 16,
-    "title": "Utvid med ny lokalitet",
-    "description": "For å vokse må du utvide. En ekstra lokalitet gir mer produksjonskapasitet, men krever investering, bemanning og logistikk. Spredning av risiko på tvers av lokaliteter er avgjørende for langsiktig suksess.",
-    "hint": "Åpne Kart, velg produksjonsområdet ditt og trykk «Bygg lokalitet» i din sone. En ny lokalitet gir plass, ikke biomasse: mer MTB krever en vekstlisens fra auksjon.",
-    "highlightTarget": "map",
-    "completionCondition": "second_site_built"
+    "kind": "do",
+    "pace": "hold",
+    "completionCondition": "second_site_built",
+    "highlightTarget": "map:build",
+    "unlocks": ["ras", "offshore"]
   },
   {
-    "id": "data-overlays",
+    "id": "stock_new_site",
     "stepNumber": 17,
-    "title": "Bruk dataoverlegg på kartet",
-    "description": "Kartpanelet har dataoverlegg som fargelegger hver sone etter lus, oksygen, biomasse, gjellehelse eller containment. Overlegg gjør det lettere å sammenligne lokaliteter og prioritere tiltak der risikoen er høyest. Slå på et overlegg og undersøk hvordan sonene endrer seg.",
-    "hint": "Gå til Kart → Overlegg. Velg en metrikk (f.eks. lus eller oksygen) og sammenlign sonene.",
-    "highlightTarget": "map",
-    "triggerCondition": "day >= 120",
-    "completionCondition": "day >= 150"
+    "kind": "do",
+    "pace": "hold",
+    "completionCondition": "second_site_stocked",
+    "highlightTarget": "pens:stock_new_site",
+    "unlocks": []
   },
   {
-    "id": "free-play",
+    "id": "new_site_lice",
     "stepNumber": 18,
-    "title": "Tutorial fullført — fri spilling!",
-    "description": "Gratulerer, oppdrettskonge! Du har fullført Lakskongen-opplæringen og forstår hele verdikjeden: Lisens → Lokalitet → Smolt → Fôr → Helse → Avlusing → Høsting → Salg.\n\nNå venter hele spillet: utvid lisensporteføljen, oppnå ASC- og økologisk sertifisering, naviger reguleringspolitikken og bygg integrerte foredlingsanlegg. Lykke til — målet er 10 000 tonn årlig produksjon med sertifisering som bærekraftsleder.",
-    "hint": "Utforsk alle paneler fritt. Bygg ditt laksimperium!",
-    "highlightTarget": "",
-    "completionCondition": "tutorial_complete"
+    "kind": "do",
+    "pace": "hold",
+    "completionCondition": "every_site_lice_order",
+    "highlightTarget": "pens:new_site_lice_order",
+    "unlocks": []
   }
 ]

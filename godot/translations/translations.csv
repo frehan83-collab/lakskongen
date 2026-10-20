@@ -2484,6 +2484,83 @@ LEDGER_OVERDRAFT_INTEREST,Overdraft interest,Renter på overtrekk
 LEDGER_POST_SMOLT_SALES,Post-smolt sales,Salg av postsmolt
 LEDGER_RESCUE_LOAN_FEE,Rescue loan fee,Gebyr for redningslån
 LEDGER_TRANSFERS,Fish transfers,Flytting av fisk
+TUTORIAL_BUILD_SITE_DO,Press «Build locality» in your zone and confirm.,Trykk «Bygg lokalitet» i din sone og bekreft.
+TUTORIAL_BUILD_SITE_TEXT,"A site gives room, not biomass: the licence's MTB is shared by every site in the area. Two sites let you fallow one and spread the risk.","En lokalitet gir plass, ikke biomasse: lisensens MTB deles av alle lokalitetene i området. To lokaliteter lar deg brakklegge den ene og spre risikoen."
+TUTORIAL_BUILD_SITE_TITLE,Build a second site,Bygg en lokalitet til
+TUTORIAL_CARD_CLOCK_HELD,The clock waits until you have done it.,Klokka står til du har gjort det.
+TUTORIAL_CARD_CLOCK_RUNS,"The clock runs: 1–4 pick the speed, N runs to the next event.","Klokka går: 1–4 velger fart, N spoler til neste hendelse."
+TUTORIAL_CARD_CLOCK_SLOW,The clock runs slowly (1×) while you decide.,Klokka går sakte (1×) mens du bestemmer deg.
+TUTORIAL_CARD_DO,Do this,Gjør dette
+TUTORIAL_CARD_DONE_TEXT,"You have run a whole season: feed, lice, harvest, sale, research and a second site. Every tab is open, and the rest of the coast is waiting.","Du har drevet en hel sesong: fôr, lus, slakt, salg, forskning og en lokalitet til. Alle fanene er åpne, og resten av kysten venter."
+TUTORIAL_CARD_DONE_TITLE,The first season is done,Første sesong er fullført
+TUTORIAL_CARD_DOT_TIP,Step %d: %s,Steg %d: %s
+TUTORIAL_CARD_EXPAND_TIP,Show the whole step,Vis hele steget
+TUTORIAL_CARD_HIDE,Close,Lukk
+TUTORIAL_CARD_MINIMIZE_TIP,Fold the card down to its title,Fold kortet sammen til tittelen
+TUTORIAL_CARD_OVERLINE,First season · step %d of %d,Første sesong · steg %d av %d
+TUTORIAL_CARD_PROGRESS_KG,Mean weight now %s of %s kg,Snittvekt nå %s av %s kg
+TUTORIAL_CARD_PROGRESS_NOK,In the bank %s of %s,I banken %s av %s
+TUTORIAL_CARD_SHOW_ME,Show me,Vis meg
+TUTORIAL_CARD_SHOW_ME_TIP,Point out where you do it,Pek ut hvor du gjør det
+TUTORIAL_CARD_SKIP,Skip,Hopp over
+TUTORIAL_CARD_SKIP_CANCEL,Keep learning,Fortsett opplæringen
+TUTORIAL_CARD_SKIP_CONFIRM,"Skip the tutorial?\n\nYou play on freely and every tab opens, but the first season does not count as won.","Hoppe over opplæringen?\n\nDu spiller videre fritt og alle fanene åpnes, men Første sesong regnes ikke som vunnet."
+TUTORIAL_CARD_SKIP_OK,Skip the tutorial,Hopp over opplæringen
+TUTORIAL_CARD_SKIP_TIP,"Skip the tutorial: free play, but no win for the first season","Hopp over opplæringen: fri spilling, men ingen seier i Første sesong"
+TUTORIAL_CARD_STEP_DONE,Step %d done: %s,Steg %d fullført: %s
+TUTORIAL_CARD_WAIT,Wait for this,Vent på dette
+TUTORIAL_FEED_PLAN_DO,"Pick a plan on the «Feeding plan» card, for example 30 days, and press «Apply to …».","Velg en plan på kortet «Fôringsplan», for eksempel 30 dager, og trykk «Bruk på …»."
+TUTORIAL_FEED_PLAN_TEXT,"Feed is your largest cost. The plan sets how much of their appetite the fish get, which feed and for how long. The card shows what your choice does to growth, feed conversion and cost before you commit.","Fôret er den største kostnaden din. Planen bestemmer hvor mye av appetitten fisken får, hvilket fôr og hvor lenge. Kortet viser hva valget gjør med veksten, fôrfaktoren og kostnaden før du bestemmer deg."
+TUTORIAL_FEED_PLAN_TITLE,The feeding plan,Fôringsplanen
+TUTORIAL_FUNDING_DO,"Take a loan under «Økonomi» (finance), or wait until the bank balance reaches the target below.","Ta opp et lån under «Økonomi», eller vent til banken når målet under."
+TUTORIAL_FUNDING_TEXT,"The next goal is a second site, and it costs more than most farms have after their first harvest. The bank lends against the fish in the sea, and you pay interest every month. You can also wait for the next harvest; the clock runs slowly.","Neste mål er en lokalitet til, og den koster mer enn de fleste har etter første slakt. Banken låner deg mot fisken i sjøen, og renten betaler du hver måned. Du kan også vente på neste slakt; klokka går sakte."
+TUTORIAL_FUNDING_TITLE,Capital for a second site,Kapital til en lokalitet til
+TUTORIAL_GROW_DO,Let the clock run until the fish reach harvest weight.,La klokka gå til fisken når slaktevekt.
+TUTORIAL_GROW_TEXT,"Growth follows the sea temperature: little in winter, a lot in summer. Feel free to use the top speed. The standing order deals with the lice, and the season moves on when the fish near harvest weight.","Veksten følger sjøtemperaturen: lite om vinteren, mye om sommeren. Bruk gjerne høyeste fart. Den stående ordren tar lusa, og sesongen går videre når fisken nærmer seg slaktevekt."
+TUTORIAL_GROW_TITLE,The fish grow,Fisken vokser
+TUTORIAL_HARVEST_REPORT_DO,"Open the report: click the harvest's notice, or «Last harvest report» under «Merder».","Åpne rapporten: trykk på varselet om slaktingen, eller «Siste slakterapport» under «Merder»."
+TUTORIAL_HARVEST_REPORT_TEXT,"The report shows what the harvest brought: gutted kilos, the price per size class, the cost and what you kept. This is where you see whether the timing was good.","Rapporten viser hva slaktingen ga: kilo sløyd, pris per størrelsesklasse, kostnaden og hva du satt igjen med. Her ser du om timingen var god."
+TUTORIAL_HARVEST_REPORT_TITLE,The harvest report,Slakterapporten
+TUTORIAL_HOME_AREA_DO,Click your production area on the map.,Klikk på ditt produksjonsområde på kartet.
+TUTORIAL_HOME_AREA_TEXT,"The area you farm in has a ring around it. Pick it to see its zones, where you can build and what it costs.","Området du driver i har en ring rundt seg. Velg det for å se sonene, hvor du kan bygge og hva det koster."
+TUTORIAL_HOME_AREA_TITLE,Your production area,Ditt produksjonsområde
+TUTORIAL_INBOX_DO,Open the inbox with the bell at the top right (or the V key).,Åpne innboksen med bjella øverst til høyre (eller tasten V).
+TUTORIAL_INBOX_TEXT,"Everything that needs you lands in the inbox: orders, deadlines, warnings and auctions. Anything urgent stops the clock for you.","Alt som trenger deg havner i innboksen: pålegg, frister, varsler og auksjoner. Det som haster, stopper klokka for deg."
+TUTORIAL_INBOX_TITLE,The inbox,Innboksen
+TUTORIAL_LICE_ORDER_DO,Switch on «Delouse on the count» on the «Operating plan» card.,Slå på «Avlus ved telling» på kortet «Driftsplan».
+TUTORIAL_LICE_ORDER_TEXT,"The authorities require fewer than 0.5 adult female lice per fish, 0.2 in spring, and the lice are counted every week. A standing order delouses for you when the count nears the limit, so you need not watch it every week.","Mattilsynet krever under 0,5 voksne hunnlus per fisk, 0,2 om våren, og lusa telles hver uke. En stående ordre avluser for deg når tellingen nærmer seg grensen, så du slipper å passe på hver uke."
+TUTORIAL_LICE_ORDER_TITLE,Sea lice and standing orders,Lakselus og stående ordre
+TUTORIAL_NEW_SITE_LICE_DO,Switch on «Delouse on the count» for the new site.,Slå på «Avlus ved telling» for den nye lokaliteten.
+TUTORIAL_NEW_SITE_LICE_TEXT,A standing order covers one site. Give the new site the same lice order and you have both under control.,"En stående ordre gjelder én lokalitet. Gi den nye lokaliteten samme luseordre, så har du kontroll på begge."
+TUTORIAL_NEW_SITE_LICE_TITLE,The same order for both,Samme ordre for begge
+TUTORIAL_OPEN_MAP_DO,Open the «Kart» (map) tab.,Åpne fanen «Kart».
+TUTORIAL_OPEN_MAP_TEXT,"The map shows the coast split into production areas, each with its traffic light, licences and free MTB.","Kartet viser kysten delt i produksjonsområder, hvert med trafikklys, lisenser og ledig MTB."
+TUTORIAL_OPEN_MAP_TITLE,The map,Kartet
+TUTORIAL_OPEN_PENS_DO,Open the «Merder» (pens) tab and look at your fish.,Åpne fanen «Merder» og se på fisken.
+TUTORIAL_OPEN_PENS_TEXT,"Your grandfather has handed you his farm in Hardanger, with salmon already in the sea. The first season teaches you to run it, one move at a time. The clock waits until you are ready.","Bestefar har gitt deg anlegget sitt i Hardanger, med laks i sjøen allerede. Første sesong lærer deg å drive det, ett grep om gangen. Klokka står til du er klar."
+TUTORIAL_OPEN_PENS_TITLE,Welcome to the family farm,Velkommen til Familiegården
+TUTORIAL_ORDER_HARVEST_DO,"Press «Harvest» for the site, then «Order harvest» when the numbers suit you.","Trykk «Høst» for anlegget, og «Bestill slakting» når tallene passer deg."
+TUTORIAL_ORDER_HARVEST_TEXT,"The planner shows what the fish bring today and in 2, 4 and 8 weeks: size classes, price and the feed you spend while you wait. The clock stands while you decide.","Planleggeren viser hva fisken gir i dag og om 2, 4 og 8 uker: størrelsesklasser, pris og fôret du bruker mens du venter. Klokka står mens du bestemmer deg."
+TUTORIAL_ORDER_HARVEST_TITLE,Plan the harvest,Planlegg slaktingen
+TUTORIAL_REGULATION_DO,Open the «Regulering» (regulation) tab.,Åpne fanen «Regulering».
+TUTORIAL_REGULATION_TEXT,"The authorities assess the lice impact in every production area. Green can bring growth, red cuts the biomass, and the lice in your pens count.","Myndighetene vurderer lusepåvirkningen i hvert produksjonsområde. Grønt kan gi vekst, rødt gir kutt i biomassen, og lusa i dine merder teller med."
+TUTORIAL_REGULATION_TITLE,The traffic light,Trafikklyset
+TUTORIAL_RESEARCH_DO,"Open «Forskning» (research), pick a project and confirm.","Åpne «Forskning», velg et prosjekt og bekreft."
+TUTORIAL_RESEARCH_TEXT,"Research has a lasting effect: faster growth, better feed conversion or fewer lice. Projects take time and cost money, so pick the one that solves your biggest bottleneck.","Forskning gir varig effekt: raskere vekst, bedre fôrfaktor eller færre lus. Prosjektene tar tid og koster penger, så velg det som løser din største flaskehals."
+TUTORIAL_RESEARCH_TITLE,Research,Forskning
+TUTORIAL_RESTOCK_DO,Choose an empty pen and stock smolts.,Velg en tom merd og sett ut smolt.
+TUTORIAL_RESTOCK_TEXT,An empty pen earns nothing. The «Pens and stocking» card shows how many smolts a pen takes before the density or the MTB says stop.,En tom merd tjener ingenting. Kortet «Merder og utsett» viser hvor mange smolt en merd tar før tettheten eller MTB-en sier stopp.
+TUTORIAL_RESTOCK_TITLE,A new generation,Ny generasjon
+TUTORIAL_SALE_DO,Let the clock run until the fish are sold.,La klokka gå til fisken er solgt.
+TUTORIAL_SALE_TEXT,"The fish fast for a few days before slaughter, then the wellboat collects them on its day. The slaughterhouse sells them gutted, graded by size and quality.","Fisken sultes noen dager før slakt, så henter brønnbåten den på sin dag. Slakteriet selger fisken sløyd, sortert etter størrelse og kvalitet."
+TUTORIAL_SALE_TITLE,The wellboat is coming,Brønnbåten kommer
+TUTORIAL_START_CLOCK_DO,Start the clock: press Space or pick a speed.,Start klokka: trykk mellomrom eller velg en fart.
+TUTORIAL_START_CLOCK_TEXT,"A day passes in a second. Space pauses, 1–4 pick the speed and N runs to the next event. The game slows down by itself before a deadline.","Ett døgn går på ett sekund. Mellomrom pauser, 1–4 velger fart og N spoler til neste hendelse. Spillet bremser selv før en frist."
+TUTORIAL_START_CLOCK_TITLE,Time runs,Tiden går
+TUTORIAL_STOCK_NEW_SITE_DO,Choose the new site under «Merder» and stock smolts.,Velg den nye lokaliteten under «Merder» og sett ut smolt.
+TUTORIAL_STOCK_NEW_SITE_TEXT,The new site is empty. Stock smolts there and it starts producing.,"Den nye lokaliteten står tom. Sett ut smolt der, så begynner den å produsere."
+TUTORIAL_STOCK_NEW_SITE_TITLE,Fish in the new site,Fisk i den nye lokaliteten
+TUTORIAL_TAB_LOCKED_TIP,Opens at step %d of the first season,Åpnes i steg %d av Første sesong
 UI_AIFEED_PLAN_ALL_STANDARD,"All %d sites: full appetite, standard feed.","Alle %d lokaliteter: full appetitt, standardfôr."
 UI_AIFEED_PLAN_MOVED,"Feed type and ration are chosen per site, in its feeding plan.","Fôrtype og fôrmengde velges per lokalitet, i fôringsplanen."
 UI_AIFEED_PLAN_NO_SITES,No sea sites yet.,Ingen sjølokaliteter ennå.

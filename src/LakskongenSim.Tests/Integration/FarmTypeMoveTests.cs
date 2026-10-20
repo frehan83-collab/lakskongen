@@ -166,6 +166,94 @@ public class FarmTypeMoveTests
     };
 
     /// <summary>
+    /// The same continuations on U2-02's engine (wave4/ui-core-1, built on the
+    /// wave-3 integration alone), the whole save included. The facilities save
+    /// is a po3_red_sone game, and owner decision D19 runs the tutorial in
+    /// Første sesong only: U2-03's engine ran the old eighteen-step track here
+    /// and completed its day-count steps (step 6 by day 120-150 of the
+    /// continuation, step 7 by day 300), U2-02's runs none, keeps the save's
+    /// five finished steps (renamed to the new track's first five on load) and
+    /// saves the new TutorialSkipped flag (false). Nothing else moves: with
+    /// those three fields written back as an engine without U2-02 wrote them
+    /// (<see cref="AsBeforeU2_02Wrote"/>) each continuation was
+    /// <see cref="U2_03Recording"/> exactly (RUN_LOG §7, U2-02). On wave4/int
+    /// the unit runs its F2-07/F2-08 day, on purpose, so this is history:
+    /// <see cref="U2_02F2_15F2_08Recording"/>.
+    /// </summary>
+    private static readonly IReadOnlyDictionary<string, string> U2_02Recording = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["as-saved/events"] = "8f7ca6d95e889086",
+        ["as-saved/no-events"] = "6278156c9b48de91",
+        ["contained/events"] = "f475f30e2d95aeb7",
+    };
+
+    /// <summary>The old track's first seven step ids, in the order U2-03's engine completed them.</summary>
+    private static readonly string[] OldTrackSteps =
+        { "welcome", "setup-sea-site", "stock-smolts", "manage-feed", "monitor-health", "apply-delousing", "grow-to-harvest" };
+
+    /// <summary>
+    /// The old track's index on each day of the continuation as the engine
+    /// without U2-02 ran it. On U2-03's engine (4f927a1, wave4/ui-core-1) the
+    /// lice step opened on day 120 (day 150 in the contained variant) and the
+    /// 4 kg mean opened the harvest step before day 300. On wave4/int that
+    /// engine is the wave-4 lanes' merge (605040e), measured day by day: the
+    /// lice step opens on day 120 (as-saved) and day 184 (contained: F2-08's
+    /// lice coupling puts the unit's larvae in its area's zone means, which
+    /// moves the contained zone's lice and with them the old step), the
+    /// harvest step on day 273 (day 271 without events).
+    /// </summary>
+    internal static int BeforeU2_02TutorialIndex(string variant, int day)
+    {
+        int lice = variant == "contained/events" ? 184 : 120;
+        int harvest = variant == "as-saved/no-events" ? 271 : 273;
+        return day >= harvest ? 7 : day >= lice ? 6 : 5;
+    }
+
+    /// <summary>
+    /// A save as an engine without U2-02 wrote it (U2-03's on wave4/ui-core-1,
+    /// the merge of the wave-4 lanes before U2-02 on wave4/int): without
+    /// U2-02's TutorialSkipped (it must be there and false) and with the old
+    /// track's progress (the save must hold the new track's first five steps
+    /// and index 5: the tutorial does not run in po3_red_sone). The rewrite is
+    /// exact: the save written back with nothing changed is the save itself,
+    /// byte for byte.
+    /// </summary>
+    internal static string AsBeforeU2_02Wrote(string savedJson, string variant, int day)
+    {
+        var root = JsonNode.Parse(savedJson)!.AsObject();
+        Assert.Equal(savedJson, root.ToJsonString(SaveJson.Options));
+        Assert.False(root["TutorialSkipped"]!.GetValue<bool>());
+        Assert.True(root.Remove("TutorialSkipped"));
+        Assert.Equal(5, root["TutorialCurrentStepIndex"]!.GetValue<int>());
+        var ids = Assert.IsType<JsonArray>(root["CompletedTutorialStepIds"]).Select(n => n!.GetValue<string>()).ToArray();
+        Assert.Equal(TutorialSystem.Template().Take(5).Select(t => t.Id), ids);
+        int index = BeforeU2_02TutorialIndex(variant, day);
+        root["TutorialCurrentStepIndex"] = index;
+        root["CompletedTutorialStepIds"] = new JsonArray(OldTrackSteps.Take(index).Select(id => (JsonNode)JsonValue.Create(id)!).ToArray());
+        return root.ToJsonString(SaveJson.Options);
+    }
+
+    /// <summary>
+    /// The same continuations on the wave-4 integration's engine once U2-02
+    /// joined it (wave4/int: F2-12 and F2-13/F2-15 on land, F2-06/F2-07 and
+    /// F2-08/F2-09 at sea, U2-02's first season), the whole save included.
+    /// Each step proves its drift: with U2-02's three tutorial fields written
+    /// back as an engine without U2-02 wrote them (<see cref="AsBeforeU2_02Wrote"/>)
+    /// each continuation is <see cref="F2_15F2_08Recording"/> exactly; with
+    /// both land lanes' site fields left out too it is the sea lane's own
+    /// <see cref="F2_08Recording"/> exactly; and what F2-08/F2-09 leave
+    /// unmoved is <see cref="UnmovedByF2_08Recording"/> exactly (RUN_LOG §7,
+    /// wave4/int).
+    /// </summary>
+    private static readonly IReadOnlyDictionary<string, string> U2_02F2_15F2_08Recording = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["as-saved/events"] = "7290f9daa7585561",
+        ["as-saved/no-events"] = "3e8a93d3f294a383",
+        ["contained/events"] = "df43c271bfed0b99",
+    };
+
+
+    /// <summary>
     /// Every day's <see cref="UnmovedGroups"/> and every stream but the
     /// offshore unit's own (<see cref="UnmovedDayText"/>), chained over the
     /// continuation as <see cref="PreMoveRecording"/> chains the day hashes:
@@ -464,21 +552,23 @@ public class FarmTypeMoveTests
 
     /// <summary>
     /// Run a variant and hash every day's traced state and the save every 30
-    /// days; <c>F2_12Hash</c> hashes the same with each save as F2-12 wrote it
-    /// (<see cref="AsF2_12Wrote"/>), <c>SeaLaneHash</c> as the sea lane alone
+    /// days; <c>BeforeU2_02Hash</c> hashes the same with each save as an engine
+    /// without U2-02 wrote it (<see cref="AsBeforeU2_02Wrote"/>), <c>F2_12Hash</c>
+    /// as F2-12 wrote it (<see cref="AsF2_12Wrote"/> of that), <c>SeaLaneHash</c> as the sea lane alone
     /// wrote it, with F2-12's fields left out too (<see cref="AsF2_07Wrote"/>
     /// of that); <c>UnmovedHash</c> chains every day's
     /// <see cref="UnmovedDayText"/> and <c>UnmovedBy08Hash</c> every day's
     /// <see cref="UnmovedByF2_08DayText"/>; <c>UnitDraws</c> counts the offshore
     /// unit's own day-stream draws over the run.
     /// </summary>
-    private static (string Hash, string F2_12Hash, string SeaLaneHash, string UnmovedHash, ulong UnitDraws, SimulationEngine Engine, int RedCreditDays, string UnmovedBy08Hash) RecordContinuation(string variant)
+    private static (string Hash, string BeforeU2_02Hash, string F2_12Hash, string SeaLaneHash, string UnmovedHash, ulong UnitDraws, SimulationEngine Engine, int RedCreditDays, string UnmovedBy08Hash) RecordContinuation(string variant)
     {
         var engine = Resume(variant);
         string unitId = engine.OffshoreUnits.Single().Id;
         string unitStream = SimRngStreams.OffshoreFarm + "/" + unitId;
         ulong unitStreamAtLoad = engine.Rng.CaptureStates()[SimRngStreams.OffshoreFarm + "\u0001" + unitId];
         var sb = new StringBuilder();
+        var sbBeforeU2_02 = new StringBuilder();
         var sbF2_12 = new StringBuilder();
         var sbF2_07 = new StringBuilder();
         var sbUnmoved = new StringBuilder();
@@ -491,6 +581,7 @@ public class FarmTypeMoveTests
             state = GoldenTraceState.Capture(engine);
             string dayHash = state.DayHash();
             sb.Append(dayHash).Append('\n');
+            sbBeforeU2_02.Append(dayHash).Append('\n');
             sbF2_12.Append(dayHash).Append('\n');
             sbF2_07.Append(dayHash).Append('\n');
             sbUnmoved.Append(GoldenTraceState.Hex(UnmovedDayText(state), 8)).Append('\n');
@@ -499,8 +590,10 @@ public class FarmTypeMoveTests
             if (day % SnapshotEveryDays == 0 || day == ContinuationDays)
             {
                 string save = SaveStateComparer.Normalize(SaveStateComparer.Serialize(engine));
-                string asF2_12 = AsF2_12Wrote(save);
+                string beforeU2_02 = AsBeforeU2_02Wrote(save, variant, day);
+                string asF2_12 = AsF2_12Wrote(beforeU2_02);
                 sb.Append(GoldenTraceState.Hex(save, 8)).Append('\n');
+                sbBeforeU2_02.Append(GoldenTraceState.Hex(beforeU2_02, 8)).Append('\n');
                 sbF2_12.Append(GoldenTraceState.Hex(asF2_12, 8)).Append('\n');
                 sbF2_07.Append(GoldenTraceState.Hex(AsF2_07Wrote(asF2_12), 8)).Append('\n');
             }
@@ -508,7 +601,7 @@ public class FarmTypeMoveTests
         static string Hash(StringBuilder text) =>
             Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text.ToString())), 0, 8).ToLowerInvariant();
         ulong unitDraws = GoldenTraceState.DrawsBetween(unitStreamAtLoad, state!.Streams[unitStream]);
-        return (Hash(sb), Hash(sbF2_12), Hash(sbF2_07), Hash(sbUnmoved), unitDraws, engine, redCreditDays, Hash(sbUnmoved08));
+        return (Hash(sb), Hash(sbBeforeU2_02), Hash(sbF2_12), Hash(sbF2_07), Hash(sbUnmoved), unitDraws, engine, redCreditDays, Hash(sbUnmoved08));
     }
 
     /// <summary>
@@ -537,11 +630,11 @@ public class FarmTypeMoveTests
     [MemberData(nameof(Variants))]
     public void PreF2FacilitiesSave_Runs365Days_ExactlyAsBeforeTheMove(string variant)
     {
-        var (hash, f2_12Hash, seaLaneHash, unmovedHash, unitDraws, engine, redCreditDays, unmoved08) = RecordContinuation(variant);
+        var (hash, beforeU2_02Hash, f2_12Hash, seaLaneHash, unmovedHash, unitDraws, engine, redCreditDays, unmoved08) = RecordContinuation(variant);
         var ras = engine.RASFacilities.Single(f => f.Kind == LandSiteKind.GrowOut);
         var postSmolt = engine.RASFacilities.Single(f => f.Kind == LandSiteKind.PostSmolt);
         var unit = engine.OffshoreUnits.Single();
-        _output.WriteLine($"{variant}: continuation {hash} (as F2-12 wrote the saves {f2_12Hash}, as the sea lane alone {seaLaneHash}; unmoved by F2-06/F2-07 {unmovedHash}; unmoved by F2-08/F2-09 {unmoved08}; the unit's draws {unitDraws}); red-credit days {redCreditDays}; " +
+        _output.WriteLine($"{variant}: continuation {hash} (as an engine without U2-02 wrote the saves {beforeU2_02Hash}, as F2-12 {f2_12Hash}, as the sea lane alone {seaLaneHash}; unmoved by F2-06/F2-07 {unmovedHash}; unmoved by F2-08/F2-09 {unmoved08}; the unit's draws {unitDraws}); red-credit days {redCreditDays}; " +
             $"cash {engine.FinanceManager.Balance:N0}; fish {engine.State.Populations.Sum(p => (long)p.TotalCount):N0}; " +
             $"RAS kg {ras.GetTotalBiomassKg():N0}; post-smolt kg {postSmolt.GetTotalBiomassKg():N0}; " +
             $"offshore kg {unit.Pens.Sum(p => p.GetTotalBiomassKg()):N0}; the unit's bookings " +
@@ -597,19 +690,22 @@ public class FarmTypeMoveTests
 
         // Two runs agree everywhere.
         var again = RecordContinuation(variant);
-        Assert.Equal((hash, f2_12Hash, seaLaneHash, unmovedHash, unmoved08), (again.Hash, again.F2_12Hash, again.SeaLaneHash, again.UnmovedHash, again.UnmovedBy08Hash));
+        Assert.Equal((hash, beforeU2_02Hash, f2_12Hash, seaLaneHash, unmovedHash, unmoved08), (again.Hash, again.BeforeU2_02Hash, again.F2_12Hash, again.SeaLaneHash, again.UnmovedHash, again.UnmovedBy08Hash));
 
         if (!GoldenTraceFixtures.MathMatchesRecording)
         {
             _output.WriteLine("not enforced here: this platform's math library differs from the recording's");
             return;
         }
-        Assert.Equal(F2_15F2_08Recording[variant], hash);
+        Assert.Equal(U2_02F2_15F2_08Recording[variant], hash);
+        Assert.Equal(F2_15F2_08Recording[variant], beforeU2_02Hash); // U2-02 changes no facility day: only the save's tutorial fields (D19)
+        Assert.NotEqual(F2_15F2_08Recording[variant], hash);       // ... which the whole save does carry
+        Assert.NotEqual(U2_02Recording[variant], hash);             // the wave-4 lanes run the unit in its sea and add the land sites' fields, on purpose
         Assert.Equal(F2_08Recording[variant], seaLaneHash);   // F2-12 and F2-13/F2-15 change no pre-F2 facility day and no unit's on F2-08's engine either: only the land sites' new fields
         Assert.NotEqual(F2_08Recording[variant], f2_12Hash);  // ... F2-12's, which the save as F2-12 wrote it does carry
-        Assert.NotEqual(F2_08Recording[variant], hash);       // ... and F2-13/F2-15's, which the whole save carries too
+        Assert.NotEqual(F2_08Recording[variant], beforeU2_02Hash); // ... and F2-13/F2-15's, which the save without U2-02's fields carries too
         Assert.Equal(UnmovedByF2_08Recording[variant], unmoved08); // F2-08/F2-09 move no weather, no zone's water and no other stream
-        Assert.NotEqual(F2_15F2_07Recording[variant], hash);  // F2-08 runs the unit's lice split, its requirement, incidents and zone-by-zone delousing, on purpose
+        Assert.NotEqual(F2_15F2_07Recording[variant], beforeU2_02Hash); // F2-08 runs the unit's lice split, its requirement, incidents and zone-by-zone delousing, on purpose
         Assert.NotEqual(F2_12F2_07Recording[variant], f2_12Hash);
         Assert.NotEqual(F2_07Recording[variant], seaLaneHash);
         Assert.NotEqual(F2_07Recording[variant], hash);

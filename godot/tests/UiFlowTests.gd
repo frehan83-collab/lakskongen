@@ -175,6 +175,10 @@ func _run() -> void:
 	await preload("res://tests/BuildFlowChecks.gd").new().run(self)
 	# U2-03: end screens, the liquidity ladder, the rescue loan, campaign progress.
 	await preload("res://tests/EndScreenFlowChecks.gd").new().run(self)
+	# U2-02: the learn-by-doing first season (the card, the pointer, the
+	# clock's pace, no tutorial elsewhere, a skip is no win, the season won
+	# by input alone).
+	await preload("res://tests/FirstSeasonFlowChecks.gd").new().run(self)
 
 	_clear_test_saves()
 	CampaignProgress.reset()
@@ -6807,34 +6811,74 @@ func _run_one_day_by_key() -> void:
 	if not _sim.is_paused():
 		await _press_key(KEY_SPACE, 32)
 
-## The minimal player of ScenarioCampaignTests (delouse above 0.4 adult females,
-## harvest at 4.5 kg, start the cheapest research once a harvest paid) plays the
-## first season through the bridge's verbs until the tutorial waits at step 16
-## with 6.5 MNOK in the bank. Returns the day it got there (-1 when it did not).
+## The minimal first-season player of the C# tests (TutorialPlayer, U2-02)
+## plays Første sesong through the bridge's verbs until the tutorial waits at
+## step 16 with 6.5 MNOK in the bank: each day it does what the current step
+## asks (the mark its screen sends, a 30-day feeding plan, the "Avlus ved
+## telling" standing order, a planned harvest at 4.5 kg, 10 000 smolts in the
+## first empty pen, the cheapest research leaving 200 000 NOK, the finance
+## panel's 5 MNOK loan when the cash is short of the funding goal) and checks
+## the step, as the card does. U2-02 replaced the old track's day counts, so
+## the old player (delouse, express harvest, research) no longer moved it.
+## Returns the day it got there (-1 when it did not).
 func _play_first_season_to_step_16(gb: Node) -> int:
-	var harvested := false
-	var research := false
-	var last_delouse := -100
 	for i in 1500:
+		for guard in 32:
+			var before := int(gb.TutorialStepNumber)
+			if before >= 16 or not bool(gb.TutorialActive):
+				break
+			_first_season_verb(str(_sim.get_tutorial_status().get("id", "")))
+			_sim.tutorial_check()
+			if int(gb.TutorialStepNumber) == before:
+				break
 		if int(gb.TutorialStepNumber) == 16 and float(_sim.balance) > 6_500_000.0:
 			return int(_sim.current_day)
 		_sim.advance_days(1)
-		var site: Dictionary = _sim.get_all_pens()[0]
-		var site_id := str(site.get("id", ""))
-		if int(site.get("fish_count", 0)) > 0:
-			if float(site.get("lice_per_fish", 0.0)) > 0.4 and int(_sim.current_day) - last_delouse >= 10:
-				last_delouse = int(_sim.current_day)
-				_sim.delouse_pen(site_id, "hydrolicer")
+	return -1
+
+## What the minimal player does for a first-season step (steps 1-15; the
+## second site is the expansion test's own input).
+func _first_season_verb(step_id: String) -> void:
+	var site: Dictionary = _sim.get_all_pens()[0]
+	var site_id := str(site.get("id", ""))
+	match step_id:
+		"open_pens":
+			_sim.tutorial_mark("tab:pens")
+		"feed_plan":
+			_sim.set_feed_plan(site_id, 100.0, "standard", 30)
+		"lice_order":
+			_sim.set_driftsplan(site_id, "delouse_on_count", {})
+		"inbox":
+			_sim.tutorial_mark("inbox")
+		"start_clock":
+			_sim.tutorial_mark("clock")
+		"order_harvest":
 			if float(site.get("mean_weight_kg", 0.0)) >= 4.5:
-				harvested = _sim.harvest_pen(site_id) > 0.0 or harvested
-		if harvested and not research:
+				_sim.order_harvest(site_id)
+		"harvest_report":
+			_sim.tutorial_mark("harvest_report")
+		"restock":
+			for pen: Dictionary in site.get("pens", []):
+				if not bool(pen.get("occupied", true)):
+					_sim.stock_smolts_in_pen(site_id, str(pen.get("id", "")), 10_000)
+					break
+		"research":
 			var cheapest: Dictionary = {}
 			for node in _sim.get_research_nodes():
 				if bool(node.get("can_research", false)) and (cheapest.is_empty() or float(node.get("cost_nok", 0.0)) < float(cheapest.get("cost_nok", 0.0))):
 					cheapest = node
 			if not cheapest.is_empty() and float(_sim.balance) > float(cheapest.get("cost_nok", 0.0)) + 200_000.0:
-				research = _sim.start_research(str(cheapest.get("id", "")))
-	return -1
+				_sim.start_research(str(cheapest.get("id", "")))
+		"regulation":
+			_sim.tutorial_mark("tab:sustainability")
+		"funding":
+			var progress: Dictionary = _sim.get_tutorial_status().get("progress", {})
+			if float(progress.get("value", 0.0)) < float(progress.get("goal", 0.0)):
+				_sim.take_loan(5_000_000.0, 36, 0.0)
+		"open_map":
+			_sim.tutorial_mark("tab:map")
+		"home_area":
+			_sim.tutorial_mark("map_area_home")
 
 ## U2-01 acceptance 1: a new Første sesong reaches tutorial step 16 ("Utvid med
 ## ny lokalitet"); the expansion is then done by real input only: Cmd+2 opens

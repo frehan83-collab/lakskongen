@@ -630,6 +630,7 @@ func _on_area_picked(index: int) -> void:
 	var area := _area_picker.get_item_id(index)
 	if area > 0:
 		select_area(area)
+		_mark_area_pick(area)
 
 
 ## Open the licence auction card for a zone (map, inbox, an "overbudt" event).
@@ -670,6 +671,25 @@ func auction_card() -> LicenceAuctionCard:
 
 func build_dialog() -> BuildSiteDialog:
 	return _build_dialog
+
+
+## U2-02: the marker of a production area (1-13), or null.
+func region_marker(area: int) -> Control:
+	return _region_nodes.get(_region_of_area(area)) as Control
+
+
+## U2-02: the area the company farms in (0 when none).
+func home_area() -> int:
+	if _overview.is_empty():
+		_refresh_expansion()
+	return _home_area()
+
+
+## The player picked an area (its marker or the picker): the first season's
+## map step waits for the company's own one.
+func _mark_area_pick(area: int) -> void:
+	if _sim != null and area > 0 and area == home_area():
+		_sim.tutorial_mark("map_area_home")
 
 
 func expansion_section() -> RegionExpansionSection:
@@ -897,6 +917,7 @@ func _on_region_input(event: InputEvent, region_id: String) -> void:
 		_show_region(region_id)
 		_refresh_markers()
 		region_selected.emit(region_id)
+		_mark_area_pick(_region_area(region_id))
 
 func _on_close_pressed() -> void:
 	hide_panel()

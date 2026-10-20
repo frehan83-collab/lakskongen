@@ -541,6 +541,7 @@ public partial class SimulationEngine
         // S2-02: the home production area (0 in legacy saves: resolved from the sites).
         State.HomeProductionArea = snapshot.HomeProductionArea;
         State.TutorialCurrentStepIndex = snapshot.TutorialCurrentStepIndex;
+        State.TutorialSkipped = snapshot.TutorialSkipped;
         // Economy / sustainability / external-data continuity.
         State.ContractActive = snapshot.ContractActive;
         State.AcquisitionCount = snapshot.AcquisitionCount;

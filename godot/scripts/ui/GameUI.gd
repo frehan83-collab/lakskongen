@@ -50,10 +50,10 @@ var _sim: Node = null
 var _theme: Node = null
 var _tutorial_state: Node = null
 
-## Advanced panels gated by tutorial progress. Kept in sync with
-## scripts/autoload/TutorialState.gd (which owns the authoritative mapping);
-## this is only a fallback so the UI behaves if the autoload is absent.
-const ADVANCED_TABS: Array[String] = ["ras", "offshore", "analytics", "research", "sustainability", "telemetry"]
+## Tabs the first season may gate (U2-02: TutorialState reads which step
+## opens each from tutorial_steps.json; only Første sesong gates, D19). A tab
+## not listed here is never locked.
+const ADVANCED_TABS: Array[String] = ["ras", "offshore", "analytics", "research", "sustainability", "telemetry", "carbon"]
 
 ## The see-through tab over the 3D vista (FjordViewPanel).
 const FJORD_TAB := "fjord"
@@ -125,6 +125,7 @@ func _input(event: InputEvent) -> void:
 					get_viewport().set_input_as_handled()
 					return
 				_switch_to_tab(tab.id)
+				_mark_tab_opened(tab.id)
 				# Keyboard navigation: move focus into the freshly shown panel.
 				_focus_panel_for_keyboard(tab.id)
 				get_viewport().set_input_as_handled()
@@ -273,13 +274,14 @@ func _layout_overflow() -> void:
 		var idx := popup.get_item_count() - 1
 		if not _is_tab_unlocked(tab.id):
 			popup.set_item_disabled(idx, true)
-			popup.set_item_tooltip(idx, tr("UI_TAB_LOCKED_TIP"))
+			popup.set_item_tooltip(idx, _locked_tip(tab.id))
 	_more_button.visible = not _overflow_ids.is_empty()
 	UIPolish.link_horizontal_focus(tab_bar)
 
 func _on_overflow_item(index: int) -> void:
 	if index >= 0 and index < _tabs.size():
 		_switch_to_tab(_tabs[index].id)
+		_mark_tab_opened(_tabs[index].id)
 
 ## Tab ids that are in the "Mer" menu right now (empty when all fit).
 func get_overflow_tabs() -> Array[String]:
@@ -323,7 +325,12 @@ func _apply_progressive_disclosure() -> void:
 			var key := _shortcut_for(tab_id)
 			btn.tooltip_text = tr("UI_TAB_SHORTCUT_TIP") % shortcut_label(key) if key != KEY_NONE else ""
 		else:
-			btn.tooltip_text = tr("UI_TAB_LOCKED_TIP")
+			btn.tooltip_text = _locked_tip(tab_id)
+
+## Why a tab is locked: the first-season step that opens it.
+func _locked_tip(tab_id: String) -> String:
+	var step := int(_tutorial_state.unlock_step(tab_id)) if _tutorial_state != null and _tutorial_state.has_method("unlock_step") else 0
+	return tr("TUTORIAL_TAB_LOCKED_TIP") % step if step > 0 else tr("UI_TAB_LOCKED_TIP")
 
 func _shortcut_for(tab_id: String) -> Key:
 	for tab in _tabs:
@@ -499,6 +506,7 @@ func _on_tab_button_pressed(tab_id: String) -> void:
 	if btn:
 		JuiceEffects.button_pop(btn)
 	_switch_to_tab(tab_id)
+	_mark_tab_opened(tab_id)
 	# A toggle button un-presses when its already-active tab is clicked again;
 	# the rail always shows exactly the active tab as pressed.
 	for id in _tab_buttons:
@@ -528,6 +536,22 @@ func _panel_enter(panel: Control) -> void:
 	if panel == null or not is_instance_valid(panel):
 		return
 	JuiceEffects.panel_enter(panel)
+
+## U2-02: the player opened a tab (the first season's steps wait for some).
+func _mark_tab_opened(tab_id: String) -> void:
+	if _sim != null and _active_tab_id == tab_id:
+		_sim.tutorial_mark("tab:" + tab_id)
+
+## The rail button of a tab, or the "Mer" menu when the tab is in it (U2-02 highlight).
+func tab_route(tab_id: String) -> Control:
+	if _overflow_ids.has(tab_id):
+		return _more_button
+	return _tab_buttons.get(tab_id) as Control
+
+## The panel of a tab once it was opened (null before).
+func panel_of(tab_id: String) -> Control:
+	var panel: Control = _panel_cache.get(tab_id)
+	return panel if panel != null and is_instance_valid(panel) else null
 
 # ── Public API ────────────────────────────────────────────────────────────────
 

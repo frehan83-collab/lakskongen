@@ -294,6 +294,13 @@ namespace LakskongenSim.Core
         /// <summary>IDs of completed tutorial steps.</summary>
         public HashSet<string> CompletedTutorialStepIds { get; set; } = new();
 
+        /// <summary>
+        /// U2-02: the player skipped the tutorial. Every step then counts as
+        /// done for the panels, but the Tutorial win condition stays false
+        /// (owner decision D19: skipping the tutorial is not a win). Save v11.
+        /// </summary>
+        public bool TutorialSkipped { get; set; }
+
         /// <summary>Logistics manager for vehicle fleet and carbon footprint tracking.</summary>
         [JsonIgnore]
         public Logistics.LogisticsManager? LogisticsManager { get; set; }
