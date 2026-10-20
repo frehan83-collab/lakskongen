@@ -18,6 +18,8 @@ extends RefCounted
 ##   load(), so every byte keeps its value. Sample them nearest, no mipmaps.
 ## - A failure records last_error and returns an empty value ({}, [] or
 ##   null) without push_error, so a missing layer never spams the log.
+## - Main thread only: the caches are plain static dictionaries, unlocked. A
+##   loader on a worker thread must parse on its own and hand the result over.
 ##
 ## The 618 KB localities.geojson is not parsed here: the national icons come
 ## from the sim's packed arrays (SimBridge.get_geo_sites, Track A).
