@@ -290,6 +290,22 @@ GIS package).
   `data/geo/*.json,data/geo/*.geojson,data/geo/*.md,data/geo/suitability/*.png,data/geo/basemap/po_index.national.png`.
   Exports pack every file the game reads raw and never the raw JPEGs (their
   imported textures ship as resources); `tests/test_geo_packaging.py` pins it.
+- Status (geo C1, 2026-10-20): the map UI's loader and projection are in
+  `godot/scripts/ui/map/`. `GeoData` is a static, parse-once cache
+  (`read_json`, `basemap`, `basemap_texture`, `load_data_png`,
+  `po_index_image`, `production_areas(lod)`, `offshore_areas(lod)`,
+  `salmon_fjords()`, `candidates()`, `suitability_grid(po)`, `rules()`,
+  `parse_count`, `parses_of(rel)`): ids cast to int, the parsed data shared
+  read-only, the data PNGs decoded from raw bytes only, and a failure
+  recorded in `last_error` with no engine error. It uses a `JSON` instance
+  rather than `JSON.parse_string`, which push_errors on a broken file.
+  `GeoProjection.utm33` reproduces the six reference points within the
+  1 cm gate (measured at most 0.46 mm; 64-bit, atanh/sinh/cosh through log
+  and exp); `to_px`, `to_cell` and
+  `to_utm` subtract the origin in 64-bit. `godot/tests/GeoMapChecks.gd`
+  (UiFlowTests) and `tests/test_geo_map_contract.py` pin them. The game
+  never parses `localities.geojson` in GDScript; the icons come from the
+  sim's packed arrays (Track A).
 - Credits: `godot/data/credits.json` already lists the seven map-data
   providers with their attribution notices (translation keys in
   `translations.csv`), so `CreditsScreen` shows them with no code change.
