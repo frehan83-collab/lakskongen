@@ -203,6 +203,61 @@ public class RivalLayoutTests
         Assert.Equal(RivalLayout.SignatureOf(roster, new HashSet<int> { 1, 2 }), RivalLayout.SignatureOf(roster, new List<int> { 2, 1, 2 }));
     }
 
+    /// <summary>
+    /// Equal signatures, equal layouts: the engine and the bridge serve a
+    /// cached layout while the signature holds, so it must change with every
+    /// input of <see cref="RivalLayout.Build"/>: the majors' names (a loaded
+    /// save keeps its stored names, ruling OD8), their home areas, each share
+    /// of sites (two tonnages in one whole tonne can straddle a share step)
+    /// and the offshore locality's owner (after a merger, the largest major by
+    /// exact tonnes). Captain's review of track A, finding 3.
+    /// </summary>
+    [Fact]
+    public void TheSignature_ChangesWithEveryInputOfTheLayout()
+    {
+        var roster = Roster();
+        string a = RivalLayout.SignatureOf(roster, NoAnchors);
+        string digest = Digest(RivalLayout.Build(roster, NoAnchors));
+
+        var renamed = Roster();
+        renamed[5].Name = "Tidligere Navn AS";
+        Assert.NotEqual(digest, Digest(RivalLayout.Build(renamed, NoAnchors)));
+        Assert.NotEqual(a, RivalLayout.SignatureOf(renamed, NoAnchors));
+
+        var moved = Roster();
+        moved[0].Headquarters = "Stokmarknes, Nordland";   // home area 9, not 3 and 4
+        Assert.NotEqual(digest, Digest(RivalLayout.Build(moved, NoAnchors)));
+        Assert.NotEqual(a, RivalLayout.SignatureOf(moved, NoAnchors));
+
+        // Two tonnages in one whole tonne on either side of a sea-share step.
+        double perSite = RivalLayout.NationalMtbTonnes / 994;
+        int step = RivalLayout.ShareOf(roster[0], 994);
+        while (Math.Abs(((step + 0.5) * perSite) % 1.0 - 0.5) < 0.2) step++;
+        double edge = (step + 0.5) * perSite;
+        var below = Roster();
+        var above = Roster();
+        below[0].TotalMABTonnes = (float)(edge - 0.1);
+        above[0].TotalMABTonnes = (float)(edge + 0.1);
+        Assert.Equal(Math.Round((double)below[0].TotalMABTonnes, MidpointRounding.AwayFromZero),
+            Math.Round((double)above[0].TotalMABTonnes, MidpointRounding.AwayFromZero));
+        Assert.Equal(RivalLayout.ShareOf(below[0], 994) + 1, RivalLayout.ShareOf(above[0], 994));
+        Assert.NotEqual(Digest(RivalLayout.Build(below, NoAnchors)), Digest(RivalLayout.Build(above, NoAnchors)));
+        Assert.NotEqual(RivalLayout.SignatureOf(below, NoAnchors), RivalLayout.SignatureOf(above, NoAnchors));
+
+        // After a merger the offshore locality follows the largest major by exact tonnes.
+        var first = Roster().Where(c => c.Id != RivalLayout.OffshoreOwnerId).ToArray();
+        var second = Roster().Where(c => c.Id != RivalLayout.OffshoreOwnerId).ToArray();
+        first[0].TotalMABTonnes = 300_000.25f;
+        first[1].TotalMABTonnes = 299_999.875f;
+        second[0].TotalMABTonnes = 299_999.875f;
+        second[1].TotalMABTonnes = 300_000.25f;
+        Assert.Equal(RivalLayout.ShareOf(first[0], 994), RivalLayout.ShareOf(second[0], 994));
+        Assert.Equal(RivalLayout.ShareOf(first[1], 994), RivalLayout.ShareOf(second[1], 994));
+        Assert.Equal(first[0].Id, RivalLayout.Build(first, NoAnchors).OwnerOf(RivalLayout.OffshoreLocalityId)!.Id);
+        Assert.Equal(second[1].Id, RivalLayout.Build(second, NoAnchors).OwnerOf(RivalLayout.OffshoreLocalityId)!.Id);
+        Assert.NotEqual(RivalLayout.SignatureOf(first, NoAnchors), RivalLayout.SignatureOf(second, NoAnchors));
+    }
+
     [Fact]
     public void AMajorThatGrows_KeepsItsSites_AndOnlyTakesMore()
     {

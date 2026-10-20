@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using LakskongenSim.Environment;
 using LakskongenSim.Environment.Geo;
+using LakskongenSim.Farm;
 using LakskongenSim.Finance;
 
 namespace LakskongenSim.Core;
@@ -35,6 +36,21 @@ public partial class SimulationEngine
     /// </summary>
     internal void SelectGeoPlotCatalog()
         => PlotCatalog = GeoPlotCatalogs.ForHomeArea(State?.HomeProductionArea ?? 0);
+
+    /// <summary>
+    /// Forget the previous game's geo reads (called from <see cref="Reset"/>):
+    /// back to the default plot catalogue, no cached layout, no cached home
+    /// counts. GameBridge keeps one engine for the whole session, and a New
+    /// Game with no scenario never reaches <see cref="SelectGeoPlotCatalog"/>,
+    /// so without this it kept the last scenario's hav_1 binding until a save
+    /// and load moved it (captain's review of track A, finding 2).
+    /// </summary>
+    private void ResetGeoReads()
+    {
+        PlotCatalog = SitePlotCatalog.Default;
+        _rivalLayout = null;
+        _homeSiteCounts = null;
+    }
 
     /// <summary>
     /// The real open-sea candidate behind a plot, or null when the plot is not
@@ -92,8 +108,9 @@ public partial class SimulationEngine
     /// <summary>
     /// The rival layout for the current roster and the game's anchors
     /// (<see cref="RivalLayout.Build"/>), built again only when its signature
-    /// (roster ids, MAB to the tonne, anchor ids) changes: a licence win, a
-    /// merger, a new zone.
+    /// (<see cref="RivalLayout.SignatureOf"/>: the majors' ids, MAB, home
+    /// areas and names, and the anchor ids) changes: a licence win, a merger,
+    /// a new zone, another game's roster.
     /// </summary>
     public RivalLayoutResult GetRivalLayout()
     {
@@ -151,7 +168,9 @@ public partial class SimulationEngine
     /// <summary>
     /// The roster ordered for the 3D fjord: by producing sea grow-out sites in
     /// the home production area (most first), then roster order (a stable
-    /// sort), read from the cached layout.
+    /// sort), read from the cached layout. A game with no home area
+    /// (<see cref="ProductionAreas.NationalReference"/>) counts none, so its
+    /// order is the roster's.
     /// </summary>
     public IReadOnlyList<RivalHomePresence> CompetitorsByHomePresence()
     {
@@ -168,18 +187,25 @@ public partial class SimulationEngine
 
     private (string Signature, int Home, Dictionary<string, int> Counts)? _homeSiteCounts;
 
-    /// <summary>Each owner's producing sea grow-out sites in the home area, cached per layout and area.</summary>
+    /// <summary>
+    /// Each owner's producing sea grow-out sites in the home area, cached per
+    /// layout and area. Outside 1-13 there is no home area: every count is 0
+    /// (area 0 is not the localities with no area, one of which is a producing
+    /// sea site a major can hold).
+    /// </summary>
     private Dictionary<string, int> HomeSiteCounts(RivalLayoutResult layout, int home)
     {
         if (_homeSiteCounts is { } cached && cached.Signature == layout.Signature && cached.Home == home)
             return cached.Counts;
         var counts = new Dictionary<string, int>(StringComparer.Ordinal);
+        bool hasHome = ProductionAreas.IsValid(home);
         for (int owner = 0; owner < layout.Owners.Count; owner++)
         {
             int count = 0;
-            foreach (int id in layout.SitesOf(owner))
-                if (GeoLocalities.Default.TryGet(id, out var l) && l.Po == home && l.IsSeaGrowoutProducing)
-                    count++;
+            if (hasHome)
+                foreach (int id in layout.SitesOf(owner))
+                    if (GeoLocalities.Default.TryGet(id, out var l) && l.Po == home && l.IsSeaGrowoutProducing)
+                        count++;
             counts[layout.Owners[owner].Id] = count;
         }
         _homeSiteCounts = (layout.Signature, home, counts);

@@ -138,15 +138,27 @@ namespace LakskongenSim.Finance
         }
 
         /// <summary>
-        /// The layout's identity: the roster's ids with their MAB rounded to the
-        /// tonne, and the excluded locality ids. Equal signatures, equal layouts.
+        /// The layout's identity: every input of <see cref="Build"/>. For each
+        /// major in roster order its id, its exact MAB (the shares and the
+        /// offshore fallback read the exact tonnes, so two values in one whole
+        /// tonne can deal different layouts), its home areas and its name (a
+        /// loaded save keeps its stored names, ruling OD8, and the layout shows
+        /// them); then the excluded locality ids. Ids and names are
+        /// length-prefixed, so no name can imitate another roster. Equal
+        /// signatures, equal layouts: the engine and the bridge serve a cached
+        /// layout while the signature holds.
         /// </summary>
         public static string SignatureOf(IReadOnlyList<CompetitorCompany> roster, IReadOnlyCollection<int> excludedLocalityIds)
         {
-            var text = new StringBuilder("rivals-v1");
+            var text = new StringBuilder("rivals-v2");
             foreach (var c in roster ?? Array.Empty<CompetitorCompany>())
-                text.Append('|').Append(c.Id).Append(':')
-                    .Append(Math.Round((double)c.TotalMABTonnes, MidpointRounding.AwayFromZero).ToString("0", CultureInfo.InvariantCulture));
+            {
+                string id = c.Id ?? "", name = c.Name ?? "";
+                text.Append('|').Append(id.Length.ToString(CultureInfo.InvariantCulture)).Append(':').Append(id)
+                    .Append(':').Append(c.TotalMABTonnes.ToString("R", CultureInfo.InvariantCulture))
+                    .Append(':').Append(string.Join(",", HomeAreasOf(c).Select(po => po.ToString(CultureInfo.InvariantCulture))))
+                    .Append(':').Append(name.Length.ToString(CultureInfo.InvariantCulture)).Append(':').Append(name);
+            }
             text.Append("|x");
             foreach (int id in (excludedLocalityIds ?? Array.Empty<int>()).Distinct().OrderBy(i => i))
                 text.Append(':').Append(id.ToString(CultureInfo.InvariantCulture));
