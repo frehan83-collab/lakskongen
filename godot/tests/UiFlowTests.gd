@@ -179,6 +179,8 @@ func _run() -> void:
 	# clock's pace, no tutorial elsewhere, a skip is no win, the season won
 	# by input alone).
 	await preload("res://tests/FirstSeasonFlowChecks.gd").new().run(self)
+	# Geo stages 2-3 track B: the open-pen places, 'why here', the picker and the Hav lens (tests/GeoExpansionChecks.gd).
+	await preload("res://tests/GeoExpansionChecks.gd").new().run(self)
 
 	_clear_test_saves()
 	CampaignProgress.reset()

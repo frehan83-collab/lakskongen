@@ -26,7 +26,7 @@ public partial class GameBridge : Node
             ? SeaCandidateLabelKey(reasonKey)
             : ExpansionLabelKey(reasonKey);
 
-    private static Godot.Collections.Dictionary CandidateRow(SeaCandidateView v, SimulationEngine engine)
+    private static Godot.Collections.Dictionary CandidateRow(SeaCandidateView v)
     {
         var c = v.Candidate;
         var components = new Godot.Collections.Dictionary();
@@ -72,7 +72,6 @@ public partial class GameBridge : Node
             ["taken_by_site_label"] = v.TakenBySiteLabel,
             ["suggested"] = v.Suggested,
             ["build_zone_id"] = v.BuildZoneId,
-            ["build_zone_label"] = string.IsNullOrEmpty(v.BuildZoneId) ? "" : engine.ZoneLabelOf(v.BuildZoneId),
             ["can_build"] = v.Verdict.Allowed,
             ["build_reason_key"] = v.Verdict.ReasonKey,
             ["build_label_key"] = SeaBuildLabelKey(v.Verdict.ReasonKey),
@@ -87,7 +86,7 @@ public partial class GameBridge : Node
     /// last}, binding, river_factor, depth_m, openness, nearest_farm_km,
     /// nearest_river_km, ocean {current_speed_ms, hs_m, o2_mmol_m3} or {}, x, y
     /// (EPSG:25833), lon, lat, taken_by_site_id, taken_by_site_label, suggested
-    /// (the first free one), build_zone_id, build_zone_label, can_build,
+    /// (the first free one), build_zone_id, can_build,
     /// build_reason_key, build_label_key. Empty before a game starts.
     /// </summary>
     public Godot.Collections.Array<Godot.Collections.Dictionary> GetSeaCandidates(int productionArea)
@@ -97,7 +96,7 @@ public partial class GameBridge : Node
         if (engine?.State == null) return rows;
         int area = productionArea > 0 ? productionArea : engine.HomeProductionArea;
         foreach (var view in engine.GetSeaCandidates(area))
-            rows.Add(CandidateRow(view, engine));
+            rows.Add(CandidateRow(view));
         return rows;
     }
 
@@ -117,7 +116,7 @@ public partial class GameBridge : Node
         result["allowed"] = at.Verdict.Allowed;
         result["reason_key"] = at.Verdict.ReasonKey;
         result["label_key"] = SeaBuildLabelKey(at.Verdict.ReasonKey);
-        result["candidate"] = at.Candidate != null ? CandidateRow(at.Candidate, engine) : new Godot.Collections.Dictionary();
+        result["candidate"] = at.Candidate != null ? CandidateRow(at.Candidate) : new Godot.Collections.Dictionary();
         result["candidate_reason_key"] = at.CandidateVerdict.ReasonKey;
         result["candidate_label_key"] = SeaCandidateLabelKey(at.CandidateVerdict.ReasonKey);
         return result;
