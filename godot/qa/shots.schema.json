@@ -64,18 +64,41 @@
           "additionalProperties": {"type": "number", "minimum": 0, "maximum": 1}
         },
         "measure_pads": {"type": "boolean", "description": "F2-19: record each pad's mean CIE Lab in the frame."},
-        "facilities": {"type": "boolean", "description": "F2-20: build the farm-type QA set (one HFS lot, one post-smolt site, one OF1-class unit) through the engine and let the presenter draw it."},
-        "construction": {
+        "facilities": {
           "type": "object",
-          "description": "F2-20: build progress (0-1, 1 = operational) of the QA set's land, post-smolt and offshore units.",
+          "description": "F2-20: the farm-type QA set the presenter draws, stood in the engine through the bridge's QA verbs (the engine's own build verbs); the set only grows over a run.",
           "additionalProperties": false,
           "properties": {
-            "land": {"type": "number", "minimum": 0, "maximum": 1},
-            "post_smolt": {"type": "number", "minimum": 0, "maximum": 1},
-            "offshore": {"type": "number", "minimum": 0, "maximum": 1}
+            "land": {
+              "type": "object",
+              "description": "An HFS site on pad_a: 'operational' commissions its lots at once, a phase key builds it lot by lot and stands its projects in that phase.",
+              "required": ["lots", "phase"],
+              "additionalProperties": false,
+              "properties": {
+                "lots": {"type": "integer", "minimum": 1, "maximum": 4},
+                "phase": {"enum": ["site_works", "tank_rings", "treatment_hall", "sea_works", "first_tanks", "completion", "operational"]},
+                "progress": {"type": "number", "minimum": 0, "maximum": 1}
+              }
+            },
+            "post_smolt": {
+              "type": "object",
+              "description": "A post-smolt site on pad_delta, built.",
+              "required": ["modules"],
+              "additionalProperties": false,
+              "properties": {"modules": {"type": "integer", "minimum": 1, "maximum": 4}}
+            },
+            "offshore": {
+              "type": "object",
+              "description": "An OF1-class unit on off_1, contracted on a QA award and stood in a phase of its project.",
+              "required": ["phase"],
+              "additionalProperties": false,
+              "properties": {
+                "phase": {"enum": ["yard_contract", "hull", "voyage", "tow", "mooring", "commissioning", "operational"]},
+                "progress": {"type": "number", "minimum": 0, "maximum": 1}
+              }
+            }
           }
         },
-        "land_lots": {"type": "integer", "minimum": 1, "maximum": 4, "description": "F2-20: the QA set's grow-out site at this many lots (GameBridge.QaSetLandLots; 4 = the full campus of the spec section 5 budget)."},
         "perf_units": {
           "type": "array",
           "description": "F2-20: with perf, only these QA-set units are shown in the A/B's 'on' frame, so one unit's own draw calls are measured.",

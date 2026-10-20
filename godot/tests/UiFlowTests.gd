@@ -7331,18 +7331,23 @@ func _layout_change(before: Dictionary, after: Dictionary) -> String:
 
 
 ## F2-20: the facility presenter draws the engine's farm-type units. With the
-## QA set (one HFS lot on pad_a, one post-smolt site on pad_delta, one
-## OF1-class unit on off_1, built through the engine) the drawn tanks and
-## units equal the engine's; every construction phase draws differently; a
-## real click on a tank opens its anchored card and frames its lot, a click
-## on the unit opens its card and frames the unit, Esc closes the card;
-## dropping a unit leaves the others where they stood and a lot more re-lays
-## only its own campus; no fjord site, pen grid or feed barge stands for a
-## farm-type unit; the net stays out of the planar mirror; LOD2 casts no
-## shadow and of LOD1 only the tanks do.
+## QA set built through the engine's own verbs (an HFS lot on pad_a and a
+## post-smolt site of two modules on pad_delta commissioned, an OF1-class unit
+## contracted on off_1 through the engine's QA seam, its project complete):
+## the drawn tanks and units equal the engine's; a stocked tank's feeder
+## turns; every construction phase of a land build (pad_b) and of the unit
+## draws differently and the tanks the engine hands over stand whole; a real
+## click on a tank opens its anchored card and frames its lot, a click on the
+## unit opens its card and frames the unit, Esc closes the card; cancelling
+## the land build (the engine's verb) removes its campus and leaves the
+## others where they stood, and a lot more re-lays only its own campus; no
+## fjord site, pen grid or feed barge stands for a farm-type unit; the net
+## stays out of the planar mirror; LOD2 casts no shadow and of LOD1 only the
+## tanks do.
 func _test_facilities_render() -> void:
 	_check(_sim.start_qa_scenario("po3_red_sone", 91), "facilities: seeded scenario starts")
 	_sim.set_paused(true)
+	var bridge := get_node("/root/GameBridge")
 	var scene: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
 	add_child(scene)
 	for i in 5:
@@ -7361,14 +7366,11 @@ func _test_facilities_render() -> void:
 	var fjord_before := _fjord_layout(pens, barges)
 	_check(manager.visuals.is_empty(), "facilities: a game without farm-type units draws none")
 
-	var bridge := get_node("/root/GameBridge")
-	var placed: Dictionary = bridge.QaPlaceFarmTypes()
+	var placed: Dictionary = bridge.QaPlaceFarmTypeSet(1, 2, 1)
 	_check(bool(placed.get("success", false)), "facilities: the QA set is built through the engine (%s)" % str(placed.get("message", "")))
 	var land_id := str(placed.get("land_id", ""))
 	var smolt_id := str(placed.get("post_smolt_id", ""))
 	var off_id := str(placed.get("offshore_id", ""))
-	for id in [land_id, smolt_id, off_id]:
-		bridge.QaSetFacilityConstruction(id, 1.0)
 	_sim.state_updated.emit()
 	for i in 3:
 		await get_tree().process_frame
@@ -7383,21 +7385,29 @@ func _test_facilities_render() -> void:
 		if str(row["family"]) == "land":
 			var c := node as LandCampusBuilder
 			var drawn := c.drawn_tanks("tank_growout") + c.drawn_tanks("tank_pregrow") if c != null else -1
-			_check(int(row["tanks"]) > 0 and drawn == int(row["tanks"]),
-				"facilities: %s (%s on %s) draws the engine's %d tanks (%d)" % [id, row["variant"], row["plot_id"], int(row["tanks"]), drawn])
+			_check(int(row["tanks"]) > 0 and drawn == int(row["tanks"]) and c.whole_tanks() == int(row["tanks"]),
+				"facilities: %s (%s on %s) draws the engine's %d tanks whole (%d)" % [id, row["variant"], row["plot_id"], int(row["tanks"]), drawn])
 		else:
 			var u := node as OffshoreUnitVisual
-			_check(u != null and u.unit.visible and u.get_phase() == int(row["phase_count"]) and "offshore_service" in u.fleet_assets(),
+			_check(u != null and u.unit.visible and u.get_phase_key() == "operational" and "offshore_service" in u.fleet_assets(),
 				"facilities: %s stands on %s, operational, its service vessel alongside" % [id, row["plot_id"]])
 	var campus: LandCampusBuilder = manager.visual_of(land_id)
 	var smolt: LandCampusBuilder = manager.visual_of(smolt_id)
 	var unit: OffshoreUnitVisual = manager.visual_of(off_id)
 	_check(campus != null and campus.drawn_tanks("tank_growout") == 12 and campus.drawn_tanks("tank_pregrow") == 2
-		and smolt != null and smolt.drawn_tanks("tank_pregrow") == 8,
-		"facilities: one HFS lot is 12 grow-out and 2 pre-grow tanks, the post-smolt site 4 modules of 2")
+		and smolt != null and smolt.drawn_tanks("tank_pregrow") == 4,
+		"facilities: one HFS lot is 12 grow-out and 2 pre-grow tanks, the post-smolt site 2 modules of 2")
 	_check(is_equal_approx(terrain.get_pad_state("pad_a"), 1.0) and is_equal_approx(terrain.get_pad_state("pad_delta"), 1.0)
 		and is_equal_approx(terrain.get_pad_state("pad_b"), 0.0),
 		"facilities: the held pads are blasted granite, the free pad stays heath")
+	var stocked: Dictionary = _sim.stock_land_tank(land_id, "t01", 50_000, "standard")
+	_sim.state_updated.emit()
+	# The feeders draw in the near LOD bands: frame the campus to see them.
+	cam.frame_position(campus.focus_point(), FarmFacilityVisualManager.LAND_FRAMING.x, FarmFacilityVisualManager.LAND_FRAMING.y, 0.0)
+	await _settle_camera(cam)
+	await get_tree().process_frame
+	_check(bool(stocked.get("success", stocked.get("ok", false))) and campus.spinning_feeders() == 1,
+		"facilities: stocking a tank turns its feeder and no other (%d)" % campus.spinning_feeders())
 
 	# Accept 7: no fjord site, pen grid or barge for a farm-type unit.
 	var fjord_ids: Array = pens.get_pen_ids()
@@ -7415,20 +7425,35 @@ func _test_facilities_render() -> void:
 			var want := PlanarReflection.NO_MIRROR_LAYER if String(mesh.name) == "Net" else 1
 			net_ok = net_ok and mesh.layers == want
 	_check(net_ok, "facilities: the unit's net is on the no-mirror layer at every LOD, the frame is mirrored")
-	_check(_shadow_rule_holds(campus.shadow_report()) and _shadow_rule_holds(unit.shadow_report()),
+	_check(_shadow_rule_holds(campus.shadow_report()) and _shadow_rule_holds(smolt.shadow_report()) and _shadow_rule_holds(unit.shadow_report()),
 		"facilities: LOD2 casts no shadow and of LOD1 only the tanks do")
 
-	# Accept 2: every construction phase draws differently.
-	var land_sigs := await _phase_signatures(bridge, manager, terrain, land_id)
-	_check(land_sigs.size() == 6 and _all_distinct(land_sigs.values()),
-		"facilities: the six land construction phases draw six different states (%s)" % str(land_sigs.keys()))
-	var off_sigs := await _phase_signatures(bridge, manager, terrain, off_id)
-	_check(off_sigs.size() == 5 and _all_distinct(off_sigs.values()),
-		"facilities: the five offshore construction phases draw five different states (%s)" % str(off_sigs.keys()))
-	for id in [land_id, off_id]:
-		bridge.QaSetFacilityConstruction(id, 1.0)
-	manager.sync_units(_sim.get_facility_visuals())
-	campus = manager.visual_of(land_id)
+	# Accept 2: every construction phase draws differently (a land build on
+	# pad_b, the unit's own project), and the engine's handed-over tanks stand whole.
+	var build: Dictionary = bridge.QaStartLandBuild("pad_b", "hfs_lot")
+	_check(bool(build.get("success", false)), "facilities: a land build starts on pad_b through the engine (%s)" % str(build.get("message", "")))
+	var build_id := str(build.get("unit_id", ""))
+	var land_keys := ["site_works", "tank_rings", "treatment_hall", "sea_works", "first_tanks", "completion", "operational"]
+	var land_sigs := await _phase_signatures(bridge, manager, terrain, build_id, land_keys)
+	_check(land_sigs.size() == land_keys.size() and _all_distinct(land_sigs.values()),
+		"facilities: the land build's six phases and its handover draw seven different states (%s)" % str(land_sigs.keys()))
+	var off_keys := ["yard_contract", "hull", "voyage", "tow", "mooring", "commissioning", "operational"]
+	var off_sigs := await _phase_signatures(bridge, manager, terrain, off_id, off_keys)
+	_check(off_sigs.size() == off_keys.size() and _all_distinct(off_sigs.values()),
+		"facilities: the unit's six phases and its operation draw seven different states (%s)" % str(off_sigs.keys()))
+	bridge.QaStageConstruction(build_id, "completion", 0.5)
+	_sim.state_updated.emit()
+	await get_tree().process_frame
+	var built: LandCampusBuilder = manager.visual_of(build_id)
+	var handed := 0
+	for lot: Dictionary in _facility_row(build_id)["lots"]:
+		for t: Dictionary in lot["tanks"]:
+			handed += 1 if bool(t["ready"]) else 0
+	_check(built != null and handed == 6 and built.whole_tanks() == handed and built.drawn_tanks("tank_growout") + built.drawn_tanks("tank_pregrow") == 14,
+		"facilities: in the completion phase the engine's %d handed-over tanks stand whole, the rest open-topped" % handed)
+	bridge.QaStageConstruction(off_id, "operational", 1.0)
+	_sim.state_updated.emit()
+	await get_tree().process_frame
 	unit = manager.visual_of(off_id)
 
 	# Accept 3: on the see-through Fjord tab, a click on a tank opens its card
@@ -7441,11 +7466,14 @@ func _test_facilities_render() -> void:
 	await _click_at(cam.unproject_position(tank_top))
 	_check(manager.card.visible and manager.card.unit_id == land_id and manager.card.tank_index == 0,
 		"facilities: clicking a tank opens its anchored card (unit %s, tank %d)" % [manager.card.unit_id, manager.card.tank_index])
+	var detail := (manager.card.find_child("Detail", true, false) as Label).text
+	_check(detail.begins_with(tr("FACILITY_CARD_TANK") % 1) and (tr("FACILITY_CARD_LOT") % 1) in detail,
+		"facilities: the card names the engine's tank and its lot ('%s')" % detail)
 	_check(is_equal_approx(cam.get_zoom_distance(), FarmFacilityVisualManager.LOT_FRAMING.x),
 		"facilities: the camera frames the tank's lot at the one-lot framing (%.0f m)" % cam.get_zoom_distance())
 	await get_tree().create_timer(1.5).timeout
-	var lot := campus.lot_centre(campus.tank_lot(0))
-	_check(Vector2(cam.get_focus_point().x - lot.x, cam.get_focus_point().z - lot.z).length() < 1.0,
+	var lot_centre := campus.lot_centre(campus.tank_lot(0))
+	_check(Vector2(cam.get_focus_point().x - lot_centre.x, cam.get_focus_point().z - lot_centre.z).length() < 1.0,
 		"facilities: the camera's focus is on the lot's centre")
 	_press_key(KEY_ESCAPE)
 	await get_tree().process_frame
@@ -7463,25 +7491,39 @@ func _test_facilities_render() -> void:
 	_press_key(KEY_ESCAPE)
 	await get_tree().process_frame
 
-	# Accept 6: dropping a unit leaves the others where they stood.
+	# Accept 6: the engine cancels the land build (no tank handed over yet):
+	# its campus goes, its pad goes back to heath, the others stand where they stood.
+	bridge.QaStageConstruction(build_id, "tank_rings", 0.5)
+	_sim.state_updated.emit()
+	await get_tree().process_frame
 	var land_before := [campus.get_instance_id(), campus.tank_position(0), campus.tank_position(campus.tanks.size() - 1)]
+	var smolt_before := [smolt.get_instance_id(), smolt.tank_position(0)]
 	# The unit heaves on the drawn water: its station (x, z) is what must stay.
 	var unit_before := [unit.get_instance_id(), Vector2(unit.unit.position.x, unit.unit.position.z)]
-	manager.sync_units(_sim.get_facility_visuals().filter(func(r: Dictionary) -> bool: return str(r["unit_id"]) != smolt_id))
+	var project_id := str(build.get("project_id", ""))
+	var cancelled: Dictionary = _sim.cancel_land_construction(project_id)
+	_sim.state_updated.emit()
 	await get_tree().process_frame
 	var kept: LandCampusBuilder = manager.visual_of(land_id)
+	var kept_smolt: LandCampusBuilder = manager.visual_of(smolt_id)
 	var kept_unit: OffshoreUnitVisual = manager.visual_of(off_id)
-	_check(manager.visual_of(smolt_id) == null and kept != null and kept_unit != null
+	_check(bool(cancelled.get("success", cancelled.get("ok", false))) and manager.visual_of(build_id) == null
+		and kept != null and kept_smolt != null and kept_unit != null
 		and [kept.get_instance_id(), kept.tank_position(0), kept.tank_position(kept.tanks.size() - 1)] == land_before
+		and [kept_smolt.get_instance_id(), kept_smolt.tank_position(0)] == smolt_before
 		and [kept_unit.get_instance_id(), Vector2(kept_unit.unit.position.x, kept_unit.unit.position.z)] == unit_before,
-		"facilities: dropping the post-smolt site leaves the campus and the unit untouched")
-	_check(is_equal_approx(terrain.get_pad_state("pad_delta"), 0.0), "facilities: the freed pad goes back to heath")
-	_check(bridge.QaSetLandLots(land_id, 2), "facilities: the grow-out site grows to two lots")
-	manager.sync_units(_sim.get_facility_visuals())
-	var grown: LandCampusBuilder = manager.visual_of(land_id)
-	_check(grown != null and grown.get_instance_id() != land_before[0]
-		and grown.drawn_tanks("tank_growout") + grown.drawn_tanks("tank_pregrow") == 28
-		and (manager.visual_of(off_id) as Node).get_instance_id() == unit_before[0],
+		"facilities: cancelling the pad_b build removes its campus and leaves the campus, the modules and the unit untouched")
+	_check(is_equal_approx(terrain.get_pad_state("pad_b"), 0.0), "facilities: the freed pad goes back to heath")
+	var grown: Dictionary = bridge.QaExpandLandSite(land_id)
+	_check(bool(grown.get("success", false)), "facilities: the HFS site grows a second lot through the engine (%s)" % str(grown.get("message", "")))
+	bridge.QaStageConstruction(land_id, "operational", 1.0)
+	_sim.state_updated.emit()
+	await get_tree().process_frame
+	var relaid: LandCampusBuilder = manager.visual_of(land_id)
+	_check(relaid != null and relaid.get_instance_id() != land_before[0]
+		and relaid.drawn_tanks("tank_growout") + relaid.drawn_tanks("tank_pregrow") == 28 and relaid.whole_tanks() == 28
+		and (manager.visual_of(off_id) as Node).get_instance_id() == unit_before[0]
+		and (manager.visual_of(smolt_id) as Node).get_instance_id() == smolt_before[0],
 		"facilities: a lot more re-lays its campus (28 tanks) and nothing else")
 	_check(_fjord_layout(pens, barges) == fjord_before, "facilities: the fjord layout is still unchanged")
 	scene.queue_free()
@@ -7489,31 +7531,24 @@ func _test_facilities_render() -> void:
 
 
 ## The drawn state of each construction phase of unit `id`: the engine's
-## progress is stepped through the build, and for each phase (by the
-## engine's phase index) the presenter's state is recorded at the phase's
-## middle. {phase key: signature}.
-func _phase_signatures(bridge: Node, manager: FarmFacilityVisualManager, terrain: FjordTerrain, id: String) -> Dictionary:
-	var spans := {}
-	for k in 200:
-		var p := float(k) / 200.0
-		bridge.QaSetFacilityConstruction(id, p)
-		var row := _facility_row(id)
-		if bool(row.get("operational", false)):
-			continue
-		var key := str(row["phase_key"])
-		var span: Vector2 = spans.get(key, Vector2(p, p))
-		spans[key] = Vector2(minf(span.x, p), maxf(span.y, p))
+## project is stood in the middle of each phase in `keys` ("operational"
+## complete) and the presenter's state recorded. {phase key: signature}.
+func _phase_signatures(bridge: Node, manager: FarmFacilityVisualManager, terrain: FjordTerrain, id: String, keys: Array) -> Dictionary:
 	var out := {}
-	for key: String in spans:
-		bridge.QaSetFacilityConstruction(id, (spans[key].x + spans[key].y) * 0.5)
+	for key: String in keys:
+		if not bridge.QaStageConstruction(id, key, 0.5):
+			continue
 		manager.sync_units(_sim.get_facility_visuals())
 		await get_tree().process_frame
 		var node: Node3D = manager.visual_of(id)
 		var sig := []
 		if node is LandCampusBuilder:
 			var c := node as LandCampusBuilder
-			sig.append(snappedf(c.get_tank_progress(), 0.01))
-			for g: String in ["roads", "halls", "intake", "utility"]:
+			var progress := []
+			for i in c.tanks.size():
+				progress.append(snappedf(c.tank_progress_of(i), 0.01))
+			sig.append(progress)
+			for g: String in ["roads", "harvest", "intake", "utility", "lot0"]:
 				var nodes: Array = c.groups.get(g, {}).get("nodes", [])
 				var mi: MeshInstance3D = nodes[0] if not nodes.is_empty() else null
 				sig.append([mi.visible, snappedf(float(mi.get_instance_shader_parameter("build_cut_m")), 0.1)] if mi != null else null)
@@ -7522,7 +7557,7 @@ func _phase_signatures(bridge: Node, manager: FarmFacilityVisualManager, terrain
 			var u := node as OffshoreUnitVisual
 			var fleet := u.fleet_assets()
 			fleet.sort()
-			sig = [u.unit.visible, u.survey.visible, int(Vector2(u.unit.position.x - u.station.x, u.unit.position.z - u.station.z).length() / 100.0), fleet]
+			sig = [u.unit.visible, u.buoy_count(), int(Vector2(u.unit.position.x - u.station.x, u.unit.position.z - u.station.z).length() / 100.0), fleet]
 		out[key] = sig
 	return out
 

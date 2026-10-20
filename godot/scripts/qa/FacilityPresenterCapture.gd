@@ -8,29 +8,46 @@ extends "res://scripts/qa/QaWorldCapture.gd"
 ## of points on the pad projected through the shot's camera) is recorded, and
 ## the heath and granite shots of one framing are compared (ΔE76).
 ##
-## F2-20 shots ("facilities": true) build the farm-type QA set through the
-## engine (GameBridge.QaPlaceFarmTypes: one HFS lot on pad_a, one post-smolt
-## site on pad_delta, one OF1-class unit on off_1), stand each unit at the
-## shot's build progress ("construction": {"land", "post_smolt", "offshore":
-## 0..1}, GameBridge.QaSetFacilityConstruction) and let the presenter
-## (FarmFacilityVisualManager in GameScene) draw them. Per shot it records the
-## units' phases and the tanks and units the presenter draws against the
-## engine's counts; with "perf" the draw calls the facilities add (A/B, the
-## presenter hidden and shown); and a 64-bit perceptual hash of the frame, so
-## shots of different phases can be compared (pHash Hamming distance, the
-## variant_of pairs).
+## F2-20 shots ("facilities": {...}) stand the farm-type QA set in the engine
+## through the bridge's QA verbs (the engine's own build verbs; an offshore
+## unit through the engine's QA seam, its unlock gates waived) and let the presenter
+## (FarmFacilityVisualManager in GameScene) draw it:
+##   "land": {"lots": n, "phase": key, "progress": p}  an HFS site on pad_a;
+##     "operational" commissions n lots at once, a phase key ("site_works" …
+##     "completion") builds lot by lot and stands the projects in that phase;
+##   "post_smolt": {"modules": n}  a post-smolt site on pad_delta, built;
+##   "offshore": {"phase": key, "progress": p}  an OF1-class unit on off_1
+##     ("yard_contract" … "commissioning", or "operational").
+## Shots run in order and the set only grows: a shot that needs fewer lots
+## than stand already is refused (run it alone with --only).
 ##
-## Output: res://screenshots/game/<id>.png and 43_facilities_metrics.json.
-## Run: tools/capture_screenshots.sh --scene res://qa/scenes/FacilityPresenterCapture.tscn
+## Per shot it records the units' phases and the tanks and units the
+## presenter draws against the engine's; the share of hull-yellow pixels over
+## an OF1 unit; with "perf" the draw calls the facilities add (A/B, the
+## presenter hidden and shown, or only "perf_units"); and a 64-bit perceptual
+## hash of the frame, so shots of different phases can be compared (pHash
+## Hamming distance, the variant_of pairs).
+##
+## Output: res://screenshots/game/<id>.png and f2_20_facilities_metrics.json
+## (merged over runs, so --only subsets add to it).
+## Run: tools/capture_screenshots.sh --scene res://qa/scenes/FacilityPresenterCapture.tscn [-- --only <prefix>]
 
 const SCENE_PATH := "res://qa/scenes/FacilityPresenterCapture.tscn"
-const METRICS_FILE := "43_facilities_metrics.json"
+const METRICS_FILE := "f2_20_facilities_metrics.json"
 ## Points per pad side sampled for the pad colour (inset 12 m from the edge).
 const PAD_SAMPLES := Vector2i(24, 16)
 const PAD_INSET_M := 12.0
 ## pHash: the frame's luma at 32 x 32, its DCT's 8 x 8 low corner (DC out).
 const PHASH_SIZE := 32
 const PHASH_LOW := 8
+## The QA set's plots (spec §4).
+const LAND_PLOT := "pad_a"
+const OFFSHORE_PLOT := "off_1"
+## A pixel reads as the OF1's safety yellow (spec §5.2 #E6BE2E, lit or in
+## shade: the swatch's hue 48 deg) when its hue lies in this band (turns),
+## and its saturation and value reach these.
+const HULL_HUE := Vector2(0.09, 0.17)
+const HULL_MIN_SV := Vector2(0.45, 0.3)
 
 @export var auto_run := true
 
@@ -38,8 +55,6 @@ var _terrain: Node = null
 var _manager: Node = null
 var _results := {}
 var _units := {}
-## Lots the QA set's grow-out site stands at (QaPlaceFarmTypes builds one).
-var _land_lots := 1
 
 
 func _ready() -> void:
@@ -58,15 +73,17 @@ func run_shots(shots: Array) -> void:
 		var sid := str(shot["id"])
 		print("[Facilities] shot %s" % sid)
 		stage_environment(shot)
-		var with_units := bool(shot.get("facilities", false))
+		var with_units: bool = shot.has("facilities")
 		if with_units:
-			await _stage_units(shot)
-		elif _manager != null:
-			_manager.visible = false
-		if not with_units:
+			if not await _stage_units(shot):
+				push_error("[Facilities] %s: the QA set could not be staged; skipped" % sid)
+				continue
+		else:
+			if _manager != null:
+				_manager.visible = false
 			_stage_pads(shot)
 		var cam_spec: Dictionary = shot.get("camera", {"mode": "home"})
-		var focus := _plot_focus(str(cam_spec.get("target", "pad_a")))
+		var focus := _plot_focus(str(cam_spec.get("target", LAND_PLOT)))
 		if cam_spec.has("offset"):
 			focus += Vector3(float(cam_spec["offset"][0]), 0.0, float(cam_spec["offset"][1]))
 		focus = stage_camera(cam_spec, focus)
@@ -77,7 +94,7 @@ func run_shots(shots: Array) -> void:
 			"camera": {"spec": cam_spec, "position": [_cam.global_position.x, _cam.global_position.y, _cam.global_position.z],
 				"fov_deg": snappedf(_cam.fov, 0.01)},
 			"environment": {"sun_elevation_deg": snappedf(float(_director.call("get_composed").get("sun_elevation", 0.0)), 0.01),
-				"weather": str(shot.get("weather", "clear"))},
+				"weather": str(shot.get("weather", "clear")), "light_level": snappedf(float(_manager.call("light_level")), 0.01) if _manager else 0.0},
 			"phash": phash_hex(beauty),
 		}
 		if shot.has("pad_state"):
@@ -85,20 +102,32 @@ func run_shots(shots: Array) -> void:
 		if bool(shot.get("measure_pads", false)):
 			rec["pads"] = _measure_pads(beauty)
 		if with_units:
-			rec["units"] = _unit_record()
+			rec["facilities"] = shot["facilities"]
+			rec["units"] = _unit_record(beauty)
 			if bool(shot.get("perf", false)):
 				rec["perf"] = await _perf(shot.get("perf_units", []))
 		_results[sid] = rec
 	_compare_pads()
 	_compare_variants(shots)
 	var size := get_viewport().get_visible_rect().size
+	var merged := _previous_shots()
+	merged.merge(_results, true)
 	var path := write_json(METRICS_FILE, {
 		"items": ["F2-19", "F2-20"], "generated_by": "res://scripts/qa/FacilityPresenterCapture.gd",
-		"resolution": [int(size.x), int(size.y)], "shots": _results,
+		"resolution": [int(size.x), int(size.y)], "shots": merged,
 	})
 	print("[Facilities] metrics: %s" % path)
 	print("FACILITIES_RESULT shots=%d" % _results.size())
 	get_tree().quit(0)
+
+
+## The metrics of earlier runs (an --only subset adds to them).
+func _previous_shots() -> Dictionary:
+	var path := ProjectSettings.globalize_path(OUT_DIR).path_join(METRICS_FILE)
+	if not FileAccess.file_exists(path):
+		return {}
+	var data = JSON.parse_string(FileAccess.get_file_as_string(path))
+	return (data.get("shots", {}) as Dictionary).duplicate(true) if data is Dictionary else {}
 
 
 ## A plot's centre (pad top or waterline) from the terrain's own slots, or
@@ -129,60 +158,160 @@ func _stage_pads(shot: Dictionary) -> void:
 		_terrain.call("set_pad_state", id, float(states.get(id, 0.0)))
 
 
-## The QA set (built once) at the shot's build progress, drawn by the presenter.
-func _stage_units(shot: Dictionary) -> void:
+## The QA set as the shot asks for it, through the bridge's QA verbs.
+func _stage_units(shot: Dictionary) -> bool:
 	var gb := get_node_or_null("/root/GameBridge")
-	if gb == null or _manager == null:
-		push_error("[Facilities] GameBridge or the presenter is missing")
-		return
-	if _units.is_empty():
-		var placed: Dictionary = gb.QaPlaceFarmTypes()
+	var sim := get_node_or_null("/root/SimBridge")
+	if gb == null or sim == null or _manager == null:
+		push_error("[Facilities] GameBridge, SimBridge or the presenter is missing")
+		return false
+	var spec: Dictionary = shot["facilities"]
+	if spec.has("post_smolt") and not _units.has("post_smolt"):
+		var placed: Dictionary = gb.QaPlaceFarmTypeSet(0, int(spec["post_smolt"].get("modules", 2)), 0)
 		if not bool(placed.get("success", false)):
-			push_error("[Facilities] QaPlaceFarmTypes failed: %s" % placed.get("message", ""))
-		_units = {"land": str(placed.get("land_id", "")), "post_smolt": str(placed.get("post_smolt_id", "")),
-			"offshore": str(placed.get("offshore_id", ""))}
-	var progress: Dictionary = shot.get("construction", {})
-	for kind: String in _units:
-		gb.QaSetFacilityConstruction(_units[kind], float(progress.get(kind, 1.0)))
-	# The grow-out site's lots (1 the QA lot, 4 the full campus of the budget).
-	var lots := int(shot.get("land_lots", 1))
-	if lots != _land_lots:
-		if gb.QaSetLandLots(str(_units.get("land", "")), lots):
-			_land_lots = lots
-		else:
-			push_error("[Facilities] QaSetLandLots refused %d" % lots)
+			push_error("[Facilities] post-smolt site refused: %s" % placed.get("message", ""))
+			return false
+		_units["post_smolt"] = str(placed["post_smolt_id"])
+	if spec.has("land") and not _stage_land(gb, spec["land"]):
+		return false
+	if spec.has("offshore"):
+		if not _units.has("offshore"):
+			var contracted: Dictionary = gb.QaContractOffshore(OFFSHORE_PLOT, "of1")
+			if not bool(contracted.get("success", false)):
+				push_error("[Facilities] OF1 unit refused: %s" % contracted.get("message", ""))
+				return false
+			_units["offshore"] = str(contracted["unit_id"])
+		var o: Dictionary = spec["offshore"]
+		if not gb.QaStageConstruction(_units["offshore"], str(o.get("phase", "operational")), float(o.get("progress", 0.5))):
+			push_error("[Facilities] OF1 phase %s refused" % o.get("phase", ""))
+			return false
 	# Pads nobody holds back to heath (an F2-19 shot may have painted them).
 	_stage_pads({})
 	_manager.visible = true
+	for id: String in _manager.get("visuals"):
+		(_manager.call("visual_of", id) as Node3D).visible = true
 	_manager.call("_on_state_updated")
 	hide_overlays()
 	await wait(0.3)
+	return true
 
 
-func _unit_record() -> Dictionary:
+## The HFS site on pad_a with `land.lots` lots, standing in `land.phase`.
+func _stage_land(gb: Node, land: Dictionary) -> bool:
+	var lots := int(land.get("lots", 1))
+	var phase := str(land.get("phase", "operational"))
+	if not _units.has("land"):
+		if phase == "operational":
+			var placed: Dictionary = gb.QaPlaceFarmTypeSet(lots, 0, 0)
+			if not bool(placed.get("success", false)):
+				push_error("[Facilities] land site refused: %s" % placed.get("message", ""))
+				return false
+			_units["land"] = str(placed["land_id"])
+			return true
+		var started: Dictionary = gb.QaStartLandBuild(LAND_PLOT, "hfs_lot")
+		if not bool(started.get("success", false)):
+			push_error("[Facilities] land build refused: %s" % started.get("message", ""))
+			return false
+		_units["land"] = str(started["unit_id"])
+	var have := _land_lots()
+	if have > lots:
+		push_error("[Facilities] the land site has %d lots, the shot asks for %d: run it alone with --only" % [have, lots])
+		return false
+	while have < lots:
+		var grown: Dictionary = gb.QaExpandLandSite(_units["land"])
+		if not bool(grown.get("success", false)):
+			push_error("[Facilities] the land site did not grow: %s" % grown.get("message", ""))
+			return false
+		have += 1
+	# A commissioned site has no project to stand in a phase; a built one does.
+	if not gb.QaStageConstruction(_units["land"], phase, float(land.get("progress", 0.5))) and phase != "operational":
+		push_error("[Facilities] land phase %s refused" % phase)
+		return false
+	return true
+
+
+func _land_lots() -> int:
+	for row: Dictionary in get_node("/root/SimBridge").get_facility_visuals():
+		if str(row["unit_id"]) == str(_units.get("land", "")):
+			return (row["lots"] as Array).size()
+	return 0
+
+
+func _unit_record(img: Image) -> Dictionary:
 	var sim := get_node_or_null("/root/SimBridge")
 	var out := {}
 	for row: Dictionary in sim.get_facility_visuals():
 		var id := str(row["unit_id"])
 		var node: Node = _manager.call("visual_of", id)
-		var rec := {"variant": row["variant"], "plot_id": row["plot_id"], "phase_key": row["phase_key"],
-			"phase_index": row["phase_index"], "phase_progress": snappedf(float(row["phase_progress"]), 0.001),
-			"engine_tanks": row["tanks"]}
+		var build: Dictionary = row["build"]
+		var rec := {"variant": row["variant"], "plot_id": row["plot_id"], "phase_key": build["phase_key"],
+			"phase_index": build["phase_index"], "phase_count": build["phase_count"],
+			"phase_progress": snappedf(float(build["phase_progress"]), 0.001), "status": build["status"],
+			"engine_tanks": row["tanks"], "operational": row["operational"]}
 		if node is LandCampusBuilder:
 			var campus := node as LandCampusBuilder
-			rec["lots"] = row["lots"]
+			var ready := 0
+			for lot: Dictionary in row["lots"]:
+				for t: Dictionary in lot["tanks"]:
+					ready += 1 if bool(t["ready"]) else 0
+			rec["lots"] = (row["lots"] as Array).size()
+			rec["engine_ready_tanks"] = ready
 			rec["drawn_tanks"] = campus.drawn_tanks("tank_growout") + campus.drawn_tanks("tank_pregrow")
-			rec["tank_progress"] = snappedf(campus.get_tank_progress(), 0.001)
+			rec["whole_tanks"] = campus.whole_tanks()
+			rec["blast_state"] = snappedf(campus.blast_state(), 0.001)
 			rec["lod0_triangles"] = campus.lod0_triangles()
 			rec["shadow_rule_ok"] = shadow_rule_ok(campus.shadow_report())
 		elif node is OffshoreUnitVisual:
 			var unit := node as OffshoreUnitVisual
-			rec["drawn_phase"] = unit.get_phase()
+			rec["drawn_phase"] = unit.get_phase_key()
 			rec["unit_visible"] = unit.unit.visible
 			rec["fleet"] = unit.fleet_assets()
+			rec["buoys"] = unit.buoy_count()
 			rec["shadow_rule_ok"] = shadow_rule_ok(unit.shadow_report())
+			if unit.unit.visible:
+				rec["hull_yellow"] = _hull_yellow(img, unit)
 		out[id] = rec
 	return out
+
+
+## Over the OF1 unit's screen box (its ring and topsides projected): the
+## share of pixels that read as hull yellow (HULL_HUE, HULL_MIN_SV), their
+## mean colour (sRGB 0-255), and the box (px).
+func _hull_yellow(img: Image, unit: OffshoreUnitVisual) -> Dictionary:
+	var c: Vector3 = unit.unit.global_position
+	var r: float = unit.unit.circumradius_m
+	var lo := Vector2(INF, INF)
+	var hi := Vector2(-INF, -INF)
+	for k in 16:
+		var a := TAU * float(k) / 16.0
+		for y: float in [0.0, unit.unit.air_draught_m]:
+			var p := c + Vector3(cos(a) * r, y, sin(a) * r)
+			if _cam.is_position_behind(p):
+				continue
+			var s := _cam.unproject_position(p)
+			lo = Vector2(minf(lo.x, s.x), minf(lo.y, s.y))
+			hi = Vector2(maxf(hi.x, s.x), maxf(hi.y, s.y))
+	var w := img.get_width()
+	var h := img.get_height()
+	var x0 := clampi(int(lo.x), 0, w - 1)
+	var x1 := clampi(int(hi.x), 0, w - 1)
+	var y0 := clampi(int(lo.y), 0, h - 1)
+	var y1 := clampi(int(hi.y), 0, h - 1)
+	if x1 <= x0 or y1 <= y0:
+		return {"box": [], "share": 0.0}
+	var n := 0
+	var hits := 0
+	var sum := Vector3.ZERO
+	for y in range(y0, y1 + 1, 2):
+		for x in range(x0, x1 + 1, 2):
+			n += 1
+			var col := img.get_pixel(x, y)
+			if col.h >= HULL_HUE.x and col.h <= HULL_HUE.y and col.s >= HULL_MIN_SV.x and col.v >= HULL_MIN_SV.y:
+				hits += 1
+				sum += Vector3(col.r8, col.g8, col.b8)
+	var mean := sum / float(maxi(hits, 1))
+	return {"box": [x0, y0, x1, y1], "share": snappedf(float(hits) / float(maxi(n, 1)), 0.0001),
+		"mean_rgb": [roundi(mean.x), roundi(mean.y), roundi(mean.z)]}
 
 
 ## Mean CIE Lab over each pad's top in the frame: a grid of points on the pad
@@ -249,6 +378,8 @@ func _compare_variants(shots: Array) -> void:
 
 ## Spec §5 rule 5 / F2-18: LOD2 casts no shadow; of LOD1 only the tanks do.
 static func shadow_rule_ok(report: Array) -> bool:
+	if report.is_empty():
+		return false
 	for e: Dictionary in report:
 		if bool(e["casts"]) and (int(e["band"]) >= 2 or (int(e["band"]) == 1 and str(e["kind"]) != "tank")):
 			return false

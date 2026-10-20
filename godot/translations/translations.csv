@@ -637,20 +637,15 @@ UI_FARM_STATE_CTA_TIP,Opens the panel where this is handled,Åpner panelet der d
 FACILITY_CARD_CLOSE,Close,Lukk
 FACILITY_CARD_LOT,Lot %s,Byggetrinn %s
 FACILITY_CARD_MODULE,Module %s,Modul %s
+FACILITY_CARD_OPERATIONAL,Operational,I drift
 FACILITY_CARD_PHASE,Phase %s of %s,Byggefase %s av %s
 FACILITY_CARD_STOCK,%s fish · %s,%s fisk · %s
+FACILITY_CARD_SUSPENDED,Sea works stand still in April–June,Sjøarbeidet står stille i april–juni
 FACILITY_CARD_TANK,Tank %s,Kar %s
-FACILITY_PHASE_BLAST,Blasting the pad,Tomta sprenges
-FACILITY_PHASE_COMMISSIONING,Commissioning,Igangkjøring
-FACILITY_PHASE_FOUNDATIONS,Foundations,Fundamenter støpes
-FACILITY_PHASE_HALL,Treatment hall going up,Behandlingshallen reises
-FACILITY_PHASE_INTAKE,Intake and outfall,Inntak og utslipp
-FACILITY_PHASE_MOORING,Mooring,Oppankring
-FACILITY_PHASE_OPERATIONAL,Operational,I drift
-FACILITY_PHASE_TANKS,Tank walls rising,Karene reises
-FACILITY_PHASE_TOW,Towed to the slot,Slep til plassen
-FACILITY_PHASE_VOYAGE,On the way to the field,På vei til feltet
-FACILITY_PHASE_YARD,Building at the yard,Bygges på verftet
+FACILITY_CARD_TANK_FISH,%s fish,%s fisk
+FACILITY_CARD_WAITING_FUNDS,Waiting for the money for the next payment,Venter på penger til neste betaling
+FACILITY_CARD_WAITING_SHELTERING,Sheltering after the tow broke off,Ligger i le etter avbrutt slep
+FACILITY_CARD_WAITING_TOW,Ready to be towed out,Klar til slep
 FARM_FACTOR_LICE_CRITICAL,lice %s (limit %s),lus %s (grense %s)
 FARM_FACTOR_LICE,lice %s,lus %s
 FARM_FACTOR_OXYGEN,O₂ %s mg/L,O₂ %s mg/L

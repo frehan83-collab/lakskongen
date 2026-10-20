@@ -53,7 +53,7 @@ extends Node
 ##                      growth, paid by a QA grant) until the player has N
 ##   --facilities       F2-20: build the farm-type set through the engine
 ##                      (GameBridge.QaPlaceFarmTypeSet: a full 4-lot campus,
-##                      a post-smolt site, an OF1-class unit and a
+##                      a post-smolt site of 2 modules, an OF1-class unit and a
 ##                      Havfarm-class unit, which has no model before F2-29,
 ##                      all operational) before measuring; the land and hav
 ##                      segments frame the campus (520 m, -40 deg) and the
@@ -78,8 +78,11 @@ const BOOT_FRAMES := 900
 const SEGMENT_NAMES := ["farm", "fjord", "coast", "panel"]
 ## F2-20 segments (with --facilities): the camera on a facility's framing.
 const FACILITY_SEGMENTS := ["land", "hav"]
-## The farm-type set --facilities builds: grow-out lots, OF1-class units.
+## The farm-type set --facilities builds: grow-out lots, post-smolt modules,
+## offshore units (an OF1-class unit, then a Havfarm-class unit, which has no
+## model before F2-29).
 const FACILITY_LOTS := 4
+const FACILITY_MODULES := 2
 const FACILITY_UNITS := 2
 ## Quality tier names (RenderQuality.NAMES, kept local so the harness runs on
 ## builds that predate the tiers).
@@ -421,22 +424,22 @@ func _sites_drawn() -> Dictionary:
 
 
 ## --facilities: the farm-type set through the engine, every unit operational,
-## drawn by the presenter before the first segment.
+## drawn by the presenter before the first segment (both sides of an A/B run
+## on the same state).
 func _place_facilities() -> bool:
 	var gb := get_node_or_null("/root/GameBridge")
 	if gb == null or not gb.has_method("QaPlaceFarmTypeSet"):
 		push_error("PerfHarness: --facilities needs GameBridge.QaPlaceFarmTypeSet")
 		return false
-	var placed: Dictionary = gb.QaPlaceFarmTypeSet(FACILITY_LOTS, FACILITY_UNITS)
+	var placed: Dictionary = gb.QaPlaceFarmTypeSet(FACILITY_LOTS, FACILITY_MODULES, FACILITY_UNITS)
 	if not bool(placed.get("success", false)):
 		push_error("PerfHarness: the farm-type set was refused: %s" % placed.get("message", ""))
 		return false
 	var ids: Array = [str(placed["land_id"]), str(placed["post_smolt_id"])]
 	ids.append_array(Array(placed.get("offshore_ids", [])))
-	for id in ids:
-		gb.QaSetFacilityConstruction(str(id), 1.0)
 	_facility_ids = {"land": str(placed["land_id"]), "hav": str(placed["offshore_id"])}
-	_facility_set = {"grow_out_lots": FACILITY_LOTS, "offshore_units": FACILITY_UNITS, "units": ids}
+	_facility_set = {"grow_out_lots": FACILITY_LOTS, "post_smolt_modules": FACILITY_MODULES,
+		"offshore_units": FACILITY_UNITS, "units": ids}
 	var presenter := _env.get_node_or_null("FarmFacilityVisualManager")
 	if presenter != null and presenter.has_method("sync_units"):
 		presenter.call("sync_units", gb.GetFacilityVisuals())

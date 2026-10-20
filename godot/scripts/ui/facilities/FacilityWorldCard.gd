@@ -8,11 +8,13 @@ extends PanelContainer
 ## follows the clicked point on screen, clamped into the viewport, and hides
 ## while that point is behind the camera.
 ##
-## It shows the unit's name, its family's variant and its plot, the clicked
-## tank (and its lot or module), and either the construction phase with a
-## progress ring or, once built, its fish and biomass. Every number is the
-## engine's (SimBridge.get_facility_visuals); every word a translation key.
-## Esc or the close button closes it. Built in code, like DriftsplanCard.
+## It shows the unit's name, its variant and its plot, the clicked tank (its
+## number, its lot or module, its fish), and either the construction phase
+## under way (the engine's phase name, "phase n of m", why it waits or stands
+## still) with a progress ring of the whole build, or, once built, its fish
+## and biomass. Every number is the engine's (SimBridge.get_facility_visuals);
+## every word a translation key. Esc or the close button closes it. Built in
+## code, like DriftsplanCard.
 
 signal closed
 
@@ -29,7 +31,9 @@ const RING_FILL := Color(0.549, 0.780, 0.855)
 
 var unit_id := ""
 var tank_index := -1
-## The world point the card hangs from (set by the presenter each frame it moves).
+## The clicked tank (a LandCampusBuilder tank: id, number, slot, k), or {}.
+var tank: Dictionary = {}
+## The world point the card hangs from.
 var anchor := Vector3.ZERO
 
 var _title: Label
@@ -95,10 +99,12 @@ func _init() -> void:
 
 
 ## Show the card for `view` (a get_facility_visuals row), the clicked tank
-## (-1: the unit), the plot's name and the world point it hangs from.
-func open(view: Dictionary, tank: int, plot_name: String, at: Vector3) -> void:
+## (`index` -1: the unit; `clicked` the campus's tank entry), the plot's
+## name and the world point it hangs from.
+func open(view: Dictionary, index: int, clicked: Dictionary, plot_name: String, at: Vector3) -> void:
 	unit_id = str(view.get("unit_id", ""))
-	tank_index = tank
+	tank_index = index
+	tank = clicked
 	anchor = at
 	refresh(view, plot_name)
 	visible = true
@@ -114,33 +120,49 @@ func refresh(view: Dictionary, plot_name: String) -> void:
 	_subtitle.text = "%s · %s" % [variant, plot_name] if plot_name != "" else variant
 	_detail.text = _tank_text(view)
 	_detail.visible = _detail.text != ""
-	var operational := bool(view.get("operational", false))
-	var count := int(view.get("phase_count", 1))
-	var index := mini(int(view.get("phase_index", 0)), count)
-	if operational:
+	var build: Dictionary = _build_of(view)
+	var count := int(build.get("phase_count", 1))
+	var index := mini(int(build.get("phase_index", 0)), count)
+	if index >= count:
 		_ring_value = 1.0
 		var fish := SimFormatters.format_fish(int(view.get("fish_count", 0)))
 		var biomass := SimFormatters.format_biomass(float(view.get("biomass_tonnes", 0.0)) * 1000.0)
-		_status.text = "%s\n%s" % [tr("FACILITY_PHASE_OPERATIONAL"), tr("FACILITY_CARD_STOCK") % [fish, biomass]]
+		_status.text = "%s\n%s" % [tr("FACILITY_CARD_OPERATIONAL"), tr("FACILITY_CARD_STOCK") % [fish, biomass]]
 	else:
-		# The whole build, phase by phase: the ring is the share done.
-		_ring_value = clampf((float(index) + float(view.get("phase_progress", 0.0))) / float(maxi(count, 1)), 0.0, 1.0)
-		var phase := tr("FACILITY_PHASE_" + str(view.get("phase_key", "")).to_upper())
-		_status.text = "%s\n%s" % [phase, tr("FACILITY_CARD_PHASE") % [index + 1, count]]
+		_ring_value = clampf(float(build.get("progress", 0.0)), 0.0, 1.0)
+		var prefix := "LAND_PHASE_" if str(view.get("family", "")) == "land" else "BUILD_SEA_PHASE_"
+		var lines: Array[String] = [tr(prefix + str(build.get("phase_key", "")).to_upper()),
+			tr("FACILITY_CARD_PHASE") % [index + 1, count]]
+		var waiting := str(build.get("waiting_reason", ""))
+		if waiting != "":
+			lines.append(tr("FACILITY_CARD_WAITING_" + waiting.to_upper()))
+		elif bool(build.get("suspended", false)):
+			lines.append(tr("FACILITY_CARD_SUSPENDED"))
+		_status.text = "\n".join(lines)
 	_ring.queue_redraw()
 
 
+## The build the card shows: the clicked tank's lot's, else the unit's own.
+func _build_of(view: Dictionary) -> Dictionary:
+	var lots: Array = view.get("lots", [])
+	if tank_index >= 0 and int(tank.get("slot", -1)) >= 0 and int(tank.get("slot", -1)) < lots.size():
+		return (lots[int(tank["slot"])] as Dictionary).get("build", {})
+	return view.get("build", {})
+
+
 func _tank_text(view: Dictionary) -> String:
-	if tank_index < 0:
+	if tank_index < 0 or tank.is_empty():
 		return ""
-	var tank := tr("FACILITY_CARD_TANK") % (tank_index + 1)
-	var per_lot := int(view.get("grow_out_tanks_per_lot", 0)) + int(view.get("pre_grow_tanks_per_lot", 0))
-	if int(view.get("lots", 0)) > 0 and per_lot > 0:
-		return "%s · %s" % [tank, tr("FACILITY_CARD_LOT") % (tank_index / per_lot + 1)]
-	var per_module := int(view.get("tanks_per_module", 0))
-	if int(view.get("modules", 0)) > 0 and per_module > 0:
-		return "%s · %s" % [tank, tr("FACILITY_CARD_MODULE") % (tank_index / per_module + 1)]
-	return tank
+	var parts: Array[String] = [tr("FACILITY_CARD_TANK") % int(tank.get("number", tank_index + 1))]
+	var slot := int(tank.get("slot", 0))
+	parts.append((tr("FACILITY_CARD_MODULE") if str(view.get("variant", "")) == "post_smolt" else tr("FACILITY_CARD_LOT")) % (slot + 1))
+	var lots: Array = view.get("lots", [])
+	if slot < lots.size():
+		var rows: Array = (lots[slot] as Dictionary).get("tanks", [])
+		var k := int(tank.get("k", -1))
+		if k >= 0 and k < rows.size() and bool((rows[k] as Dictionary).get("stocked", false)):
+			parts.append(tr("FACILITY_CARD_TANK_FISH") % SimFormatters.format_fish(int((rows[k] as Dictionary).get("fish_count", 0))))
+	return " · ".join(parts)
 
 
 ## The ring's share done (0-1).
@@ -162,6 +184,7 @@ func close() -> void:
 	visible = false
 	unit_id = ""
 	tank_index = -1
+	tank = {}
 	closed.emit()
 
 

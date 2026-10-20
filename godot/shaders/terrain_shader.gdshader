@@ -121,6 +121,11 @@ uniform float pad_state[4];
 uniform vec4 pad_blast[4];
 uniform int pad_count = 0;
 uniform float pad_rim_m = 50.0;
+// F2-20: a built pad's yard (crushed rock, graded): the stones' tone
+// contrast (a power on the shingle's luma) and how much of their relief is
+// rolled flat.
+uniform float yard_contrast = 0.8;
+uniform float yard_flatten : hint_range(0.0, 1.0) = 0.7;
 uniform vec3 granite_color : source_color = vec3(0.420, 0.451, 0.471);     // #6B7378
 uniform vec3 granite_wet_color : source_color = vec3(0.243, 0.267, 0.282); // #3E4448
 // The texture layers' own mean colours (tools/gen_terrain_textures.py): the
@@ -665,8 +670,8 @@ void fragment() {
 		float fines = smoothstep(0.55, 0.8, mottle * 0.6 + slab_n * 0.4);
 		vec3 yard = mix(granite_color, granite_wet_color * 1.15, fines * 0.4);
 		yard = mix(yard, yard * vec3(1.08, 1.02, 0.94), smoothstep(0.4, 0.7, macro) * 0.5);
-		vec3 crushed_a = yard * pow(dot(alb_a.rgb, vec3(0.2126, 0.7152, 0.0722)) / shingle_luma, 1.6);
-		vec3 crushed_b = yard * pow(dot(alb_b.rgb, vec3(0.2126, 0.7152, 0.0722)) / shingle_luma, 1.6);
+		vec3 crushed_a = yard * pow(dot(alb_a.rgb, vec3(0.2126, 0.7152, 0.0722)) / shingle_luma, yard_contrast);
+		vec3 crushed_b = yard * pow(dot(alb_b.rgb, vec3(0.2126, 0.7152, 0.0722)) / shingle_luma, yard_contrast);
 		soil_col_a = mix(soil_col_a, crushed_a, granite_top * float(soil_a == L_SHINGLE));
 		soil_col_b = mix(soil_col_b, crushed_b, granite_top * float(soil_b == L_SHINGLE));
 	}
@@ -701,6 +706,13 @@ void fragment() {
 	float relief = 1.0 - 0.6 * wet;
 	tn_r_a.xy *= relief;
 	tn_r_b.xy *= relief;
+	// F2-20: a built pad's yard is graded and rolled crushed rock: the
+	// shingle's stone relief flattened, so it reads as an even granite yard.
+	float yard_relief = 1.0 - yard_flatten * granite_top;
+	tn_a_a.xy *= yard_relief;
+	tn_a_b.xy *= yard_relief;
+	tn_b_a.xy *= yard_relief;
+	tn_b_b.xy *= yard_relief;
 	vec3 tn_a = tn_r_a * br + tn_a_a * ba + tn_b_a * bb + tn_s_a * snow;
 	vec3 tn_b = tn_r_b * br + tn_a_b * ba + tn_b_b * bb + tn_s_b * snow;
 	vec3 n_world = whiteout(normalize(tn_a), g, pa.axis) * pa.weight;
