@@ -76,6 +76,7 @@ var _hovered_area := 0
 var _selected_area := 0
 var _sites_signature := ""
 var _player_rows: Array = []
+var _offshore_rows: Array = []
 var _laid_out_for := Vector2(-1.0, -1.0)
 var _relayout_queued := false
 var _legend_auto := true
@@ -125,7 +126,8 @@ func setup(sim: Node) -> void:
 	_candidates.name = "Candidates"
 	_candidates.part = "candidates"
 	_full_rect(_candidates)
-	_candidates.set_offshore_candidates(bridge.offshore_candidates())
+	_offshore_rows = bridge.offshore_candidates()
+	_candidates.set_offshore_candidates(_offshore_rows)
 	_players = GeoSiteLayer.PlayerMarks.new()
 	_players.name = "PlayerSites"
 	_full_rect(_players)
@@ -312,8 +314,9 @@ func set_layer(layer: String, on: bool) -> void:
 
 
 ## A sim day or state change while the map is shown: re-read the rival
-## layout only when its signature moved, and the player's farms only when
-## the expansion overview moved (overview_changed). Returns what changed.
+## layout only when its signature moved, and the player's farms and hav_1's
+## binding only when the expansion overview moved (overview_changed); a
+## layer records again only when what it shows changed. Returns what changed.
 func live_update(overview_changed: bool) -> PackedStringArray:
 	var changed := PackedStringArray()
 	var sig := bridge.sites_signature()
@@ -323,7 +326,22 @@ func live_update(overview_changed: bool) -> PackedStringArray:
 		changed.append("sites")
 	if overview_changed and _update_players():
 		changed.append("players")
+	# A loaded game may bind hav_1 elsewhere (its home area): re-record the
+	# candidates only when the bound candidate moved.
+	if overview_changed:
+		var rows := bridge.offshore_candidates()
+		if _bound_id(rows) != _bound_id(_offshore_rows):
+			_offshore_rows = rows
+			_candidates.set_offshore_candidates(rows)
+			changed.append("candidates")
 	return changed
+
+
+static func _bound_id(rows: Array) -> String:
+	for r: Variant in rows:
+		if r is Dictionary and str(r.get("bound_plot_id", "")) == GeoOverlayLayer.HAV_PLOT:
+			return str(r.get("id", ""))
+	return ""
 
 
 # ── Layout ────────────────────────────────────────────────────────────────────

@@ -82,6 +82,7 @@ func run(runner: Node) -> void:
 	map.select_area(3)
 	await t._lint_screen("map national")
 	await _thirty_times(scene, map, chart)
+	await _rebinding(chart)
 	await _reopen(ui, map)
 	var stubbed := ", ".join(chart.bridge.stubbed())
 	scene.queue_free()
@@ -535,6 +536,46 @@ func _thirty_times(scene: Node, map: Control, chart: GeoMapView) -> void:
 		"geo map: the days parse no geo file and lay nothing out again (parse_count %d)" % GeoData.parse_count)
 	GameplayPrefs.force_auto_pause(null)
 	sim.set_auto_slow_deadlines(true)
+
+
+## A loaded game may bind hav_1 to another candidate: the next overview
+## change re-records the candidates once, and an unchanged binding never.
+func _rebinding(chart: GeoMapView) -> void:
+	var real := chart.bridge
+	var rows := real.offshore_candidates().duplicate(true)
+	var moved := ""
+	for r: Dictionary in rows:
+		if str(r.get("bound_plot_id", "")) == "hav_1":
+			r["bound_plot_id"] = ""
+		elif moved == "":
+			moved = str(r["id"])
+			r["bound_plot_id"] = "hav_1"
+	var fake := _FakeBinding.new()
+	fake.rows = rows
+	fake.signature = real.sites_signature()
+	fake.players = real.player_site_locations()
+	chart.bridge = GeoBridgeAdapter.new(fake)
+	var before := chart.candidate_layer().redraw_count
+	var first := chart.live_update(true)
+	await _frames(2)
+	var ringed := chart.candidate_layer().hexagons().filter(func(h: Dictionary) -> bool: return h["bound"])
+	var second := chart.live_update(true)
+	_check(Array(first) == ["candidates"] and second.is_empty() and chart.candidate_layer().redraw_count == before + 1
+			and ringed.size() == 1 and str(ringed[0]["row"]["id"]) == moved,
+		"geo map: a new hav_1 binding re-records the candidates once and rings %s; an unchanged one re-records nothing (%s, %s)" % [
+			moved, str(first), str(second)])
+	chart.bridge = real
+	chart.live_update(true)
+	fake.free()
+
+
+class _FakeBinding extends Node:
+	var rows: Array = []
+	var signature := ""
+	var players: Array = []
+	func get_geo_offshore_candidates() -> Array: return rows
+	func get_geo_sites_signature() -> String: return signature
+	func get_player_site_locations() -> Array: return players
 
 
 func _reopen(ui: Control, map: Control) -> void:
