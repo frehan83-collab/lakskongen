@@ -412,9 +412,6 @@ namespace LakskongenSim.Core
             }
         }
 
-        /// <summary>The company owes the bank (a loan it took; Første sesong starts debt-free).</summary>
-        internal bool HasBorrowed => State.ActiveLoans.Any(l => l.Principal > 0m);
-
         /// <summary>
         /// Cash the funding step asks for: the second site's price in the first
         /// site's zone (<see cref="SimulationEngine.PlanSiteBuild"/>) plus

@@ -53,7 +53,8 @@ namespace LakskongenSim.Core
                 ["harvest_planned"] = t => t.State.HarvestOrders.Count > 0 || TutorialSystem.HasSold(t),
                 ["restocked"] = t => t.RestockedAfterFirstHarvest,
                 ["research_started"] = t => t.ResearchStartedByPlayer,
-                ["build_funded"] = t => t.HasBorrowed || t.LiveBalance >= t.FundingTargetNok(),
+                // The cash for the build is in the bank: a loan is how a player who is short gets it there.
+                ["build_funded"] = t => t.LiveBalance >= t.FundingTargetNok(),
                 ["second_site_built"] = t => t.FjordLocalities.Count >= 2,
                 ["second_site_stocked"] = t => t.FjordLocalities.Skip(1).Any(s => FishAt(s) > 0),
                 ["every_site_lice_order"] = t => t.FjordLocalities.Count >= 2 && t.FjordLocalities.All(s => t.HasLiceOrder(s.Id)),

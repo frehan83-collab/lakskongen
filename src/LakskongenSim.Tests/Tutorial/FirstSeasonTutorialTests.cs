@@ -165,8 +165,9 @@ public class FirstSeasonTutorialTests
     /// <summary>
     /// The funding step waits for the second site's price plus three months
     /// of its running cost. Short of it, taking the finance panel's loan
-    /// completes it at once; with the cash in the bank it completes without
-    /// one (the step never forces a loan).
+    /// completes it at once, a loan that leaves the cash short does not; with
+    /// the cash in the bank it completes without one (the step never forces a
+    /// loan).
     /// </summary>
     [Fact]
     public void TheFundingStep_TeachesTheLoan_WhereTheCashIsShort()
@@ -180,12 +181,19 @@ public class FirstSeasonTutorialTests
         Assert.Equal("nok", progress.Unit);
         Assert.Equal((double)engine.Tutorial.FundingTargetNok(), progress.Goal, 3);
 
-        if (engine.FinanceManager.Balance >= engine.Tutorial.FundingTargetNok())
-        {
-            Assert.True(engine.Tutorial.CheckProgress());
-            return;
-        }
-        engine.Tutorial.CheckProgress();
+        // Seed 7 is short of the goal when the step comes up (6.95 of 7.06 MNOK,
+        // docs/BALANCE.md §1v): the step waits, then the loan completes it.
+        Assert.True(engine.FinanceManager.Balance < engine.Tutorial.FundingTargetNok(),
+            $"seed 7 has {engine.FinanceManager.Balance:N0} of {engine.Tutorial.FundingTargetNok():N0} at the funding step");
+        Assert.False(engine.Tutorial.CheckProgress());
+        engine.Advance(1);
+        Assert.Equal("funding", engine.Tutorial.CurrentStep?.Id);
+        Assert.Empty(engine.State.ActiveLoans);
+        // A loan is not the goal by itself: one that leaves the cash short of
+        // the build keeps the step waiting (the build would still be refused).
+        double shortBy = (double)(engine.Tutorial.FundingTargetNok() - engine.FinanceManager.Balance);
+        Assert.True(engine.TakeLoan(shortBy / 2, TutorialPlayer.LoanTermMonths, 0.0).Ok);
+        Assert.False(engine.Tutorial.CheckProgress());
         Assert.Equal("funding", engine.Tutorial.CurrentStep?.Id);
         Assert.True(engine.TakeLoan(TutorialPlayer.LoanNok, TutorialPlayer.LoanTermMonths, 0.0).Ok);
         Assert.True(engine.Tutorial.CheckProgress());
