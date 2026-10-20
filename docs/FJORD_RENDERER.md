@@ -194,7 +194,14 @@ and the strength in CUSTOM0 (`TerrainMesh.Chunk.Macro`), and the snow takes
 the mean of what the terraces' flats (slope × (1 − k)) and risers (× (1 + k))
 hold, bare rock half of each. On the old 18 staging the head walls' stripe
 energy at 8-40 px periods fell from 0.236 to 0.117 of the AC power, their
-RMS contrast unchanged (0.110 → 0.109).
+RMS contrast unchanged (0.110 → 0.109). The heights, `HeightAt` and the
+ledges come from one function (`TerrainGenerator.Ground`: the sample with
+the pads carved), and the ledges keep only the share of the ground the
+carve keeps (`CarvePads(h, x, z, out keep)`: 0 on a pad and a shelf's fill,
+the cut face's or the drop's smoothstep on its slope), so a pad's macro
+ground is the pad and a cut face's the cut face of the ground without its
+terraces (wave4b int: the stage's grid read the uncarved sample and lost
+F2-19's pads; `TerrainGroundTests`).
 
 | Measure | Value (seed 42) |
 |---|---|
@@ -215,7 +222,7 @@ depth from the far field). `FjordTerrain.land_pad_slots()` /
 fields in its `meta.json` (`schemas/terrain/meta.schema.json`: `land_pads[]`,
 `offshore_slots[]`, the intake reach never authored).
 
-The pads are carved (F2-19, `TerrainGenerator.CarvePads` over `Sample`): each
+The pads are carved (F2-19, `TerrainGenerator.CarvePads` over `Sample`, in `Ground`): each
 pad flat at +3.6 m over its rectangle, and round it a rim of up to 105 m
 (`PadRimMaxM`). Where the ground stands higher, the rim is a cut face into the
 hill (24 m, wider where the slope bound needs it); toward the sea it is a low
@@ -339,9 +346,11 @@ twice or turn green.
 
 The three cloud layers can be marched in the sky's half- or quarter-
 resolution pass instead of per pixel (`cloud_pass`, from the quality tier:
-High uses the half pass, Medium and Low the quarter pass; the main menu's
-hero view, which looks along the horizon, draws them one pass finer,
-`EnvironmentDirector.set_hero_sky`). The low layer is band-limited to the
+High uses the half pass, Medium and Low the quarter pass; a hero view can
+ask for one pass finer, `EnvironmentDirector.set_hero_sky`, which the main
+menu no longer does: per pixel its clouds cost +2.3 ms a frame at 1080p
+and +3.7-4.1 ms at 1440p on High and drew contours inside the clouds,
+where the band-limited half pass is soft, wave4b int). The low layer is band-limited to the
 pass's own pixel (below), so the reduced passes have no edge sharper than
 their texels for the upsample to step. The pass writes them premultiplied
 and the full-resolution pass composites them over the sky. The engine
@@ -590,6 +599,18 @@ COAST 15.31 ms on High (`docs/run/evidence/g2_03_water.md`).
 No mirror underwater, behind an opaque panel, or above 11 m/s of wind
 (`MIRROR_MAX_WIND_MS`: no water anywhere is calm enough), so a storm costs
 nothing extra; it fades in and out over 0.6 s.
+
+The screenshot harness judges the mirror on shot 18 (a Beaufort-0 winter
+dusk up the fjord, the head 2.4 km off). The band under the head's
+waterline, flipped, is compared with the band over it at the ripple scale
+(`ScreenshotHarness.mirror_scores`): SSIM >= 0.5, and the mirror's
+structure (the windows' correlation where the band over the line varies,
+whatever the reflection's brightness) at least 0.2 above the same frame
+with only the mirror off (wave4b int ruling: SSIM's gain over the Low
+tier passed on High's depth of field and scored a flat, bright sky
+reflection above a darker mirror image). Measured: 0.39-0.40 against
+0.01-0.06 with High's depth of field, 0.30 against 0.03 without
+(`docs/run/evidence/wave4b_int_gfx_polish_1.md`).
 
 **Pens damp the sea** (gfx-polish-1): no whitecap breaks inside a pen's
 collar. `PenSpray` lists every visible cage's collar (centre and radius,

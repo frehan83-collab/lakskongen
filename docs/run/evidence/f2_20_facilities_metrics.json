@@ -40,7 +40,7 @@
         }
       },
       "phash": "d06ea9b5ccc293ce",
-      "phash_roi": "d0466b3a3d6c396d",
+      "phash_roi": "d0466b393d6c396d",
       "roi": [
         95,
         233,
@@ -119,7 +119,7 @@
         }
       },
       "phash": "d46e6995e6c29b52",
-      "phash_roi": "d4526ab93d2c3d65",
+      "phash_roi": "d4126bb93d2c3d65",
       "roi": [
         95,
         233,
@@ -198,7 +198,7 @@
         }
       },
       "phash": "d46e69b5e6c29952",
-      "phash_roi": "d4566a993d683d65",
+      "phash_roi": "d4166a893d6e3d65",
       "roi": [
         95,
         233,
@@ -276,10 +276,10 @@
           "modules": 2.0
         }
       },
-      "phash": "d46a69b5e6ca9952",
+      "phash": "d06e69b5e6ca9952",
       "phash_distance_vs_32_land_construction_p2_tank_rings": 2,
-      "phash_roi": "d4566a993d683d65",
-      "phash_roi_distance_vs_32_land_construction_p2_tank_rings": 0,
+      "phash_roi": "d4166a993d6a3d65",
+      "phash_roi_distance_vs_32_land_construction_p2_tank_rings": 2,
       "roi": [
         95,
         233,
@@ -357,7 +357,7 @@
           "modules": 2.0
         }
       },
-      "phash": "d46e69b5e6c29992",
+      "phash": "d06e69b5e6c299d2",
       "phash_roi": "d0566a993d3c3d65",
       "roi": [
         95,
@@ -436,9 +436,9 @@
           "modules": 2.0
         }
       },
-      "phash": "957e6aade5c2ca82",
+      "phash": "d53e6aade5c2ca82",
       "phash_distance_vs_32_land_construction_p2_tank_rings": 16,
-      "phash_roi": "95167a1a293d3d67",
+      "phash_roi": "d5167a1a29353d67",
       "phash_roi_distance_vs_32_land_construction_p2_tank_rings": 14,
       "roi": [
         95,
@@ -517,8 +517,8 @@
           "modules": 2.0
         }
       },
-      "phash": "953e6aade5c2da82",
-      "phash_roi": "95167a1a2b353d67",
+      "phash": "d53e6aada5c2da82",
+      "phash_roi": "d5167a1a29353d67",
       "roi": [
         95,
         233,
@@ -597,7 +597,7 @@
         }
       },
       "phash": "953e6aade5c2da82",
-      "phash_roi": "95167a1a2b353d67",
+      "phash_roi": "d5167a1a2b353d66",
       "roi": [
         95,
         233,
@@ -661,7 +661,7 @@
         }
       },
       "delta_e_vs_heath": {
-        "pad_b": 20.53
+        "pad_b": 20.55
       },
       "environment": {
         "light_level": 0.0,
@@ -676,14 +676,14 @@
       "pads": {
         "pad_b": {
           "lab": [
-            61.83,
-            -2.04,
-            -4.86
+            62.85,
+            -2.15,
+            -4.68
           ],
           "samples": 384
         }
       },
-      "phash": "837e70a5a2d7da91",
+      "phash": "837e70a5e2d7ca91",
       "phash_distance_vs_45_pads_b_heath": 12
     },
     "45_pads_b_heath": {
@@ -710,14 +710,14 @@
       "pads": {
         "pad_b": {
           "lab": [
-            45.95,
-            -3.58,
-            8.06
+            46.87,
+            -3.57,
+            8.17
           ],
           "samples": 384
         }
       },
-      "phash": "837b7cada8dfd800"
+      "phash": "837b7cada8d7da00"
     },
     "45_pads_delta_granite": {
       "camera": {
@@ -735,7 +735,7 @@
         }
       },
       "delta_e_vs_heath": {
-        "pad_delta": 21.11
+        "pad_delta": 21.18
       },
       "environment": {
         "light_level": 0.0,
@@ -750,9 +750,9 @@
       "pads": {
         "pad_delta": {
           "lab": [
-            61.61,
-            -2.06,
-            -5.26
+            62.59,
+            -2.04,
+            -5.13
           ],
           "samples": 384
         }
@@ -784,9 +784,9 @@
       "pads": {
         "pad_delta": {
           "lab": [
-            45.99,
-            -3.61,
-            8.85
+            47.01,
+            -3.57,
+            9.14
           ],
           "samples": 384
         }
@@ -806,8 +806,8 @@
         }
       },
       "delta_e_vs_heath": {
-        "pad_a": 11.88,
-        "pad_b": 10.99
+        "pad_a": 12.1,
+        "pad_b": 11.06
       },
       "environment": {
         "light_level": 0.0,
@@ -822,23 +822,23 @@
       "pads": {
         "pad_a": {
           "lab": [
-            53.39,
-            -2.38,
-            -6.06
+            54.06,
+            -2.43,
+            -5.92
           ],
           "samples": 384
         },
         "pad_b": {
           "lab": [
-            61.81,
-            -1.99,
-            -4.09
+            63.05,
+            -2.03,
+            -4.0
           ],
           "samples": 384
         }
       },
       "phash": "80d0d4fdbdaf23c8",
-      "phash_distance_vs_45_pads_home_heath": 4
+      "phash_distance_vs_45_pads_home_heath": 6
     },
     "45_pads_home_heath": {
       "camera": {
@@ -861,22 +861,22 @@
       "pads": {
         "pad_a": {
           "lab": [
-            44.32,
+            44.9,
             -3.82,
-            1.47
+            1.86
           ],
           "samples": 384
         },
         "pad_b": {
           "lab": [
-            53.63,
-            -3.31,
-            3.13
+            54.88,
+            -3.4,
+            3.33
           ],
           "samples": 384
         }
       },
-      "phash": "80d0d4f5bdaf3b88"
+      "phash": "80d0d4f5bdaf3aa8"
     },
     "45_pads_land_granite": {
       "camera": {
@@ -894,7 +894,7 @@
         }
       },
       "delta_e_vs_heath": {
-        "pad_a": 21.64
+        "pad_a": 22.39
       },
       "environment": {
         "light_level": 0.0,
@@ -909,15 +909,15 @@
       "pads": {
         "pad_a": {
           "lab": [
-            58.43,
+            59.52,
             -2.12,
-            -5.09
+            -5.04
           ],
           "samples": 381
         }
       },
-      "phash": "d4227aafd5c0c29f",
-      "phash_distance_vs_45_pads_land_heath": 22
+      "phash": "d4327aadd5c0c29f",
+      "phash_distance_vs_45_pads_land_heath": 24
     },
     "45_pads_land_heath": {
       "camera": {
@@ -943,14 +943,14 @@
       "pads": {
         "pad_a": {
           "lab": [
-            40.91,
-            -3.57,
-            7.53
+            41.12,
+            -3.56,
+            7.64
           ],
           "samples": 381
         }
       },
-      "phash": "f1e09ecbb7c180ad"
+      "phash": "f1e09acbb7e180ad"
     },
     "46_facilities_budget_campus_home": {
       "camera": {
@@ -1122,7 +1122,7 @@
           "offshore"
         ]
       },
-      "phash": "ecd1b0cec1318f57",
+      "phash": "ecd0b3ced031ce56",
       "units": {
         "offshore_1": {
           "buoys": 0,
@@ -1140,10 +1140,10 @@
             ],
             "mean_rgb": [
               135,
-              115,
+              116,
               44
             ],
-            "share": 0.1349
+            "share": 0.1319
           },
           "operational": true,
           "phase_count": 6,
@@ -1349,7 +1349,7 @@
           "modules": 2.0
         }
       },
-      "phash": "b4eaeb9a88a59536",
+      "phash": "b4eeeb9a88a59532",
       "phash_roi": "b54cead71e606b62",
       "roi": [
         0,
@@ -1519,8 +1519,8 @@
           "modules": 2.0
         }
       },
-      "phash": "97aab98696cbc934",
-      "phash_roi": "c5947a9a3f2d3962",
+      "phash": "97aab99696c78934",
+      "phash_roi": "c5947a8a3f3d3962",
       "roi": [
         403,
         296,
@@ -1598,7 +1598,7 @@
           "modules": 2.0
         }
       },
-      "phash": "aa93d46529e8d717",
+      "phash": "8a93d4652decd695",
       "phash_roi": "aaaaf3d3d2d6884a",
       "roi": [
         0,
@@ -1697,7 +1697,7 @@
         ]
       },
       "phash": "f5326aeda1c0967a",
-      "phash_roi": "c4147a3e3a6b3d65",
+      "phash_roi": "c4147a1e3e6b3d65",
       "roi": [
         0,
         269,
@@ -1803,7 +1803,7 @@
           "modules": 2.0
         }
       },
-      "phash": "877834ede582de19",
+      "phash": "87783ce5e582de19",
       "phash_roi": "fc1c01817ff73278",
       "roi": [
         419,
@@ -1931,7 +1931,7 @@
         }
       },
       "phash": "f883879db8431b3e",
-      "phash_roi": "fcd843473e3e69c0",
+      "phash_roi": "fc980347be3f69c0",
       "roi": [
         0,
         305,
@@ -2063,7 +2063,7 @@
           "shadow_draws": 59
         }
       },
-      "phash": "80d0d4f5bdaf7b80",
+      "phash": "80d0d4f5bdaf3b88",
       "units": {
         "offshore_1": {
           "buoys": 0,
@@ -2171,7 +2171,7 @@
           "modules": 2.0
         }
       },
-      "phash": "fcc1b296c8f11957",
+      "phash": "fec1f2c6c8711317",
       "units": {
         "offshore_1": {
           "buoys": 0,
@@ -2192,7 +2192,7 @@
               115,
               43
             ],
-            "share": 0.1338
+            "share": 0.131
           },
           "operational": false,
           "phase_count": 6,
@@ -2279,7 +2279,7 @@
           "modules": 2.0
         }
       },
-      "phash": "af85677b1830735a",
+      "phash": "af85677b183073d8",
       "units": {
         "offshore_1": {
           "buoys": 0,
@@ -2297,10 +2297,10 @@
             ],
             "mean_rgb": [
               171,
-              141,
-              66
+              145,
+              69
             ],
-            "share": 0.1671
+            "share": 0.1471
           },
           "operational": true,
           "phase_count": 6,
@@ -2387,7 +2387,7 @@
           "modules": 2.0
         }
       },
-      "phash": "e6d580f0f5073756",
+      "phash": "e6d590f275473652",
       "units": {
         "offshore_1": {
           "buoys": 8,
@@ -2479,7 +2479,7 @@
           "modules": 2.0
         }
       },
-      "phash": "eec081665c577717",
+      "phash": "fec0817658573717",
       "units": {
         "offshore_1": {
           "buoys": 0,
@@ -2498,11 +2498,11 @@
               581
             ],
             "mean_rgb": [
-              138,
-              116,
-              55
+              139,
+              118,
+              56
             ],
-            "share": 0.1071
+            "share": 0.1038
           },
           "operational": false,
           "phase_count": 6,
@@ -2589,7 +2589,7 @@
           "modules": 2.0
         }
       },
-      "phash": "fec4c0667f105717",
+      "phash": "fec5807677141717",
       "units": {
         "offshore_1": {
           "buoys": 8,
@@ -2608,11 +2608,11 @@
               487
             ],
             "mean_rgb": [
-              142,
-              119,
-              57
+              144,
+              122,
+              59
             ],
-            "share": 0.0895
+            "share": 0.0872
           },
           "operational": false,
           "phase_count": 6,
@@ -2699,7 +2699,7 @@
           "modules": 2.0
         }
       },
-      "phash": "f6c584405f771755",
+      "phash": "f2c784505f771715",
       "units": {
         "offshore_1": {
           "buoys": 8,
@@ -2716,11 +2716,11 @@
               319
             ],
             "mean_rgb": [
-              166,
-              138,
-              79
+              168,
+              142,
+              82
             ],
-            "share": 0.0291
+            "share": 0.0325
           },
           "operational": false,
           "phase_count": 6,
@@ -2820,7 +2820,7 @@
           "shadow_draws": 40
         }
       },
-      "phash": "ecd0b3cc9a71c536",
+      "phash": "ecd0b3cc9b714437",
       "units": {
         "offshore_1": {
           "buoys": 0,
@@ -2838,10 +2838,10 @@
             ],
             "mean_rgb": [
               135,
-              115,
+              116,
               44
             ],
-            "share": 0.1347
+            "share": 0.1314
           },
           "operational": true,
           "phase_count": 6,
@@ -2928,7 +2928,7 @@
           "modules": 2.0
         }
       },
-      "phash": "fec4849fc0761f07",
+      "phash": "fec48497d2761317",
       "units": {
         "offshore_1": {
           "buoys": 4,
