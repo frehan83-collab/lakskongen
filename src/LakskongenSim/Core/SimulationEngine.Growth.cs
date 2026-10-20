@@ -110,6 +110,20 @@ public partial class SimulationEngine
         double researchGrowth = 1.0 + ResearchEffectFor(ResearchEffectKeys.GrowthRateBonus, researchScope);
         double researchFcrReduction = ResearchEffectFor(ResearchEffectKeys.FcrReduction, researchScope);
         double dayLength = DayLengthHoursOf(husbandry.Water);
+        // F2-12: a land tank's density stress is the tank's own (the land
+        // curve from 50 kg/m³); the biology passes 1.0 for a land pad, which is
+        // no fjord zone, so the product is the tank's multiplier alone.
+        // F2-12: a land tank's fish convert feed at the land plan's biological
+        // FCR ([L:A3], [L:R2]) scaled by the law's size factor, as the land
+        // physics was calibrated on; the sea's FCR model is a pen's.
+        double densityGrowth = husbandry.DensityGrowthMultiplier;
+        double? landFcrAt2Kg = null;
+        if (husbandry.Water.Kind == HoldingKind.LandTank)
+        {
+            var landHolding = HoldingOf(population);
+            densityGrowth *= Farm.Land.LandHooks.DensityGrowthMultiplier(this, landHolding, population);
+            landFcrAt2Kg = Farm.Land.LandHooks.BiologicalFcrAt2Kg(this, landHolding, population);
+        }
 
         double grownKg = 0.0;
         double eatenKg = 0.0;
@@ -121,10 +135,12 @@ public partial class SimulationEngine
                 ration,
                 husbandry.AppetiteModifier,
                 CohortGrowthMultiplier(cohort) * husbandry.ContainmentGrowthMultiplier * researchGrowth,
-                husbandry.DensityGrowthMultiplier,
+                densityGrowth,
                 husbandry.SpreadQuality,
                 dayLength);
-            double satiationFcr = Feed.SatiationFcr(temperature, cohort.Stage,
+            double satiationFcr = landFcrAt2Kg is double landFcr
+                ? landFcr * law.FcrSizeFactor(cohort.MeanWeightKg) * (1.0 - ResearchEffectKeys.ClampReduction(researchFcrReduction))
+                : Feed.SatiationFcr(temperature, cohort.Stage,
                 law.FcrSizeFactor(cohort.MeanWeightKg), husbandry.StockingDensityKgM3,
                 husbandry.AppetiteModifier, researchFcrReduction);
             // U2-04: a recipe's energy sets how many kilos of feed the same
@@ -145,6 +161,8 @@ public partial class SimulationEngine
             husbandry.Recipe.PriceFactor);
         // F2-04: a land tank's (or a non-liable offshore unit's) feed stays out of the rent base.
         if (husbandry.Water.Kind != HoldingKind.SeaPen) AttributePopulationCost(population, fed.CostNOK);
+        // F2-12: the land tick runs on the feed the fish ate today (their oxygen, CO2 and ammonia).
+        if (husbandry.Water.Kind == HoldingKind.LandTank) NoteLandFeed(population, eatenKg);
         return fed;
     }
 

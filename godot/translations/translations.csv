@@ -542,6 +542,9 @@ LEDGER_GROWTH_LICENCE,Growth licence,Vekstlisens
 LEDGER_HARVEST,Harvest sales,Slaktesalg
 LEDGER_INSURANCE,Insurance,Forsikring
 LEDGER_INTEREST,Interest,Renter
+LEDGER_LAND_ENERGY,Land farm electricity,Strøm til landanlegg
+LEDGER_LAND_OXYGEN,Land farm oxygen,Oksygen til landanlegg
+LEDGER_LAND_STAFF,Land farm staff,Ansatte på landanlegg
 LEDGER_LICENCE_FEES,Licence fees,Lisensavgifter
 LEDGER_LOAN_PRINCIPAL,Loan repayment,Avdrag på lån
 LEDGER_LOAN_SERVICING,Loan servicing,Nedbetaling lån
@@ -638,6 +641,62 @@ FARM_VARIANT_OF1,Offshore pen,Havmerd
 FARM_VARIANT_OPEN_PEN,Open net pen,Åpen merd
 FARM_VARIANT_POST_SMOLT,Post-smolt module,Postsmoltmodul
 FARM_VARIANT_RAS,Land farm (RAS),Landanlegg (RAS)
+LAND_CONTRACT_MANAGED,Managed build (you carry the overrun),Egen byggeledelse (du bærer overskridelsen)
+LAND_CONTRACT_TURNKEY,Turnkey (fixed price with a premium),Totalentreprise (fastpris med påslag)
+LAND_DRIVER_APPEAL,Appeal,Klage
+LAND_DRIVER_BASE,Base risk,Grunnrisiko
+LAND_DRIVER_DENITRIFICATION,Denitrification commitment,Forpliktelse om denitrifisering
+LAND_DRIVER_ENVIRONMENTAL_SURVEY,Environmental survey,Miljøkartlegging
+LAND_DRIVER_NATURE_SENSITIVITY,Nature sensitivity,Natursårbarhet
+LAND_DRIVER_REFUSED_CASE,Refused case,Avslått sak
+LAND_DRIVER_SCALE,Plant size,Anleggets størrelse
+LAND_GRID_CAPACITY,More grid capacity,Mer nettkapasitet
+LAND_GRID_SECOND_FEED,Second grid feed,Ny uavhengig nettilførsel
+LAND_MITIGATION_DENITRIFICATION,Commit to denitrification,Forplikte denitrifisering
+LAND_MITIGATION_ENVIRONMENTAL_SURVEY,Environmental survey,Miljøkartlegging
+LAND_PERMIT_BIOSECURITY,Biosecurity approval,Godkjenning fra Mattilsynet
+LAND_PERMIT_DISCHARGE,Discharge permit,Utslippstillatelse
+LAND_PERMIT_GRID_CONNECTION,Grid connection,Nettilknytning
+LAND_PERMIT_LAND_AQUACULTURE,Land aquaculture permit,Akvakulturtillatelse på land
+LAND_PERMIT_SEA_WORKS,Sea works permit,Tillatelse til tiltak i sjø
+LAND_PERMIT_STATUS_APPROVED,Approved,Innvilget
+LAND_PERMIT_STATUS_NEEDED,Not applied for,Ikke søkt
+LAND_PERMIT_STATUS_PENDING,Pending,Under behandling
+LAND_PERMIT_STATUS_PRE_ZONED,Already zoned,Allerede regulert
+LAND_PERMIT_STATUS_REFUSED,Refused,Avslått
+LAND_PERMIT_ZONING,Zoning plan,Reguleringsplan
+LAND_PHASE_COMPLETION,Remaining tanks,Resten av karene
+LAND_PHASE_FIRST_TANKS,Commissioning,Igangkjøring
+LAND_PHASE_SEA_WORKS,Intake and outfall,Inntak og utslipp
+LAND_PHASE_SITE_WORKS,Blasting and foundations,Sprengning og fundamenter
+LAND_PHASE_TANK_RINGS,Tank rings,Karringer
+LAND_PHASE_TREATMENT_HALL,Treatment hall,Vannbehandlingshall
+LAND_REASON_ALREADY_ACTIVE,Already in place,Allerede på plass
+LAND_REASON_ALREADY_PENDING,A case of this kind is already being decided,En sak av denne typen er allerede til behandling
+LAND_REASON_ANNUAL_CAPACITY,The stocking would plan more than a year's production,Utsettet ville planlegge mer enn ett års produksjon
+LAND_REASON_BIOFILTER_IMMATURE,The biofilter is still maturing,Biofilteret modnes fortsatt
+LAND_REASON_DENSITY_EXCEEDED,The fish would grow too dense in this tank,Fisken ville stå for tett i dette karet
+LAND_REASON_ENGINE_NOT_READY,The game is not ready,Spillet er ikke klart
+LAND_REASON_GRID_CAPACITY,The grid at the pad cannot carry the plant,Strømnettet ved tomten bærer ikke anlegget
+LAND_REASON_HOLDING_EMPTY,The tank holds no fish,Karet er tomt
+LAND_REASON_INSUFFICIENT_FUNDS,Not enough cash,Ikke nok penger
+LAND_REASON_LOTS_EXHAUSTED,The pad has no room for more,Tomten har ikke plass til mer
+LAND_REASON_MORATORIUM,A moratorium holds new land applications,Søknader om landbasert oppdrett er satt på vent
+LAND_REASON_NOTHING_TO_APPLY,Every permit is already granted,Alle tillatelser er allerede gitt
+LAND_REASON_NOT_FOUND,Not found,Finnes ikke
+LAND_REASON_NOT_OPERATIONAL,The tank is not built yet,Karet er ikke ferdig bygget
+LAND_REASON_NOT_READY,Not possible right now,Ikke mulig nå
+LAND_REASON_NOT_REFUSED,Only a refused case can be appealed,Bare et avslag kan påklages
+LAND_REASON_NOT_UNLOCKED,This farm type is still locked,Denne anleggstypen er fortsatt låst
+LAND_REASON_OUT_OF_RANGE,A value is out of range,En verdi er utenfor gyldig område
+LAND_REASON_PERMITS_MISSING,Permits are still missing,Det mangler fortsatt tillatelser
+LAND_REASON_PLOT_TAKEN,Someone else holds this plot,Noen andre har denne tomten
+LAND_REASON_TANK_NOT_FOUND,No such tank,Karet finnes ikke
+LAND_REASON_TANK_OCCUPIED,The tank already holds fish,Karet har allerede fisk
+LAND_TEMPLATE_HFS_LOT,Land farm (hybrid),Landanlegg (hybrid)
+LAND_TEMPLATE_HFS_PILOT_LOT,Pilot lot,Pilottrinn
+LAND_TEMPLATE_POST_SMOLT_MODULE,Post-smolt module,Postsmoltmodul
+LAND_TEMPLATE_RAS_HALL,Land farm (RAS),Landanlegg (RAS)
 RESEARCH_SCOPE_LAND,land tanks,landtanker
 RESEARCH_SCOPE_OFFSHORE,offshore units,havmerder
 RESEARCH_SCOPE_SEA,fjord pens,fjordmerder
