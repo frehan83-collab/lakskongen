@@ -1,0 +1,429 @@
+{
+ "analysis_res_m": 250,
+ "codes": {
+  "0": "none",
+  "1": "land",
+  "10": "farm_too_close",
+  "11": "too_shallow",
+  "12": "too_deep",
+  "13": "outside_planning_area",
+  "16": "scored, limited by depth",
+  "17": "scored, limited by exchange",
+  "18": "scored, limited by farm_distance",
+  "19": "scored, limited by temperature",
+  "2": "outside_po",
+  "20": "scored, limited by river",
+  "21": "scored, limited by current",
+  "22": "scored, limited by waves",
+  "23": "scored, limited by oxygen",
+  "24": "scored, limited by none",
+  "3": "no_depth",
+  "4": "salmon_fjord",
+  "5": "national_salmon_river",
+  "6": "protected_area",
+  "7": "coral_closure",
+  "8": "coral_reef",
+  "9": "fairway"
+ },
+ "crs_grid": "EPSG:25833",
+ "encoding": {
+  "B": "mean depth / 4 m (0 = land or unknown)",
+  "G": "reason code (codes)",
+  "R": "0 = no score; 1..255 = score 0..1 (score = (R - 1) / 254)"
+ },
+ "grids": {
+  "1": {
+   "file": "suitability/po01.png",
+   "height": 432,
+   "origin_25833": [
+    -51250,
+    6662000
+   ],
+   "res_m": 500,
+   "stats": {
+    "candidates": 12,
+    "excluded_cells_250m": {
+     "coral_closure": 6,
+     "coral_reef": 17,
+     "fairway": 8475,
+     "farm_too_close": 708,
+     "national_salmon_river": 752,
+     "no_depth": 2922,
+     "outside_planning_area": 2,
+     "protected_area": 18699,
+     "salmon_fjord": 14468,
+     "too_deep": 943,
+     "too_shallow": 4445
+    },
+    "max_score": 0.966,
+    "mean_score": 0.864,
+    "scored_cells_250m": 21942,
+    "sea_cells_250m": 73379,
+    "temperature_score": 0.752
+   },
+   "width": 674
+  },
+  "10": {
+   "file": "suitability/po10.png",
+   "height": 295,
+   "origin_25833": [
+    525250,
+    7746250
+   ],
+   "res_m": 500,
+   "stats": {
+    "candidates": 12,
+    "excluded_cells_250m": {
+     "coral_reef": 99,
+     "fairway": 9633,
+     "farm_too_close": 10344,
+     "national_salmon_river": 716,
+     "no_depth": 1003,
+     "protected_area": 927,
+     "salmon_fjord": 2686,
+     "too_deep": 12633,
+     "too_shallow": 4206
+    },
+    "max_score": 0.975,
+    "mean_score": 0.828,
+    "scored_cells_250m": 34995,
+    "sea_cells_250m": 77242,
+    "temperature_score": 0.817
+   },
+   "width": 286
+  },
+  "11": {
+   "file": "suitability/po11.png",
+   "height": 360,
+   "origin_25833": [
+    605750,
+    7839750
+   ],
+   "res_m": 500,
+   "stats": {
+    "candidates": 12,
+    "excluded_cells_250m": {
+     "coral_closure": 793,
+     "coral_reef": 84,
+     "fairway": 10340,
+     "farm_too_close": 7001,
+     "national_salmon_river": 28,
+     "no_depth": 1050,
+     "protected_area": 5088,
+     "salmon_fjord": 3051,
+     "too_deep": 3336,
+     "too_shallow": 5330
+    },
+    "max_score": 0.966,
+    "mean_score": 0.828,
+    "scored_cells_250m": 78324,
+    "sea_cells_250m": 114425,
+    "temperature_score": 0.752
+   },
+   "width": 384
+  },
+  "12": {
+   "file": "suitability/po12.png",
+   "height": 383,
+   "origin_25833": [
+    720000,
+    7942250
+   ],
+   "res_m": 500,
+   "stats": {
+    "candidates": 12,
+    "excluded_cells_250m": {
+     "coral_reef": 79,
+     "fairway": 11910,
+     "farm_too_close": 10309,
+     "national_salmon_river": 164,
+     "no_depth": 3283,
+     "protected_area": 17515,
+     "salmon_fjord": 9551,
+     "too_deep": 9463,
+     "too_shallow": 5241
+    },
+    "max_score": 0.965,
+    "mean_score": 0.866,
+    "scored_cells_250m": 113191,
+    "sea_cells_250m": 180706,
+    "temperature_score": 0.744
+   },
+   "width": 499
+  },
+  "13": {
+   "file": "suitability/po13.png",
+   "height": 327,
+   "origin_25833": [
+    952500,
+    7942500
+   ],
+   "res_m": 500,
+   "stats": {
+    "candidates": 12,
+    "excluded_cells_250m": {
+     "fairway": 3794,
+     "farm_too_close": 1389,
+     "national_salmon_river": 1147,
+     "no_depth": 1008,
+     "outside_planning_area": 1,
+     "protected_area": 240,
+     "salmon_fjord": 17123,
+     "too_deep": 5948,
+     "too_shallow": 2453
+    },
+    "max_score": 0.962,
+    "mean_score": 0.842,
+    "scored_cells_250m": 34483,
+    "sea_cells_250m": 67586,
+    "temperature_score": 0.722
+   },
+   "width": 306
+  },
+  "2": {
+   "file": "suitability/po02.png",
+   "height": 291,
+   "origin_25833": [
+    -83250,
+    6678500
+   ],
+   "res_m": 500,
+   "stats": {
+    "candidates": 12,
+    "excluded_cells_250m": {
+     "coral_closure": 1,
+     "coral_reef": 3,
+     "fairway": 6579,
+     "farm_too_close": 6312,
+     "national_salmon_river": 55,
+     "no_depth": 890,
+     "outside_planning_area": 5756,
+     "protected_area": 1699,
+     "salmon_fjord": 4874,
+     "too_deep": 2058,
+     "too_shallow": 1349
+    },
+    "max_score": 0.954,
+    "mean_score": 0.78,
+    "scored_cells_250m": 9902,
+    "sea_cells_250m": 39478,
+    "temperature_score": 0.839
+   },
+   "width": 358
+  },
+  "3": {
+   "file": "suitability/po03.png",
+   "height": 320,
+   "origin_25833": [
+    -92250,
+    6757500
+   ],
+   "res_m": 500,
+   "stats": {
+    "candidates": 12,
+    "excluded_cells_250m": {
+     "coral_closure": 20,
+     "coral_reef": 315,
+     "fairway": 11965,
+     "farm_too_close": 15776,
+     "national_salmon_river": 4,
+     "no_depth": 1129,
+     "outside_planning_area": 29171,
+     "protected_area": 498,
+     "salmon_fjord": 495,
+     "too_deep": 3942,
+     "too_shallow": 1765
+    },
+    "max_score": 0.944,
+    "mean_score": 0.795,
+    "scored_cells_250m": 26710,
+    "sea_cells_250m": 91790,
+    "temperature_score": 0.899
+   },
+   "width": 422
+  },
+  "4": {
+   "file": "suitability/po04.png",
+   "height": 430,
+   "origin_25833": [
+    -73250,
+    6947250
+   ],
+   "res_m": 500,
+   "stats": {
+    "candidates": 12,
+    "excluded_cells_250m": {
+     "coral_reef": 24,
+     "fairway": 12133,
+     "farm_too_close": 16348,
+     "national_salmon_river": 237,
+     "no_depth": 993,
+     "outside_planning_area": 17992,
+     "protected_area": 4556,
+     "salmon_fjord": 14150,
+     "too_deep": 6679,
+     "too_shallow": 2943
+    },
+    "max_score": 0.986,
+    "mean_score": 0.802,
+    "scored_cells_250m": 39557,
+    "sea_cells_250m": 115612,
+    "temperature_score": 0.897
+   },
+   "width": 415
+  },
+  "5": {
+   "file": "suitability/po05.png",
+   "height": 264,
+   "origin_25833": [
+    -15250,
+    7025500
+   ],
+   "res_m": 500,
+   "stats": {
+    "candidates": 12,
+    "excluded_cells_250m": {
+     "coral_reef": 236,
+     "fairway": 10310,
+     "farm_too_close": 6367,
+     "national_salmon_river": 1,
+     "no_depth": 1046,
+     "outside_planning_area": 11705,
+     "protected_area": 5543,
+     "salmon_fjord": 1326,
+     "too_deep": 2963,
+     "too_shallow": 5440
+    },
+    "max_score": 0.986,
+    "mean_score": 0.822,
+    "scored_cells_250m": 35273,
+    "sea_cells_250m": 80210,
+    "temperature_score": 0.897
+   },
+   "width": 372
+  },
+  "6": {
+   "file": "suitability/po06.png",
+   "height": 439,
+   "origin_25833": [
+    91750,
+    7165500
+   ],
+   "res_m": 500,
+   "stats": {
+    "candidates": 12,
+    "excluded_cells_250m": {
+     "coral_reef": 385,
+     "fairway": 11455,
+     "farm_too_close": 20103,
+     "national_salmon_river": 108,
+     "no_depth": 2766,
+     "outside_planning_area": 24868,
+     "protected_area": 17282,
+     "salmon_fjord": 27599,
+     "too_deep": 14387,
+     "too_shallow": 10081
+    },
+    "max_score": 0.988,
+    "mean_score": 0.813,
+    "scored_cells_250m": 68528,
+    "sea_cells_250m": 197562,
+    "temperature_score": 0.916
+   },
+   "width": 552
+  },
+  "7": {
+   "file": "suitability/po07.png",
+   "height": 361,
+   "origin_25833": [
+    252750,
+    7269000
+   ],
+   "res_m": 500,
+   "stats": {
+    "candidates": 12,
+    "excluded_cells_250m": {
+     "coral_reef": 48,
+     "fairway": 5559,
+     "farm_too_close": 11000,
+     "national_salmon_river": 11,
+     "no_depth": 1970,
+     "protected_area": 3589,
+     "salmon_fjord": 2648,
+     "too_deep": 10211,
+     "too_shallow": 7057
+    },
+    "max_score": 0.944,
+    "mean_score": 0.778,
+    "scored_cells_250m": 44551,
+    "sea_cells_250m": 86644,
+    "temperature_score": 0.876
+   },
+   "width": 337
+  },
+  "8": {
+   "file": "suitability/po08.png",
+   "height": 489,
+   "origin_25833": [
+    318250,
+    7480250
+   ],
+   "res_m": 500,
+   "stats": {
+    "candidates": 12,
+    "excluded_cells_250m": {
+     "coral_reef": 109,
+     "fairway": 11996,
+     "farm_too_close": 16993,
+     "national_salmon_river": 6,
+     "no_depth": 2138,
+     "protected_area": 10117,
+     "salmon_fjord": 6287,
+     "too_deep": 17052,
+     "too_shallow": 15470
+    },
+    "max_score": 0.977,
+    "mean_score": 0.798,
+    "scored_cells_250m": 129073,
+    "sea_cells_250m": 209241,
+    "temperature_score": 0.832
+   },
+   "width": 424
+  },
+  "9": {
+   "file": "suitability/po09.png",
+   "height": 527,
+   "origin_25833": [
+    362000,
+    7695750
+   ],
+   "res_m": 500,
+   "stats": {
+    "candidates": 12,
+    "excluded_cells_250m": {
+     "coral_closure": 4,
+     "coral_reef": 67,
+     "fairway": 23192,
+     "farm_too_close": 16798,
+     "no_depth": 3434,
+     "protected_area": 11470,
+     "too_deep": 31729,
+     "too_shallow": 16318
+    },
+    "max_score": 0.977,
+    "mean_score": 0.758,
+    "scored_cells_250m": 165190,
+    "sea_cells_250m": 268202,
+    "temperature_score": 0.835
+   },
+   "width": 521
+  }
+ },
+ "optional_layers": {
+  "current": true,
+  "oxygen": true,
+  "waves": true
+ },
+ "row0": "north",
+ "version": 1
+}

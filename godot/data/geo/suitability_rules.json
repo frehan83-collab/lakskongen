@@ -1,0 +1,404 @@
+{
+ "candidates": {
+  "ideal_depth_m": 80,
+  "min_score": 0.55,
+  "per_po": 12,
+  "rule": "Greedy, deterministic: highest score (3 decimals) first; equal scores prefer more open water, then depth nearer 80 m, then north, then west. No candidate within 10 km of a chosen one: twice the Mattilsynet 5 km norm (which already holds between new sites), so the 12 candidates of an area spread over it (GB)",
+  "spacing_km": 10.0
+ },
+ "components": {
+  "current": {
+   "ramp_ms": [
+    0.01,
+    0.05,
+    0.4,
+    0.8
+   ],
+   "rule": "Annual mean current speed in the upper 30 m (TOPAZ4 monthly means 2018-2022): 0 at 0.01 m/s, 1 from 0.05 to 0.40 m/s, 0 at 0.8 m/s. GB: residual (non-tidal) currents at the 12.5 km model scale; existing sites span ~0.01-0.15 m/s (5-95 %)",
+   "source": "Copernicus Marine ARCTIC_MULTIYEAR_PHY_002_003, https://doi.org/10.48670/moi-00007",
+   "weight": 0.0,
+   "weight_when_available": 0.15
+  },
+  "depth": {
+   "ramp_m": [
+    15,
+    25,
+    150,
+    300
+   ],
+   "rule": "Trapezoid: 0 at 15 m, 1 from 25 to 150 m, 0 at 300 m",
+   "source": "Owner brief 2026-10-20 (open pens ~25-150 m); GB ramps",
+   "weight": 0.3
+  },
+  "exchange": {
+   "radius_m": 3000,
+   "ramp": [
+    0.3,
+    0.8
+   ],
+   "rule": "Water-exchange proxy: share of sea within 3 km (openness), 0 at 30 %, 1 at 80 %. GB proxy: enclosed basins (threshold fjords, pollen) have poor exchange; open sounds good",
+   "source": "Proxy, documented in docs/geo/GEODATA.md; complemented by the Copernicus current layer",
+   "weight": 0.25
+  },
+  "farm_distance": {
+   "ramp_km": [
+    2.5,
+    5.0
+   ],
+   "rule": "Distance to the nearest active sea salmonid site: 0 at 2.5 km, 1 at 5 km",
+   "source": "Mattilsynet letter 2022-01-21 (ref 2021/255437) to Vanylven kommune: 'anbefalt minsteavstand på 5 km i sjø mellom matfiskanlegg (laks) utenfor koordinerte brakkleggingsområder'",
+   "url": "https://www.hareid.kommune.no/_f/i7ae2a7f9-bb90-429d-b491-c067d7897454/mattilsynet-uttale-til-interkommunal-kystsoneplan-for-sore-sunnmore-dokid-274716.pdf",
+   "weight": 0.25
+  },
+  "oxygen": {
+   "ramp_mmol": [
+    180.0,
+    250.0
+   ],
+   "rule": "Lowest monthly mean dissolved O2 in the upper 30 m: 0 at 180, 1 at 250 mmol/m3. GB: salmon need > ~70-80 % saturation (~250 mmol/m3 at 10 °C). At the model's 25 km scale the upper 30 m never falls below ~255 mmol/m3 on this coast, so this never binds; sill-fjord basin hypoxia is below the pens and not resolved",
+   "source": "Copernicus Marine ARCTIC_MULTIYEAR_BGC_002_005, https://doi.org/10.48670/moi-00006",
+   "weight": 0.0,
+   "weight_when_available": 0.1
+  },
+  "temperature": {
+   "ramp_c": [
+    2.0,
+    8.0,
+    16.0,
+    20.0
+   ],
+   "rule": "Mean over the 12 monthly means of the area (3 m): 0 at 2 °C, 1 from 8 to 16 °C, 0 at 20 °C",
+   "source": "Optimum 13-16 °C, ITmax ~22 °C: Calado et al. 2021, Animals 11:1800; growth slows below ~4-5 °C: Alanärä et al. 2001 (as used in docs/BALANCE.md S2-03). Climatology: ProductionAreas.cs (Havforskningsinstituttet, Rapport fra havforskningen 2025-69)",
+   "url": "https://doi.org/10.3390/ani11061800",
+   "weight": 0.2
+  },
+  "waves": {
+   "ramp_m": [
+    -1.0,
+    0.0,
+    1.2,
+    2.8
+   ],
+   "rule": "Highest monthly mean significant wave height (winter exposure): 1 up to 1.2 m, 0 at 2.8 m. GB, calibrated on the registry: active sea salmon sites have a median of 0.5 m and a 95th percentile of 2.2 m on this measure, so open pens sit inside the skerries, not on the exposed outer coast",
+   "source": "Copernicus Marine ARCTIC_MULTIYEAR_WAV_002_013, https://doi.org/10.48670/moi-00008",
+   "weight": 0.0,
+   "weight_when_available": 0.2
+  }
+ },
+ "copernicus_layers_used": true,
+ "effective_weights": {
+  "current": 0.15,
+  "depth": 0.3,
+  "exchange": 0.25,
+  "farm_distance": 0.25,
+  "oxygen": 0.1,
+  "temperature": 0.2,
+  "waves": 0.2
+ },
+ "formula": "score = (sum w_i c_i / sum w_i) x river_factor; 0 when a hard constraint holds",
+ "grid_res_m": 250,
+ "hard_constraints": {
+  "coral_closure": {
+   "rule": "Inside a coral-reef protection area (forbudsområde)",
+   "source": "Forskrift om forbud mot fiske i korallrevområder (FOR-2016-01-08-8)",
+   "url": "https://lovdata.no/dokument/SF/forskrift/2016-01-08-8"
+  },
+  "coral_reef": {
+   "radius_m": 500,
+   "rule": "Within 500 m of a recorded coral reef (MAREANO); GB: a mooring spread reaches about 3x the water depth, so a 150 m site's anchors lie up to ~450-500 m out",
+   "source": "Havforskningsinstituttet, Korallrev (2026); naturmangfoldloven § 1 / FOR-2016-01-08-8 (reefs protected)",
+   "url": "https://kartkatalog.geonorge.no/metadata/31edb985-138e-46a7-a910-a0c1cd9baf4c"
+  },
+  "fairway": {
+   "buffer_m": {
+    "Biled": 150,
+    "Hovedled": 300
+   },
+   "rule": "Within the buffer of a main (hovedled) or secondary (biled) fairway centre line. GB, calibrated on the registry: no active sea salmon site lies within 250 m of a hovedled and 8 of 1050 within 100 m of a biled (Akvakulturregisteret 2026-10-20)",
+   "source": "Kystverket, Hovedled og biled (2026); havne- og farvannsloven (LOV-2019-06-21-70) § 14",
+   "url": "https://kartkatalog.geonorge.no/metadata/8ff1538a-a93c-4391-8d6f-3555fc37819c"
+  },
+  "farm_too_close": {
+   "min_km": 2.5,
+   "rule": "Closer than 2.5 km to an active sea site holding salmonids",
+   "source": "Mattilsynet's establishment guideline as cited in Naturvernforbundet's 2020 hearing statement: 2.5 km recommended minimum between sites of up to 3600 t MTB",
+   "url": "https://naturvernforbundet.no/content/uploads/sites/20/2025/01/26.09.2020-Horingsuttalelse-vedrorende-soknad-om-utvidelse-av-akvakulturtillatelse-for-laks-og-orret-pa-lokalitet-37217-Dale-i-Harstad-kommune-.pdf"
+  },
+  "land": {
+   "rule": "Land, lake or river cell (Kartverket N250)"
+  },
+  "national_salmon_river": {
+   "radius_m": 5000,
+   "rule": "Aquaculture sites at least 5 km from a national salmon river (its mouth)",
+   "source": "FOR-2009-06-22-961 § 6 (amended 2023-02-28) and § 2",
+   "url": "https://lovdata.no/dokument/SF/forskrift/2009-06-22-961"
+  },
+  "no_depth": {
+   "rule": "No depth data (outside Kartverket's grid and EMODnet)"
+  },
+  "outside_planning_area": {
+   "rule": "Open pens only: more than 1 nautical mile outside the baseline (grunnlinje), where municipal coastal-zone plans do not reach; sites farther out belong to the Havbruk til havs regime (offshore candidates)",
+   "source": "Plan- og bygningsloven (LOV-2008-06-27-71) § 1-2: in the sea the Act applies out to one nautical mile outside the baselines; baseline from Kartverket N250 (Grunnlinje)",
+   "url": "https://lovdata.no/lov/2008-06-27-71/§1-2"
+  },
+  "outside_po": {
+   "rule": "Outside the production area polygon"
+  },
+  "protected_area": {
+   "rule": "Inside a marine or marine-and-terrestrial protected area (naturvernområde)",
+   "source": "Naturmangfoldloven ch. V; Miljødirektoratet Naturvernområder (2026)",
+   "url": "https://kartkatalog.geonorge.no/metadata/5857ec0a-8d2c-4cd8-baa2-0dc54ae213b4"
+  },
+  "salmon_fjord": {
+   "rule": "No new food-fish farms for anadromous fish inside a national salmon fjord",
+   "source": "Forskrift om særskilte krav til akvakulturrelatert virksomhet i eller ved nasjonale laksevassdrag og nasjonale laksefjorder (FOR-2009-06-22-961) § 3, last amended 2023",
+   "url": "https://lovdata.no/dokument/SF/forskrift/2009-06-22-961"
+  },
+  "too_deep": {
+   "depth_m": 300,
+   "rule": "Deeper than 300 m for open pens (GB: mooring limit of coastal pen systems)"
+  },
+  "too_shallow": {
+   "depth_m": 15,
+   "rule": "Shallower than 15 m (GB: a 10-15 m deep net needs clearance)"
+  }
+ },
+ "national_salmon_rivers": [
+  {
+   "county": "Østfold",
+   "name": "Enningsdalselva"
+  },
+  {
+   "county": "Vestfold",
+   "name": "Numedalslågen"
+  },
+  {
+   "county": "Vest-Agder",
+   "name": "Mandalselva"
+  },
+  {
+   "county": "Rogaland",
+   "name": "Bjerkreimselva"
+  },
+  {
+   "county": "Rogaland",
+   "name": "Suldalslågen"
+  },
+  {
+   "county": "Rogaland",
+   "name": "Ogna"
+  },
+  {
+   "county": "Rogaland",
+   "name": "Håelva"
+  },
+  {
+   "county": "Rogaland",
+   "name": "Figgjo"
+  },
+  {
+   "county": "Hordaland",
+   "name": "Etneelva"
+  },
+  {
+   "county": "Hordaland",
+   "name": "Vosso"
+  },
+  {
+   "county": "Sogn og Fjordane",
+   "name": "Nærøydalselva"
+  },
+  {
+   "county": "Sogn og Fjordane",
+   "name": "Lærdalselva"
+  },
+  {
+   "county": "Sogn og Fjordane",
+   "name": "Nausta"
+  },
+  {
+   "county": "Sogn og Fjordane",
+   "name": "Vikja"
+  },
+  {
+   "county": "Sogn og Fjordane",
+   "name": "Flåmselva"
+  },
+  {
+   "county": "Sogn og Fjordane",
+   "name": "Årøyelva"
+  },
+  {
+   "county": "Sogn og Fjordane",
+   "name": "Oldenelva"
+  },
+  {
+   "county": "Sogn og Fjordane",
+   "name": "Stryneelva"
+  },
+  {
+   "county": "Sogn og Fjordane",
+   "name": "Gaula"
+  },
+  {
+   "county": "Sogn og Fjordane",
+   "name": "Eidselva"
+  },
+  {
+   "county": "Møre og Romsdal",
+   "name": "Rauma"
+  },
+  {
+   "county": "Møre og Romsdal",
+   "name": "Ørstaelva"
+  },
+  {
+   "county": "Møre og Romsdal",
+   "name": "Driva"
+  },
+  {
+   "county": "Møre og Romsdal",
+   "name": "Surna"
+  },
+  {
+   "county": "Sør-Trøndelag",
+   "name": "Stordalselva-Norddalselva"
+  },
+  {
+   "county": "Sør-Trøndelag",
+   "name": "Gaula"
+  },
+  {
+   "county": "Sør-Trøndelag",
+   "name": "Orkla"
+  },
+  {
+   "county": "Sør-Trøndelag",
+   "name": "Nidelva"
+  },
+  {
+   "county": "Nord-Trøndelag",
+   "name": "Stjørdalselva"
+  },
+  {
+   "county": "Nord-Trøndelag",
+   "name": "Figga"
+  },
+  {
+   "county": "Nord-Trøndelag",
+   "name": "Steinkjervassdraget"
+  },
+  {
+   "county": "Nord-Trøndelag",
+   "name": "Årgårdsvassdraget"
+  },
+  {
+   "county": "Nord-Trøndelag",
+   "name": "Verdalselva"
+  },
+  {
+   "county": "Nord-Trøndelag",
+   "name": "Namsen"
+  },
+  {
+   "county": "Nordland",
+   "name": "Roksdalsvassdraget"
+  },
+  {
+   "county": "Nordland",
+   "name": "Vefsna"
+  },
+  {
+   "county": "Nordland",
+   "name": "Ranaelva"
+  },
+  {
+   "county": "Nordland",
+   "name": "Beiarelva"
+  },
+  {
+   "county": "Troms",
+   "name": "Reisaelva"
+  },
+  {
+   "county": "Troms",
+   "name": "Målselva"
+  },
+  {
+   "county": "Troms",
+   "name": "Kvænangselva"
+  },
+  {
+   "county": "Finnmark",
+   "name": "Altaelva"
+  },
+  {
+   "county": "Finnmark",
+   "name": "Repparfjordelva"
+  },
+  {
+   "county": "Finnmark",
+   "name": "Stabburselva"
+  },
+  {
+   "county": "Finnmark",
+   "name": "Lakselva"
+  },
+  {
+   "county": "Finnmark",
+   "name": "Børselva"
+  },
+  {
+   "county": "Finnmark",
+   "name": "Langfjordvassdraget"
+  },
+  {
+   "county": "Finnmark",
+   "name": "Tana"
+  },
+  {
+   "county": "Finnmark",
+   "name": "Komagelva"
+  },
+  {
+   "county": "Finnmark",
+   "name": "Vestre Jakobselv"
+  },
+  {
+   "county": "Finnmark",
+   "name": "Neidenelva"
+  },
+  {
+   "county": "Finnmark",
+   "name": "Kongsfjordelva"
+  }
+ ],
+ "offshore": {
+  "depth_ramp_m": [
+   60,
+   100,
+   350,
+   600
+  ],
+  "ideal_depth_m": 200,
+  "min_score": 0.5,
+  "per_area": 3,
+  "ranking": "score (3 decimals) first; equal scores prefer depth nearer 200 m, then north, then west",
+  "rule": "Inside a Havbruk til havs area; depth trapezoid 0 at 60 m, 1 from 100 to 350 m, 0 at 600 m (GB: OF1-class units are moored in ~100-300 m; the 2019 report mapped areas outside the baseline in workable depths)",
+  "source": "Fiskeridirektoratet / Havforskningsinstituttet, Havbruk til havs (2019, 2022, 2024, 2026)",
+  "spacing_km": 10.0,
+  "stage_bonus": {
+   "anbefaling_2022": 0.92,
+   "kan_utlyses_2026": 1.0,
+   "konsekvensvurdering_2024": 0.96,
+   "tilradning_2019": 0.85
+  },
+  "url": "https://www.fiskeridir.no/Akvakultur/Tema/Havbruk-til-havs"
+ },
+ "river_factor": {
+  "min_factor": 0.6,
+  "radius_m": 5000,
+  "rule": "score x factor, the factor rising linearly from 0.6 at an anadromous river mouth to 1 at 5 km. GB, scaled on the 5 km of FOR-2009-06-22-961 § 6 (lice pressure on wild salmonids)",
+  "source": "Miljødirektoratet, Lakseregisteret (2026)"
+ }
+}

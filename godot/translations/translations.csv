@@ -1595,6 +1595,27 @@ UI_CREDITS_MIXKIT_TITLE,Sound effects from Mixkit,Lydeffekter fra Mixkit
 UI_CREDITS_MUSIC_TITLE,Music by Kevin MacLeod,Musikk av Kevin MacLeod
 UI_CREDITS_LICENCE_MIXKIT,Mixkit free licence,Mixkit fri lisens
 UI_CREDITS_MUSIC_NOTICE,"“Lotus”, “Soaring”, “Morning”, “Dreamer”, “Evening” and “Bittersweet” by Kevin MacLeod (incompetech.com). Licensed under Creative Commons: By Attribution 4.0 (creativecommons.org/licenses/by/4.0). Converted to Ogg Vorbis.","«Lotus», «Soaring», «Morning», «Dreamer», «Evening» og «Bittersweet» av Kevin MacLeod (incompetech.com). Lisensiert under Creative Commons Navngivelse 4.0 (creativecommons.org/licenses/by/4.0). Konvertert til Ogg Vorbis."
+UI_CREDITS_USE_MAP_BASE,"Base map, coast and sea depth","Bakgrunnskart, kyst og havdybde"
+UI_CREDITS_USE_MAP_AQUACULTURE,"Aquaculture sites, production areas and offshore areas","Akvakulturlokaliteter, produksjonsområder og havbruk til havs"
+UI_CREDITS_USE_MAP_NATURE,Protected areas and salmon rivers,Verneområder og lakseelver
+UI_CREDITS_USE_MAP_FAIRWAYS,Fairways,Farleder
+UI_CREDITS_USE_MAP_CORALS,Coral reefs,Korallrev
+UI_CREDITS_USE_MAP_DEPTH,Sea depth,Havdybde
+UI_CREDITS_USE_OCEAN_DATA,"Currents, waves and oxygen","Strøm, bølger og oksygen"
+UI_CREDITS_KARTVERKET_TITLE,Map data from Kartverket,Kartdata fra Kartverket
+UI_CREDITS_FDIR_TITLE,Map data from Fiskeridirektoratet,Kartdata fra Fiskeridirektoratet
+UI_CREDITS_MDIR_TITLE,Map data from Miljødirektoratet,Kartdata fra Miljødirektoratet
+UI_CREDITS_KYSTVERKET_TITLE,Fairways from Kystverket,Farleder fra Kystverket
+UI_CREDITS_HI_TITLE,Coral reefs from Havforskningsinstituttet,Korallrev fra Havforskningsinstituttet
+UI_CREDITS_LICENCE_NLOD,Norwegian Licence for Open Government Data (NLOD) 2.0,Norsk lisens for offentlige data (NLOD) 2.0
+UI_CREDITS_LICENCE_CMEMS,Copernicus Marine Service licence,Copernicus Marine Service-lisens
+UI_CREDITS_KARTVERKET_NOTICE,"© Kartverket (N1000, N250, DTM 50 and depth data). Licensed under Creative Commons Attribution 4.0 (creativecommons.org/licenses/by/4.0). Generalised and restyled for the game; not for navigation.","© Kartverket (N1000, N250, DTM 50 og dybdedata). Lisensiert under Creative Commons Navngivelse 4.0 (creativecommons.org/licenses/by/4.0). Generalisert og omtegnet for spillet; ikke for navigasjon."
+UI_CREDITS_FDIR_NOTICE,Contains data under the Norwegian Licence for Open Government Data (NLOD) made available by Fiskeridirektoratet.,Inneholder data under Norsk lisens for offentlige data (NLOD) tilgjengeliggjort av Fiskeridirektoratet.
+UI_CREDITS_MDIR_NOTICE,Contains data under the Norwegian Licence for Open Government Data (NLOD) made available by Miljødirektoratet.,Inneholder data under Norsk lisens for offentlige data (NLOD) tilgjengeliggjort av Miljødirektoratet.
+UI_CREDITS_KYSTVERKET_NOTICE,Contains data under the Norwegian Licence for Open Government Data (NLOD) made available by Kystverket.,Inneholder data under Norsk lisens for offentlige data (NLOD) tilgjengeliggjort av Kystverket.
+UI_CREDITS_HI_NOTICE,Contains data under the Norwegian Licence for Open Government Data (NLOD) made available by Havforskningsinstituttet.,Inneholder data under Norsk lisens for offentlige data (NLOD) tilgjengeliggjort av Havforskningsinstituttet.
+UI_CREDITS_EMODNET_NOTICE,"EMODnet Bathymetry Consortium (2022): EMODnet Digital Bathymetry (DTM 2022), doi.org/10.12770/ff3aff8a-cff1-44a3-a2c8-1910bf109f85. Licensed under Creative Commons Attribution 4.0 (creativecommons.org/licenses/by/4.0). Resampled for the game.","EMODnet Bathymetry Consortium (2022): EMODnet Digital Bathymetry (DTM 2022), doi.org/10.12770/ff3aff8a-cff1-44a3-a2c8-1910bf109f85. Lisensiert under Creative Commons Navngivelse 4.0 (creativecommons.org/licenses/by/4.0). Omregnet for spillet."
+UI_CREDITS_CMEMS_NOTICE,"Generated using E.U. Copernicus Marine Service Information; doi.org/10.48670/moi-00007, doi.org/10.48670/moi-00006, doi.org/10.48670/moi-00008.","Generated using E.U. Copernicus Marine Service Information (laget med informasjon fra EUs Copernicus Marine Service); doi.org/10.48670/moi-00007, doi.org/10.48670/moi-00006, doi.org/10.48670/moi-00008."
 UI_CREDITS_THANKS,Thanks,Takk til
 UI_CREDITS_THANKS_BODY,The Norwegian aquaculture industry and everyone who tested the game.,Norsk havbruksnæring og alle som har testet spillet.
 UI_CREDITS_COPYRIGHT,© 2026 Lakskongen. All rights reserved.,© 2026 Lakskongen. Alle rettigheter forbeholdt.

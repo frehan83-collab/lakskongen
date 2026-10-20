@@ -1,0 +1,2319 @@
+{
+ "cmems_arc_bgc": {
+  "fetched": "2026-10-20",
+  "files": [
+   {
+    "bytes": 4058993,
+    "name": "cmems_mod_arc_bgc_my_ecosmo_P1M_202105.nc",
+    "sha256": "a8258a79a7818ac2b6d266615a63340f9b0ab65c16dd02da4db0a8cf5dc95ae9",
+    "url": "https://marine.copernicus.eu"
+   }
+  ],
+  "kind": "copernicus_subset",
+  "records": null,
+  "request": {
+   "dataset_id": "cmems_mod_arc_bgc_my_ecosmo_P1M",
+   "dataset_version": "202105",
+   "end_datetime": "2022-12-31T23:59:59",
+   "maximum_depth": 30.0,
+   "maximum_latitude": 71.8,
+   "maximum_longitude": 32.0,
+   "minimum_depth": 0.0,
+   "minimum_latitude": 57.5,
+   "minimum_longitude": 4.0,
+   "start_datetime": "2018-01-01T00:00:00",
+   "variables": [
+    "o2"
+   ]
+  },
+  "url": "copernicusmarine.subset(dataset_id='cmems_mod_arc_bgc_my_ecosmo_P1M', dataset_version='202105')"
+ },
+ "cmems_arc_phy": {
+  "fetched": "2026-10-20",
+  "files": [
+   {
+    "bytes": 47982364,
+    "name": "cmems_mod_arc_phy_my_topaz4_P1M_202506.nc",
+    "sha256": "8ee61dd4b823852280ab01fe0d94153a0e4a481363c7c134a0b03dd05a62c72a",
+    "url": "https://marine.copernicus.eu"
+   }
+  ],
+  "kind": "copernicus_subset",
+  "records": null,
+  "request": {
+   "dataset_id": "cmems_mod_arc_phy_my_topaz4_P1M",
+   "dataset_version": "202506",
+   "end_datetime": "2022-12-31T23:59:59",
+   "maximum_depth": 30.0,
+   "maximum_latitude": 71.8,
+   "maximum_longitude": 32.0,
+   "minimum_depth": 0.0,
+   "minimum_latitude": 57.5,
+   "minimum_longitude": 4.0,
+   "start_datetime": "2018-01-01T00:00:00",
+   "variables": [
+    "thetao",
+    "vxo",
+    "vyo"
+   ]
+  },
+  "url": "copernicusmarine.subset(dataset_id='cmems_mod_arc_phy_my_topaz4_P1M', dataset_version='202506')"
+ },
+ "cmems_arc_wav": {
+  "fetched": "2026-10-20",
+  "files": [
+   {
+    "bytes": 5413989,
+    "name": "cmems_mod_arc_wav_my_3km-climatology_P1M-m_202311.nc",
+    "sha256": "30740db766a1952b05424fdcfdb03e4eb374cd4873f6c31d0759d93701d2453e",
+    "url": "https://marine.copernicus.eu"
+   }
+  ],
+  "kind": "copernicus_subset",
+  "records": null,
+  "request": {
+   "dataset_id": "cmems_mod_arc_wav_my_3km-climatology_P1M-m",
+   "dataset_version": "202311",
+   "end_datetime": "2005-12-31T23:59:59",
+   "maximum_latitude": 71.8,
+   "maximum_longitude": 32.0,
+   "minimum_latitude": 57.5,
+   "minimum_longitude": 4.0,
+   "start_datetime": "2005-01-01T00:00:00",
+   "variables": [
+    "VHM0"
+   ]
+  },
+  "url": "copernicusmarine.subset(dataset_id='cmems_mod_arc_wav_my_3km-climatology_P1M-m', dataset_version='202311')"
+ },
+ "emodnet_bathymetry": {
+  "fetched": "2026-10-20",
+  "files": [
+   {
+    "bytes": 2412944,
+    "name": "emod_-007.500_+57.000.tif",
+    "sha256": "a792d9e2d5abe60a8745cd88d5d5af53e2d63b6b5bedbb4385fd325f4a39d184",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=-7.5000%2C57.0000%2C-5.0000%2C58.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_-005.000_+57.000.tif",
+    "sha256": "5519bccfa838ed45966b95839639139dbe5322f7a7f36d7452059d372c885234",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=-5.0000%2C57.0000%2C-2.5000%2C58.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_-002.500_+57.000.tif",
+    "sha256": "2361c74ce5546989731a1a9251eee3083418769c40f7b7e7178fa96e348fdff0",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=-2.5000%2C57.0000%2C0.0000%2C58.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+000.000_+57.000.tif",
+    "sha256": "14d11e963736c3897b9ba3470bef927f4d7e7d21c483c962b0bbb73c7e38952b",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=0.0000%2C57.0000%2C2.5000%2C58.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+002.500_+57.000.tif",
+    "sha256": "a8472915264379337c03c517c3eb6fdf55ab0524df1fd0cefbd48b2c2c6018d4",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=2.5000%2C57.0000%2C5.0000%2C58.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+005.000_+57.000.tif",
+    "sha256": "e8fb8acb0cbc3605cdeaaeb3cf161e3664d6e069413a1a21e8848226248acbeb",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=5.0000%2C57.0000%2C7.5000%2C58.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+007.500_+57.000.tif",
+    "sha256": "da870d9bb671d7c2b3deaded82577c67ac6223b01873ca146cc34a6ac408c069",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=7.5000%2C57.0000%2C10.0000%2C58.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+010.000_+57.000.tif",
+    "sha256": "c18d54d558b4c46d19a18d2026f52e7733942dd3e735901761ba8b0cda11cc44",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=10.0000%2C57.0000%2C12.5000%2C58.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+012.500_+57.000.tif",
+    "sha256": "4bbf91eeabc1764fa81e8068e90b871cb1423b6cc4b89a39acc9b2f40c111874",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=12.5000%2C57.0000%2C15.0000%2C58.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+015.000_+57.000.tif",
+    "sha256": "7296b9d36a83ba2f2eea1545d784fd6d31291cc82f3e75e327dabebc411b70d2",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=15.0000%2C57.0000%2C17.5000%2C58.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+017.500_+57.000.tif",
+    "sha256": "13fee4982aecd014b4f4f28006c77f0faa628d734ebb98834434c2167917093b",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=17.5000%2C57.0000%2C20.0000%2C58.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+020.000_+57.000.tif",
+    "sha256": "1bd3a0cad56f6b54b563c8216ec8dae6babeec9da38dc7c814434d3f0628d7f2",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=20.0000%2C57.0000%2C22.5000%2C58.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+022.500_+57.000.tif",
+    "sha256": "b46e245655da854f250b6e31e10e67d2bc27cc4b315c5144023b452e25c15abe",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=22.5000%2C57.0000%2C25.0000%2C58.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+025.000_+57.000.tif",
+    "sha256": "5aa727474da1f0d5f51d88321b8648bdb081e913ee08279ce09aa315ac149c55",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=25.0000%2C57.0000%2C27.5000%2C58.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+027.500_+57.000.tif",
+    "sha256": "c88b369f7e2e31e29ea0f359b7562c5ef3632b4fa95ddb4505ad38edb40ae086",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=27.5000%2C57.0000%2C30.0000%2C58.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+030.000_+57.000.tif",
+    "sha256": "42c973e3f4775cf4f6aa2a0f39627d1c8237b4fff5a230574a8ebfe1dc74e62b",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=30.0000%2C57.0000%2C32.5000%2C58.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+032.500_+57.000.tif",
+    "sha256": "cd328a017a407f75f99eaa83a5b4fa33deaedf78c459195beb5a0f22abd3e8eb",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=32.5000%2C57.0000%2C35.0000%2C58.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+035.000_+57.000.tif",
+    "sha256": "8985a85248d4edc2d111a72b12ccafc040d0896e65a147544ea4df4fe77ad0e4",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=35.0000%2C57.0000%2C37.5000%2C58.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_-007.500_+58.500.tif",
+    "sha256": "42d8ad7cf72983a4c00217569fceb6289bcebc333bc0a8860e6e26b16cbd7dff",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=-7.5000%2C58.5000%2C-5.0000%2C60.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_-005.000_+58.500.tif",
+    "sha256": "926963ed4c0a08ebda1a4e0e1b3212e447bdd13549322167b3847c5c3b59a1a3",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=-5.0000%2C58.5000%2C-2.5000%2C60.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_-002.500_+58.500.tif",
+    "sha256": "f317dfcab0313031696bd36cbb76b5644b79a6d5dd3450b8429b527b1654130b",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=-2.5000%2C58.5000%2C0.0000%2C60.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+000.000_+58.500.tif",
+    "sha256": "a397c3c945e42cc959ece80f5a14d2e8c4ba09a526d6b161cfc28d624d9b30aa",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=0.0000%2C58.5000%2C2.5000%2C60.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+002.500_+58.500.tif",
+    "sha256": "22bf5f2d030740879cb30ded3d84d23c884e187412bd0c80aeef0794b93bae8a",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=2.5000%2C58.5000%2C5.0000%2C60.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+005.000_+58.500.tif",
+    "sha256": "0e8dc7c03569169de048cb1712bcf79c99055237ae824ed02e041bcddb0bacc6",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=5.0000%2C58.5000%2C7.5000%2C60.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+007.500_+58.500.tif",
+    "sha256": "1c106f033d35a846ef3155f17069b030fa1b46b51fda074ee93399d226b26c0b",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=7.5000%2C58.5000%2C10.0000%2C60.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+010.000_+58.500.tif",
+    "sha256": "836c4b8fba8b2395da34a182d8941228c221e27889bf5178b0c588bc0100994b",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=10.0000%2C58.5000%2C12.5000%2C60.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+012.500_+58.500.tif",
+    "sha256": "d876a358bfad7e06aa5f42646299116cc70ea963d9d31ef11bdb737eecf8e581",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=12.5000%2C58.5000%2C15.0000%2C60.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+015.000_+58.500.tif",
+    "sha256": "2a266062aa7b175334491fe9b7f18f8720907cc02a695b90246090d3623fb9ee",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=15.0000%2C58.5000%2C17.5000%2C60.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+017.500_+58.500.tif",
+    "sha256": "4dd78d09baa322145489a0c97905152ced65c14f47ccb9271175baa0aa192a83",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=17.5000%2C58.5000%2C20.0000%2C60.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+020.000_+58.500.tif",
+    "sha256": "8c96b06173fd45bb324e7c666f35e6fb4ab484545bf235d0bfb607d8c563365f",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=20.0000%2C58.5000%2C22.5000%2C60.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+022.500_+58.500.tif",
+    "sha256": "9c1540c0320fdb6e6c656b2a5370846bab77e6dcc904608795202a2bc049480b",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=22.5000%2C58.5000%2C25.0000%2C60.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+025.000_+58.500.tif",
+    "sha256": "c9526c358e87d1d9d3d97e759d96e52eab9a50280ab35342abb48e11d5311cd0",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=25.0000%2C58.5000%2C27.5000%2C60.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+027.500_+58.500.tif",
+    "sha256": "17df460061e15d449f6b08ea54871262a5889ee9bc90d0ad6891322d8285329b",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=27.5000%2C58.5000%2C30.0000%2C60.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+030.000_+58.500.tif",
+    "sha256": "6baceb0e8680415ee8f10f6f379ba56ae4cec865e2237b6efe0ed4fc4d49219d",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=30.0000%2C58.5000%2C32.5000%2C60.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+032.500_+58.500.tif",
+    "sha256": "7019869937d2756b8ecf59232a47aa2d4883b944ad1d3af7e9948ee4d56a1fac",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=32.5000%2C58.5000%2C35.0000%2C60.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+035.000_+58.500.tif",
+    "sha256": "80d6669ece9545b60f7b5965985c77b709c44b15b592b8babdf7016656ac4264",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=35.0000%2C58.5000%2C37.5000%2C60.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_-007.500_+60.000.tif",
+    "sha256": "8cb618b95013b8a21a8b3b1218bb7428294677c7eb19803df8ff9cb43693975b",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=-7.5000%2C60.0000%2C-5.0000%2C61.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_-005.000_+60.000.tif",
+    "sha256": "7926d72e23546bd8662606b86c42d0730ce1b82446a417dea155362e70d8a561",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=-5.0000%2C60.0000%2C-2.5000%2C61.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_-002.500_+60.000.tif",
+    "sha256": "64cfcb52620c81e4d5676c450033b63bb7832454cd5ee4b92bc1ef3de8ba0291",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=-2.5000%2C60.0000%2C0.0000%2C61.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+000.000_+60.000.tif",
+    "sha256": "b248814a43a06dff2a1c296e70d053c360cac3eaa559c9ebc3f318cf0e1dbbf7",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=0.0000%2C60.0000%2C2.5000%2C61.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+002.500_+60.000.tif",
+    "sha256": "e998d4380467cba8429b58f049658c103a361d536fcae88360a043e61c2f0671",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=2.5000%2C60.0000%2C5.0000%2C61.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+005.000_+60.000.tif",
+    "sha256": "ee86941aece50d9fbd68d3bcb033c661183114bb91fe0cd9ed4579e5b9291421",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=5.0000%2C60.0000%2C7.5000%2C61.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+007.500_+60.000.tif",
+    "sha256": "cba368c66ab1a8ab9dcc2a27bb3da0ce6631202a78a3427aeeb8f71d005dfda1",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=7.5000%2C60.0000%2C10.0000%2C61.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+010.000_+60.000.tif",
+    "sha256": "95e1ff3f276539deedcd4de6e310b18af25fff5c80ece2a0c14b11bc2a8437b3",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=10.0000%2C60.0000%2C12.5000%2C61.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+012.500_+60.000.tif",
+    "sha256": "8d8b73f319881c71301e45b9eeb45fd7e4b6a390c58aaf7aa81c370ab22151de",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=12.5000%2C60.0000%2C15.0000%2C61.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+015.000_+60.000.tif",
+    "sha256": "6a0fae7bd1e1f55aca0f34a6c2a9cbc7d4823900dae5bc19cbd8e768a57dcc4b",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=15.0000%2C60.0000%2C17.5000%2C61.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+017.500_+60.000.tif",
+    "sha256": "471839d4211ea29787d7f81d01532c16d968ef3b7ac250818d4e41fcc046304a",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=17.5000%2C60.0000%2C20.0000%2C61.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+020.000_+60.000.tif",
+    "sha256": "9b3a6320cfd9060eb0bdabf53260b774585dd910ebfc8c7efb85b5c109346a62",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=20.0000%2C60.0000%2C22.5000%2C61.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+022.500_+60.000.tif",
+    "sha256": "76b47a666c3bd629fb55599d3f323936c46ca9ce52074e1bcef4102e30a96a71",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=22.5000%2C60.0000%2C25.0000%2C61.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+025.000_+60.000.tif",
+    "sha256": "d1cfcf30cd8161147cadae86fa57b01d2991bab10fbbb1eb2a86e965efadfff4",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=25.0000%2C60.0000%2C27.5000%2C61.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+027.500_+60.000.tif",
+    "sha256": "5dc91463f9be7b403f81d211234d9fa6ce55ceabf67922b45090be9ea23e90ad",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=27.5000%2C60.0000%2C30.0000%2C61.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+030.000_+60.000.tif",
+    "sha256": "ea4e2145242435ac56a3188796e020d13cab4f5272c7697c84fd77d38673a9c9",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=30.0000%2C60.0000%2C32.5000%2C61.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+032.500_+60.000.tif",
+    "sha256": "52e612359367533959dbffb401a2398dd2d120b95a71b605018793db00f664a2",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=32.5000%2C60.0000%2C35.0000%2C61.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+035.000_+60.000.tif",
+    "sha256": "823da9bd0dc0f23ba55890a5b400edddd2e3ffb2b814ff3e13b5519e2c840018",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=35.0000%2C60.0000%2C37.5000%2C61.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_-007.500_+61.500.tif",
+    "sha256": "7f87f7d58c6400440ef7d9bad973de58cb7e986ec594184cbfd443d8c6e22838",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=-7.5000%2C61.5000%2C-5.0000%2C63.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_-005.000_+61.500.tif",
+    "sha256": "891f51e2537a3627b5dd1861714ccbccece20d38183917819b5169c04e812801",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=-5.0000%2C61.5000%2C-2.5000%2C63.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_-002.500_+61.500.tif",
+    "sha256": "4fe9f826bfa3cf7f6fdbf1bd0794136132315e6116f879d1c83f67ca656087b2",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=-2.5000%2C61.5000%2C0.0000%2C63.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+000.000_+61.500.tif",
+    "sha256": "a6f9407d92bc83e3e75fe4d79f266839c9fd94f6211724ffdb7220cfa7b0e7b0",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=0.0000%2C61.5000%2C2.5000%2C63.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+002.500_+61.500.tif",
+    "sha256": "107219e0b81f1a18f8f0609f326f11037f8910b93a0b2edadb4ad81fdba00daf",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=2.5000%2C61.5000%2C5.0000%2C63.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+005.000_+61.500.tif",
+    "sha256": "3fc24d8de95a54735800e4957c1a07510590d8ec818a5cb120d405c998599cfe",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=5.0000%2C61.5000%2C7.5000%2C63.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+007.500_+61.500.tif",
+    "sha256": "3c051f7d085e22463c2afb30dcf0ef10367b75fcf42b95bbaad0dc9f85f42ff1",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=7.5000%2C61.5000%2C10.0000%2C63.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+010.000_+61.500.tif",
+    "sha256": "553a835599207e8f11d196fe895fe77d670a7fc7cda32220fc7ea7bafb724216",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=10.0000%2C61.5000%2C12.5000%2C63.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+012.500_+61.500.tif",
+    "sha256": "a59acdc69c4ad6e7f9ab36dcdb0289879d9b3c9f3c303ba53c12465606bf5bfa",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=12.5000%2C61.5000%2C15.0000%2C63.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+015.000_+61.500.tif",
+    "sha256": "b91ce54af2ca55c1d6e2ce10e1ee1d48458215a43bc88becc4055cb4c9a229e3",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=15.0000%2C61.5000%2C17.5000%2C63.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+017.500_+61.500.tif",
+    "sha256": "b2b2811323a7d4cca6748b238e20873edf9325c60df0dfcc2e66c843a01eca61",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=17.5000%2C61.5000%2C20.0000%2C63.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+020.000_+61.500.tif",
+    "sha256": "c2f8664d2eb9491883fc70a529975cd8c8cf364036bab2d8bb7325752c5ef054",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=20.0000%2C61.5000%2C22.5000%2C63.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+022.500_+61.500.tif",
+    "sha256": "cd3d00529a2587c5d40db0e584433a087300838c7203eb8e4fa3d4f723ff4e29",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=22.5000%2C61.5000%2C25.0000%2C63.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+025.000_+61.500.tif",
+    "sha256": "92f901359d4cf17c397911f6f6cebad1c21373b8e2e3a53b0229a4afcff76f90",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=25.0000%2C61.5000%2C27.5000%2C63.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+027.500_+61.500.tif",
+    "sha256": "f77cefee47d4be9971861c156a1e23a292e2784b9e9605301527cfe645f95436",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=27.5000%2C61.5000%2C30.0000%2C63.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+030.000_+61.500.tif",
+    "sha256": "4f922d5d3fafc69c0486fbe8b5e4cc3b8c5f27ce2506b6bc1147766f8b127fd7",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=30.0000%2C61.5000%2C32.5000%2C63.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+032.500_+61.500.tif",
+    "sha256": "c3e5085e680b6b1e93627267bd308e6025b4a67522bb03706cd9b468e97ffe73",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=32.5000%2C61.5000%2C35.0000%2C63.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+035.000_+61.500.tif",
+    "sha256": "94c5d08bd56fe683c7ede1366d4464523d7fd6b2ad4543425540b181942eb12b",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=35.0000%2C61.5000%2C37.5000%2C63.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_-007.500_+63.000.tif",
+    "sha256": "37b4a743307764dd8fb58bfdb114c386c3f150958851467a8c5cc894e0e23856",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=-7.5000%2C63.0000%2C-5.0000%2C64.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_-005.000_+63.000.tif",
+    "sha256": "ea9634a6fb23eba079016d692d7de81a809b9816600f023e42bfc597b39f4633",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=-5.0000%2C63.0000%2C-2.5000%2C64.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_-002.500_+63.000.tif",
+    "sha256": "9eeda9c37003559cd0d2fa33e5c06688ae378d43fb016d28e70981f57205ee5b",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=-2.5000%2C63.0000%2C0.0000%2C64.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+000.000_+63.000.tif",
+    "sha256": "6802859de281a3f5df4b59bb143dd3aec48e68363347eca6bda604253adc501d",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=0.0000%2C63.0000%2C2.5000%2C64.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+002.500_+63.000.tif",
+    "sha256": "c09d42457cc3ef93487d8565b8902f69c5b5dcb81802ed2188554820d0a5e567",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=2.5000%2C63.0000%2C5.0000%2C64.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+005.000_+63.000.tif",
+    "sha256": "5fb89e8397b04fb82a882506a57c4bbaa0a17b7ecb81e408cd91565681523b6d",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=5.0000%2C63.0000%2C7.5000%2C64.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+007.500_+63.000.tif",
+    "sha256": "da36faff535a05d4e3e6d4bb78e0fde1793c2c4483b4e155fa18009b4e1246d6",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=7.5000%2C63.0000%2C10.0000%2C64.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+010.000_+63.000.tif",
+    "sha256": "8e1d04c6e6a27bce9deb2ce56939ea393297bbdfde18dd5861c5f978bbf5f39d",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=10.0000%2C63.0000%2C12.5000%2C64.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+012.500_+63.000.tif",
+    "sha256": "d34fe856d3fd087c8a82ab4b9a93d1c366cbd371de69ec3c2b240c690f09539f",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=12.5000%2C63.0000%2C15.0000%2C64.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+015.000_+63.000.tif",
+    "sha256": "ca15b9e8bbd48105f956f1c3805c4365687a2bc9943dd5e8faf37931921d1942",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=15.0000%2C63.0000%2C17.5000%2C64.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+017.500_+63.000.tif",
+    "sha256": "6d6c4147bf6e6855859711e262563d35309d540de6b05ddc6daddec95c9b130f",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=17.5000%2C63.0000%2C20.0000%2C64.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+020.000_+63.000.tif",
+    "sha256": "241c138c559b8b51117aab1bfb3b292d323268086466cfc6faa24674321d5424",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=20.0000%2C63.0000%2C22.5000%2C64.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+022.500_+63.000.tif",
+    "sha256": "b4d85df19f229429daf61091c745027010e7434b3de401c0f9812f86714d44c0",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=22.5000%2C63.0000%2C25.0000%2C64.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+025.000_+63.000.tif",
+    "sha256": "9630e4b277d9bcf89244c6facda80fe0229931e2d1c85c15f8ab3ab4ad811cb0",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=25.0000%2C63.0000%2C27.5000%2C64.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+027.500_+63.000.tif",
+    "sha256": "ec417873db5bcd56bf2e3d85c2a398d91fb5ffa78f130938350c99e542c40220",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=27.5000%2C63.0000%2C30.0000%2C64.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+030.000_+63.000.tif",
+    "sha256": "b960ecd42450365a7f65db3759c1889fab32b2e056531e1723dc1da948cc6840",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=30.0000%2C63.0000%2C32.5000%2C64.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+032.500_+63.000.tif",
+    "sha256": "22fcd3a7e4ffdc12d71676a36eea7536a359e1a553a0fccbc152d78b3e79abd1",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=32.5000%2C63.0000%2C35.0000%2C64.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+035.000_+63.000.tif",
+    "sha256": "ea44df0207adb4d60086680267dd44300f144ef03ecb5a0046555dcc6f74dfc0",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=35.0000%2C63.0000%2C37.5000%2C64.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_-007.500_+64.500.tif",
+    "sha256": "bc4ce2ef1fa65f5261378a7d1fa57a88cd801bd99a5211dd74b55471858341e8",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=-7.5000%2C64.5000%2C-5.0000%2C66.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_-005.000_+64.500.tif",
+    "sha256": "f77af47eb233ffc03a19cbbf45868c7740f3bd863f502eaa3c78b29237182b98",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=-5.0000%2C64.5000%2C-2.5000%2C66.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_-002.500_+64.500.tif",
+    "sha256": "58d636a3b12b44f975ed18513a088786eec8bb3aab1a11067e206db7c6c66769",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=-2.5000%2C64.5000%2C0.0000%2C66.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+000.000_+64.500.tif",
+    "sha256": "a8f1121967982999888c71a388b3a3a9dd3cab89fe474bd1de288fdee07aca4b",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=0.0000%2C64.5000%2C2.5000%2C66.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+002.500_+64.500.tif",
+    "sha256": "10f738407fcd3895eb34bb8341c8ae04b9b9a7a668ef1c7d25290d75abb535f5",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=2.5000%2C64.5000%2C5.0000%2C66.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+005.000_+64.500.tif",
+    "sha256": "b4ffd2f738a73ebac53ebb6b338ed2aaea4ea395c56cd7f9f74ac370c1a9a774",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=5.0000%2C64.5000%2C7.5000%2C66.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+007.500_+64.500.tif",
+    "sha256": "61071e0252ed1423432c1892bfa4ee975a54b71b96742cdb9d21dd051de22819",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=7.5000%2C64.5000%2C10.0000%2C66.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+010.000_+64.500.tif",
+    "sha256": "27a400adcfbcf7eb288656c1274ee79deb0781dec2d223de2b21bcc0344c19ac",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=10.0000%2C64.5000%2C12.5000%2C66.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+012.500_+64.500.tif",
+    "sha256": "a97224b63c34d6b043fdb64c8917def615a1376941aaf2e09182979ce0caa7f0",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=12.5000%2C64.5000%2C15.0000%2C66.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+015.000_+64.500.tif",
+    "sha256": "533be436c0de018d9e123f5e69a90223c670f059ebfd5b4caf306643d069d5f1",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=15.0000%2C64.5000%2C17.5000%2C66.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+017.500_+64.500.tif",
+    "sha256": "ac21a8387302c57e680c43f064f8824604d787d19bd82fa53f017005d20b5d61",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=17.5000%2C64.5000%2C20.0000%2C66.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+020.000_+64.500.tif",
+    "sha256": "ac04c0cd67025da7a8c529eb020cfd8f7dec2ca1f783e1e612ee6f22225e99bb",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=20.0000%2C64.5000%2C22.5000%2C66.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+022.500_+64.500.tif",
+    "sha256": "51b07c86554f64c1c1cdf7787687f1684e8f36e87918ee60dae7b1fe9778ea50",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=22.5000%2C64.5000%2C25.0000%2C66.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+025.000_+64.500.tif",
+    "sha256": "7b841c20856ba577dfb31c05638444c84f129166e67ca972e62ad74e42c598e5",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=25.0000%2C64.5000%2C27.5000%2C66.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+027.500_+64.500.tif",
+    "sha256": "0baaf8d12e3aa49af110cef3d573e4cd2717ccc86592d066e88ea54548a3566d",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=27.5000%2C64.5000%2C30.0000%2C66.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+030.000_+64.500.tif",
+    "sha256": "5437cdd946b9061032658410e317ad2d9826848c23f29f2f2ab20679a09e4910",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=30.0000%2C64.5000%2C32.5000%2C66.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+032.500_+64.500.tif",
+    "sha256": "020aa6f63245e3f1a88bbd700997448094d2fa7a832d2c879b778eab46992e97",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=32.5000%2C64.5000%2C35.0000%2C66.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+035.000_+64.500.tif",
+    "sha256": "fc957afc61070a0df8c2ee04e51f5c9344686672e86cadc871c651d44c078e8b",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=35.0000%2C64.5000%2C37.5000%2C66.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_-007.500_+66.000.tif",
+    "sha256": "6ec39e819e701d2f9c8753e2a9582998446b3ddc57aa9e71fb4bfdf46988883d",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=-7.5000%2C66.0000%2C-5.0000%2C67.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_-005.000_+66.000.tif",
+    "sha256": "a89481a8df4c6ff679d37d975fc04f8da78e7bcd25d0c75ddc0e438bc886aab6",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=-5.0000%2C66.0000%2C-2.5000%2C67.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_-002.500_+66.000.tif",
+    "sha256": "895b8469f01be5649e004a9066100bd6ea78e89198787cbaee47bd7cc54c8a47",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=-2.5000%2C66.0000%2C0.0000%2C67.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+000.000_+66.000.tif",
+    "sha256": "7c23989098dd4023b80490cc870ca4f261bb92b8857c0f0b108d78cff633d867",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=0.0000%2C66.0000%2C2.5000%2C67.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+002.500_+66.000.tif",
+    "sha256": "45e1798fa3f37fc7984c8b40f395e339331c120eb094f1d4e298db18ff0cec29",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=2.5000%2C66.0000%2C5.0000%2C67.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+005.000_+66.000.tif",
+    "sha256": "da9ab907eea2ca7d7519a269e8f4c8f614dd9fbdb7b196641b9cac1709eaad09",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=5.0000%2C66.0000%2C7.5000%2C67.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+007.500_+66.000.tif",
+    "sha256": "6840d1dcaea8f7e3fe2ee3fde822d399d2038a1c5740c8c7cb7b9274f6eac210",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=7.5000%2C66.0000%2C10.0000%2C67.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+010.000_+66.000.tif",
+    "sha256": "207eca94a87570510a6f39d69c6cbf489a436f5d54b21568626e2d911523bb9a",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=10.0000%2C66.0000%2C12.5000%2C67.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+012.500_+66.000.tif",
+    "sha256": "fb5ed5896f01e73a110e8d37202ff96d4c9adfe26907cda7eea9ce1d1620e61a",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=12.5000%2C66.0000%2C15.0000%2C67.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+015.000_+66.000.tif",
+    "sha256": "8e2d251864324ed2e33d5b2ad29b222e81043ce336240167f5a6819137f5dc0b",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=15.0000%2C66.0000%2C17.5000%2C67.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+017.500_+66.000.tif",
+    "sha256": "25d619625725c848fb966f364615944e663aa7eab47e7be9f7ac77295aed6635",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=17.5000%2C66.0000%2C20.0000%2C67.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+020.000_+66.000.tif",
+    "sha256": "f9f4a309e5987ebf3ae180fea09273608c7f5b0235560956f6900de27cf0075b",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=20.0000%2C66.0000%2C22.5000%2C67.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+022.500_+66.000.tif",
+    "sha256": "a75c54589a251a53ce3063da1939d8150fbb8887295b91c491f3af3fe9d97293",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=22.5000%2C66.0000%2C25.0000%2C67.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+025.000_+66.000.tif",
+    "sha256": "889c45e3b9e52a8c52b8764d752e5d7243267d4fabf12be8f513b841411e4b8a",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=25.0000%2C66.0000%2C27.5000%2C67.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+027.500_+66.000.tif",
+    "sha256": "ac9d3e04083c139881833131491ce1c5582baf4e425a1650b16e1f9557b5b08e",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=27.5000%2C66.0000%2C30.0000%2C67.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+030.000_+66.000.tif",
+    "sha256": "8a994af4c00c95cc3c76339a6159896dbce5b64e4a77f67e73abf1dd540b81ce",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=30.0000%2C66.0000%2C32.5000%2C67.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+032.500_+66.000.tif",
+    "sha256": "f3f12e6a9851d23603920f7b80d37fda938b82c1f41d9de2b12ab07fa907dd00",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=32.5000%2C66.0000%2C35.0000%2C67.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+035.000_+66.000.tif",
+    "sha256": "86d5360d26335cafb0841ff95418743f51fc0d6ba2c95b870298b4a23755b11d",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=35.0000%2C66.0000%2C37.5000%2C67.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_-007.500_+67.500.tif",
+    "sha256": "3fb7657f780710e7eccb0c3444202d51bc3cc659340ca2521306bfc8f667e6e1",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=-7.5000%2C67.5000%2C-5.0000%2C69.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_-005.000_+67.500.tif",
+    "sha256": "8649c0f33eb941cdfe8e3302daec52b8593ed866a0b9a9402a01d1c66423ba4b",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=-5.0000%2C67.5000%2C-2.5000%2C69.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_-002.500_+67.500.tif",
+    "sha256": "8caa0547de73fad8f60fa7641a86b569c0e144e1c9f87d8796dec0260a959764",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=-2.5000%2C67.5000%2C0.0000%2C69.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+000.000_+67.500.tif",
+    "sha256": "30356781dfca9decb3019378e1d845bc90622cff7b1fed67c857d92a5e6e04bf",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=0.0000%2C67.5000%2C2.5000%2C69.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+002.500_+67.500.tif",
+    "sha256": "9d2056c725b3ce8e20ddbed02eea157555de528162d94ec931a21261452ef867",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=2.5000%2C67.5000%2C5.0000%2C69.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+005.000_+67.500.tif",
+    "sha256": "cda50f993456d58335de707c275804e9d4f6d7a909a45b7e132651880a63c4c1",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=5.0000%2C67.5000%2C7.5000%2C69.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+007.500_+67.500.tif",
+    "sha256": "8e34b5109da5498f96d3d778651b20cd0ade91a6e28a559a2e1b462ae86360bb",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=7.5000%2C67.5000%2C10.0000%2C69.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+010.000_+67.500.tif",
+    "sha256": "4a309f7d7be8d5df769004603c77e74b0ef18f6eea24335a3c9eccfcbb38609b",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=10.0000%2C67.5000%2C12.5000%2C69.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+012.500_+67.500.tif",
+    "sha256": "b59665b75dceda6e15fd024102bb23675cf78d33e1522fcfc6ddc44c654ba749",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=12.5000%2C67.5000%2C15.0000%2C69.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+015.000_+67.500.tif",
+    "sha256": "d5047a2db6198fe008075071ebc0deabdda4ade1582a41f250ceb644fc71ebbb",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=15.0000%2C67.5000%2C17.5000%2C69.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+017.500_+67.500.tif",
+    "sha256": "b0df04532be89432483a8f4e3baefea73b684ee14de6bc9bd069dfaaa8671b51",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=17.5000%2C67.5000%2C20.0000%2C69.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+020.000_+67.500.tif",
+    "sha256": "a736b2117c4b42c86b2efcfec931e07e38b7820cad30ed9776ad25c22a3ef779",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=20.0000%2C67.5000%2C22.5000%2C69.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+022.500_+67.500.tif",
+    "sha256": "fc034639958d9c2db04ca7a043f974e6d8bc0822601beb151ec90ee6a9e41a24",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=22.5000%2C67.5000%2C25.0000%2C69.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+025.000_+67.500.tif",
+    "sha256": "a858c1deb6f468e9cdd244122f1f5e80594a515c4bd0ad042987f4c24d264fdd",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=25.0000%2C67.5000%2C27.5000%2C69.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+027.500_+67.500.tif",
+    "sha256": "9d428ddcccb6d81c37a399a1c36809331e8fd37c9b4806cd3c732c781852aedc",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=27.5000%2C67.5000%2C30.0000%2C69.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+030.000_+67.500.tif",
+    "sha256": "a982cd25318d7241ce990962725f269cde5984c24cd7372c077d56759bcb9fd2",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=30.0000%2C67.5000%2C32.5000%2C69.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+032.500_+67.500.tif",
+    "sha256": "669e7ecff4aed7af912daae4d8793844373ac58dfb9e4204464b42aafcc4c5a3",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=32.5000%2C67.5000%2C35.0000%2C69.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+035.000_+67.500.tif",
+    "sha256": "416dc1102619c2d213d7176491ffac2208f36dffab233b9f84a8b6f31b1ec1ae",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=35.0000%2C67.5000%2C37.5000%2C69.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_-007.500_+69.000.tif",
+    "sha256": "bb5a5b1beac5bce4cf641a90f6f12e8cbd1d7f590bfe63c54004ae0c279a3ac5",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=-7.5000%2C69.0000%2C-5.0000%2C70.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_-005.000_+69.000.tif",
+    "sha256": "c5411e8805103f6845fbd0b11da6bc744e372289187f88afd6a5e9fdda886ccb",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=-5.0000%2C69.0000%2C-2.5000%2C70.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_-002.500_+69.000.tif",
+    "sha256": "8fbab99587124998810dba232109ae6ef5a72249ba8636e51146a40c87e4e061",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=-2.5000%2C69.0000%2C0.0000%2C70.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+000.000_+69.000.tif",
+    "sha256": "90cb13940384cd68b6d25452b2d0c9f263636a02a27b3836b8a95a81499b1fd7",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=0.0000%2C69.0000%2C2.5000%2C70.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+002.500_+69.000.tif",
+    "sha256": "a026c46f67190f53d7f90390ec6cac7ca3d3a57212295904c7265c959d200546",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=2.5000%2C69.0000%2C5.0000%2C70.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+005.000_+69.000.tif",
+    "sha256": "5ef15e98b5946e95a57f0d60713d11f2060461cf727746b996f5d149c8662c98",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=5.0000%2C69.0000%2C7.5000%2C70.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+007.500_+69.000.tif",
+    "sha256": "3409eb7b195a04117c93c1adef3cd8736f5477c5021f4f651b062a8860be308d",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=7.5000%2C69.0000%2C10.0000%2C70.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+010.000_+69.000.tif",
+    "sha256": "0e84cbe79fc16a85356f0e4121da02bfbf270b60646ad6012c1879a08cd6e436",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=10.0000%2C69.0000%2C12.5000%2C70.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+012.500_+69.000.tif",
+    "sha256": "a7702745315903331ef98ec4542c4a81d68393192a4f8e3c9a6437bceb793d6d",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=12.5000%2C69.0000%2C15.0000%2C70.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+015.000_+69.000.tif",
+    "sha256": "b6addd14dd0f64a6d48017607e87a7d7c6474124c43969d41ea047d9e7155ad6",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=15.0000%2C69.0000%2C17.5000%2C70.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+017.500_+69.000.tif",
+    "sha256": "6b1589c113adb09fdfdc2b18f3bb4feb204acca22f5467fae4c1c407bb0ea327",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=17.5000%2C69.0000%2C20.0000%2C70.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+020.000_+69.000.tif",
+    "sha256": "212d527d32493cde79add37e3f373b2474e9a9ef7eba2946238152ecd1d1e448",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=20.0000%2C69.0000%2C22.5000%2C70.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+022.500_+69.000.tif",
+    "sha256": "924bb73fb0e7179d0679aacfbfc0014458f41275933bce9b074578f10d4baae6",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=22.5000%2C69.0000%2C25.0000%2C70.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+025.000_+69.000.tif",
+    "sha256": "51cccff004cd58ad7e1bba88d750eb5b08f73da4e38a6905c3d7fa77545336ae",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=25.0000%2C69.0000%2C27.5000%2C70.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+027.500_+69.000.tif",
+    "sha256": "ffafaf8049600dca1b5a3415ea4d0d889c0e06a9496715491c726896b88cf605",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=27.5000%2C69.0000%2C30.0000%2C70.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+030.000_+69.000.tif",
+    "sha256": "bf31d479fe76fca72b86ae443e7a11f72b22dc13bc77078ab46ac1247ff7b8ab",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=30.0000%2C69.0000%2C32.5000%2C70.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+032.500_+69.000.tif",
+    "sha256": "cb59a705aa130e8e31d0c8b6ceecfed5badea438fbfe7d2289dd0b33f68ee49c",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=32.5000%2C69.0000%2C35.0000%2C70.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+035.000_+69.000.tif",
+    "sha256": "833d58889bf48a9be65c573687e2991d513de512e5c77db9473352d8d7871b62",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=35.0000%2C69.0000%2C37.5000%2C70.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_-007.500_+70.500.tif",
+    "sha256": "ea20288f1f1e269f56a9f81523f991f5f786d7442a7c785d52986218921d1c90",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=-7.5000%2C70.5000%2C-5.0000%2C72.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_-005.000_+70.500.tif",
+    "sha256": "be64768b748467334f58a20bbd18551b63e63a9b107e9b74025c4a5a5e09b1d3",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=-5.0000%2C70.5000%2C-2.5000%2C72.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_-002.500_+70.500.tif",
+    "sha256": "5120347bb30cb54e41c3e65be6fcfd161f15855c11a34aa95ba80b5708a56d4e",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=-2.5000%2C70.5000%2C0.0000%2C72.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+000.000_+70.500.tif",
+    "sha256": "1c188b38b6ea990b6948d7c0fccc508e3759ea93fd82f13f28751bc9a84956fd",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=0.0000%2C70.5000%2C2.5000%2C72.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+002.500_+70.500.tif",
+    "sha256": "3114fa3a2eab27b8d5d475efd91fff8391125d541c9c3083a21b6ee51b03a476",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=2.5000%2C70.5000%2C5.0000%2C72.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+005.000_+70.500.tif",
+    "sha256": "c1f99bfadffb3d4d0703b5aac48f3b995251d3cf35eb9be5a19ff34b166cf963",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=5.0000%2C70.5000%2C7.5000%2C72.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+007.500_+70.500.tif",
+    "sha256": "20d28ce0a0b81bd5f03762a6a06cc9cca102ac6cb4a30bf717928ed5fcac2332",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=7.5000%2C70.5000%2C10.0000%2C72.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+010.000_+70.500.tif",
+    "sha256": "f7354bcddcfa94c773cc5fa3556fd7e5d7ce9e10f71f4e25befb693ac723add1",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=10.0000%2C70.5000%2C12.5000%2C72.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+012.500_+70.500.tif",
+    "sha256": "f46b1d501ba464e07e32719d2adc45a7cf5b6ba34864ff5185393f171b401ac5",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=12.5000%2C70.5000%2C15.0000%2C72.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+015.000_+70.500.tif",
+    "sha256": "0a5f85d084fb3f084231f4ab3e53b4eb4716355b3718397c62e77d7fde2c52e2",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=15.0000%2C70.5000%2C17.5000%2C72.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+017.500_+70.500.tif",
+    "sha256": "7c0c4b317eb132420af0470f5ef62b1a6ec1bcb1c4c531c5ddb91783112a0b79",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=17.5000%2C70.5000%2C20.0000%2C72.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+020.000_+70.500.tif",
+    "sha256": "015271e56650a8be52f0821e8145b155c6809cd4e24b38c3ebe06e39e5b4ffcb",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=20.0000%2C70.5000%2C22.5000%2C72.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+022.500_+70.500.tif",
+    "sha256": "d5f7c3efcc1430c7ba34daa81a2ff25a5de0d90bc0e21ed06189a7c548f0fefd",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=22.5000%2C70.5000%2C25.0000%2C72.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+025.000_+70.500.tif",
+    "sha256": "e77940a369e808cf519d982cad66f99fdb0eaf89bf03a56c96b2ee642dfaad1e",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=25.0000%2C70.5000%2C27.5000%2C72.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+027.500_+70.500.tif",
+    "sha256": "32f3c4e54d7b599cc13a98e4ad69dd6db583b89add630ee86687ce842feecc16",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=27.5000%2C70.5000%2C30.0000%2C72.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+030.000_+70.500.tif",
+    "sha256": "d567c5cf258d7913019f5f8d9e81bd263cc3aae291c3bc329d193782cd42e984",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=30.0000%2C70.5000%2C32.5000%2C72.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+032.500_+70.500.tif",
+    "sha256": "7d24cb7f156bc07d4bdfbcf5355eea5497ce7424f54b8f4abe681b262375dbf8",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=32.5000%2C70.5000%2C35.0000%2C72.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+035.000_+70.500.tif",
+    "sha256": "e572f9f0fd68f1a114c6081a74492816930e37136ddfe2660c4f2fb7b0035014",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=35.0000%2C70.5000%2C37.5000%2C72.0000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_-007.500_+72.000.tif",
+    "sha256": "90a2f325d306621d5160b66a1c81fd690f5ac0606be0417bc98850eccb5325c9",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=-7.5000%2C72.0000%2C-5.0000%2C73.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_-005.000_+72.000.tif",
+    "sha256": "7dbe48ea489718c0085bbcddc8d3383e279b560b2be9dd224c3cc08edd3ba0c5",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=-5.0000%2C72.0000%2C-2.5000%2C73.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_-002.500_+72.000.tif",
+    "sha256": "3132569add5b295abdcdc14860f98eca5717dbf46ab56a3c0ca9f10be99823de",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=-2.5000%2C72.0000%2C0.0000%2C73.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+000.000_+72.000.tif",
+    "sha256": "477c5addd565fbbc476910c86e256e67a9a1bc7fbf185813b3429ee95ec84352",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=0.0000%2C72.0000%2C2.5000%2C73.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+002.500_+72.000.tif",
+    "sha256": "78960c3dc03bb602577e6fa50440e0d33539f4145548a5b94892e23b9b5804a5",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=2.5000%2C72.0000%2C5.0000%2C73.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+005.000_+72.000.tif",
+    "sha256": "23ff79f111da8b0dd7ca27f7d85e3893d3489fff3e68f2017d83a32a5081085e",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=5.0000%2C72.0000%2C7.5000%2C73.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+007.500_+72.000.tif",
+    "sha256": "119a6cf0a6f17e3f9b00f0e446b7d85a33e579333bfbb395578db803d80d8001",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=7.5000%2C72.0000%2C10.0000%2C73.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+010.000_+72.000.tif",
+    "sha256": "e3ffadb22219575dd0118f6499f9e6123ff9f5a9cf596cbca51836f761a78289",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=10.0000%2C72.0000%2C12.5000%2C73.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+012.500_+72.000.tif",
+    "sha256": "67db18c4f5492d46a57276609ddafb9827db4a00059aaf328dc0c971baea72f5",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=12.5000%2C72.0000%2C15.0000%2C73.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+015.000_+72.000.tif",
+    "sha256": "62aec4f4fab79de3a9ba9f845b38ed7bc3ad48afd9e9adcaee3c052e846d522c",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=15.0000%2C72.0000%2C17.5000%2C73.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+017.500_+72.000.tif",
+    "sha256": "8bc6dafdbd7d474176204697f5e70e1fa3d18c30fbdb86271c1ab84d1c7e61a4",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=17.5000%2C72.0000%2C20.0000%2C73.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+020.000_+72.000.tif",
+    "sha256": "6bd97801bbff1dbfda63182c16a17ae80ef81a94fb3c612e561997ce5a333390",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=20.0000%2C72.0000%2C22.5000%2C73.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+022.500_+72.000.tif",
+    "sha256": "f9a453546666eee16497705528fe54a32093c35c139e677cd471dca490afd189",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=22.5000%2C72.0000%2C25.0000%2C73.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+025.000_+72.000.tif",
+    "sha256": "edcd02a0d31ed17791c1f1cd9fb9c1d4bb6f41d6ed7aab634047cdf176ce2842",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=25.0000%2C72.0000%2C27.5000%2C73.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+027.500_+72.000.tif",
+    "sha256": "700cbfa6440ad81a2007fa0aefdf4d5470771bd5cd326c4662527abe88d4b0e9",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=27.5000%2C72.0000%2C30.0000%2C73.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+030.000_+72.000.tif",
+    "sha256": "13382975399524b97c98f410d68225863aaf3100d53999505df46a67d71a3c6f",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=30.0000%2C72.0000%2C32.5000%2C73.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+032.500_+72.000.tif",
+    "sha256": "71e958ddc6e871144179cd82e8ffa5791c20c00f3f382672f984758f85ee5ffc",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=32.5000%2C72.0000%2C35.0000%2C73.5000&width=500&height=600&format=image%2Ftiff"
+   },
+   {
+    "bytes": 2412944,
+    "name": "emod_+035.000_+72.000.tif",
+    "sha256": "3212bf17c723f0016e12dff0a7c33d15cd7e31f2bc7663c176b9d9a9a2daa549",
+    "url": "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&bbox=35.0000%2C72.0000%2C37.5000%2C73.5000&width=500&height=600&format=image%2Ftiff"
+   }
+  ],
+  "kind": "wcs_lonlat_tiles",
+  "records": 198,
+  "url": "https://ows.emodnet-bathymetry.eu/wcs"
+ },
+ "fdir_coral_closures": {
+  "fetched": "2026-10-20",
+  "files": [
+   {
+    "bytes": 7030,
+    "name": "layer.json",
+    "sha256": "004f4624f0398b10c92b50f85e05a1f07622dfabcfe169bcaffcb218191a98e6",
+    "url": "https://gis.fiskeridir.no/server/rest/services/FiskeridirWFS_vern/MapServer/6?f=json"
+   },
+   {
+    "bytes": 14759,
+    "name": "features.geojson",
+    "sha256": "a58cbb0d0622af6effe475ccc8e2c7b719098aab4c8acf827734190afce95a5e",
+    "url": "https://gis.fiskeridir.no/server/rest/services/FiskeridirWFS_vern/MapServer/6/query"
+   }
+  ],
+  "kind": "arcgis",
+  "records": 19,
+  "url": "https://gis.fiskeridir.no/server/rest/services/FiskeridirWFS_vern/MapServer/6"
+ },
+ "fdir_hth_2019": {
+  "fetched": "2026-10-20",
+  "files": [
+   {
+    "bytes": 7259,
+    "name": "layer.json",
+    "sha256": "477e5bfcfdf2037470749bfeaa46c8190d64d9ed173aebf35200f778925f6770",
+    "url": "https://gis.fiskeridir.no/server/rest/services/FiskeridirWFS_akva/MapServer/29?f=json"
+   },
+   {
+    "bytes": 13428,
+    "name": "features.geojson",
+    "sha256": "8792feade9f5abbace10c3402cc8ef29ea50648d3f2911011a296a160c18508d",
+    "url": "https://gis.fiskeridir.no/server/rest/services/FiskeridirWFS_akva/MapServer/29/query"
+   }
+  ],
+  "kind": "arcgis",
+  "records": 10,
+  "url": "https://gis.fiskeridir.no/server/rest/services/FiskeridirWFS_akva/MapServer/29"
+ },
+ "fdir_hth_2022": {
+  "fetched": "2026-10-20",
+  "files": [
+   {
+    "bytes": 5040,
+    "name": "layer.json",
+    "sha256": "5c0bcddcbd13017c134018cc2602f4546931ded3bcff7070c465273962b5deed",
+    "url": "https://gis.fiskeridir.no/server/rest/services/FiskeridirWFS_akva/MapServer/88?f=json"
+   },
+   {
+    "bytes": 3764,
+    "name": "features.geojson",
+    "sha256": "9cc24a4e82610b8dfe71e686dc0e1b29b180bee5d9175b2a8a05039b96c7fb41",
+    "url": "https://gis.fiskeridir.no/server/rest/services/FiskeridirWFS_akva/MapServer/88/query"
+   }
+  ],
+  "kind": "arcgis",
+  "records": 3,
+  "url": "https://gis.fiskeridir.no/server/rest/services/FiskeridirWFS_akva/MapServer/88"
+ },
+ "fdir_hth_2024": {
+  "fetched": "2026-10-20",
+  "files": [
+   {
+    "bytes": 5376,
+    "name": "layer.json",
+    "sha256": "1e32c7373ab9a84967bf8711dd3578d26ed7f73ab3f5dc0c36736ef29f0c59fa",
+    "url": "https://gis.fiskeridir.no/server/rest/services/FiskeridirWFS_akva/MapServer/189?f=json"
+   },
+   {
+    "bytes": 3361,
+    "name": "features.geojson",
+    "sha256": "212aa920ee26d04940be1e6713faf523a9f77c58ec5ba4e299cce4b6918e0ab8",
+    "url": "https://gis.fiskeridir.no/server/rest/services/FiskeridirWFS_akva/MapServer/189/query"
+   }
+  ],
+  "kind": "arcgis",
+  "records": 3,
+  "url": "https://gis.fiskeridir.no/server/rest/services/FiskeridirWFS_akva/MapServer/189"
+ },
+ "fdir_hth_2026": {
+  "fetched": "2026-10-20",
+  "files": [
+   {
+    "bytes": 5558,
+    "name": "layer.json",
+    "sha256": "db35d0748962770e900066f7a422aa5a18bfe3b75e7bda8cd5f2b6aa9bb6d33e",
+    "url": "https://gis.fiskeridir.no/server/rest/services/FiskeridirWFS_akva/MapServer/193?f=json"
+   },
+   {
+    "bytes": 10126,
+    "name": "features.geojson",
+    "sha256": "900f6d3687ccb9a7808ca7d01a8dd3e3691e0ac56873bf91a56c58063f1cab3c",
+    "url": "https://gis.fiskeridir.no/server/rest/services/FiskeridirWFS_akva/MapServer/193/query"
+   }
+  ],
+  "kind": "arcgis",
+  "records": 3,
+  "url": "https://gis.fiskeridir.no/server/rest/services/FiskeridirWFS_akva/MapServer/193"
+ },
+ "fdir_localities": {
+  "fetched": "2026-10-20",
+  "files": [
+   {
+    "bytes": 26978,
+    "name": "layer.json",
+    "sha256": "66924686fc6afcb3b405f8b57e2247d9ec9ca45df38b4a3186c60da5360b924e",
+    "url": "https://gis.fiskeridir.no/server/rest/services/FiskeridirWFS_akva/MapServer/0?f=json"
+   },
+   {
+    "bytes": 2778642,
+    "name": "features.geojson",
+    "sha256": "1a6cf49f6a6ccf8da342d882bc041183bf023a43dddb4631295695650d353e19",
+    "url": "https://gis.fiskeridir.no/server/rest/services/FiskeridirWFS_akva/MapServer/0/query"
+   }
+  ],
+  "kind": "arcgis",
+  "records": 1781,
+  "url": "https://gis.fiskeridir.no/server/rest/services/FiskeridirWFS_akva/MapServer/0"
+ },
+ "fdir_locality_areas": {
+  "fetched": "2026-10-20",
+  "files": [
+   {
+    "bytes": 5690,
+    "name": "layer.json",
+    "sha256": "7eb7c3cf444908d9e246cb62e65e94da6f1c8a3f95cbc2fd022245f8047a2da2",
+    "url": "https://gis.fiskeridir.no/server/rest/services/FiskeridirWFS_akva/MapServer/80?f=json"
+   },
+   {
+    "bytes": 1042840,
+    "name": "features.geojson",
+    "sha256": "9d7f41c0b753cec34e1cc80a7ac9910d6ff46da45ce7072a69ebe7ac1c98ae9f",
+    "url": "https://gis.fiskeridir.no/server/rest/services/FiskeridirWFS_akva/MapServer/80/query"
+   }
+  ],
+  "kind": "arcgis",
+  "records": 1369,
+  "url": "https://gis.fiskeridir.no/server/rest/services/FiskeridirWFS_akva/MapServer/80"
+ },
+ "fdir_mooring_areas": {
+  "fetched": "2026-10-20",
+  "files": [
+   {
+    "bytes": 12829,
+    "name": "layer.json",
+    "sha256": "3c3a2669ebf750f65bda7cbf838ae5dbe0915be71c6e8efb40ccac03899903da",
+    "url": "https://gis.fiskeridir.no/server/rest/services/FiskeridirWFS_akva/MapServer/39?f=json"
+   },
+   {
+    "bytes": 551735,
+    "name": "features.geojson",
+    "sha256": "4d800b4e389657c0b39ce4119c08df8b5d93f1a40fba41df503675aa336e850c",
+    "url": "https://gis.fiskeridir.no/server/rest/services/FiskeridirWFS_akva/MapServer/39/query"
+   }
+  ],
+  "kind": "arcgis",
+  "records": 1355,
+  "url": "https://gis.fiskeridir.no/server/rest/services/FiskeridirWFS_akva/MapServer/39"
+ },
+ "fdir_production_areas": {
+  "fetched": "2026-10-20",
+  "files": [
+   {
+    "bytes": 10842,
+    "name": "layer.json",
+    "sha256": "caabe2a223dab1c6d1dcb87764444ac4926e338c3fd2082455099207c9ba72e6",
+    "url": "https://gis.fiskeridir.no/server/rest/services/FiskeridirWFS_akva/MapServer/43?f=json"
+   },
+   {
+    "bytes": 25615,
+    "name": "features.geojson",
+    "sha256": "3a96c4c510bcf58c795e2be7b7a76b4ef77f55f59a2530a113742618ace58d53",
+    "url": "https://gis.fiskeridir.no/server/rest/services/FiskeridirWFS_akva/MapServer/43/query"
+   }
+  ],
+  "kind": "arcgis",
+  "records": 13,
+  "url": "https://gis.fiskeridir.no/server/rest/services/FiskeridirWFS_akva/MapServer/43"
+ },
+ "fdir_salmon_fjords": {
+  "fetched": "2026-10-20",
+  "files": [
+   {
+    "bytes": 5236,
+    "name": "layer.json",
+    "sha256": "2e136aa54eb5248a49555b459c20d2e0785ca9d6d090b4780202d1142f2adf9d",
+    "url": "https://gis.fiskeridir.no/server/rest/services/FiskeridirWFS/MapServer/35?f=json"
+   },
+   {
+    "bytes": 15332955,
+    "name": "features.geojson",
+    "sha256": "3b6d3fbd64456f5f7ab106980897e253379bcc9df1032ba26895c8e8b4ab40ec",
+    "url": "https://gis.fiskeridir.no/server/rest/services/FiskeridirWFS/MapServer/35/query"
+   }
+  ],
+  "kind": "arcgis",
+  "records": 30,
+  "url": "https://gis.fiskeridir.no/server/rest/services/FiskeridirWFS/MapServer/35"
+ },
+ "hi_coral_reefs": {
+  "fetched": "2026-10-20",
+  "files": [
+   {
+    "bytes": 209473,
+    "name": "KystOgFiskeri_0000_Norge_25833_Korallrev_GML.zip",
+    "sha256": "49b6e8f633ef9d48abed4aab68abb0038614d4f16b787c48fabc70f313fc0bb6",
+    "url": "https://nedlasting.geonorge.no/geonorge/KystOgFiskeri/Korallrev/GML/KystOgFiskeri_0000_Norge_25833_Korallrev_GML.zip"
+   }
+  ],
+  "kind": "download",
+  "records": null,
+  "url": "https://nedlasting.geonorge.no/geonorge/KystOgFiskeri/Korallrev/GML/KystOgFiskeri_0000_Norge_25833_Korallrev_GML.zip"
+ },
+ "kv_bathymetry": {
+  "fetched": "2026-10-20",
+  "files": [
+   {
+    "bytes": 4003424,
+    "name": "bathy_-250000_6400000_250m.tif",
+    "sha256": "2e1a8d077cc4dbb46e90e31dcf2ebfb7099e6ff61696abce507aacc58f46028b",
+    "url": "https://wms.geonorge.no/skwms1/wms.dtm2?service=WCS&version=1.0.0&request=GetCoverage&coverage=bathymetry50m&crs=EPSG%3A25833&bbox=-250000%2C6400000%2C0%2C6650000&width=1000&height=1000&format=GTiff"
+   },
+   {
+    "bytes": 4003424,
+    "name": "bathy_0_6400000_250m.tif",
+    "sha256": "5e18a8ac65de240037a5980facfa227da2c05a74ec75de7c874f9a325ad0c226",
+    "url": "https://wms.geonorge.no/skwms1/wms.dtm2?service=WCS&version=1.0.0&request=GetCoverage&coverage=bathymetry50m&crs=EPSG%3A25833&bbox=0%2C6400000%2C250000%2C6650000&width=1000&height=1000&format=GTiff"
+   },
+   {
+    "bytes": 4003424,
+    "name": "bathy_250000_6400000_250m.tif",
+    "sha256": "bfc4079bf18c992fda844e854fd465df786845e7456ce363b134900943737f9e",
+    "url": "https://wms.geonorge.no/skwms1/wms.dtm2?service=WCS&version=1.0.0&request=GetCoverage&coverage=bathymetry50m&crs=EPSG%3A25833&bbox=250000%2C6400000%2C500000%2C6650000&width=1000&height=1000&format=GTiff"
+   },
+   {
+    "bytes": 4003424,
+    "name": "bathy_500000_6400000_250m.tif",
+    "sha256": "55242afda2d06e189110638f167ecdfec0b66b11790f9bff60c8cc459ce6ffb6",
+    "url": "https://wms.geonorge.no/skwms1/wms.dtm2?service=WCS&version=1.0.0&request=GetCoverage&coverage=bathymetry50m&crs=EPSG%3A25833&bbox=500000%2C6400000%2C750000%2C6650000&width=1000&height=1000&format=GTiff"
+   },
+   {
+    "bytes": 4003424,
+    "name": "bathy_750000_6400000_250m.tif",
+    "sha256": "a95b7f2ab6a51f066f85f6ae89bef10d879351dd3566d2461cc21860bb2e7dd4",
+    "url": "https://wms.geonorge.no/skwms1/wms.dtm2?service=WCS&version=1.0.0&request=GetCoverage&coverage=bathymetry50m&crs=EPSG%3A25833&bbox=750000%2C6400000%2C1000000%2C6650000&width=1000&height=1000&format=GTiff"
+   },
+   {
+    "bytes": 4003424,
+    "name": "bathy_1000000_6400000_250m.tif",
+    "sha256": "76ebd3b02006f21aaf2fe564df76cdf6059590d88062d72a0e92cafc035cf74a",
+    "url": "https://wms.geonorge.no/skwms1/wms.dtm2?service=WCS&version=1.0.0&request=GetCoverage&coverage=bathymetry50m&crs=EPSG%3A25833&bbox=1000000%2C6400000%2C1250000%2C6650000&width=1000&height=1000&format=GTiff"
+   },
+   {
+    "bytes": 4003424,
+    "name": "bathy_-250000_6650000_250m.tif",
+    "sha256": "44165a690a952592c480f67da6b1177b79d8e26a1e6f48cdf8922eb39065c1e5",
+    "url": "https://wms.geonorge.no/skwms1/wms.dtm2?service=WCS&version=1.0.0&request=GetCoverage&coverage=bathymetry50m&crs=EPSG%3A25833&bbox=-250000%2C6650000%2C0%2C6900000&width=1000&height=1000&format=GTiff"
+   },
+   {
+    "bytes": 4003424,
+    "name": "bathy_0_6650000_250m.tif",
+    "sha256": "1b7f7aab114ff74e044613bcf6c2e1922d3f4d07c705a6cc4416c53080413189",
+    "url": "https://wms.geonorge.no/skwms1/wms.dtm2?service=WCS&version=1.0.0&request=GetCoverage&coverage=bathymetry50m&crs=EPSG%3A25833&bbox=0%2C6650000%2C250000%2C6900000&width=1000&height=1000&format=GTiff"
+   },
+   {
+    "bytes": 4003424,
+    "name": "bathy_250000_6650000_250m.tif",
+    "sha256": "6f8d12c41bd5911c864fb32dacac5d743b81a1617771c695660151ea1dffc4a4",
+    "url": "https://wms.geonorge.no/skwms1/wms.dtm2?service=WCS&version=1.0.0&request=GetCoverage&coverage=bathymetry50m&crs=EPSG%3A25833&bbox=250000%2C6650000%2C500000%2C6900000&width=1000&height=1000&format=GTiff"
+   },
+   {
+    "bytes": 4003424,
+    "name": "bathy_500000_6650000_250m.tif",
+    "sha256": "7c1ab9596e0964e2b7846e8b98aa913e1edcdf624750b6f2429a0b48749beb5c",
+    "url": "https://wms.geonorge.no/skwms1/wms.dtm2?service=WCS&version=1.0.0&request=GetCoverage&coverage=bathymetry50m&crs=EPSG%3A25833&bbox=500000%2C6650000%2C750000%2C6900000&width=1000&height=1000&format=GTiff"
+   },
+   {
+    "bytes": 4003424,
+    "name": "bathy_750000_6650000_250m.tif",
+    "sha256": "7ffb6f799e6028aef46e6c4c8c6247d80bb6a1f7c3a40c78b3ced740dd56798f",
+    "url": "https://wms.geonorge.no/skwms1/wms.dtm2?service=WCS&version=1.0.0&request=GetCoverage&coverage=bathymetry50m&crs=EPSG%3A25833&bbox=750000%2C6650000%2C1000000%2C6900000&width=1000&height=1000&format=GTiff"
+   },
+   {
+    "bytes": 4003424,
+    "name": "bathy_1000000_6650000_250m.tif",
+    "sha256": "19b05a7c2b8dae0487cc325d726644b8aded7f218f925b8553363bad44c17fb1",
+    "url": "https://wms.geonorge.no/skwms1/wms.dtm2?service=WCS&version=1.0.0&request=GetCoverage&coverage=bathymetry50m&crs=EPSG%3A25833&bbox=1000000%2C6650000%2C1250000%2C6900000&width=1000&height=1000&format=GTiff"
+   },
+   {
+    "bytes": 4003424,
+    "name": "bathy_-250000_6900000_250m.tif",
+    "sha256": "c9cc35a618af0b9bf060a33849a16ca123dc31bac5fc5d7fde6f797d22f2c32d",
+    "url": "https://wms.geonorge.no/skwms1/wms.dtm2?service=WCS&version=1.0.0&request=GetCoverage&coverage=bathymetry50m&crs=EPSG%3A25833&bbox=-250000%2C6900000%2C0%2C7150000&width=1000&height=1000&format=GTiff"
+   },
+   {
+    "bytes": 4003424,
+    "name": "bathy_0_6900000_250m.tif",
+    "sha256": "77aedfaaa896a922382b9c7bb492b5c8b6f8c0627fa23154409cd1abc3ffac26",
+    "url": "https://wms.geonorge.no/skwms1/wms.dtm2?service=WCS&version=1.0.0&request=GetCoverage&coverage=bathymetry50m&crs=EPSG%3A25833&bbox=0%2C6900000%2C250000%2C7150000&width=1000&height=1000&format=GTiff"
+   },
+   {
+    "bytes": 4003424,
+    "name": "bathy_250000_6900000_250m.tif",
+    "sha256": "e320f8450df177ed548227fece67d70f254c983d72af25bd635e2864af48d669",
+    "url": "https://wms.geonorge.no/skwms1/wms.dtm2?service=WCS&version=1.0.0&request=GetCoverage&coverage=bathymetry50m&crs=EPSG%3A25833&bbox=250000%2C6900000%2C500000%2C7150000&width=1000&height=1000&format=GTiff"
+   },
+   {
+    "bytes": 4003424,
+    "name": "bathy_500000_6900000_250m.tif",
+    "sha256": "298f6ca74572503378235a7120d67f46d3cfdda571c5407ab73dbb0e44247709",
+    "url": "https://wms.geonorge.no/skwms1/wms.dtm2?service=WCS&version=1.0.0&request=GetCoverage&coverage=bathymetry50m&crs=EPSG%3A25833&bbox=500000%2C6900000%2C750000%2C7150000&width=1000&height=1000&format=GTiff"
+   },
+   {
+    "bytes": 4003424,
+    "name": "bathy_750000_6900000_250m.tif",
+    "sha256": "f62c012096d6517f0ef048f791ab9ad1fafe8cb00cbfa5f0eee8875133d58208",
+    "url": "https://wms.geonorge.no/skwms1/wms.dtm2?service=WCS&version=1.0.0&request=GetCoverage&coverage=bathymetry50m&crs=EPSG%3A25833&bbox=750000%2C6900000%2C1000000%2C7150000&width=1000&height=1000&format=GTiff"
+   },
+   {
+    "bytes": 4003424,
+    "name": "bathy_1000000_6900000_250m.tif",
+    "sha256": "558901eb8516f5ad49f5390e54818f53a666838f6fdd8018c8be07d75a2a4d91",
+    "url": "https://wms.geonorge.no/skwms1/wms.dtm2?service=WCS&version=1.0.0&request=GetCoverage&coverage=bathymetry50m&crs=EPSG%3A25833&bbox=1000000%2C6900000%2C1250000%2C7150000&width=1000&height=1000&format=GTiff"
+   },
+   {
+    "bytes": 4003424,
+    "name": "bathy_-250000_7150000_250m.tif",
+    "sha256": "308168a0a0112e76aa043efd02bb9f0f1d6f2d24d6799ef786e581e0f02ca1bc",
+    "url": "https://wms.geonorge.no/skwms1/wms.dtm2?service=WCS&version=1.0.0&request=GetCoverage&coverage=bathymetry50m&crs=EPSG%3A25833&bbox=-250000%2C7150000%2C0%2C7400000&width=1000&height=1000&format=GTiff"
+   },
+   {
+    "bytes": 4003424,
+    "name": "bathy_0_7150000_250m.tif",
+    "sha256": "71d3c364a2438dc946541ef41dd3037bc4e69d4cfe266aefdb83060ece275859",
+    "url": "https://wms.geonorge.no/skwms1/wms.dtm2?service=WCS&version=1.0.0&request=GetCoverage&coverage=bathymetry50m&crs=EPSG%3A25833&bbox=0%2C7150000%2C250000%2C7400000&width=1000&height=1000&format=GTiff"
+   },
+   {
+    "bytes": 4003424,
+    "name": "bathy_250000_7150000_250m.tif",
+    "sha256": "e68bf141bd779c09deb65f7fe6c3c8953c6b91cfabace0242685c30fec572620",
+    "url": "https://wms.geonorge.no/skwms1/wms.dtm2?service=WCS&version=1.0.0&request=GetCoverage&coverage=bathymetry50m&crs=EPSG%3A25833&bbox=250000%2C7150000%2C500000%2C7400000&width=1000&height=1000&format=GTiff"
+   },
+   {
+    "bytes": 4003424,
+    "name": "bathy_500000_7150000_250m.tif",
+    "sha256": "31080dbf5dfb1b6a0007855c6709115c025300cd0fea04f875827e066ca388ff",
+    "url": "https://wms.geonorge.no/skwms1/wms.dtm2?service=WCS&version=1.0.0&request=GetCoverage&coverage=bathymetry50m&crs=EPSG%3A25833&bbox=500000%2C7150000%2C750000%2C7400000&width=1000&height=1000&format=GTiff"
+   },
+   {
+    "bytes": 4003424,
+    "name": "bathy_750000_7150000_250m.tif",
+    "sha256": "3830e3967842b4163fe509b8a3ae9b219ee59030860ed8fae6cc28e51e489c27",
+    "url": "https://wms.geonorge.no/skwms1/wms.dtm2?service=WCS&version=1.0.0&request=GetCoverage&coverage=bathymetry50m&crs=EPSG%3A25833&bbox=750000%2C7150000%2C1000000%2C7400000&width=1000&height=1000&format=GTiff"
+   },
+   {
+    "bytes": 4003424,
+    "name": "bathy_1000000_7150000_250m.tif",
+    "sha256": "6fb7da55ee9d4be3ee058668e0170528fd40220af0ecccd864a2fdcb4968fa9c",
+    "url": "https://wms.geonorge.no/skwms1/wms.dtm2?service=WCS&version=1.0.0&request=GetCoverage&coverage=bathymetry50m&crs=EPSG%3A25833&bbox=1000000%2C7150000%2C1250000%2C7400000&width=1000&height=1000&format=GTiff"
+   },
+   {
+    "bytes": 4003424,
+    "name": "bathy_-250000_7400000_250m.tif",
+    "sha256": "36546fe7947d87495c175dbaab4657204a088f6792f9295007f6aea752702d6a",
+    "url": "https://wms.geonorge.no/skwms1/wms.dtm2?service=WCS&version=1.0.0&request=GetCoverage&coverage=bathymetry50m&crs=EPSG%3A25833&bbox=-250000%2C7400000%2C0%2C7650000&width=1000&height=1000&format=GTiff"
+   },
+   {
+    "bytes": 4003424,
+    "name": "bathy_0_7400000_250m.tif",
+    "sha256": "095409c5fb258c12353ff8b9b3dfbe3f6e5f58f59db2f42e5972e0cf9efd3a9e",
+    "url": "https://wms.geonorge.no/skwms1/wms.dtm2?service=WCS&version=1.0.0&request=GetCoverage&coverage=bathymetry50m&crs=EPSG%3A25833&bbox=0%2C7400000%2C250000%2C7650000&width=1000&height=1000&format=GTiff"
+   },
+   {
+    "bytes": 4003424,
+    "name": "bathy_250000_7400000_250m.tif",
+    "sha256": "887845e0d22a8d6995ca0c0a48fa259af2996a6f94346e0a4b16f93c45c859e7",
+    "url": "https://wms.geonorge.no/skwms1/wms.dtm2?service=WCS&version=1.0.0&request=GetCoverage&coverage=bathymetry50m&crs=EPSG%3A25833&bbox=250000%2C7400000%2C500000%2C7650000&width=1000&height=1000&format=GTiff"
+   },
+   {
+    "bytes": 4003424,
+    "name": "bathy_500000_7400000_250m.tif",
+    "sha256": "9f20a9e6064f16e291bc5fdfb3e52b1b34ce4b1a7713beb6e5a4d62f536a7471",
+    "url": "https://wms.geonorge.no/skwms1/wms.dtm2?service=WCS&version=1.0.0&request=GetCoverage&coverage=bathymetry50m&crs=EPSG%3A25833&bbox=500000%2C7400000%2C750000%2C7650000&width=1000&height=1000&format=GTiff"
+   },
+   {
+    "bytes": 4003424,
+    "name": "bathy_750000_7400000_250m.tif",
+    "sha256": "6d68ed7f60c1196d01a111d0cccc49814cc22b0f8234f1ee02b9ed2efaaf5a84",
+    "url": "https://wms.geonorge.no/skwms1/wms.dtm2?service=WCS&version=1.0.0&request=GetCoverage&coverage=bathymetry50m&crs=EPSG%3A25833&bbox=750000%2C7400000%2C1000000%2C7650000&width=1000&height=1000&format=GTiff"
+   },
+   {
+    "bytes": 4003424,
+    "name": "bathy_1000000_7400000_250m.tif",
+    "sha256": "76a2349a95270616355e0a3f7b126813c25acca2dcb0b9b8994622fa40c7cac8",
+    "url": "https://wms.geonorge.no/skwms1/wms.dtm2?service=WCS&version=1.0.0&request=GetCoverage&coverage=bathymetry50m&crs=EPSG%3A25833&bbox=1000000%2C7400000%2C1250000%2C7650000&width=1000&height=1000&format=GTiff"
+   },
+   {
+    "bytes": 4003424,
+    "name": "bathy_-250000_7650000_250m.tif",
+    "sha256": "f942af92b7884a8f1c6d8cd97df82649a7a8a6d8b29ee5cb19895bf8d2dd68cd",
+    "url": "https://wms.geonorge.no/skwms1/wms.dtm2?service=WCS&version=1.0.0&request=GetCoverage&coverage=bathymetry50m&crs=EPSG%3A25833&bbox=-250000%2C7650000%2C0%2C7900000&width=1000&height=1000&format=GTiff"
+   },
+   {
+    "bytes": 4003424,
+    "name": "bathy_0_7650000_250m.tif",
+    "sha256": "d84f00a1ed633bce89a7d11e517481fab110252b74a5184c6ccb01ba18ea493e",
+    "url": "https://wms.geonorge.no/skwms1/wms.dtm2?service=WCS&version=1.0.0&request=GetCoverage&coverage=bathymetry50m&crs=EPSG%3A25833&bbox=0%2C7650000%2C250000%2C7900000&width=1000&height=1000&format=GTiff"
+   },
+   {
+    "bytes": 4003424,
+    "name": "bathy_250000_7650000_250m.tif",
+    "sha256": "ede401e7812c5b82668d1e35c44323d8bc41924049cf9afc69b61287667643b2",
+    "url": "https://wms.geonorge.no/skwms1/wms.dtm2?service=WCS&version=1.0.0&request=GetCoverage&coverage=bathymetry50m&crs=EPSG%3A25833&bbox=250000%2C7650000%2C500000%2C7900000&width=1000&height=1000&format=GTiff"
+   },
+   {
+    "bytes": 4003424,
+    "name": "bathy_500000_7650000_250m.tif",
+    "sha256": "1559d9db086a4a49f88fab3eb38818aab1b5e1c3747a047ddaf4db10b2cf2065",
+    "url": "https://wms.geonorge.no/skwms1/wms.dtm2?service=WCS&version=1.0.0&request=GetCoverage&coverage=bathymetry50m&crs=EPSG%3A25833&bbox=500000%2C7650000%2C750000%2C7900000&width=1000&height=1000&format=GTiff"
+   },
+   {
+    "bytes": 4003424,
+    "name": "bathy_750000_7650000_250m.tif",
+    "sha256": "abb924eb534fd0c5fab09c64b644fb58da411467cfb75a6a3133d98607f0dcf0",
+    "url": "https://wms.geonorge.no/skwms1/wms.dtm2?service=WCS&version=1.0.0&request=GetCoverage&coverage=bathymetry50m&crs=EPSG%3A25833&bbox=750000%2C7650000%2C1000000%2C7900000&width=1000&height=1000&format=GTiff"
+   },
+   {
+    "bytes": 4003424,
+    "name": "bathy_1000000_7650000_250m.tif",
+    "sha256": "db2f9aac44c503fa07296921100ef3bc74f83f8db4d60aafc3d67f3051233e07",
+    "url": "https://wms.geonorge.no/skwms1/wms.dtm2?service=WCS&version=1.0.0&request=GetCoverage&coverage=bathymetry50m&crs=EPSG%3A25833&bbox=1000000%2C7650000%2C1250000%2C7900000&width=1000&height=1000&format=GTiff"
+   },
+   {
+    "bytes": 4003424,
+    "name": "bathy_-250000_7900000_250m.tif",
+    "sha256": "1482de621acc5dd28eac36bf7d435554bd2d7bfef8fc26b28b7860c7a6809ee5",
+    "url": "https://wms.geonorge.no/skwms1/wms.dtm2?service=WCS&version=1.0.0&request=GetCoverage&coverage=bathymetry50m&crs=EPSG%3A25833&bbox=-250000%2C7900000%2C0%2C8150000&width=1000&height=1000&format=GTiff"
+   },
+   {
+    "bytes": 4003424,
+    "name": "bathy_0_7900000_250m.tif",
+    "sha256": "04636a199d316c5c32c56046852d5fb2b35fd4125d6d3581a0a0df10beb4fabf",
+    "url": "https://wms.geonorge.no/skwms1/wms.dtm2?service=WCS&version=1.0.0&request=GetCoverage&coverage=bathymetry50m&crs=EPSG%3A25833&bbox=0%2C7900000%2C250000%2C8150000&width=1000&height=1000&format=GTiff"
+   },
+   {
+    "bytes": 4003424,
+    "name": "bathy_250000_7900000_250m.tif",
+    "sha256": "16e056c9c3167cd0350a19efec32c0fe0ce45fe57a6bc12cfe7b344328ea4361",
+    "url": "https://wms.geonorge.no/skwms1/wms.dtm2?service=WCS&version=1.0.0&request=GetCoverage&coverage=bathymetry50m&crs=EPSG%3A25833&bbox=250000%2C7900000%2C500000%2C8150000&width=1000&height=1000&format=GTiff"
+   },
+   {
+    "bytes": 4003424,
+    "name": "bathy_500000_7900000_250m.tif",
+    "sha256": "3b1779baf84132a3014496cceeab827cd12d0083c5d200a4b33c1bee85ab9ad3",
+    "url": "https://wms.geonorge.no/skwms1/wms.dtm2?service=WCS&version=1.0.0&request=GetCoverage&coverage=bathymetry50m&crs=EPSG%3A25833&bbox=500000%2C7900000%2C750000%2C8150000&width=1000&height=1000&format=GTiff"
+   },
+   {
+    "bytes": 4003424,
+    "name": "bathy_750000_7900000_250m.tif",
+    "sha256": "378f762a2a47f987c2a22cafd2016f8d742ec850d3213014735d7a0e705b7e9a",
+    "url": "https://wms.geonorge.no/skwms1/wms.dtm2?service=WCS&version=1.0.0&request=GetCoverage&coverage=bathymetry50m&crs=EPSG%3A25833&bbox=750000%2C7900000%2C1000000%2C8150000&width=1000&height=1000&format=GTiff"
+   },
+   {
+    "bytes": 4003424,
+    "name": "bathy_1000000_7900000_250m.tif",
+    "sha256": "4077eca525ccbdafbfd1049bd75d0823ee46e50d30544780c14a1290f564b362",
+    "url": "https://wms.geonorge.no/skwms1/wms.dtm2?service=WCS&version=1.0.0&request=GetCoverage&coverage=bathymetry50m&crs=EPSG%3A25833&bbox=1000000%2C7900000%2C1250000%2C8150000&width=1000&height=1000&format=GTiff"
+   }
+  ],
+  "kind": "wcs_tiles",
+  "records": 42,
+  "url": "https://wms.geonorge.no/skwms1/wms.dtm2"
+ },
+ "kv_dtm50": {
+  "fetched": "2026-10-20",
+  "files": [
+   {
+    "bytes": 6286313,
+    "name": "Basisdata_6400_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "17d97f02fa6c002cb9ef6d830759f4467dfd35ca2be1ebfab3c77404ed8a087c",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_6400_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 1500078,
+    "name": "Basisdata_6401_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "ad1c9c853f71f1e92eaba27d91c36535cae576de439cba4629c89399243ad6fe",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_6401_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 165951,
+    "name": "Basisdata_64m1_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "ac9ba59e701c32e296f04ce0cbc10893effddb8f412d21f107a9b170aa2501ec",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_64m1_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 15282039,
+    "name": "Basisdata_6500_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "aa171357dfba85c07c14ed3b9a3660990a6de95f3c4dc1ced8c8f929e1f77b38",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_6500_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 13386493,
+    "name": "Basisdata_6501_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "c89c35cc6c518afbf95623b7cbd7f0fb7ebf0baebc5048a25564867353208da1",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_6501_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 7855551,
+    "name": "Basisdata_6502_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "53d51b00f9b50f8e79a7045ae0dd06ac47e8d662661107f13050974de9ce6f2a",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_6502_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 3274215,
+    "name": "Basisdata_6503_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "e9d6eda0e5a24ea9735a4e0ca6af8a462418537661b00e588c01f8cc4a35f9ac",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_6503_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 5488341,
+    "name": "Basisdata_65m1_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "77dd3d87b561a0be2483e6bf56f01fda975d00e0233559ac5c09c33c22ff49e2",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_65m1_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 14716605,
+    "name": "Basisdata_6600_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "8d06b41d51ffb5ed3b26e50e2bb3196edef3c3543bf435ccca44173a4225cb48",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_6600_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 15365622,
+    "name": "Basisdata_6601_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "247a0136e04b868539f48b0c8cbd3d4b7e777fa6bf937f98988bf7e21c280b1d",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_6601_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 15103586,
+    "name": "Basisdata_6602_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "aae764f465adfb5a48360e45839b87583fd1f151e2754859e50caee46be21ad1",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_6602_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 10035077,
+    "name": "Basisdata_6603_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "750d781abc176e263cbcd76ff8a62d4853dbdf18dfa668c7641c3e190af29ff3",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_6603_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 6323552,
+    "name": "Basisdata_66m1_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "d0008961aed2c67c9ba3dc47480fe188329e4c44f3b63ff686f3487b57e84023",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_66m1_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 15012264,
+    "name": "Basisdata_6700_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "8afa33d5b23b481916585b2e6b4d62242e7a23c0339aed6af6213e306044c812",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_6700_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 15067306,
+    "name": "Basisdata_6701_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "a110b0bd43fdd26a3b0089b636df37d9f29d74758995daa1a0f468ae3363ae46",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_6701_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 15097510,
+    "name": "Basisdata_6702_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "d29a471aa01625a703a9cc10f740a215b73a8e5909f08ab9adb39ae9487e3482",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_6702_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 15469954,
+    "name": "Basisdata_6703_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "b578fe960fb371d1f53e0d9a3a4ed350d112826cf6fb37c49982f74211ac38b2",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_6703_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 7015987,
+    "name": "Basisdata_67m1_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "f2f61f2df7e681aca42eaa9de89fd37e3f1dee6d1fd00f663bf97c76b4dd23b7",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_67m1_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 14781488,
+    "name": "Basisdata_6800_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "81f8fac3f3f3fe26706a4ddb99442382fc2e72287653610533df4e60605d9850",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_6800_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 15339786,
+    "name": "Basisdata_6801_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "d724a5b739c0cd28489b602ace528d0d59aa7c6f72029740d405000f2d26031d",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_6801_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 15830756,
+    "name": "Basisdata_6802_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "e0d246d899171952cb49f2e4753888060d9c1ebf87a506a163e910feb391a7d3",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_6802_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 15047072,
+    "name": "Basisdata_6803_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "213f07906039bae8ef9980f863452e70d07e20d7e321193afa1e7643f0d71eb0",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_6803_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 5060371,
+    "name": "Basisdata_68m1_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "1d2adf451dd30af9025a7018ba04b010ecd3f1b6e99ff067690fcdb73edd36c3",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_68m1_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 9378755,
+    "name": "Basisdata_6900_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "bc59a103ea62ba86c330f38c324f280819b69b7c90479ed5fa2b14b9d2130303",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_6900_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 15085309,
+    "name": "Basisdata_6901_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "d10150d0a76b804b4b3646dcb17b97a2e93ffa1d58b5443191784fd2e5a68e2e",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_6901_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 15754274,
+    "name": "Basisdata_6902_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "4e0de4dbc986da50ac8f1725ef758837dc9317c7218060317fa1a3893bbd1005",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_6902_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 13110601,
+    "name": "Basisdata_6903_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "60d6b593307dd078d885db1c42f245e5136ba554226c8067d8162d426636d52b",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_6903_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 756382,
+    "name": "Basisdata_69m1_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "f94871873dfbaf6ed95f7ed660fc59928c793d48c6f291f4194db8067731a6af",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_69m1_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 105520,
+    "name": "Basisdata_7000_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "863a83521a24e9dbe6e1931692aefbc42791104a595ff209f08da0f64acc22a0",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7000_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 5882106,
+    "name": "Basisdata_7001_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "ce3cfac7e25ebc29a3b6d41e9719377128c29150080477ad6a72b53fd63ba9c1",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7001_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 11983468,
+    "name": "Basisdata_7002_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "cd717747e4558923bc62beaec1304418872e6e0fa5b4231993dac570ab845746",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7002_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 14636843,
+    "name": "Basisdata_7003_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "53c3ca25bb60852e7c00a4814c52297673b5f356f69d9416294c276c828cbab7",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7003_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 885117,
+    "name": "Basisdata_7004_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "fb0f05a667afbfd56974c1446c8a867baee70221a4d6976d48ad5204788c769f",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7004_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 17657,
+    "name": "Basisdata_7101_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "accb029bddb393e375b7dd7fc29c42155d9cd433764eb9788782fab4e5133f00",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7101_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 2979397,
+    "name": "Basisdata_7102_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "f4f0cc589247cf7d6c0e2f4666c3e6dc274a9bce4409f94f68268383e5345976",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7102_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 14563455,
+    "name": "Basisdata_7103_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "d0c6b41175d741157b548858efddf504d8188a6622ce95aceabaa0f319c8a9df",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7103_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 8591690,
+    "name": "Basisdata_7104_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "cc83a5fe4cb7104c5d36c624baebb2db7fbba0542d6561c2d11682dc4b544763",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7104_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 66496,
+    "name": "Basisdata_7202_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "78af19afb8c2f8f2ccb9ae089f3e40fb642e122c56c9d3a05e7706d72f22bce0",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7202_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 6459294,
+    "name": "Basisdata_7203_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "f10e871f62ccdb4dd8cc72d9a8754a200c6121175b88cfc32cf6eb20f0106996",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7203_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 13563382,
+    "name": "Basisdata_7204_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "24b6c00eea95fcd7b8e41f996687472788870f6f67e40a5dfa72d599284025fe",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7204_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 1432219,
+    "name": "Basisdata_7303_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "3d3ff030f0224a34d88c09c61dfd33164e6bedbe4272b9b1bb885e5fe4d2f709",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7303_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 13644138,
+    "name": "Basisdata_7304_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "9e063a61f19291d6495c425c0a0ec2ca3992de7c69b85a43ef236664bc934107",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7304_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 3926320,
+    "name": "Basisdata_7305_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "08814886b5b1a96f5c69eaef23ae9d27f3f5bde63412aa16665b61f0afc469a7",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7305_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 49043,
+    "name": "Basisdata_7403_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "146e116a5266ad59deb50f9b627e9794273b460764c61c0d3dba987fab97f6e9",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7403_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 5819764,
+    "name": "Basisdata_7404_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "bc93c3bb63c82793ea52de757d6df1e5bf138064a05ae8b367c6fca2df368438",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7404_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 9146762,
+    "name": "Basisdata_7405_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "c32b236bdb22745ad08f739524510350e7917169b354611021a51562ded31a87",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7405_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 22983,
+    "name": "Basisdata_7503_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "65b57d8ac3e7e076e69060cc9b1ada1844714568d4cbd4b911c1bc5895ede25e",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7503_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 2827107,
+    "name": "Basisdata_7504_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "e280bb2f5b21601f44fb851d8087a3052064b9c3256087754035905afc324036",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7504_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 11685607,
+    "name": "Basisdata_7505_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "ca19e13628adead0257088c25f97529eae6e38adcf4061920cdc680698a8ec05",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7505_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 10988172,
+    "name": "Basisdata_7506_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "e952851d244d44e2108fd66be445c8d3cdcac4325e889600172632becc05cf46",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7506_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 553137,
+    "name": "Basisdata_7507_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "22e56a1429150d232549ff652d053c4885c36f65f0ccabff60f62e9e5f01d885",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7507_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 1012443,
+    "name": "Basisdata_7604_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "84af166ffb283829b78b77b6452f9b272a01937948850ad3c1b302c673e8d0b3",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7604_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 8097951,
+    "name": "Basisdata_7605_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "71314bddf641c9f695713c83a1b854b15e0334862a8a42739e3029839b80decf",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7605_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 15365192,
+    "name": "Basisdata_7606_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "d767be1f19d7d97387f7b7d0c1f6382640d6c501556dcbc23ef538212e3dde32",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7606_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 15003719,
+    "name": "Basisdata_7607_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "1d6a297d58af8053ca0219cf3c2d6d724b8c436a382566b22b8eac5c71fbdab5",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7607_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 11603755,
+    "name": "Basisdata_7608_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "d7816661a25ca9c5ed4b162a2b2002deb5a6003c372ed55abb7be87b51143a2f",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7608_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 3605730,
+    "name": "Basisdata_7609_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "a1de9b03f58831ecc7979cd98fe0a07190b57b5f102f23f67a752cfc15aefaee",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7609_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 299043,
+    "name": "Basisdata_7705_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "be41841b5ea7690bffcbdb08c5b7d71495d56aece1f2aee65c46ac3fa5d5b8b5",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7705_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 8486015,
+    "name": "Basisdata_7706_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "76eb8e497dcc6a9d2b325434dcd6ffd9c02c092f586fc644d9a3f11a93322187",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7706_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 13371345,
+    "name": "Basisdata_7707_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "9c961c2a2bd47798e47679d3c43091e8a5d792239deecc202f608d131a4e8f21",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7707_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 15015110,
+    "name": "Basisdata_7708_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "e3e64ec87d4340e29516ca413aed46f1a875addc4f12ad7056bb27695016f967",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7708_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 10545501,
+    "name": "Basisdata_7709_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "2511f55693a337220d8d11c6e973fd5793139eafb8f178fe1db30b4ae129031a",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7709_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 6475317,
+    "name": "Basisdata_7710_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "baf8a05ccf5a3b2f432035b90f01ff2c453b722d78895bea01dee96c4c1866a2",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7710_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 1422402,
+    "name": "Basisdata_7711_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "aa0e12c3021c4618e9e4d76bd5d921ac90b9c43ddaebacc6fa67d35692127dff",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7711_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 89172,
+    "name": "Basisdata_7806_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "679c1e361ecf5792cc4e4c2a7fc9b42dfd729773170e4b44f80386f28237162b",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7806_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 3139367,
+    "name": "Basisdata_7807_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "59b65e366add12ce3c56228e0fe04f2fcda284356f3b161a14df74c36111cc02",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7807_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 10657425,
+    "name": "Basisdata_7808_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "d78605091d7fb8b6e1680fd77b11be41c5863931ef6abb1e0551aa39f9cdd56c",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7808_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 13899352,
+    "name": "Basisdata_7809_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "f5131810465eb0b416cebe25c4722519d92a939d641577b7b6f28307ef748b0b",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7809_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 12089425,
+    "name": "Basisdata_7810_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "99385cbaaeb1038a9ac2320c00f996ffb55e4a0cdefde37704e35ff6fa6e06b0",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7810_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 1176686,
+    "name": "Basisdata_7811_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "647dd4bd88614fa6b579641feb3cc2ed257b975e2a8bba8e1122afc8743d05b2",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7811_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 4200,
+    "name": "Basisdata_7906_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "530e4f4901a5b28f7415917932f8f03fac485f4a3ba579227e9350562cda20a7",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7906_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 4192,
+    "name": "Basisdata_7907_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "52d3eb43c224c5cf6e17dcf86b561e0ce6c00246b1fe2fd568d5c957b3ec0182",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7907_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 1104954,
+    "name": "Basisdata_7908_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "74549b09f19570e2cb8ad6dc91612a59fea648c2cf46d9800ab1fb38407cc00b",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7908_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 2426924,
+    "name": "Basisdata_7909_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "a829f6a94915d4dfc4860f89219c622e55b93e2bd5e8c947af8019abb60d7cee",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7909_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 1418485,
+    "name": "Basisdata_7910_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "214f5f2e211f99dcecf77b089b338245bcf4e5559713d877a29663c9898e4120",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7910_Celle_25833_DTM50_TIFF.zip"
+   },
+   {
+    "bytes": 4950,
+    "name": "Basisdata_7911_Celle_25833_DTM50_TIFF.zip",
+    "sha256": "40c893d27ecd30c7b6b45b053f8b745423f5b18129fea0a2a20a70c2f6d85ee2",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/DTM50/TIFF/Basisdata_7911_Celle_25833_DTM50_TIFF.zip"
+   }
+  ],
+  "kind": "download_list",
+  "records": 76,
+  "url": "http://nedlasting.geonorge.no/geonorge/ATOM-feeds/DTM50_AtomFeedTIFF.xml"
+ },
+ "kv_n1000": {
+  "fetched": "2026-10-20",
+  "files": [
+   {
+    "bytes": 21924726,
+    "name": "Basisdata_0000_Norge_25833_N1000Kartdata_FGDB.zip",
+    "sha256": "4af7144bcb7bb77954e40a257aedb1f5f3136bb33cf6e57aa04c72b31e831169",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/N1000Kartdata/FGDB/Basisdata_0000_Norge_25833_N1000Kartdata_FGDB.zip"
+   }
+  ],
+  "kind": "download",
+  "records": null,
+  "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/N1000Kartdata/FGDB/Basisdata_0000_Norge_25833_N1000Kartdata_FGDB.zip"
+ },
+ "kv_n250": {
+  "fetched": "2026-10-20",
+  "files": [
+   {
+    "bytes": 304982784,
+    "name": "Basisdata_0000_Norge_25833_N250Kartdata_FGDB.zip",
+    "sha256": "54627afbb0d89220bd4d8c42db4d88f041afe260112fc5c60a73aa8780997c5c",
+    "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/N250Kartdata/FGDB/Basisdata_0000_Norge_25833_N250Kartdata_FGDB.zip"
+   }
+  ],
+  "kind": "download",
+  "records": null,
+  "url": "https://nedlasting.geonorge.no/geonorge/Basisdata/N250Kartdata/FGDB/Basisdata_0000_Norge_25833_N250Kartdata_FGDB.zip"
+ },
+ "kyv_fairway_areas": {
+  "fetched": "2026-10-20",
+  "files": [
+   {
+    "bytes": 2176435,
+    "name": "Samferdsel_0000_Norge_25833_HovedledBiledArealavgrensning_FGDB.zip",
+    "sha256": "fe432cb916da3d2c68058303e0ba735579535d0f11378511d86d3508bc518c04",
+    "url": "https://nedlasting.geonorge.no/geonorge/Samferdsel/HovedledBiledArealavgrensning/FGDB/Samferdsel_0000_Norge_25833_HovedledBiledArealavgrensning_FGDB.zip"
+   }
+  ],
+  "kind": "download",
+  "records": null,
+  "url": "https://nedlasting.geonorge.no/geonorge/Samferdsel/HovedledBiledArealavgrensning/FGDB/Samferdsel_0000_Norge_25833_HovedledBiledArealavgrensning_FGDB.zip"
+ },
+ "kyv_fairway_lines": {
+  "fetched": "2026-10-20",
+  "files": [
+   {
+    "bytes": 195925,
+    "name": "Samferdsel_0000_Norge_25833_HovedledBiled_FGDB.zip",
+    "sha256": "d3e3d5c1fd0b638a957581549b6f80d8fd9627b1f7ded7973f558797b058c6e6",
+    "url": "https://nedlasting.geonorge.no/geonorge/Samferdsel/HovedledBiled/FGDB/Samferdsel_0000_Norge_25833_HovedledBiled_FGDB.zip"
+   }
+  ],
+  "kind": "download",
+  "records": null,
+  "url": "https://nedlasting.geonorge.no/geonorge/Samferdsel/HovedledBiled/FGDB/Samferdsel_0000_Norge_25833_HovedledBiled_FGDB.zip"
+ },
+ "mdir_anadromous_outlets": {
+  "fetched": "2026-10-20",
+  "files": [
+   {
+    "bytes": 3337,
+    "name": "layer.json",
+    "sha256": "49c766c1824f8a8856c085e8c6b51c70e112333937465f0369f29f861cd68e1e",
+    "url": "https://kart.miljodirektoratet.no/arcgis/rest/services/anadrome_laksefisk/MapServer/3?f=json"
+   },
+   {
+    "bytes": 173876,
+    "name": "features.geojson",
+    "sha256": "58e924b449d11897305b050a88c9a3b571e84b8fe54379431c33abf7b9e0ae90",
+    "url": "https://kart.miljodirektoratet.no/arcgis/rest/services/anadrome_laksefisk/MapServer/3/query"
+   }
+  ],
+  "kind": "arcgis",
+  "records": 476,
+  "url": "https://kart.miljodirektoratet.no/arcgis/rest/services/anadrome_laksefisk/MapServer/3"
+ },
+ "mdir_protected_areas": {
+  "fetched": "2026-10-20",
+  "files": [
+   {
+    "bytes": 10216,
+    "name": "layer.json",
+    "sha256": "2b62a6b7562d89b8038e353792635af93f4aab23dce15228a93bbf998e662265",
+    "url": "https://kart.miljodirektoratet.no/arcgis/rest/services/vern/MapServer/0?f=json"
+   },
+   {
+    "bytes": 4181375,
+    "name": "features.geojson",
+    "sha256": "bebfd42e83afd983e2d2de46bb0496585a807cc0e70d333cf2203ab613c97b64",
+    "url": "https://kart.miljodirektoratet.no/arcgis/rest/services/vern/MapServer/0/query"
+   }
+  ],
+  "kind": "arcgis",
+  "records": 3513,
+  "url": "https://kart.miljodirektoratet.no/arcgis/rest/services/vern/MapServer/0"
+ }
+}
