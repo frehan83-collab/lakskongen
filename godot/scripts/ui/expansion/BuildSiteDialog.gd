@@ -803,7 +803,8 @@ func _confirm_farm() -> void:
 		_refresh()
 		var key := str(result.get("label_key", ""))
 		if key == "":
-			key = "BUILD_SEA_REASON_" + str(result.get("error", "engine_not_ready")).to_upper()
+			var err := str(result.get("error", ""))
+			key = "BUILD_SEA_REASON_" + err.to_upper() if err != "" else "LAND_REASON_ENGINE_NOT_READY"
 		_verdict.text = tr(key)
 		_verdict.visible = true
 		return

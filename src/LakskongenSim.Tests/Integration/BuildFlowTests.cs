@@ -251,6 +251,30 @@ public class BuildFlowTests
             $"first harvest day {e.FirstHarvestDay}, payback {e.PaybackDay} ({e.PaybackYear})");
     }
 
+    [Fact]
+    public void AHogUnitWithAPositiveMargin_PaysBackItsCapexOverrunStartupAndLicence_FromItsFirstHarvest()
+    {
+        // The HFS pilot lot's catalogue cost (70.7 NOK/kg HOG) sits under the opening price (88).
+        var engine = LandPermitTests.LandReadyEngine(42);
+        var e = engine.PreviewFarmBuild(FarmTypeIds.Hfs, "pad_a").Economics;
+        decimal margin = (decimal)(e.CapacityTonnesPerYear * 1000.0 * (e.PriceNokPerKgHog - e.FarmingCostNokPerKgHog!.Value));
+        Assert.True(margin > 0m, $"margin {margin:N0}");
+        Assert.Equal(margin, e.YearlyMarginNok);
+        decimal invested = e.CompanyCapexNok + e.OverrunP50Nok + e.StartupCostsNok + e.LicenceNok;
+        Assert.True(e.OverrunP50Nok > 0m && e.StartupCostsNok > 0m, "a managed land build carries an overrun and permit fees");
+        int expected = e.FirstHarvestDay + (int)Math.Ceiling((double)(invested / margin) * SimCalendar.DaysPerYear);
+        Assert.Equal(expected, e.PaybackDay);
+        Assert.Equal(SimCalendar.Year(expected), e.PaybackYear);
+        // The runway earns the margin from the first harvest on, pro rata to the days after it.
+        foreach (var m in e.Runway)
+        {
+            int start = m.Month == 1 ? engine.State.Day : e.Runway[m.Month - 2].Day;
+            int days = Math.Max(0, m.Day - Math.Max(start, e.FirstHarvestDay));
+            Assert.Equal(margin * days / SimCalendar.DaysPerYear, m.NewUnitNok);
+        }
+        _output.WriteLine($"HFS pilot pad_a: margin {margin:N0}/yr, invested {invested:N0}, payback day {e.PaybackDay} ({e.PaybackYear})");
+    }
+
     // ── The pre-filled loan ──────────────────────────────────────────────
 
     [Fact]

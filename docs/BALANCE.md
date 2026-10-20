@@ -2582,6 +2582,62 @@ seeds the ISA cull spared and 41.6-45.8 in the three it hit. No basis puts the
 median inside 1.15-1.45;
 the owner's choice is RUN_LOG §8 (F2-07).
 
+## 1x. F2-31: what the build preview says about the money (2026-10-20, branch `wave4/ui-farm-1`)
+
+_The family-first build dialog (spec §6.2 step 4) shows the lanes' own build
+previews (F2-07 `PreviewOffshoreBuild`, F2-14 `PreviewLandBuild`) and, around
+them, the money: `SimulationEngine.PreviewFarmBuild`
+(`Core/SimulationEngine.BuildFlow.cs`), a pure read. No new calibration: every
+input is an existing figure. Decisions: RUN_LOG §7 (2026-10-20 F2-31 rows)._
+
+### The figures and where they come from
+
+| Figure | How | Inputs |
+|---|---|---|
+| Capex (your share) | the sum of the lane preview's planned payments (turnkey premium and the pad's blasting included) | F2-14 / F2-07 payments |
+| Overrun p50 / p90 | the lane preview's totals | `facilities.common.construction` |
+| Permit wait (land) | the slowest needed or refused case's mid-window ((min + max) / 2), a pending case's days to its decision; 0 at sea | F2-14 permit quotes |
+| First harvest | land: the preview's first harvest (first tanks + the land plan's cycle) + the permit wait; sea: first stocking + a standard smolt's days to the plan's harvest weight in the home area's normal sea (S2-03 law) | F2-14, F2-07, `biology.targetHarvestWeightKg` |
+| Capacity cost per t HOG/yr | (capex + median overrun + start-up + licence) / equity / yearly capacity | land: + permit fees, capacity = the site's nameplate after the build; sea: + teething budget + conversion fees (licences × 13.8 M), capacity = the catalogue's (8 × 780 t × 1.2) |
+| Farming cost | the catalogue's median (NOK/kg HOG) | `facilities.common.catalog` |
+| Payback | first harvest + ⌈(capex + median overrun + start-up + licence) / yearly margin × 365⌉; margin = capacity × (weekly mean price − farming cost) × equity; never when the margin is not positive (a post-smolt module sells no HOG) | the market's `WeeklyAvgPrice` |
+| Runway (36 months) | cash + months × the company's average operating cash so far (revenue − COGS − opex − interest − tax over the days played) − payments as they start − overrun as phases end + the new unit's margin from its first harvest | engine ledger |
+| Pre-filled loan | min(the bank's room = `LoanCapacityNok` − loans, the median line's lowest shortfall); drawn today, paid in equal slices over the unit's depreciation life (land 20, sea 25 years) with interest on what is left at the bank's rate | `finance.loanInterestRate`, `facilities.common.depreciation` |
+
+### Measured (`BuildFlowTests`, printed)
+
+| Case | Capex | Overrun p50 / p90 | Wait | Capacity cost | Price / cost | Payback |
+|---|---|---|---|---|---|---|
+| HFS pilot lot on pad_a (seed 33, day 40, bare game) | 1,020,000,000 (0.90 bn + 120 M blasting) | 93.7 M / 182.6 M | 547 d (zoning) | 428,369 NOK/t/yr (2,600 t) | 88.0 / 70.7 | 2055 |
+| OF1-class on off_1, alone (seed 36) | 720 M (company payments) | catalogue band | 0 | (720 + 50.4 + 157 + 110.4 M) / 7,488 t ≈ 138.6 k | 88.0 / 101.31 | never: margin −99.6 M/yr |
+| OF1-class, 200 MNOK company (seed 37) | | | | | | shortfall 570.4 M, bank room 700 M → loan 570.4 M at 5.5 % over 300 months |
+
+The OF1 unit's capacity cost lies between the catalogue's median (131.8 k, no
+overrun) and its bad case. At the game's opening price (88 NOK/kg HOG) the
+catalogue's farming costs make the pilot lot a 25-year payback and the
+offshore unit a loss before its licences: honest to the reference figures
+(open pen 64.68 NOK/kg round ≈ 77.9 HOG [O:R57], OF1 × 1.3 [O:R37], HFS 70.7
+[L:R1]); the game's own costs are lower (45.6-57.5 NOK/kg HOG on the farm
+cycle, RUN_LOG §8 S2-04 finding), so F2-17's measured medians will move these. RUN_LOG §8.
+
+### The diagnosis strip (`GetBuildDiagnosis`, `Core/SimulationEngine.BuildDiagnosis.cs`)
+
+Scores 0-1 over the areas of the company's fjord sites (the home area when it
+has none); the highest binds:
+
+| Key | Score | Removed by |
+|---|---|---|
+| lice | red 1.0, yellow 0.6, green 0.15 (worst farmed area's light) | Land, Hav |
+| capacity | standing / licence MTB in the fullest licensed area | Land, Hav |
+| temperature | (warmest monthly normal − 13 °C optimum) / (22 °C upper limit − optimum), clamped | Land |
+| oxygen | deaths from low oxygen, algae and jellyfish / all deaths (S2-05 ledger) | Land |
+| capital | 1 − cash / the cheapest stage-1 Land or Hav money gate (post-smolt module 110 M), 0 when the cash is there | (the Hav consortium and the module lower the entry) |
+
+po3_red_sone (seed 17, day 0, zones green): capital 0.891 (12 M of 110 M),
+temperature 0.278 (15.5 °C), lice 0.150, capacity 0.039; po3_nord red → lice
+1.0 binds. In the UI flow (seed 95) capital binds; with 110 M granted the
+next constraint, lice (yellow, 0.6), binds and the strip follows.
+
 ## 2. Key economic knobs
 
 | Knob | Current | Real reference | Source | Recommended playtest band |
