@@ -75,6 +75,72 @@
       "source": "incompetech.com",
       "licence": "CC BY 4.0",
       "notice_key": "UI_CREDITS_MUSIC_NOTICE"
+    },
+    {
+      "name": "Kartverket map data",
+      "display_key": "UI_CREDITS_KARTVERKET_TITLE",
+      "use_key": "UI_CREDITS_USE_MAP_BASE",
+      "author": "Kartverket",
+      "source": "kartverket.no / geonorge.no",
+      "licence": "CC BY 4.0",
+      "notice_key": "UI_CREDITS_KARTVERKET_NOTICE"
+    },
+    {
+      "name": "Fiskeridirektoratet map data",
+      "display_key": "UI_CREDITS_FDIR_TITLE",
+      "use_key": "UI_CREDITS_USE_MAP_AQUACULTURE",
+      "author": "Fiskeridirektoratet",
+      "source": "fiskeridir.no",
+      "licence": "NLOD 2.0",
+      "licence_key": "UI_CREDITS_LICENCE_NLOD",
+      "notice_key": "UI_CREDITS_FDIR_NOTICE"
+    },
+    {
+      "name": "Miljødirektoratet map data",
+      "display_key": "UI_CREDITS_MDIR_TITLE",
+      "use_key": "UI_CREDITS_USE_MAP_NATURE",
+      "author": "Miljødirektoratet",
+      "source": "miljodirektoratet.no",
+      "licence": "NLOD 2.0",
+      "licence_key": "UI_CREDITS_LICENCE_NLOD",
+      "notice_key": "UI_CREDITS_MDIR_NOTICE"
+    },
+    {
+      "name": "Kystverket fairways",
+      "display_key": "UI_CREDITS_KYSTVERKET_TITLE",
+      "use_key": "UI_CREDITS_USE_MAP_FAIRWAYS",
+      "author": "Kystverket",
+      "source": "kystverket.no",
+      "licence": "NLOD 2.0",
+      "licence_key": "UI_CREDITS_LICENCE_NLOD",
+      "notice_key": "UI_CREDITS_KYSTVERKET_NOTICE"
+    },
+    {
+      "name": "Havforskningsinstituttet coral reefs",
+      "display_key": "UI_CREDITS_HI_TITLE",
+      "use_key": "UI_CREDITS_USE_MAP_CORALS",
+      "author": "Havforskningsinstituttet (MAREANO)",
+      "source": "hi.no",
+      "licence": "NLOD 2.0",
+      "licence_key": "UI_CREDITS_LICENCE_NLOD",
+      "notice_key": "UI_CREDITS_HI_NOTICE"
+    },
+    {
+      "name": "EMODnet Bathymetry",
+      "use_key": "UI_CREDITS_USE_MAP_DEPTH",
+      "author": "EMODnet Bathymetry Consortium",
+      "source": "emodnet-bathymetry.eu",
+      "licence": "CC BY 4.0",
+      "notice_key": "UI_CREDITS_EMODNET_NOTICE"
+    },
+    {
+      "name": "Copernicus Marine Service",
+      "use_key": "UI_CREDITS_USE_OCEAN_DATA",
+      "author": "E.U. Copernicus Marine Service",
+      "source": "marine.copernicus.eu",
+      "licence": "Copernicus Marine Service Licence",
+      "licence_key": "UI_CREDITS_LICENCE_CMEMS",
+      "notice_key": "UI_CREDITS_CMEMS_NOTICE"
     }
   ]
 }
