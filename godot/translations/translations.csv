@@ -2363,6 +2363,15 @@ GAME_EVENT_LICENCE_AUCTION_WON,Growth licence won,Vekstlisens vunnet
 GAME_EVENT_LICENCE_OUTBID,Outbid in the licence auction,Overbudt i lisensauksjonen
 GAME_EVENT_LIQUIDITY_WARNING,Liquidity warning,Likviditetsvarsel
 GAME_EVENT_RESCUE_LOAN_TAKEN,Rescue loan taken,Redningslån tatt opp
+GEO_PLOT_AREA,Open-sea area,Havområde
+GEO_PLOT_AREA_VALUE,%s (PO %d),%s (PO %d)
+GEO_PLOT_CLIMATE_NOTE,"A Havbruk til havs area from the government's planning work. The sea state and the lice band here are the game's calibrated open-sea climate, not measurements from this area.","Et område for havbruk til havs fra myndighetenes planarbeid. Sjøtilstanden og lusebåndet her er spillets kalibrerte havklima, ikke målinger fra dette området."
+GEO_PLOT_DISTANCE_VALUE,%s km in a straight line from your production area,%s km i luftlinje fra produksjonsområdet ditt
+GEO_PLOT_STAGE,Planning stage,Planstatus
+GEO_PLOT_STAGE_ANBEFALING_2022,Recommended (2022),Anbefalt (2022)
+GEO_PLOT_STAGE_KAN_UTLYSES_2026,Can be announced (2026),Kan lyses ut (2026)
+GEO_PLOT_STAGE_KONSEKVENSVURDERING_2024,Impact assessed (2024),Konsekvensutredet (2024)
+GEO_PLOT_STAGE_TILRADNING_2019,Proposed (2019),Tilrådd (2019)
 HARVESTPLAN_BEST,best,best
 HARVESTPLAN_BUTTON_ORDERED,Harvest plan · ordered,Slakteplan · bestilt
 HARVESTPLAN_BUTTON_TIP,"Open the harvest planner: weights, prices, the wellboat and what waiting would bring","Åpne slakteplanen: vekter, priser, brønnbåt og hva det gir å vente"
@@ -2505,6 +2514,64 @@ LEDGER_OVERDRAFT_INTEREST,Overdraft interest,Renter på overtrekk
 LEDGER_POST_SMOLT_SALES,Post-smolt sales,Salg av postsmolt
 LEDGER_RESCUE_LOAN_FEE,Rescue loan fee,Gebyr for redningslån
 LEDGER_TRANSFERS,Fish transfers,Flytting av fisk
+SEA_CANDIDATE_BINDING_CURRENT,The current costs the most here: it is weaker or stronger than the 0.05-0.40 m/s that renews the water in open pens.,"Strømmen trekker mest ned her: den er svakere eller sterkere enn de 0,05–0,40 m/s som fornyer vannet i åpne merder."
+SEA_CANDIDATE_BINDING_DEPTH,Depth costs the most here: open pens stand best in 25-150 m of water.,Dybden trekker mest ned her: åpne merder står best på 25–150 m vann.
+SEA_CANDIDATE_BINDING_EXCHANGE,Water exchange costs the most here: the place is more enclosed than an open sound.,Vannutskiftingen trekker mest ned her: stedet er mer innestengt enn et åpent sund.
+SEA_CANDIDATE_BINDING_FARM_DISTANCE,Neighbouring farms cost the most here: another salmon farm lies closer than the 5 km Mattilsynet recommends.,Naboanlegg trekker mest ned her: et annet lakseanlegg ligger nærmere enn de 5 km Mattilsynet anbefaler.
+SEA_CANDIDATE_BINDING_NONE,Nothing costs this place anything on the published model.,Ingenting trekker ned på dette stedet i den publiserte modellen.
+SEA_CANDIDATE_BINDING_OXYGEN,Oxygen costs the most here: the upper water holds less oxygen than salmon need.,Oksygenet trekker mest ned her: de øvre vannlagene har mindre oksygen enn laksen trenger.
+SEA_CANDIDATE_BINDING_RIVER,A salmon river costs the most here: a river mouth with wild salmon lies within 5 km.,En lakseelv trekker mest ned her: en elv med villaks munner ut innenfor 5 km.
+SEA_CANDIDATE_BINDING_STAGE,The planning stage costs the most here: the open-sea area is early in the Havbruk til havs process.,Planstatusen trekker mest ned her: havområdet er tidlig i prosessen for havbruk til havs.
+SEA_CANDIDATE_BINDING_TEMPERATURE,Temperature costs the most here: the area's sea is colder or warmer than the 8-16 °C salmon grows best in.,Temperaturen trekker mest ned her: sjøen i området er kaldere eller varmere enn de 8–16 °C laksen vokser best i.
+SEA_CANDIDATE_BINDING_WAVES,Waves cost the most here: the winter sea is higher than at the sheltered places open pens use.,Bølgene trekker mest ned her: vintersjøen er høyere enn på de skjermede stedene der åpne merder står.
+SEA_CANDIDATE_BUILD_TITLE,Build a locality near %s,Bygg lokalitet ved %s
+SEA_CANDIDATE_CHIP_TAKEN,Yours,Ditt anlegg
+SEA_CANDIDATE_COL_DEPTH,Depth,Dybde
+SEA_CANDIDATE_COL_MEASURED,Measured,Målt
+SEA_CANDIDATE_COL_PLACE,Place,Sted
+SEA_CANDIDATE_COL_POINTS,Points,Poeng
+SEA_CANDIDATE_COL_RANK,No.,Nr.
+SEA_CANDIDATE_COL_SCORE,Suitability,Egnethet
+SEA_CANDIDATE_COL_WEAKEST,Weakest,Svakest
+SEA_CANDIDATE_COL_WEIGHT,Weight,Vekt
+SEA_CANDIDATE_COMPONENT_CURRENT,Current,Strøm
+SEA_CANDIDATE_COMPONENT_DEPTH,Depth,Dybde
+SEA_CANDIDATE_COMPONENT_EXCHANGE,Water exchange,Vannutskifting
+SEA_CANDIDATE_COMPONENT_FARM_DISTANCE,Distance to farms,Avstand til anlegg
+SEA_CANDIDATE_COMPONENT_OXYGEN,Oxygen,Oksygen
+SEA_CANDIDATE_COMPONENT_RIVER,Salmon rivers,Lakseelver
+SEA_CANDIDATE_COMPONENT_TEMPERATURE,Temperature,Temperatur
+SEA_CANDIDATE_COMPONENT_WAVES,Waves,Bølger
+SEA_CANDIDATE_DONE_TITLE,%s is built near %s,%s er bygd ved %s
+SEA_CANDIDATE_HEADER,Locality: the area's best places for open pens,Lokalitet: områdets beste steder for åpne merder
+SEA_CANDIDATE_HONEST_NOTE,"The score is a siting model on open data (Kartverket, Fiskeridirektoratet, Mattilsynet, Copernicus). It explains the choice and does not change the farming: the water your fish live in comes from the production area and the zone, the same at every place in it.","Poengsummen er en lokaliseringsmodell på åpne data (Kartverket, Fiskeridirektoratet, Mattilsynet, Copernicus). Den forklarer valget og endrer ikke driften: vannet fisken lever i, kommer fra produksjonsområdet og sonen, likt for alle stedene der."
+SEA_CANDIDATE_OPENNESS,%s sea,%s sjø
+SEA_CANDIDATE_PICK,Choose a place in the list to see its build.,Velg et sted i listen for å se byggingen der.
+SEA_CANDIDATE_PLACE,near %s,ved %s
+SEA_CANDIDATE_RANK,No. %d of %d in PO %d,Nr. %d av %d i PO %d
+SEA_CANDIDATE_REASON_CANDIDATE_NOT_FOUND,This place is not one of the area's places for open pens,Stedet er ikke blant områdets steder for åpne merder
+SEA_CANDIDATE_REASON_CANDIDATE_NOT_SUITABLE,This place lies in a cell closed to open pens,Stedet ligger i en rute som er stengt for åpne merder
+SEA_CANDIDATE_REASON_CANDIDATE_TAKEN,One of your localities already stands here,Et av anleggene dine står allerede her
+SEA_CANDIDATE_REASON_CANDIDATE_WRONG_AREA,This place lies in another production area than the zone,Stedet ligger i et annet produksjonsområde enn sonen
+SEA_CANDIDATE_REASON_ENGINE_NOT_READY,The game has not started,Spillet har ikke startet
+SEA_CANDIDATE_RIVER_FACTOR,River factor,Elvefaktor
+SEA_CANDIDATE_ROW_TIP,"%s: suitability %d of 100, %s m deep. %s","%s: egnethet %d av 100, %s m dypt. %s"
+SEA_CANDIDATE_SCORE,%d of 100,%d av 100
+SEA_CANDIDATE_SCORE_LABEL,Suitability,Egnethet
+SEA_CANDIDATE_SHORT_CURRENT,Current,Strøm
+SEA_CANDIDATE_SHORT_DEPTH,Depth,Dybde
+SEA_CANDIDATE_SHORT_EXCHANGE,Exchange,Utskifting
+SEA_CANDIDATE_SHORT_FARM_DISTANCE,Neighbours,Naboer
+SEA_CANDIDATE_SHORT_NONE,Nothing,Ingenting
+SEA_CANDIDATE_SHORT_OXYGEN,Oxygen,Oksygen
+SEA_CANDIDATE_SHORT_RIVER,River,Lakseelv
+SEA_CANDIDATE_SHORT_STAGE,Stage,Planstatus
+SEA_CANDIDATE_SHORT_TEMPERATURE,Temperature,Temperatur
+SEA_CANDIDATE_SHORT_WAVES,Waves,Bølger
+SEA_CANDIDATE_TAKEN_TIP,%s already stands here.,%s står allerede her.
+SEA_CANDIDATE_WHY_EMPTY,Choose a place to see why it ranks where it does.,Velg et sted for å se hvorfor det ligger der det gjør i rekken.
+SEA_CANDIDATE_WHY_TITLE,Why here,Hvorfor her
+SEA_CANDIDATE_ZONE,Licence and water: the zone %s,Lisens og vann: sonen %s
 TUTORIAL_BUILD_SITE_DO,Press «Build locality» in your zone and confirm.,Trykk «Bygg lokalitet» i din sone og bekreft.
 TUTORIAL_BUILD_SITE_TEXT,"A site gives room, not biomass: the licence's MTB is shared by every site in the area. Two sites let you fallow one and spread the risk.","En lokalitet gir plass, ikke biomasse: lisensens MTB deles av alle lokalitetene i området. To lokaliteter lar deg brakklegge den ene og spre risikoen."
 TUTORIAL_BUILD_SITE_TITLE,Build a second site,Bygg en lokalitet til

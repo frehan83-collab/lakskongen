@@ -180,6 +180,7 @@ func _run() -> void:
 	# by input alone).
 	await preload("res://tests/FirstSeasonFlowChecks.gd").new().run(self)
 	await preload("res://tests/GeoBridgeChecks.gd").new().run(self)
+	await preload("res://tests/GeoExpansionChecks.gd").new().run(self)
 	await preload("res://tests/GeoMapChecks.gd").new().run(self)
 
 	_clear_test_saves()

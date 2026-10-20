@@ -17,6 +17,8 @@ signal plot_chosen(plot_id: String)
 var _buttons: HBoxContainer = null
 var _ghost: GhostView = null
 var _facts: GridContainer = null
+## Geo B: the note under a plot bound to a real open-sea area (hav_1).
+var _geo_note: Label = null
 ## The plots shown (the bridge's dictionaries).
 var plots: Array = []
 var _chosen := ""
@@ -51,6 +53,13 @@ func _build() -> void:
 	_facts.add_theme_constant_override("v_separation", 4)
 	_facts.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	lens.add_child(_facts)
+	_geo_note = Label.new()
+	_geo_note.name = "GeoNote"
+	_geo_note.theme_type_variation = &"CaptionMuted"
+	_geo_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_geo_note.custom_minimum_size = Vector2(300, 0)
+	_geo_note.visible = false
+	add_child(_geo_note)
 
 
 ## Show the plots of a family; `chosen` is the plot the ghost stands on ("" none).
@@ -124,6 +133,9 @@ func _fill_facts(p: Dictionary) -> void:
 	for child in _facts.get_children():
 		_facts.remove_child(child)
 		child.queue_free()
+	var geo := geo_binding(str(p.get("id", ""))) if str(p.get("family", "")) == "hav" else {}
+	_geo_note.visible = bool(geo.get("bound", false))
+	_geo_note.text = tr("GEO_PLOT_CLIMATE_NOTE")
 	if p.is_empty():
 		var hint := Label.new()
 		hint.text = tr("BUILD_PLOT_PICK")
@@ -132,7 +144,13 @@ func _fill_facts(p: Dictionary) -> void:
 		hint.custom_minimum_size = Vector2(200, 0)
 		_facts.add_child(hint)
 		return
-	_fact("BUILD_PLOT_DISTANCE", SimFormatters.num(float(p.get("real_distance_km", 0.0)), 1) + " km")
+	if _geo_note.visible:
+		# Geo B: hav_1 lies in a real Havbruk til havs area (display only).
+		_fact("GEO_PLOT_AREA", tr("GEO_PLOT_AREA_VALUE") % [str(geo.get("area", "")), int(geo.get("po", 0))])
+		_fact("GEO_PLOT_STAGE", tr("GEO_PLOT_STAGE_" + str(geo.get("stage", "")).to_upper()))
+		_fact("BUILD_PLOT_DISTANCE", tr("GEO_PLOT_DISTANCE_VALUE") % SimFormatters.num(float(geo.get("distance_km", 0.0)), 0))
+	else:
+		_fact("BUILD_PLOT_DISTANCE", SimFormatters.num(float(p.get("real_distance_km", 0.0)), 1) + " km")
 	if str(p.get("family", "")) == "land":
 		_fact("BUILD_PLOT_SIZE", "%s × %s m" % [SimFormatters.num(float(p.get("width_m", 0.0)), 0), SimFormatters.num(float(p.get("depth_m", 0.0)), 0)])
 		_fact("BUILD_PLOT_ROOM", tr("BUILD_PLOT_ROOM_VALUE") % [int(p.get("grow_out_lots", 0)), int(p.get("post_smolt_modules", 0))])
@@ -146,13 +164,25 @@ func _fill_facts(p: Dictionary) -> void:
 		_fact("BUILD_PLOT_BLASTING", SimFormatters.format_nok(float(p.get("blast_cost_nok", 0.0))))
 	else:
 		_fact("BUILD_PLOT_EXPOSURE", tr("BUILD_PLOT_EXPOSURE_" + str(p.get("exposure", "")).to_upper()))
-		_fact("BUILD_PLOT_DEPTH", SimFormatters.num(float(p.get("water_depth_m", 0.0)), 0) + " m")
+		_fact("BUILD_PLOT_DEPTH", SimFormatters.num(float(geo.get("depth_m", p.get("water_depth_m", 0.0))), 0) + " m")
 		_fact("BUILD_PLOT_SEA", tr("BUILD_PLOT_SEA_VALUE") % [SimFormatters.num(float(p.get("winter_mean_hs_m", 0.0)), 1),
 			SimFormatters.num(float(p.get("summer_mean_hs_m", 0.0)), 1)])
 		_fact("BUILD_PLOT_HS100", SimFormatters.num(float(p.get("hs100_m", 0.0)), 1) + " m")
 		var lo := float(p.get("lice_external_min", 0.0))
 		var hi := float(p.get("lice_external_max", 0.0))
 		_fact("BUILD_PLOT_LICE", ("×" + SimFormatters.num(lo, 2)) if is_equal_approx(lo, hi) else "×%s – ×%s" % [SimFormatters.num(lo, 2), SimFormatters.num(hi, 2)])
+
+
+## Geo B: a plot's real open-sea binding (SimBridge.get_geo_plot_binding:
+## bound, area, stage, po, depth_m, distance_km …; {} without a bridge).
+func geo_binding(plot_id: String) -> Dictionary:
+	var sim := get_node_or_null("/root/SimBridge")
+	return sim.get_geo_plot_binding(plot_id) if sim != null and plot_id != "" and sim.has_method("get_geo_plot_binding") else {}
+
+
+## The note under a bound plot's facts.
+func geo_note() -> Label:
+	return _geo_note
 
 
 ## The plot from above with the build ghosted on it, in the surface's colours.

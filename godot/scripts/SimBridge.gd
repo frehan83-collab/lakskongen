@@ -794,3 +794,10 @@ func get_geo_sites() -> Dictionary: return _proxies.get_geo_sites()
 func get_rival_summary(po: int) -> Dictionary: return _proxies.get_rival_summary(po)
 func get_zone_anchors() -> Array[Dictionary]: return _proxies.get_zone_anchors()
 # ═══ END sim·geo lane block ═══
+
+# ═══ BEGIN sim·candidates lane block (geo stages 2-3 track B: open-pen candidates, the build at a candidate, the company's site locations) ═══
+func get_sea_candidates(area: int) -> Array[Dictionary]: return _proxies.get_sea_candidates(area)
+func plan_site_build_at(zone_id: String, candidate_id: String) -> Dictionary: return _proxies.plan_site_build_at(zone_id, candidate_id)
+func build_expansion_site_at(zone_id: String, candidate_id: String) -> Dictionary: return _actions.build_expansion_site_at(zone_id, candidate_id)
+func get_player_site_locations() -> Array[Dictionary]: return _proxies.get_player_site_locations()
+# ═══ END sim·candidates lane block ═══

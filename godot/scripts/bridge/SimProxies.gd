@@ -934,3 +934,12 @@ func get_rival_summary(po: int) -> Dictionary:
 func get_zone_anchors() -> Array[Dictionary]:
 	return _arr(game_bridge.GetZoneAnchors()) if game_bridge else []
 # ═══ END sim·geo lane block ═══
+
+# ═══ BEGIN sim·candidates lane block (geo stages 2-3 track B: open-pen candidates, the build at a candidate, the company's site locations) ═══
+## Geo B: a production area's 12 open-pen candidates by rank (0: the home area), each with its 'why here' and its build verdict.
+func get_sea_candidates(area: int) -> Array[Dictionary]: return _arr(game_bridge.GetSeaCandidates(area)) if game_bridge else ([] as Array[Dictionary])
+## Geo B: what a build at a candidate costs and adds (plan_site_build's keys and figures, plus the candidate and its checks).
+func plan_site_build_at(zone_id: String, candidate_id: String) -> Dictionary: return game_bridge.PlanSiteBuildAt(zone_id, candidate_id) if game_bridge else {"success": false, "allowed": false, "reason_key": "engine_not_ready"}
+## Geo B: where the company's fjord localities lie (at their candidate, or approximately at their zone's anchor).
+func get_player_site_locations() -> Array[Dictionary]: return _arr(game_bridge.GetPlayerSiteLocations()) if game_bridge else ([] as Array[Dictionary])
+# ═══ END sim·candidates lane block ═══
