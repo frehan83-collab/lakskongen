@@ -2513,6 +2513,7 @@ MAP_GEO_GROUP_OTHER,other species,andre arter
 MAP_GEO_GROUP_SALMONID,salmonids,laksefisk
 MAP_GEO_GROUP_SHELLFISH,shellfish,skjell
 MAP_GEO_KM2,%s km²,%s km²
+MAP_GEO_LAT,%d° N,%d° N
 MAP_GEO_LAYER_CANDIDATES,Candidates,Kandidater
 MAP_GEO_LAYER_CANDIDATES_TIP,"Show the possible new sites: twelve open-pen sites per area, one star each, and the offshore sites as hexagons","Vis mulige nye lokaliteter: tolv lokaliteter for åpne merder per område, én stjerne hver, og havlokalitetene som sekskanter"
 MAP_GEO_LAYER_FJORDS,Salmon fjords,Laksefjorder

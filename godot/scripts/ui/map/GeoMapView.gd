@@ -69,6 +69,7 @@ var _hover: _Hover = null
 var _plates_root: Control = null
 var _plates: Dictionary = {}  # area -> MapMarker
 var _carto: _Carto = null
+var _graticule: _Graticule = null
 var _chips: VBoxContainer = null
 var _legend: MapLegend = null
 var _hovered_area := 0
@@ -109,6 +110,9 @@ func setup(sim: Node) -> void:
 	_base.set_meta(&"lint_background", MapPalette.deep_water())
 	_base.material = _tint_material()
 	_full_rect(_base)
+	_graticule = _Graticule.new()
+	_graticule.name = "Graticule"
+	_full_rect(_graticule)
 	_overlay = GeoOverlayLayer.new()
 	_overlay.name = "Overlays"
 	_full_rect(_overlay)
@@ -352,6 +356,7 @@ func relayout(force: bool = false) -> void:
 	_carto.layout_frame(d, float(_info["res_m"]) / s)
 	var obstacles: Array[Rect2] = [_chips.get_rect().grow(4.0), _legend.get_rect().grow(4.0)]
 	obstacles.append_array(_carto.frame_rects())
+	_graticule.layout_lines(self, obstacles)
 	_place_plates(obstacles, _soft_obstacles())
 	# City names keep clear of the plates and the anchors, and of the cluster
 	# badges where they can (soft: a name may still cross a badge).
@@ -599,6 +604,67 @@ func _style_chip(chip: Button) -> void:
 		chip.add_theme_color_override(c, text)
 
 
+## The chart's graticule: parallels every 2° and meridians every 5° through
+## the same projection as the map, faint over the image and across the deep
+## water around it, with the parallels' latitudes along the right edge.
+class _Graticule extends Control:
+	const PARALLELS: Array[int] = [58, 60, 62, 64, 66, 68, 70]
+	const MERIDIANS: Array[int] = [5, 10, 15, 20, 25, 30]
+	const LABEL_FONT := 12
+	var _lines: Array[PackedVector2Array] = []
+	var _labels: Array = []  # [text, baseline position]
+
+	func _ready() -> void:
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	func layout_lines(view: GeoMapView, keep_clear: Array[Rect2]) -> void:
+		_lines.clear()
+		_labels.clear()
+		var font := get_theme_font(&"font", &"BodySmall")
+		for lat in PARALLELS:
+			var line := PackedVector2Array()
+			for k in 81:
+				var lon := -20.0 + 1.0 * k
+				var xy := GeoProjection.utm33(lon, float(lat))
+				line.append(view.utm_to_local(xy[0], xy[1]))
+			_lines.append(line)
+			var text := tr("MAP_GEO_LAT") % lat
+			var w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, LABEL_FONT).x if font != null else 40.0
+			var x := size.x - w - 10.0
+			var y := _y_at(line, size.x - 6.0)
+			var r := Rect2(Vector2(x - 2.0, y - LABEL_FONT - 2.0), Vector2(w + 4.0, LABEL_FONT + 6.0))
+			if y > 20.0 and y < size.y - 6.0 and not keep_clear.any(func(o: Rect2) -> bool: return o.intersects(r)):
+				_labels.append([text, Vector2(x, y - 3.0)])
+		for lon in MERIDIANS:
+			var line := PackedVector2Array()
+			for k in 41:
+				var xy := GeoProjection.utm33(float(lon), 55.0 + 0.45 * k)
+				line.append(view.utm_to_local(xy[0], xy[1]))
+			_lines.append(line)
+		queue_redraw()
+
+	## The y of a polyline where it crosses x (its last sample before x).
+	static func _y_at(line: PackedVector2Array, x: float) -> float:
+		for i in range(line.size() - 1):
+			var a := line[i]
+			var b := line[i + 1]
+			if (a.x - x) * (b.x - x) <= 0.0 and absf(b.x - a.x) > 0.001:
+				return lerpf(a.y, b.y, (x - a.x) / (b.x - a.x))
+		return -1.0
+
+	func _draw() -> void:
+		var snow := MapPalette.snow()
+		for line in _lines:
+			draw_polyline(line, Color(snow, 0.11), 1.0, true)
+		var font := get_theme_font(&"font", &"BodySmall")
+		if font == null:
+			return
+		for l: Array in _labels:
+			draw_string_outline(font, l[1], str(l[0]), HORIZONTAL_ALIGNMENT_LEFT, -1, LABEL_FONT, 3,
+				Color(MapPalette.deep_water(), 0.9))
+			draw_string(font, l[1], str(l[0]), HORIZONTAL_ALIGNMENT_LEFT, -1, LABEL_FONT, Color(snow, 0.6))
+
+
 ## The hovered feature's ring: a tiny canvas item, so hovering re-records
 ## nothing else.
 class _Hover extends Control:
@@ -635,13 +701,14 @@ class _Carto extends Control:
 	func _ready() -> void:
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-	## Scale bar (bottom left of the map) and north arrow (top right).
+	## Scale bar (bottom left) and north arrow (top right), in the deep-water
+	## frame beside a portrait map, so neither sits on the coast.
 	func layout_frame(drawn: Rect2, metres_per_px: float) -> void:
 		_metres_per_px = metres_per_px
 		_km = 200 if 200000.0 / metres_per_px <= drawn.size.x * 0.28 else 100
 		var bar_px := float(_km) * 1000.0 / metres_per_px
-		_scale_rect = Rect2(drawn.position + Vector2(14.0, drawn.size.y - 34.0), Vector2(bar_px + 46.0, 22.0))
-		_north_rect = Rect2(Vector2(drawn.end.x - 40.0, drawn.position.y + 10.0), Vector2(26.0, 38.0))
+		_scale_rect = Rect2(Vector2(14.0, size.y - 34.0), Vector2(bar_px + 46.0, 22.0))
+		_north_rect = Rect2(Vector2(size.x - 40.0, 10.0), Vector2(26.0, 38.0))
 		queue_redraw()
 
 	func frame_rects() -> Array[Rect2]:

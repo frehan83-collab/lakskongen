@@ -10,11 +10,18 @@ C1, the foundation (godot/scripts/ui/map/GeoData.gd, GeoProjection.gd):
   test_geodata.py's own PNG decoder reads, so the headless GDScript checks and
   the stdlib reference read the same bytes.
 - No emoji under godot/scripts/ui/map (D14).
+
+C2, the national map (MapPanel v2): no reference to the retired coastline
+and minimap files (manifest.json excepted); MapPanel.gd under 800 lines with
+its public API and Track D's hooks; the MAP_GEO_* keys in both languages;
+the plan's sim reads through the one adapter; localities parsed only by its
+stub; the tint shader's raw nearest lookup; ThemeLint's lint_background.
 """
 
 from __future__ import annotations
 
 import ast
+import csv
 import re
 from collections import Counter
 from pathlib import Path
@@ -116,3 +123,167 @@ def test_no_emoji_in_the_map_scripts():
     for path in paths:
         text = path.read_text(encoding="utf-8")
         assert not EMOJI.search(text), (path.name, EMOJI.findall(text))
+
+
+# ── C2, the national map (GeoMapView, MapPanel v2) ────────────────────────────
+
+MAP_PANEL = REPO / "godot" / "scripts" / "ui" / "MapPanel.gd"
+ADAPTER = MAP_SCRIPTS / "GeoBridgeAdapter.gd"
+NATIONAL_CHECKS = REPO / "godot" / "tests" / "GeoMapNationalChecks.gd"
+TINT_SHADER = REPO / "godot" / "shaders" / "map_po_tint.gdshader"
+TRANSLATIONS = REPO / "godot" / "translations" / "translations.csv"
+MANIFEST = REPO / "godot" / "data" / "geo" / "manifest.json"
+## The reads the plan names (§3, sim·geo and sim·candidates lanes).
+PLAN_READS = ["get_geo_production_areas", "get_geo_offshore_candidates", "get_geo_area_at",
+              "get_geo_sites_signature", "get_geo_sites", "get_rival_summary", "get_player_site_locations"]
+## MapPanel's public API: TutorialTargets, AttentionInbox, GameEventActions,
+## BuildFlowLink and the UI tests call these (plan §3 "MapPanel v2 API").
+PUBLIC_API = ["region_marker", "home_area", "new_farm_button", "region_label_rects", "city_label_rects",
+              "select_area", "open_build", "open_auction", "open_build_family", "expansion_section",
+              "build_dialog", "auction_card", "on_panel_shown", "drill_into", "chart"]
+## Retired by Track C; the strings are built so this file does not match itself.
+RETIRED = ["Norway" + "Coastline", "norway_" + "coastline", "Mini" + "Map"]
+SKIP_DIRS = {".godot", "bin", "obj", "__pycache__", ".import"}
+BINARY = {".png", ".jpg", ".jpeg", ".webp", ".glb", ".ogg", ".wav", ".mp3", ".ttf", ".otf", ".woff2",
+          ".exr", ".hdr", ".res", ".scn", ".dll", ".so", ".dylib", ".pck", ".zip"}
+
+
+def _text_files(root: Path):
+    for path in sorted(root.rglob("*")):
+        if not path.is_file() or SKIP_DIRS.intersection(path.relative_to(REPO).parts):
+            continue
+        if path.suffix.lower() in BINARY:
+            continue
+        yield path
+
+
+def _code(path: Path) -> str:
+    return "\n".join(_strip_comments(ln) for ln in path.read_text(encoding="utf-8").splitlines())
+
+
+def test_no_reference_to_the_retired_map_files():
+    """NorwayCoastline.gd, MiniMap.gd and norway_coastline.json are gone, and
+    nothing in godot/, tests/ or src/ names them. manifest.json is excepted:
+    its hash-pinned 'supersedes' block records what the geo data replaced."""
+    hits = []
+    for root in (REPO / "godot", REPO / "tests", REPO / "src"):
+        for path in _text_files(root):
+            if path == MANIFEST or path == Path(__file__).resolve():
+                continue
+            try:
+                text = path.read_text(encoding="utf-8")
+            except (UnicodeDecodeError, OSError):
+                continue
+            hits += [f"{path.relative_to(REPO)}: {word}" for word in RETIRED if word in text]
+    assert not hits, "\n".join(hits[:20])
+    for gone in ["godot/scripts/ui/NorwayCoastline.gd", "godot/scripts/ui/MiniMap.gd",
+                 "godot/data/norway_coastline.json", "godot/scripts/ui/MapPanelEnhanced.gd.uid"]:
+        assert not (REPO / gone).exists(), gone
+
+
+def test_the_retired_check_finds_a_reference():
+    assert any(w in 'const X = preload("res://scripts/ui/' + "Norway" + 'Coastline.gd")' for w in RETIRED)
+    assert any(w in "var m := " + "Mini" + "Map.new()" for w in RETIRED)
+
+
+def test_map_panel_is_under_800_lines_and_keeps_its_public_api():
+    text = MAP_PANEL.read_text(encoding="utf-8")
+    assert len(text.splitlines()) < 800, len(text.splitlines())
+    for name in PUBLIC_API:
+        assert re.search(rf"^func {name}\(", text, flags=re.MULTILINE), name
+    assert re.search(r"^signal region_selected\(region_id: String\)", text, flags=re.MULTILINE)
+    assert re.search(r"^var _region_nodes: Dictionary", text, flags=re.MULTILINE)
+    # Track D's marked hooks: the drill stub and one Esc branch.
+    assert text.count("# geo-drill hook") == 1 and "func drill_into(" in text
+    # REGIONS and its invented stats are gone.
+    assert "const REGIONS" not in text and "key_operators" not in text and "disease_risk" not in text
+
+
+def test_map_geo_keys_exist_in_both_languages_and_are_used():
+    """Every MAP_GEO_* key the map's code names exists with an English and a
+    Norwegian text, and every MAP_GEO_* row is used. The map reads keys
+    through TranslationServer.translate(key), which test_text_correctness's
+    literal-key scan cannot follow."""
+    with TRANSLATIONS.open(encoding="utf-8", newline="") as f:
+        rows = {r[0]: r for r in csv.reader(f)}
+    sources = sorted(MAP_SCRIPTS.glob("*.gd")) + [MAP_PANEL, NATIONAL_CHECKS]
+    used = set()
+    for path in sources:
+        used |= set(re.findall(r'"(MAP_GEO_[A-Z0-9_]+)"', path.read_text(encoding="utf-8")))
+    assert len(used) >= 40, len(used)
+    missing = [k for k in sorted(used) if k not in rows or not rows[k][1].strip() or not rows[k][2].strip()]
+    assert not missing, missing
+    dead = [k for k in rows if k.startswith("MAP_GEO_") and k not in used]
+    assert not dead, dead
+
+
+def test_no_emoji_in_map_panel_and_the_national_checks():
+    for path in (MAP_PANEL, NATIONAL_CHECKS, TINT_SHADER):
+        text = path.read_text(encoding="utf-8")
+        assert not EMOJI.search(text), (path.name, EMOJI.findall(text))
+
+
+def test_the_sim_is_read_through_the_one_adapter():
+    """The national map calls the plan's reads (§3) by name, in one marked
+    adapter file; no other map script calls the facade for them."""
+    text = ADAPTER.read_text(encoding="utf-8")
+    assert "STUB ADAPTER" in text
+    for name in PLAN_READS:
+        assert f'has_real("{name}")' in text and f"_sim.{name}(" in text, name
+    for path in sorted(MAP_SCRIPTS.glob("*.gd")) + [MAP_PANEL]:
+        if path == ADAPTER:
+            continue
+        code = _code(path)
+        for name in PLAN_READS:
+            assert f".{name}(" not in code, f"{path.name} calls {name} outside the adapter"
+
+
+def test_gdscript_parses_localities_only_in_the_adapter_stub():
+    """The 618 KB localities.geojson is never parsed by the map (plan §8);
+    only the adapter's STUB reads it, until Track A's packed arrays arrive."""
+    marker = "# ── STUB (geo C2"
+    for path in sorted((REPO / "godot" / "scripts").rglob("*.gd")):
+        if "localities.geojson" not in _code(path):
+            continue
+        assert path == ADAPTER, path
+        text = path.read_text(encoding="utf-8")
+        head = "\n".join(_strip_comments(ln) for ln in text[: text.index(marker)].splitlines())
+        assert "localities.geojson" not in head and "localities.geojson" in text[text.index(marker):]
+
+
+def test_the_tint_shader_samples_the_raw_index_nearest():
+    text = TINT_SHADER.read_text(encoding="utf-8")
+    decl = re.search(r"uniform sampler2D po_index\s*:\s*([^;]*);", text)
+    assert decl and "filter_nearest" in decl.group(1) and "mipmap" not in decl.group(1)
+    assert "uniform vec4 tints[14];" in text
+    assert "uniform int hovered_id" in text and "uniform int selected_id" in text
+
+
+def test_the_map_inset_is_modelled_by_theme_lint():
+    """ThemeLint learns a TextureRect's lint_background (add-only), and the
+    national map's base map sets it to the deep-water token."""
+    lint = (REPO / "godot" / "tests" / "ThemeLint.gd").read_text(encoding="utf-8")
+    assert 'c is TextureRect and c.has_meta(&"lint_background")' in lint
+    view = (MAP_SCRIPTS / "GeoMapView.gd").read_text(encoding="utf-8")
+    assert 'set_meta(&"lint_background", MapPalette.deep_water())' in view
+
+
+def test_the_ui_layer_names_no_real_brand_spelling_of_the_rival():
+    """D17 close-out, Track C's half: with MapPanel's REGIONS gone, nothing in
+    godot/ spells the real brand 'NordLaks' (case-sensitive), and TextLint no
+    longer exempts it. Adding it to BRANDS and D17_BRANDS waits for Track A's
+    rename of the sim's roster (CompetitorAI, MarketIntelligence,
+    InvestmentManager), which the merge order puts first."""
+    brand = "Nord" + "Laks"
+    hits = []
+    for path in _text_files(REPO / "godot"):
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (UnicodeDecodeError, OSError):
+            continue
+        if brand in text:
+            hits.append(str(path.relative_to(REPO)))
+    assert not hits, hits
+    lint = (REPO / "godot" / "tests" / "TextLint.gd").read_text(encoding="utf-8")
+    allowed = lint[lint.index("const ALLOWED_TOKENS"):lint.index("]", lint.index("const ALLOWED_TOKENS"))]
+    assert f'"{brand}"' not in allowed

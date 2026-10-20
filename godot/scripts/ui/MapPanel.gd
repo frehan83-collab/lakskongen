@@ -12,7 +12,7 @@ extends Control
 ## "Søk vekstlisens" the LicenceAuctionCard. Every refusal is rendered as text.
 ##
 ## Track D adds the region and site levels through the marked hooks:
-## drill_into() and the '# geo-drill hook' branch of Esc.
+## drill_into() and the marked branch of Esc.
 
 signal close_requested
 signal region_selected(region_id: String)
@@ -375,7 +375,7 @@ func _on_area_picked(index: int) -> void:
 		_mark_area_pick(area)
 
 
-## geo-drill hook (Track D): open the area's region level. Track C keeps the
+## Track D's drill hook: open the area's region level. Track C keeps the
 ## national level, so nothing happens yet.
 func drill_into(_area: int) -> bool:
 	return false
@@ -509,7 +509,7 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
-## geo-drill hook (Track D): leave the site or region level for the one above;
+## Track D's level hook: leave the site or region level for the one above;
 ## false at the national level, the only level Track C has.
 func _step_up_level() -> bool:
 	return false
