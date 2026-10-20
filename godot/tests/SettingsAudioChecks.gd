@@ -488,9 +488,10 @@ func _save_slots_show_scenario_time_and_picture() -> void:
 		"save slots: the slot shows the save's local ISO date and time first ('%s')" % (details.text if details else ""))
 	# U2-08 review: the local time comes from C# by the zone's rules for the
 	# save's own instant (today's offset would shift saves across a DST change).
-	var fixed := {"time_local": "2026-07-01 12:00", "time_unix": 1_782_900_000}
+	# (A time_local that today's offset could not produce from its time_unix.)
+	var fixed := {"time_local": "2026-07-01 12:34", "time_unix": 0}
 	_check(details != null and str(entry.get("time_local", "")) == details.text.substr(0, 16)
-		and menu.slot_time(fixed) == "2026-07-01 12:00"
+		and menu.slot_time(fixed) == "2026-07-01 12:34"
 		and menu.slot_time({"time_unix": 1_782_900_000}) == menu.iso_local(1_782_900_000)
 		and menu.slot_time({}) == "",
 		"save slots: the slot's time is the save list's time_local ('%s'), today's offset only without it" % str(entry.get("time_local", "")))
@@ -738,6 +739,7 @@ func _save_and_leave_waits_for_the_picture() -> void:
 	var menu_pic: String = pictures.back() if not pictures.is_empty() else ""
 	_check(int(at_leave["menu"]) == before + 1 and menu_pic.get_file().begins_with("quicksave") and FileAccess.file_exists(menu_pic),
 		"save and leave: the quick save's picture is written before the main menu replaces the game (%d of 1 at the change)" % (int(at_leave["menu"]) - before))
+	await thumbs.wait_until_written()
 	before = thumbs.written
 	pause.show_menu()
 	await t.get_tree().process_frame
@@ -757,10 +759,12 @@ func _save_and_leave_waits_for_the_picture() -> void:
 	var gone_id := gone.get_instance_id()
 	gone.free()
 	var orphan: String = t.TEST_ROOT + "ci_orphan.thumb.png"
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(orphan))
 	var given_up: int = thumbs.abandoned
 	var wrote: bool = await thumbs.write_for(orphan, gone_id)
 	_check(not wrote and thumbs.abandoned == given_up + 1 and not FileAccess.file_exists(orphan),
-		"save pictures: a picture whose world left the tree is given up, never written")
+		"save pictures: a picture whose world left the tree is given up, never written (wrote %s, given up %d, file %s)" % [
+			str(wrote), thumbs.abandoned - given_up, str(FileAccess.file_exists(orphan))])
 	thumbs.image_source = Callable()
 	pause.hide_menu()
 	scene.queue_free()
