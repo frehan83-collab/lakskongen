@@ -27,7 +27,9 @@ extends RefCounted
 ##    fjord tab with that site selected; the hav_1 hexagon -> the Hav family
 ##    with hav_1 chosen.
 ## 8. Live data: a quiet day re-reads no candidate; with the map closed no
-##    geo read happens on day signals.
+##    geo read happens on day signals. The national chart's site hook
+##    (MapPanel._on_feature_clicked, C2's feature_clicked) opens a
+##    candidate's, a hexagon's, a company site's and a rival's card.
 ## 9. Lints: the region view and the site card at 1280x720, 100 % and 125 %:
 ##    layout, theme, contrast and Norwegian text; every button answers.
 ##
@@ -195,6 +197,7 @@ func _flows(scene: Node) -> void:
 	await _stars_and_cards(map)
 	await _live_data(map)
 	await _lints(map)
+	await _national_features(map)
 	await _actions(ui, map)
 	await _hidden_map(ui, map)
 
@@ -439,6 +442,65 @@ func _lints(map: Control) -> void:
 		"geo region: every region and card control answers without a warning, every disabled one says why (%d presses) %s %s" % [presses, str(silent), str(warned.slice(0, 2))])
 	if map.map_level() == "site":
 		drill.step_up()
+
+
+## Track D's site hook on the national chart (C2's feature_clicked reaches
+## MapPanel._on_feature_clicked): a candidate, a hexagon, a company site and a
+## rival locality each open their card in their own area; a salmon fjord or
+## an offshore area keeps the national level.
+func _national_features(map: Control) -> void:
+	var drill: GeoDrillStack = map.geo_drill()
+	drill.go_national()
+	map._on_feature_clicked("candidates", "PO04-02")
+	await t.get_tree().process_frame
+	var card := drill.site_card()
+	_check(map.map_level() == "site" and drill.area() == 4 and card.kind() == "candidate"
+			and String(card.row().get("id", "")) == "PO04-02" and int(map.expansion_section().area().get("production_area", 0)) == 4,
+		"geo region: a click on a national candidate opens its card in its own area, the area picked (%s)" % map.map_level())
+	drill.go_national()
+	var bound := ""
+	for r: Dictionary in GeoRegionBridge.offshore_candidates(sim, AREA):
+		if String(r.get("bound_plot_id", "")) != "":
+			bound = String(r["id"])
+	map._on_feature_clicked("hexagon", bound)
+	await t.get_tree().process_frame
+	_check(map.map_level() == "site" and card.kind() == "offshore" and String(card.row().get("id", "")) == bound
+			and card.action() == "hav",
+		"geo region: a click on hav_1's national hexagon opens its card with 'Bygg her (hav)' (%s)" % bound)
+	drill.go_national()
+	var sites := GeoRegionBridge.player_site_locations(sim)
+	var site_id := String(sites[0].get("site_id", "")) if not sites.is_empty() else ""
+	map._on_feature_clicked("player", site_id)
+	await t.get_tree().process_frame
+	_check(map.map_level() == "site" and card.kind() == "site" and String(card.row().get("site_id", "")) == site_id
+			and card.action() == "view_3d",
+		"geo region: a click on a company site opens its card with 'Vis i 3D' (%s)" % site_id)
+	drill.go_national()
+	var geo := GeoRegionBridge.geo_sites(sim)
+	var owned := -1
+	var ids: PackedInt32Array = geo["ids"]
+	for i in ids.size():
+		if int(geo["po"][i]) == AREA and int(geo["owner"][i]) >= 0:
+			owned = ids[i]
+			break
+	if owned >= 0:
+		map._on_feature_clicked("site", str(owned))
+		await t.get_tree().process_frame
+		_check(map.map_level() == "site" and card.kind() == "rival" and int(card.row().get("id", -1)) == owned,
+			"geo region: a click on a rival's national site opens its card (live: locality %d)" % owned)
+	else:
+		map._on_feature_clicked("site", "10029")
+		await t.get_tree().process_frame
+		_check(map.map_level() == "national",
+			"geo region: a national site click without track A's rival lane keeps the national level (stub)")
+	drill.go_national()
+	map._on_feature_clicked("fjord", "Hardangerfjorden")
+	map._on_feature_clicked("offshore_area", "Utsira nord")
+	await t.get_tree().process_frame
+	_check(map.map_level() == "national" and not drill.visible,
+		"geo region: a click on a salmon fjord or an offshore area keeps the national level")
+	map.drill_into(AREA)
+	await t.get_tree().process_frame
 
 
 ## The region view's own overlays (crumbs, chips, legend, readout) stay inside

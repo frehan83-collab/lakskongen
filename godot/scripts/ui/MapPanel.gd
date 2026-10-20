@@ -349,7 +349,6 @@ func _ready() -> void:
 	_add_dialogs()
 	# Region markers are built deferred so the map container has layout size.
 	call_deferred("_build_region_markers")
-	_geo_hooks_ready.call_deferred()  # geo-drill hook (Track D): after the markers exist
 	hide()
 	if _sim != null:
 		_sim.state_updated.connect(_on_sim_changed)
@@ -743,8 +742,9 @@ func _input(event: InputEvent) -> void:
 		return
 
 	if event.is_action_pressed("ui_cancel"):
-		# geo-drill hook (Track D): below national, Esc steps up one level and is consumed.
-		if _geo_step_up():
+		# geo-drill hook: Track D steps up one level here (site -> region ->
+		# national) and consumes Esc; at the national level Esc closes the tab.
+		if _step_up_level():
 			get_viewport().set_input_as_handled()
 			return
 		hide()
@@ -1225,13 +1225,17 @@ class _TempBar extends Control:
 
 
 # ═══ BEGIN geo-drill hook (Track D: the region and site levels, docs/geo/STAGE23_PLAN.md §2 D) ═══
-# MapPanel reaches the levels below national only through this block, the
-# one deferred call in _ready and the Esc branch in _input (each marked
-# "geo-drill hook"). The levels live in godot/scripts/ui/map/GeoDrillStack.gd.
-# Merge note: C2's MapPanel v2 replaces the national chart, its markers and
-# REGIONS; at that merge wire GeoMapView.area_drill_requested to drill_into
-# and keep this block (it reads _region_nodes, _region_area, _selected_region_id,
-# _area_picker, _map_container, _overview, _build_dialog and _auction_card).
+# MapPanel reaches the levels below national only through this block and the
+# Esc branch in _input (marked "geo-drill hook", word for word Track C2's).
+# The levels live in godot/scripts/ui/map/GeoDrillStack.gd.
+# Merge note (C2 = geo/map-national-2): C2's MapPanel v2 declares the stubs
+# drill_into(), _on_feature_clicked() and _step_up_level(); this block holds
+# their bodies, so at the merge delete C2's three stubs and keep this block.
+# C2's GeoMapView already wires area_drill_requested (a plate's double-click
+# or Enter) and feature_clicked to them; the marker double-click below then
+# stands down by itself (has_method("chart")). The block reads _region_nodes,
+# _region_area, _selected_region_id, _home_area, _area_picker, _map_container,
+# _overview, _build_dialog, _auction_card and region_selected, all in C2's v2.
 
 var _geo_drill: GeoDrillStack = null
 var _geo_explore_btn: Button = null
@@ -1283,19 +1287,38 @@ func _geo_stack() -> GeoDrillStack:
 	return _geo_drill
 
 
-## Esc below national: one level up (true when it was consumed).
-func _geo_step_up() -> bool:
+## Track D's level hook (Esc, the marked branch of _input): leave the site
+## or region level for the one above; false at the national level.
+func _step_up_level() -> bool:
 	return _geo_drill != null and _geo_drill.step_up()
 
 
+## Track D's site hook: a click on a feature of the national chart (C2's
+## GeoMapView.feature_clicked: "candidates", "hexagon", "player", "site")
+## drills into its area and opens its card; any other kind keeps the
+## national level (the click selects the area as before).
+func _on_feature_clicked(kind: String, id: String) -> void:
+	if kind in GeoDrillStack.FEATURE_KINDS:
+		_geo_stack().open_feature(kind, id)
+
+
+## A national-level start for Track D's hooks (no edit to _ready): wired the
+## frame after the panel is ready, when the markers exist.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_READY:
+		_geo_hooks_ready.call_deferred()
+
+
 func _geo_hooks_ready() -> void:
-	# A double-click on an area's marker drills into it.
-	for rid: String in _region_nodes:
-		var marker: Control = _region_nodes[rid]
-		marker.gui_input.connect(func(event: InputEvent) -> void:
-			var mb := event as InputEventMouseButton
-			if mb != null and mb.pressed and mb.double_click and mb.button_index == MOUSE_BUTTON_LEFT:
-				drill_into(_region_area(rid)))
+	# A double-click on an area's marker drills into it (C2's plates and chart
+	# emit area_drill_requested themselves).
+	if not has_method("chart"):
+		for rid: String in _region_nodes:
+			var marker: Control = _region_nodes[rid]
+			marker.gui_input.connect(func(event: InputEvent) -> void:
+				var mb := event as InputEventMouseButton
+				if mb != null and mb.pressed and mb.double_click and mb.button_index == MOUSE_BUTTON_LEFT:
+					drill_into(_region_area(rid)))
 	var host := find_child("DetailInner", true, false) as VBoxContainer
 	if host != null and _area_picker != null:
 		_geo_explore_btn = Button.new()

@@ -21,6 +21,8 @@ extends Control
 signal level_changed(level: String)
 
 const FADE_S := 0.16
+## The national chart's feature kinds open_feature answers (C2's feature_clicked).
+const FEATURE_KINDS: Array[String] = ["candidates", "hexagon", "player", "site"]
 
 var _panel: Control = null
 var _sim: Object = null
@@ -117,8 +119,7 @@ func drill_into(po: int) -> bool:
 		return false
 	drill_count += 1
 	_po = po
-	var home: Variant = _panel.call("home_area") if _panel != null and _panel.has_method("home_area") else 0
-	_region.show_area(po, _sim, int(home))
+	_region.show_area(po, _sim, _home_area())
 	_site.visible = false
 	_region.visible = true
 	_set_level("region")
@@ -140,6 +141,55 @@ func _first_candidate_id() -> String:
 		if bool(row.get("suggested", false)):
 			return String(row.get("id", ""))
 	return String(rows[0].get("id", "")) if not rows.is_empty() else ""
+
+
+## Open the card of a feature clicked on the national chart (Track C2's
+## GeoMapView.feature_clicked): drill into its area, then open its card.
+## "candidates" (a cluster's best candidate id), "hexagon" (a Havbruk til havs
+## id), "player" (a company site id), "site" (a locality id; its card when
+## the locality has a rival owner). False when the feature is not found (the
+## level does not change).
+func open_feature(kind: String, id: String) -> bool:
+	match kind:
+		"candidates":
+			var po := 0
+			for s: Dictionary in GeoData.candidates():
+				if String(s.get("id", "")) == id and s.get("type", "") == "open_pen":
+					po = int(s.get("po", 0))
+			if not _drill_from_panel(po):
+				return false
+			var row := _row_with(_region.candidates(), "id", id)
+			if not row.is_empty():
+				open_candidate(row)
+			return true
+		"hexagon":
+			var row := _row_with(GeoRegionBridge.offshore_candidates(_sim, _home_area()), "id", id)
+			if row.is_empty() or not _drill_from_panel(int(row.get("po", 0))):
+				return false
+			var shown := _row_with(_region.offshore(), "id", id)
+			if not shown.is_empty():
+				open_offshore(shown)
+			return true
+		"player":
+			var row := _row_with(GeoRegionBridge.player_site_locations(_sim), "site_id", id)
+			if row.is_empty() or not _drill_from_panel(int(row.get("po", 0))):
+				return false
+			var shown := _row_with(_region.player_sites(), "site_id", id)
+			if not shown.is_empty():
+				open_player_site(shown)
+			return true
+		"site":
+			var sites := GeoRegionBridge.geo_sites(_sim)
+			var ids: PackedInt32Array = sites.get("ids", PackedInt32Array())
+			var at := ids.find(int(id)) if id.is_valid_int() else -1
+			var pos: PackedByteArray = sites.get("po", PackedByteArray())
+			if at < 0 or at >= pos.size() or not _drill_from_panel(int(pos[at])):
+				return false
+			for icon: Dictionary in (_region.rival_layer() as Object).get("icons"):
+				if int(icon.get("id", -1)) == int(id):
+					open_rival(icon)
+			return true
+	return false
 
 
 ## Open a candidate's card (a star or its button).
@@ -222,6 +272,26 @@ func _enter_site(place: String) -> void:
 		action.grab_focus.call_deferred()
 	else:
 		_site.back_button().grab_focus.call_deferred()
+
+
+## Drill through the panel (it also selects the area in the detail column).
+func _drill_from_panel(po: int) -> bool:
+	if po < 1:
+		return false
+	if _panel != null and _panel.has_method("drill_into"):
+		return bool(_panel.call("drill_into", po))
+	return drill_into(po)
+
+
+func _home_area() -> int:
+	return int(_panel.call("home_area")) if _panel != null and _panel.has_method("home_area") else 0
+
+
+static func _row_with(rows: Array, key: String, value: String) -> Dictionary:
+	for row: Dictionary in rows:
+		if String(row.get(key, "")) == value:
+			return row
+	return {}
 
 
 func _go_to(level: String) -> void:
