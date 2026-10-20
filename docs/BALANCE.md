@@ -2446,13 +2446,13 @@ fires, the alarm load, and the unit's own ledger lines at its equity.
 | 4 | the tow | only on `StartTow`; a failed window shelters 5-15 days with the tugs paid, no damage | as required (`OffshoreUnitBuildTests`) |
 | 5 | a 90-day shakedown reveals ≥ 1 defect | ≥ 70 % of seeds | 40 of 40 seeds; a defect fixed before stocking never fires |
 | 6 | consortium | 35 % of every line and capex; buy-out book × 1.2 | as required (`AConsortiumUnit_…`) |
-| 7 | no fjord storm wear on a unit; opex/kg HOG ex feed and depreciation against an open pen in the same PO | no fjord wear; 1.15-1.45 | 240 days at off_1, storm days included: every day's net and structure loss is exactly the unit's own wear for its sea; the ratio: median 1.885 (1.58-2.37), held back: RUN_LOG §8 (F2-07) |
+| 7 | no fjord storm wear on a unit; opex/kg HOG ex feed and depreciation against an open pen in the same PO | no fjord wear; 1.15-1.45 | 240 days at off_1, storm days included: every day's net and structure loss is exactly the unit's own wear for its sea; the ratio: median 1.885 (1.58-2.37), held back: RUN_LOG §8 (F2-07); as information, smolts kept 1.557 (1.31-2.06), all in 1.145 (0.96-1.56) |
 | 8 | a policy-only unit, 2 years, events on | ≥ 18 of 20 seeds without a silo-empty day | 20 of 20; 10-19 resupplies, 97-102 crew changes |
 | 9 | save and twin mid-tow and mid-booking; goldens | identical | identical; 27 of 27 golden traces identical |
 
 ### Acceptance 7 in lines (NOK/kg HOG, 10 seeds; a typical seed, ranges where they spread)
 
-| line | open pen (po3) | offshore unit (off_1) |
+| line | open pen (PO 4) | offshore unit (off_1) |
 |---|---|---|
 | harvest | 5.00 | 5.77 |
 | maintenance | (in operations) | 5.16 |
@@ -2466,6 +2466,20 @@ fires, the alarm load, and the unit's own ledger lines at its equity.
 
 The unit's three dearest seeds (3, 4, 5: 23.4-25.4) lost fish to the
 storyteller's ISA cull, so fewer kilos carried the same fixed lines.
+
+The same ten seeds on three bases (re-measured 2026-10-20, `OffshoreCycleTests`
+prints them; medians, range in brackets):
+
+| basis | open pen (PO 4) | offshore unit | ratio |
+|---|---|---|---|
+| ex feed, spill and smolts (pre-registered, the skipped band test) | 9.0-12.1 | 18.2-25.4 | 1.885 (1.58-2.37) |
+| ex feed and spill, smolts kept (acceptance 7's words) | 12.6-17.3 | 21.5-30.7 | 1.557 (1.31-2.06) |
+| all in, feed and smolts kept ([O:R37]'s basis, 56 against ~43 = 1.30) | 45.3-57.7 | 54.7-76.5 | 1.145 (0.96-1.56) |
+
+Feed a kilo of HOG: open pen 32.7-41.0 NOK, unit 33.1-33.6 in the seven
+seeds the ISA cull spared and 41.6-45.8 in the three it hit. No basis puts the
+median inside 1.15-1.45;
+the owner's choice is RUN_LOG §8 (F2-07).
 
 ## 2. Key economic knobs
 

@@ -309,4 +309,30 @@ public class OffshoreUnitBuildTests
 
     private static decimal engine_PaidOf((SimulationEngine Engine, SeaSite Site, Dictionary<string, decimal> Lines) run)
         => run.Engine.OffshoreProjectOf(run.Site)!.PaidNOK;
+
+    /// <summary>
+    /// The unit's gauges and the window board read one sea from the build on
+    /// (spec §6.5): the day a unit is contracted between days, its Hs today is
+    /// the forecast's today at its plot (before the next Metocean phase gives
+    /// every unit its sea), and so on each day after; building it draws only
+    /// the new sea's eight uniforms.
+    /// </summary>
+    [Fact]
+    public void AUnitBuiltBetweenDays_ReadsTheBoardsSea_FromItsFirstDay()
+    {
+        var engine = OffshoreTestUnits.UnlockedForOf1(9);
+        var built = engine.BuildOffshoreUnit("off_1", OffshoreType.SemiSubmersible, ContractForm.Managed);
+        Assert.True(built.Ok, built.Message);
+        var site = engine.FindOffshoreUnit(built.Id)!;
+        for (int day = 0; day < 3; day++)
+        {
+            var board = engine.GetSeaStateForecastView(site.Id)!;
+            var gauges = engine.GetOffshoreUnitState(site.Id)!;
+            Assert.Equal(engine.State.Day, board.IssuedDay);
+            Assert.True(board.HsTodayM > 0.0, $"day {engine.State.Day}: no sea at the plot");
+            Assert.Equal(board.HsTodayM, gauges.HsTodayM);
+            Assert.Equal(OperabilityWindows.AppetiteFactor(board.HsTodayM, Cal.Operability), gauges.AppetiteToday);
+            engine.Advance(1);
+        }
+    }
 }

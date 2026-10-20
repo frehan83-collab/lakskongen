@@ -157,6 +157,8 @@ func _run() -> void:
 	_test_offshore_unit_and_fleet()
 	# F2-03: an offshore unit leaves the fjord's pen layout alone.
 	await _test_offshore_unit_leaves_fjord_pens_in_place()
+	# F2-06 wiring and F2-07: the sea lane's bridge verbs in the running game.
+	await _test_offshore_bridge_verbs()
 	# F2-04: the farm-type catalogue and the research gates reach the UI.
 	await _test_farm_type_catalog_reaches_the_ui()
 	# F2-05: the Driftsplan card sets, changes and ends standing orders.
@@ -7397,3 +7399,11 @@ func _test_driftsplan_card_sets_and_runs_standing_orders() -> void:
 		"driftsplan: a farm-type event names its unit, and a failed order has its verb and title")
 	panel.queue_free()
 	await get_tree().process_frame
+
+
+## F2-06 wiring and F2-07: the build preview, the sea-state forecast, the
+## unit's gauges and construction, the booking preview and the refusals reach
+## GDScript through SimBridge (tests/OffshoreBridgeChecks.gd).
+func _test_offshore_bridge_verbs() -> void:
+	var checks: RefCounted = (load("res://tests/OffshoreBridgeChecks.gd") as GDScript).new()
+	await checks.run(self)

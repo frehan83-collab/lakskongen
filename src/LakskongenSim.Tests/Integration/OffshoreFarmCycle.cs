@@ -50,6 +50,17 @@ public static class OffshoreFarmCycle
         public double AllInPerKgHog => HogKg > 0
             ? (double)Lines.Where(kv => kv.Key is not ("tax" or "interest")).Sum(kv => kv.Value) / HogKg
             : double.NaN;
+
+        /// <summary>
+        /// Operating cost ex feed and its spill, smolts kept (tax and interest
+        /// left out; depreciation is no ledger line), per kilo of gutted fish
+        /// sold (NOK/kg HOG): acceptance 7's words read literally, "opex/kg (ex
+        /// feed, ex depreciation)". Information beside the pre-registered
+        /// ratio, which also leaves the smolts out.
+        /// </summary>
+        public double OpexWithSmoltsPerKgHog => HogKg > 0
+            ? (double)Lines.Where(kv => kv.Key is not ("feed" or "feed_spill" or "tax" or "interest")).Sum(kv => kv.Value) / HogKg
+            : double.NaN;
     }
 
     /// <summary>

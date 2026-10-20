@@ -176,6 +176,7 @@ public partial class SimulationEngine
         }
         unit.ConstructionProjectId = started.Id;
         EnsureOffshoreSea();
+        TakeTodaysSea(site); // its gauges read the sea the window board shows from its first day
         ApplyDriftsplanDefaults(site.Id);
         State.EventLog.Add(new EventRecord
         {

@@ -66,10 +66,21 @@ public partial class SimulationEngine
         {
             TickOffshoreSea();
         }
-        var sea = State.Metocean!;
         foreach (var site in State.SeaSites)
             if (site.Kind == SiteKind.Offshore && site.Offshore != null)
-                site.Offshore.CurrentWaveHeight = SeaOverrideForTests?.Invoke(site, sea.LastTickDay) ?? sea.HsAt(PlotHsScaleOf(site));
+                TakeTodaysSea(site);
+    }
+
+    /// <summary>
+    /// An offshore unit takes the sea's day at its plot (the Metocean phase for
+    /// every unit; a unit built between days at once, so its gauges and the
+    /// window board read the same sea on its first day). Draws nothing.
+    /// </summary>
+    internal void TakeTodaysSea(SeaSite site)
+    {
+        var sea = State.Metocean;
+        if (sea == null || sea.LastTickDay < 0 || site.Offshore == null) return;
+        site.Offshore.CurrentWaveHeight = SeaOverrideForTests?.Invoke(site, sea.LastTickDay) ?? sea.HsAt(PlotHsScaleOf(site));
     }
 
     /// <summary>

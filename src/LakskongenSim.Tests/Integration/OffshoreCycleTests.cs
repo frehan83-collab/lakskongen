@@ -111,6 +111,7 @@ public class OffshoreCycleTests
     {
         var ratios = new List<double>();
         var allIn = new List<double>();
+        var withSmolts = new List<double>();
         foreach (int seed in Enumerable.Range(1, 10))
         {
             var fjord = OffshoreFarmCycle.Run(seed, offshore: false);
@@ -118,16 +119,20 @@ public class OffshoreCycleTests
             double ratio = unit.OpexPerKgHog / fjord.OpexPerKgHog;
             ratios.Add(ratio);
             allIn.Add(unit.AllInPerKgHog / fjord.AllInPerKgHog);
+            withSmolts.Add(unit.OpexWithSmoltsPerKgHog / fjord.OpexWithSmoltsPerKgHog);
             _out.WriteLine($"seed {seed}: fjord {fjord.OpexPerKgHog:F2} NOK/kg HOG ({fjord.HogKg / 1000:N0} t, {fjord.Days} d), " +
                 $"offshore {unit.OpexPerKgHog:F2} ({unit.HogKg / 1000:N0} t, {unit.Days} d), ratio {ratio:F3}; " +
+                $"smolts kept: fjord {fjord.OpexWithSmoltsPerKgHog:F2}, offshore {unit.OpexWithSmoltsPerKgHog:F2}, ratio {withSmolts[^1]:F3}; " +
                 $"all in (feed and smolts kept): fjord {fjord.AllInPerKgHog:F2}, offshore {unit.AllInPerKgHog:F2}, ratio {allIn[^1]:F3}");
             _out.WriteLine("  fjord: " + string.Join(", ", fjord.Lines.OrderByDescending(kv => kv.Value).Select(kv => $"{kv.Key} {(double)kv.Value / fjord.HogKg:F2}")));
             _out.WriteLine("  unit:  " + string.Join(", ", unit.Lines.OrderByDescending(kv => kv.Value).Select(kv => $"{kv.Key} {(double)kv.Value / unit.HogKg:F2}")));
         }
         ratios.Sort();
         allIn.Sort();
+        withSmolts.Sort();
         double median = (ratios[4] + ratios[5]) / 2.0;
         _out.WriteLine($"ratio min {ratios[0]:F3} median {median:F3} max {ratios[^1]:F3}");
+        _out.WriteLine($"smolts-kept ratio (information, acceptance 7's words) min {withSmolts[0]:F3} median {(withSmolts[4] + withSmolts[5]) / 2.0:F3} max {withSmolts[^1]:F3}");
         _out.WriteLine($"all-in ratio (information, [O:R37]'s basis) min {allIn[0]:F3} median {(allIn[4] + allIn[5]) / 2.0:F3} max {allIn[^1]:F3}");
         return median;
     }
