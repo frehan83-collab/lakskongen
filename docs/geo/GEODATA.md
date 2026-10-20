@@ -306,6 +306,9 @@ GIS package).
   (UiFlowTests) and `tests/test_geo_map_contract.py` pin them. The game
   never parses `localities.geojson` in GDScript; the icons come from the
   sim's packed arrays (Track A).
+  Merged into geo/int (`4ea2cf8`); the captain's fix `e87371f` makes the id
+  cast exact, so only a whole-number `id`, `po`, `rank` or `area_id` becomes
+  an int and a fractional one keeps its float value.
 - Credits: `godot/data/credits.json` already lists the seven map-data
   providers with their attribution notices (translation keys in
   `translations.csv`), so `CreditsScreen` shows them with no code change.
