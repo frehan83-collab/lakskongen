@@ -2313,6 +2313,36 @@ func _tap_key_now(keycode: Key, unicode: int = 0) -> void:
 		ev.pressed = pressed
 		get_viewport().push_input(ev)
 
+## Best-of-5 time of _calibration_workload_ms() on the reference machine
+## (Apple M1 Pro, headless Godot 4.7.2; 23.11-23.20 ms in three runs at load
+## average ~2.7, measured 2026-10-20).
+const CALIBRATION_REFERENCE_MS := 23.0
+
+## How much slower this machine runs a fixed GDScript workload than the
+## reference: best of 5 runs after a warm-up, never below 1.
+func _machine_speed_factor() -> float:
+	_calibration_workload_ms()
+	var best := INF
+	for i in 5:
+		best = minf(best, _calibration_workload_ms())
+	return maxf(1.0, best / CALIBRATION_REFERENCE_MS)
+
+## A fixed, deterministic GDScript workload shaped like the UI's daily work:
+## an integer stream, float maths and dictionary writes.
+func _calibration_workload_ms() -> float:
+	var t0 := Time.get_ticks_usec()
+	var table := {}
+	var acc := 0.0
+	var x := 88172645
+	for i in 200000:
+		x = (x * 1103515245 + 12345) & 0x7fffffff
+		var v := float(x) / 2147483647.0
+		acc += sqrt(v) * exp(-v)
+		table[x & 1023] = acc
+	if is_nan(acc):
+		push_error("calibration workload produced NaN")
+	return float(Time.get_ticks_usec() - t0) / 1000.0
+
 ## A real Cmd+key (macOS) / Ctrl+key (elsewhere) press and release.
 func _press_command_key(keycode: Key) -> void:
 	for pressed in [true, false]:
@@ -6076,7 +6106,12 @@ func _test_thirty_times_refreshes_once_a_day_within_a_frame() -> void:
 	ui_ms.sort()
 	engine_ms.sort()
 	var p95: float = ui_ms[mini(int(ui_ms.size() * 0.95), ui_ms.size() - 1)] if not ui_ms.is_empty() else 999.0
-	_check(p95 <= 16.7, "30×: p95 of the UI side of a day %.1f ms <= 16.7 ms (%d days)" % [p95, ui_ms.size()])
+	# 16.7 ms is the budget on the reference machine (M1 Pro). A slower machine
+	# (a two-core CI runner) gets it scaled by an in-process CPU calibration,
+	# never below 16.7 ms, so the check is as strict as before on the reference.
+	var factor := _machine_speed_factor()
+	var limit := 16.7 * factor
+	_check(p95 <= limit, "30×: p95 of the UI side of a day %.1f ms <= %.1f ms (16.7 x machine factor %.2f; %d days)" % [p95, limit, factor, ui_ms.size()])
 	if not ui_ms.is_empty():
 		print("  info 30× UI side ms per day: p50 %.2f p95 %.2f max %.2f; engine p50 %.2f p95 %.2f max %.2f (%d days)" % [
 			ui_ms[ui_ms.size() / 2], p95, ui_ms.back(), engine_ms[engine_ms.size() / 2],
