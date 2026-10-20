@@ -2853,6 +2853,25 @@ seed 7; a real player who reads the planner's "2, 4, 8 weeks" columns can
 wait and may not need the loan. The season takes about 22 s of real time
 headless at 30×.
 
+## 1ab. Geo stages 2-3: the rival layout, parody names and hav_1's open-sea binding (reserved, branch `geo/sim-data`)
+
+Reserved by the geo merge captain (P0 on `geo/int`, 2026-10-20) for Track A
+of `docs/geo/STAGE23_PLAN.md`. Track A owns this section; no other geo track
+edits it (plan §4, hot-file rules). It will hold:
+
+- the rival layout rule (`Finance/RivalLayout.cs`): the pool, each major's
+  sea-site share (round(TotalMABTonnes / 1,250,000 × 994)), the home-area
+  preferences, locality 45196, the independents' grouping, measured counts;
+- the generated parody-name word lists (`Finance/ParodyNames.cs`) for review:
+  the captain reviews them before Track A merges, the owner can veto later
+  (ruling OD10), with the offline holder-name check's match count (must be 0);
+- hav_1's open-sea binding constants as `[GameBalance]` (ruling OD2): Z =
+  -clamp(5200 × km / 83, 4600, 9000), nearest Havbruk til havs candidate to
+  the home area's label.
+
+Nothing here changes a calibration number: the layout and the binding are
+display-only (rulings OD3 and OD4).
+
 ## 2. Key economic knobs
 
 | Knob | Current | Real reference | Source | Recommended playtest band |

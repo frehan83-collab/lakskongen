@@ -278,12 +278,18 @@ GIS package).
 - Read JSON/GeoJSON with `FileAccess` + `JSON.parse_string` (GDScript) or
   `System.Text.Json` (C#). Parse once and cache, as `NorwayCoastline.gd` does.
 - **The data PNGs are data, not pictures**: `suitability/*.png` and
-  `po_index.national.png` must keep exact byte values. Set their import to
-  *Keep File (no import)* or read them with `FileAccess.get_file_as_bytes` +
-  `Image.load_png_from_buffer`, and sample with nearest filtering, no mipmaps,
-  no VRAM compression. The JPEG base maps can use the normal texture import.
-- The export presets have an empty `include_filter`; add `data/geo/*` (JSON,
-  GeoJSON, MD and the data PNGs) so exports carry the non-resource files.
+  `po_index.national.png` must keep exact byte values. Read them with
+  `FileAccess.get_file_as_bytes` + `Image.load_png_from_buffer` (not `load()`),
+  and sample with nearest filtering, no mipmaps, no VRAM compression.
+  Status (geo P0, 2026-10-20): their 14 `.import` sidecars are committed with
+  `importer="keep"` (*Keep File*), and the 14 JPEG base maps import as
+  lossless textures with mipmaps (`detect_3d/compress_to=0`), pinned by
+  `tests/test_geo_packaging.py`.
+- Status (geo P0, 2026-10-20, ruling OD13): both export presets carry this
+  explicit `include_filter`:
+  `data/geo/*.json,data/geo/*.geojson,data/geo/*.md,data/geo/suitability/*.png,data/geo/basemap/po_index.national.png`.
+  Exports pack every file the game reads raw and never the raw JPEGs (their
+  imported textures ship as resources); `tests/test_geo_packaging.py` pins it.
 - Credits: `godot/data/credits.json` already lists the seven map-data
   providers with their attribution notices (translation keys in
   `translations.csv`), so `CreditsScreen` shows them with no code change.
