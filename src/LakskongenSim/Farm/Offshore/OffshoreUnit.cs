@@ -15,6 +15,21 @@ namespace LakskongenSim.Farm.Offshore
         Harvest = 2,
         /// <summary>The standing biomass must come down under the MTB.</summary>
         MtbRelief = 3,
+        /// <summary>The nets' inspection is overdue (F2-08: the regulator's 90 days plus 30).</summary>
+        NetInspection = 4,
+    }
+
+    /// <summary>How far the regulator's escalation of an open handling requirement has gone (F2-08, spec §3.3).</summary>
+    public enum HandlingStage
+    {
+        /// <summary>No requirement, or one inside its first 21 days.</summary>
+        None = 0,
+        /// <summary>The warning (HandlingOverdue) is out.</summary>
+        Warned = 1,
+        /// <summary>Mattilsynet has ordered the handling done (MattilsynetOrder).</summary>
+        Ordered = 2,
+        /// <summary>A site-withdrawal case is open (SiteApprovalWithdrawn).</summary>
+        Withdrawal = 3,
     }
 
     /// <summary>
@@ -56,7 +71,7 @@ namespace LakskongenSim.Farm.Offshore
         /// <summary>Today's significant wave height at the unit (m).</summary>
         public double CurrentWaveHeight { get; set; }
 
-        /// <summary>True on a day the sea keeps the crew from working the unit (a storm or Hs over <see cref="LockdownHsM"/>).</summary>
+        /// <summary>True on a day no vessel can stay alongside the unit: its plot's Hs above the wellboat-alongside limit (F2-07, 5.0 m [O:R37]); feeding goes on.</summary>
         public bool IsStormLockdown { get; set; }
 
         /// <summary>Days since the last crew change.</summary>
@@ -250,37 +265,160 @@ namespace LakskongenSim.Farm.Offshore
             return pens;
         }
 
-        // ── The day (the pre-F2 OffshoreFarm.TickDay, F2-07 replaces it) ────
 
-        /// <summary>Hs (m) above which the crew stops work at the unit (pre-F2 rule; F2-06/F2-07 use operation limits).</summary>
-        public const double LockdownHsM = 6.0;
+        // ── F2-07: logistics, operations, teething, sensors (the unit's day is
+        //    OffshoreTickSystem's; these are its saved state) ─────────────────
+
+        /// <summary>The shakedown the player chose (days; -1 none chosen, 0 none wanted): first stocking waits this long after commissioning.</summary>
+        public int ShakedownDays { get; set; } = -1;
+
+        /// <summary>The day the unit was commissioned (its silo filled, its deck drawn); -1 before.</summary>
+        public int CommissionedDay { get; set; } = -1;
+
+        /// <summary>True for a unit built through the player's build verb: it draws a teething deck at commissioning (the legacy and scenario path does not).</summary>
+        public bool HasTeethingDeck { get; set; }
+
+        /// <summary>Days the crew change is overdue (past the rota's interval).</summary>
+        public int CrewOverdueDays { get; set; }
+
+        /// <summary>The sea day the unit last fed its fish from the silo (-1 never).</summary>
+        public int LastFeedDay { get; set; } = -1;
+
+        /// <summary>Feed taken from the silo on <see cref="LastFeedDay"/> (t).</summary>
+        public double FeedTodayTonnes { get; set; }
+
+        /// <summary>Feed taken on each of the last days, oldest first (t; the silo's days-of-feed figure).</summary>
+        public List<double> RecentFeedTonnes { get; set; } = new();
+
+        /// <summary>Days the unit held fish and could not feed them for an empty silo.</summary>
+        public int SiloEmptyDays { get; set; }
+
+        /// <summary>Kilos of dead fish already put in the ensilage tank (the mortality ledger's total at the unit).</summary>
+        public double DeadKgCollected { get; set; }
+
+        /// <summary>The unit's vessel operations, in booking order (done ones kept for the record).</summary>
+        public List<OffshoreBooking> Bookings { get; set; } = new();
+
+        /// <summary>Number of the next booking ("&lt;unit&gt;/ob_N").</summary>
+        public int NextBookingNumber { get; set; } = 1;
+
+        /// <summary>The day the current tow started (-1 when no tow runs).</summary>
+        public int TowStartedDay { get; set; } = -1;
+
+        /// <summary>The last day the unit shelters after a failed tow window (-1 when it does not).</summary>
+        public int TowShelterUntilDay { get; set; } = -1;
+
+        /// <summary>Tow windows tried.</summary>
+        public int TowAttempts { get; set; }
+
+        /// <summary>Tow windows that failed (each a shelter).</summary>
+        public int TowFailures { get; set; }
+
+        /// <summary>The teething deck (spec §3.3), in slot order.</summary>
+        public List<TeethingDefect> TeethingDefects { get; set; } = new();
+
+        /// <summary>The installed sensor packages.</summary>
+        public List<SensorPackage> Sensors { get; set; } = new();
+
+        /// <summary>Structural integrity as the player last knew it (0-1; live with the motion sensor package).</summary>
+        public double StructureKnown { get; set; } = 1.0;
+
+        /// <summary>Net integrity as the player last knew it (%; live with the subsea cameras).</summary>
+        public double NetKnownPct { get; set; } = 100.0;
+
+        /// <summary>The sea day of the unit's first stocking (-1 before): cycle 1's teething clock starts here.</summary>
+        public int FirstStockedDay { get; set; } = -1;
 
         /// <summary>
-        /// Hs (m) above which waves damage the structure: the pre-F2 farm's
-        /// 12 m "max wave" rating, kept for the damage rule until F2-07/F2-08
-        /// model the structure against <see cref="DesignHsM"/>.
+        /// A consortium unit's open settlement with its partner (NOK): the
+        /// partner's share of the lines its systems booked in full (feed, smolts,
+        /// fees) less its share of the harvest's net, settled once a day.
         /// </summary>
-        public const double LegacyDamageHsM = 12.0;
+        public decimal PartnerPendingNok { get; set; }
 
-        /// <summary>Structural damage per metre of Hs over <see cref="LegacyDamageHsM"/> (pre-F2).</summary>
-        public const double DamagePerMetre = 0.05;
+        /// <summary>The last sea day whose harvest reports the partner settlement has taken.</summary>
+        public int PartnerSettledThroughDay { get; set; } = -1;
 
-        /// <summary>Yearly salary of an offshore crew member (NOK, pre-F2; ~900k).</summary>
-        public const decimal CrewSalaryNokPerYear = 900_000m;
+        /// <summary>True for a consortium unit (the company holds less than all of it).</summary>
+        [JsonIgnore] public bool IsConsortium => EquityShare < 1.0;
 
-        /// <summary>Daily energy cost (NOK, pre-F2: generators and grid, ~29 M NOK a year).</summary>
-        public const decimal DailyEnergyCostNok = 80_000m;
+        /// <summary>True when the unit stands commissioned (its logistics run).</summary>
+        [JsonIgnore] public bool IsCommissioned => CommissionedDay >= 0;
 
-        /// <summary>Daily maintenance per tonne of MTB (NOK, pre-F2: salt exposure).</summary>
-        public const decimal DailyMaintenanceNokPerTonne = 2m;
+        // ── F2-08: handling, the regulator, incidents, the counter-verbs ────
 
-        /// <summary>Daily supply-boat logistics (NOK, pre-F2).</summary>
-        public const decimal DailyLogisticsCostNok = 50_000m;
+        /// <summary>The sea day the open requirement was raised (-1 when none is open).</summary>
+        public int RequirementSinceDay { get; set; } = -1;
 
-        /// <summary>Cost of a crew change (NOK, pre-F2: helicopter or boat).</summary>
-        public const decimal CrewRotationCostNok = 150_000m;
+        /// <summary>The day the overdue clock counts from: the requirement's day, or the last completed handling of its kind after it (-1 when none is open).</summary>
+        public int HandlingAnchorDay { get; set; } = -1;
 
-        /// <summary>Start the unit's construction on <paramref name="day"/>, paying <paramref name="capex"/>.</summary>
+        /// <summary>The last day the open requirement's handling was completed at the unit (-1 never).</summary>
+        public int LastHandlingDoneDay { get; set; } = -1;
+
+        /// <summary>Days since the overdue clock started on which the sea allowed no fish handling with a standard vessel.</summary>
+        public int DaysWithoutHandlingWindow { get; set; }
+
+        /// <summary>How far the escalation has gone.</summary>
+        public HandlingStage HandlingStage { get; set; } = HandlingStage.None;
+
+        /// <summary>The day Mattilsynet's order fell (-1 when none stands).</summary>
+        public int OrderDay { get; set; } = -1;
+
+        /// <summary>The open or effective site-withdrawal case ("" when none).</summary>
+        public string WithdrawalCaseId { get; set; } = "";
+
+        /// <summary>The day the last alarm review started (-1 never).</summary>
+        public int AlarmReviewStartedDay { get; set; } = -1;
+
+        /// <summary>The day the last hatch procedure upgrade completes (-1 none started).</summary>
+        public int ProcedureUpgradeDoneDay { get; set; } = -1;
+
+        /// <summary>The hatch procedure level the running upgrade brings (applied on <see cref="ProcedureUpgradeDoneDay"/>).</summary>
+        public double ProcedureUpgradeTarget { get; set; }
+
+        /// <summary>The day the reinforcement ("Forsterkning") is in place (-1 none ordered).</summary>
+        public int ReinforcementDoneDay { get; set; } = -1;
+
+        /// <summary>The unit's incident under investigation ("" when none; the incidents live in GameState.OffshoreIncidents).</summary>
+        public string ActiveIncidentId { get; set; } = "";
+
+        /// <summary>Number of the unit's next incident ("&lt;unit&gt;/inc_N").</summary>
+        public int NextIncidentNumber { get; set; } = 1;
+
+        /// <summary>Days with stinging jellyfish at the unit.</summary>
+        public int JellyDays { get; set; }
+
+        /// <summary>The last day stinging jellyfish hit the unit (-1 never).</summary>
+        public int LastJellyDay { get; set; } = -1;
+
+        /// <summary>The sea day the unit's current production cycle began (fish into an empty unit; -1 while empty).</summary>
+        public int CycleStartDay { get; set; } = -1;
+
+        // ── F2-09: the licences behind the unit ─────────────────────────────
+
+        /// <summary>
+        /// True for a unit built on a development-licence award (its capacity is
+        /// its bound licences', converted ones once placed); false for a legacy,
+        /// scenario or migrated unit, which keeps its locality MTB as before F2-09.
+        /// </summary>
+        public bool HoldsLicences { get; set; }
+
+        /// <summary>The award the unit was built on ("" for a legacy unit).</summary>
+        public string AwardId { get; set; } = "";
+
+        /// <summary>The conversion case of the unit's licences ("" before one is filed).</summary>
+        public string ConversionCaseId { get; set; } = "";
+
+        /// <summary>The last day the conversion fee may be paid (-1 when no approved conversion awaits payment).</summary>
+        public int ConversionPaymentDueDay { get; set; } = -1;
+
+        /// <summary>The fee the approved conversion asks (NOK, indexed on the decision day; 0 when none awaits payment).</summary>
+        public decimal ConversionFeeDueNok { get; set; }
+
+        // ── The legacy build path (spec §3.1 decision 5) ─────────────────────
+
+        /// <summary>Start the unit's construction on <paramref name="day"/>, paying <paramref name="capex"/> (the legacy verb: progress by days, no phases).</summary>
         public void StartConstruction(int day, decimal capex)
         {
             ConstructionStartDay = day;
@@ -289,61 +427,15 @@ namespace LakskongenSim.Farm.Offshore
         }
 
         /// <summary>
-        /// The unit's day (the pre-F2 offshore farm's day, without its storm
-        /// escape roll: the roll's result was never applied, and Hs alone never
-        /// causes an escape, F2-08 acceptance 1). Construction advances; an
-        /// operational unit takes the sea state (lockdown, wave damage), changes
-        /// crew and books its opex. <paramref name="mtbTonnes"/> scales the
-        /// maintenance. Draws no random number.
+        /// Advance a legacy unit's construction (no project): progress by elapsed
+        /// days; true on the day it completes.
         /// </summary>
-        public OffshoreTickResult TickDay(int day, double waveHeightM, bool isStorm, double mtbTonnes)
+        public bool AdvanceLegacyConstruction(int day)
         {
-            var result = new OffshoreTickResult();
-            CurrentWaveHeight = waveHeightM;
-
-            if (!IsOperational)
-            {
-                if (ConstructionStartDay >= 0)
-                {
-                    int elapsed = day - ConstructionStartDay;
-                    ConstructionProgress = Math.Min(1.0, (double)elapsed / Math.Max(1, ConstructionDays));
-                    result.MilestoneReached = IsOperational;
-                }
-                return result;
-            }
-
-            if (isStorm || waveHeightM > LockdownHsM)
-            {
-                IsStormLockdown = true;
-                result.StormLockdown = true;
-                if (waveHeightM > LegacyDamageHsM)
-                {
-                    double damage = (waveHeightM - LegacyDamageHsM) * DamagePerMetre;
-                    StructuralIntegrity = Math.Max(0.0, StructuralIntegrity - damage);
-                    result.StructuralDamage = damage;
-                }
-                result.FeedingPossible = false;
-            }
-            else
-            {
-                IsStormLockdown = false;
-                result.FeedingPossible = true;
-            }
-
-            DaysSinceCrewRotation++;
-            if (DaysSinceCrewRotation >= CrewRotationDays && !IsStormLockdown)
-            {
-                DaysSinceCrewRotation = 0;
-                result.CrewRotationCost = CrewRotationCostNok;
-            }
-
-            result.DailyStaffCost = EmployeeCount * CrewSalaryNokPerYear / Core.SimCalendar.DaysPerYear;
-            result.DailyEnergyCost = DailyEnergyCostNok;
-            result.DailyMaintenanceCost = (decimal)Math.Max(0.0, mtbTonnes) * DailyMaintenanceNokPerTonne;
-            result.DailyLogisticsCost = DailyLogisticsCostNok;
-            result.TotalDailyOPEX = result.DailyStaffCost + result.DailyEnergyCost
-                + result.DailyMaintenanceCost + result.DailyLogisticsCost + result.CrewRotationCost;
-            return result;
+            if (IsOperational || ConstructionStartDay < 0 || !string.IsNullOrEmpty(ConstructionProjectId)) return false;
+            int elapsed = day - ConstructionStartDay;
+            ConstructionProgress = Math.Min(1.0, (double)elapsed / Math.Max(1, ConstructionDays));
+            return IsOperational;
         }
     }
 }

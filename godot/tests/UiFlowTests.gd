@@ -157,16 +157,28 @@ func _run() -> void:
 	_test_offshore_unit_and_fleet()
 	# F2-03: an offshore unit leaves the fjord's pen layout alone.
 	await _test_offshore_unit_leaves_fjord_pens_in_place()
+	# F2-06 wiring and F2-07: the sea lane's bridge verbs in the running game.
+	await _test_offshore_bridge_verbs()
 	# F2-04: the farm-type catalogue and the research gates reach the UI.
 	await _test_farm_type_catalog_reaches_the_ui()
 	# F2-05: the Driftsplan card sets, changes and ends standing orders.
 	await _test_driftsplan_card_sets_and_runs_standing_orders()
+	# F2-12/F2-14: the land lane's bridge verbs (previews, permits, construction).
+	await _test_land_bridge_previews_and_applies()
+	# F2-13/F2-15: the land boards' bridge verbs (board, presets, competence, planners).
+	await _test_land_boards_bridge_reads()
 	# U2-01: the expansion flow (map, build dialog, licence auction, inbox).
 	await _test_expansion_builds_the_tutorials_second_site()
 	await _test_auction_card_wins_a_green_zone_licence()
 	await _test_every_build_refusal_reads_as_text()
+	# F2-31: the family-first build flow (tests/BuildFlowChecks.gd).
+	await preload("res://tests/BuildFlowChecks.gd").new().run(self)
 	# U2-03: end screens, the liquidity ladder, the rescue loan, campaign progress.
 	await preload("res://tests/EndScreenFlowChecks.gd").new().run(self)
+	# U2-02: the learn-by-doing first season (the card, the pointer, the
+	# clock's pace, no tutorial elsewhere, a skip is no win, the season won
+	# by input alone).
+	await preload("res://tests/FirstSeasonFlowChecks.gd").new().run(self)
 
 	_clear_test_saves()
 	CampaignProgress.reset()
@@ -2300,6 +2312,36 @@ func _tap_key_now(keycode: Key, unicode: int = 0) -> void:
 		ev.unicode = unicode if pressed else 0
 		ev.pressed = pressed
 		get_viewport().push_input(ev)
+
+## Best-of-5 time of _calibration_workload_ms() on the reference machine
+## (Apple M1 Pro, headless Godot 4.7.2; 23.11-23.20 ms in three runs at load
+## average ~2.7, measured 2026-10-20).
+const CALIBRATION_REFERENCE_MS := 23.0
+
+## How much slower this machine runs a fixed GDScript workload than the
+## reference: best of 5 runs after a warm-up, never below 1.
+func _machine_speed_factor() -> float:
+	_calibration_workload_ms()
+	var best := INF
+	for i in 5:
+		best = minf(best, _calibration_workload_ms())
+	return maxf(1.0, best / CALIBRATION_REFERENCE_MS)
+
+## A fixed, deterministic GDScript workload shaped like the UI's daily work:
+## an integer stream, float maths and dictionary writes.
+func _calibration_workload_ms() -> float:
+	var t0 := Time.get_ticks_usec()
+	var table := {}
+	var acc := 0.0
+	var x := 88172645
+	for i in 200000:
+		x = (x * 1103515245 + 12345) & 0x7fffffff
+		var v := float(x) / 2147483647.0
+		acc += sqrt(v) * exp(-v)
+		table[x & 1023] = acc
+	if is_nan(acc):
+		push_error("calibration workload produced NaN")
+	return float(Time.get_ticks_usec() - t0) / 1000.0
 
 ## A real Cmd+key (macOS) / Ctrl+key (elsewhere) press and release.
 func _press_command_key(keycode: Key) -> void:
@@ -6064,7 +6106,12 @@ func _test_thirty_times_refreshes_once_a_day_within_a_frame() -> void:
 	ui_ms.sort()
 	engine_ms.sort()
 	var p95: float = ui_ms[mini(int(ui_ms.size() * 0.95), ui_ms.size() - 1)] if not ui_ms.is_empty() else 999.0
-	_check(p95 <= 16.7, "30×: p95 of the UI side of a day %.1f ms <= 16.7 ms (%d days)" % [p95, ui_ms.size()])
+	# 16.7 ms is the budget on the reference machine (M1 Pro). A slower machine
+	# (a two-core CI runner) gets it scaled by an in-process CPU calibration,
+	# never below 16.7 ms, so the check is as strict as before on the reference.
+	var factor := _machine_speed_factor()
+	var limit := 16.7 * factor
+	_check(p95 <= limit, "30×: p95 of the UI side of a day %.1f ms <= %.1f ms (16.7 x machine factor %.2f; %d days)" % [p95, limit, factor, ui_ms.size()])
 	if not ui_ms.is_empty():
 		print("  info 30× UI side ms per day: p50 %.2f p95 %.2f max %.2f; engine p50 %.2f p95 %.2f max %.2f (%d days)" % [
 			ui_ms[ui_ms.size() / 2], p95, ui_ms.back(), engine_ms[engine_ms.size() / 2],
@@ -6799,34 +6846,74 @@ func _run_one_day_by_key() -> void:
 	if not _sim.is_paused():
 		await _press_key(KEY_SPACE, 32)
 
-## The minimal player of ScenarioCampaignTests (delouse above 0.4 adult females,
-## harvest at 4.5 kg, start the cheapest research once a harvest paid) plays the
-## first season through the bridge's verbs until the tutorial waits at step 16
-## with 6.5 MNOK in the bank. Returns the day it got there (-1 when it did not).
+## The minimal first-season player of the C# tests (TutorialPlayer, U2-02)
+## plays Første sesong through the bridge's verbs until the tutorial waits at
+## step 16 with 6.5 MNOK in the bank: each day it does what the current step
+## asks (the mark its screen sends, a 30-day feeding plan, the "Avlus ved
+## telling" standing order, a planned harvest at 4.5 kg, 10 000 smolts in the
+## first empty pen, the cheapest research leaving 200 000 NOK, the finance
+## panel's 5 MNOK loan when the cash is short of the funding goal) and checks
+## the step, as the card does. U2-02 replaced the old track's day counts, so
+## the old player (delouse, express harvest, research) no longer moved it.
+## Returns the day it got there (-1 when it did not).
 func _play_first_season_to_step_16(gb: Node) -> int:
-	var harvested := false
-	var research := false
-	var last_delouse := -100
 	for i in 1500:
+		for guard in 32:
+			var before := int(gb.TutorialStepNumber)
+			if before >= 16 or not bool(gb.TutorialActive):
+				break
+			_first_season_verb(str(_sim.get_tutorial_status().get("id", "")))
+			_sim.tutorial_check()
+			if int(gb.TutorialStepNumber) == before:
+				break
 		if int(gb.TutorialStepNumber) == 16 and float(_sim.balance) > 6_500_000.0:
 			return int(_sim.current_day)
 		_sim.advance_days(1)
-		var site: Dictionary = _sim.get_all_pens()[0]
-		var site_id := str(site.get("id", ""))
-		if int(site.get("fish_count", 0)) > 0:
-			if float(site.get("lice_per_fish", 0.0)) > 0.4 and int(_sim.current_day) - last_delouse >= 10:
-				last_delouse = int(_sim.current_day)
-				_sim.delouse_pen(site_id, "hydrolicer")
+	return -1
+
+## What the minimal player does for a first-season step (steps 1-15; the
+## second site is the expansion test's own input).
+func _first_season_verb(step_id: String) -> void:
+	var site: Dictionary = _sim.get_all_pens()[0]
+	var site_id := str(site.get("id", ""))
+	match step_id:
+		"open_pens":
+			_sim.tutorial_mark("tab:pens")
+		"feed_plan":
+			_sim.set_feed_plan(site_id, 100.0, "standard", 30)
+		"lice_order":
+			_sim.set_driftsplan(site_id, "delouse_on_count", {})
+		"inbox":
+			_sim.tutorial_mark("inbox")
+		"start_clock":
+			_sim.tutorial_mark("clock")
+		"order_harvest":
 			if float(site.get("mean_weight_kg", 0.0)) >= 4.5:
-				harvested = _sim.harvest_pen(site_id) > 0.0 or harvested
-		if harvested and not research:
+				_sim.order_harvest(site_id)
+		"harvest_report":
+			_sim.tutorial_mark("harvest_report")
+		"restock":
+			for pen: Dictionary in site.get("pens", []):
+				if not bool(pen.get("occupied", true)):
+					_sim.stock_smolts_in_pen(site_id, str(pen.get("id", "")), 10_000)
+					break
+		"research":
 			var cheapest: Dictionary = {}
 			for node in _sim.get_research_nodes():
 				if bool(node.get("can_research", false)) and (cheapest.is_empty() or float(node.get("cost_nok", 0.0)) < float(cheapest.get("cost_nok", 0.0))):
 					cheapest = node
 			if not cheapest.is_empty() and float(_sim.balance) > float(cheapest.get("cost_nok", 0.0)) + 200_000.0:
-				research = _sim.start_research(str(cheapest.get("id", "")))
-	return -1
+				_sim.start_research(str(cheapest.get("id", "")))
+		"regulation":
+			_sim.tutorial_mark("tab:sustainability")
+		"funding":
+			var progress: Dictionary = _sim.get_tutorial_status().get("progress", {})
+			if float(progress.get("value", 0.0)) < float(progress.get("goal", 0.0)):
+				_sim.take_loan(5_000_000.0, 36, 0.0)
+		"open_map":
+			_sim.tutorial_mark("tab:map")
+		"home_area":
+			_sim.tutorial_mark("map_area_home")
 
 ## U2-01 acceptance 1: a new Første sesong reaches tutorial step 16 ("Utvid med
 ## ny lokalitet"); the expansion is then done by real input only: Cmd+2 opens
@@ -6881,22 +6968,41 @@ func _test_expansion_builds_the_tutorials_second_site() -> void:
 			and (ledger.get_node("ValueRunning") as Label).text.contains(SimFormatters.format_nok(float(plan["running_cost_per_month_nok"]))),
 		"expansion: the running cost per month is previewed (%s)" % (ledger.get_node("ValueRunning") as Label).text)
 	var families: Node = dialog.get_node("%FamilyRow")
-	var land: Node = families.get_node_or_null("Family_land")
-	var offshore: Node = families.get_node_or_null("Family_offshore")
+	var land: FarmFamilyCard = families.get_node_or_null("Family_land") as FarmFamilyCard
+	var offshore: FarmFamilyCard = families.get_node_or_null("Family_offshore") as FarmFamilyCard
+	# F2-31 (stronger than U2-01's "Land and Hav point to their tabs and show no
+	# numbers", RUN_LOG §7): the three family cards come first with Sjø chosen;
+	# Land and Hav are real families whose cards open their variants, and every
+	# number they show is the engine's catalogue's.
+	var catalog: Dictionary = _sim.get_farm_type_catalog()
+	var starts: Dictionary = _sim.get_farm_type_starts()
+	var open_count := func(fid: String) -> int:
+		var n := 0
+		for f in catalog.get("families", []):
+			if str(f.get("id", "")) == fid:
+				for v in f.get("variants", []):
+					if bool((starts.get(str(v.get("id", "")), {}) as Dictionary).get("startable", false)):
+						n += 1
+		return n
 	_check(families.get_child_count() == 3 and families.get_child(0).name == "Family_sea"
-			and land != null and land.find_child("OpenTab", true, false) != null
-			and offshore != null and offshore.find_child("OpenTab", true, false) != null,
-		"expansion: the farm type comes first: Sjø chosen, Land and Hav point to their tabs")
-	# Land and Hav say where those builds live today and invent no figures.
-	var digits := RegEx.create_from_string("[0-9]")
-	var figures := []
-	for card in [land, offshore]:
-		if card == null:
-			continue
-		for l in card.find_children("*", "Label", true, false):
-			if digits.search((l as Label).text) != null:
-				figures.append((l as Label).text)
-	_check(figures.is_empty(), "expansion: the Land and Hav cards show no numbers %s" % str(figures))
+			and (families.get_child(0) as FarmFamilyCard).is_selected()
+			and land != null and not land.is_selected() and land.choose_button() != null
+			and offshore != null and not offshore.is_selected() and offshore.choose_button() != null,
+		"expansion: the farm type comes first: Sjø chosen, Land and Hav are families of their own")
+	var status_ok := land != null and offshore != null \
+		and (land.get_node("%Status") as Label).text == (tr("BUILD_FAMILY_LOCKED_ALL") if open_count.call("land") == 0 else tr("BUILD_FAMILY_OPEN_SOME") % [open_count.call("land"), 3]) \
+		and (offshore.get_node("%Status") as Label).text == (tr("BUILD_FAMILY_LOCKED_ALL") if open_count.call("hav") == 0 else tr("BUILD_FAMILY_OPEN_SOME") % [open_count.call("hav"), 2])
+	_check(status_ok, "expansion: the Land and Hav cards count their open variants from the engine (land %d, hav %d)" % [open_count.call("land"), open_count.call("hav")])
+	var bars := dialog.comparison()
+	var open_pen: Dictionary = {}
+	for f in catalog.get("families", []):
+		for v in f.get("variants", []):
+			if str(v.get("id", "")) == "open_pen":
+				open_pen = v
+	var cap: Dictionary = (open_pen.get("axes", {}) as Dictionary).get("capex_nok_per_t_year", {})
+	_check(bars != null and bars.is_visible_in_tree() and bars.value_label("open_pen", "capex_nok_per_t_year") != null
+			and bars.value_label("open_pen", "capex_nok_per_t_year").text == ComparisonBars.format_axis(cap),
+		"expansion: the Sjø variants' bars show the catalogue's numbers (%s)" % ComparisonBars.format_axis(cap))
 	await _lint_screen("build dialog")
 	var confirm: Button = dialog.get_node("%ConfirmBtn")
 	_check(not confirm.disabled, "expansion: the confirm is enabled")
@@ -7413,3 +7519,147 @@ func _test_driftsplan_card_sets_and_runs_standing_orders() -> void:
 		"driftsplan: a farm-type event names its unit, and a failed order has its verb and title")
 	panel.queue_free()
 	await get_tree().process_frame
+
+
+## F2-12 / F2-14 (wave4/sim-land-1): the land lane's bridge verbs marshal from
+## GDScript and read as text: a build preview with its payment schedule and
+## permit timeline (refusal odds and drivers, each with a Norwegian label), a
+## refusal as a reason key with its label, a zoning application that files a
+## case the pad's case list shows, and an empty construction list.
+func _test_land_bridge_previews_and_applies() -> void:
+	_check(_sim.start_qa_scenario("po3_red_sone", 94), "land bridge: seeded scenario starts")
+	_sim.set_paused(true)
+	var locked: Dictionary = _sim.preview_land_build("pad_a", "hfs_lot", "managed", [])
+	_check(not bool(locked.get("allowed", true)) and str(locked.get("reason_key", "")) == "not_unlocked"
+			and tr(str(locked.get("label_key", ""))) != str(locked.get("label_key", "")),
+		"land bridge: a locked build reads as text (%s)" % tr(str(locked.get("label_key", ""))))
+	var module: Dictionary = _sim.preview_land_build("pad_delta", "post_smolt_module", "turnkey", ["environmental_survey"])
+	var payments: Array = module.get("payments", [])
+	var paid := 0.0
+	for p in payments:
+		paid += float(p.get("payment_nok", 0.0))
+	var budget := float(module.get("budget_nok", 0.0))
+	_check(payments.size() == 5 and budget > 0.0 and absf(paid - budget - float(module.get("premium_nok", 0.0))) < 1.0,
+		"land bridge: the module's payments add up to its budget and the turnkey premium (%d phases, %.0f of %.0f)" % [payments.size(), paid, budget])
+	var phase_labels: Array = payments.filter(func(p: Dictionary) -> bool: return tr(str(p.get("label_key", ""))) == str(p.get("label_key", "")))
+	_check(phase_labels.is_empty(), "land bridge: every phase has a Norwegian name (%s)" % str(phase_labels))
+	var permits: Array = module.get("permits", [])
+	var statuses: Array = permits.map(func(p: Dictionary) -> String: return str(p.get("status", "")))
+	_check(permits.size() == 5 and statuses[0] == "pre_zoned" and statuses.slice(1).all(func(s: String) -> bool: return s == "needed"),
+		"land bridge: the module's permit timeline (%s)" % str(statuses))
+	var untranslated: Array = []
+	for p in permits:
+		var odds := 0.0
+		for d in p.get("drivers", []):
+			odds += float(d.get("effect", 0.0))
+			if tr(str(d.get("label_key", ""))) == str(d.get("label_key", "")):
+				untranslated.append(d.get("label_key"))
+		if absf(odds - float(p.get("refusal_probability", -1.0))) > 1e-9:
+			untranslated.append("%s odds" % str(p.get("kind")))
+		if tr(str(p.get("label_key", ""))) == str(p.get("label_key", "")) or tr(str(p.get("status_label_key", ""))) == str(p.get("status_label_key", "")):
+			untranslated.append(p.get("label_key"))
+	_check(untranslated.is_empty(), "land bridge: each permit's drivers add up to its odds and read as text (%s)" % str(untranslated))
+	_check(int(module.get("first_harvest_day", 0)) > int(module.get("first_tanks_day", 0)) and int(module.get("first_tanks_day", 0)) > int(module.get("start_day", 0)),
+		"land bridge: the first harvest follows the first tanks (%d, %d)" % [int(module.get("first_tanks_day", 0)), int(module.get("first_harvest_day", 0))])
+	var zoning: Dictionary = _sim.apply_for_zoning("pad_a", ["environmental_survey"])
+	var cases: Array = _sim.get_land_permit_cases("pad_a")
+	_check(bool(zoning.get("success", false)) and cases.size() == 1 and str(cases[0].get("kind", "")) == "Zoning"
+			and tr(str(cases[0].get("label_key", ""))) == "Reguleringsplan",
+		"land bridge: a zoning application files a case on the pad (%s)" % str(cases))
+	var again: Dictionary = _sim.apply_for_zoning("pad_a", [])
+	_check(str(again.get("reason_key", "")) == "already_pending" and tr(str(again.get("label_key", ""))) != str(again.get("label_key", "")),
+		"land bridge: a second application is refused as text (%s)" % tr(str(again.get("label_key", ""))))
+	_check(_sim.get_land_construction().is_empty() and str(_sim.get_land_site_detail("ras_9").get("reason_key", "")) == "not_found",
+		"land bridge: no construction yet, and an unknown site is not found")
+
+
+## F2-06 wiring and F2-07: the build preview, the sea-state forecast, the
+## unit's gauges and construction, the booking preview and the refusals reach
+## GDScript through SimBridge (tests/OffshoreBridgeChecks.gd).
+func _test_offshore_bridge_verbs() -> void:
+	var checks: RefCounted = (load("res://tests/OffshoreBridgeChecks.gd") as GDScript).new()
+	await checks.run(self)
+
+
+## F2-13 / F2-15 (wave4/sim-land-2): the land boards' bridge verbs marshal
+## from GDScript and read as text: a QA-commissioned HFS lot's board (a water
+## ring of five segments per tank, the binding constraint with its Norwegian
+## name), the three Vannstrategi presets with the engine's projection and one
+## applied, the competence with its Oppkjøring milestones and levers (a lever
+## pulled through the bridge), the harvest planner's weeks and a plan made, and
+## a post-smolt module's planner with a tier, a salinity change and a sale.
+func _test_land_boards_bridge_reads() -> void:
+	_check(_sim.start_qa_scenario("po3_red_sone", 95), "land boards: seeded scenario starts")
+	_sim.set_paused(true)
+	var built: Dictionary = _sim.commission_land_site("pad_a", "hfs_lot", 1, "Storholmen")
+	var site_id := str(built.get("id", ""))
+	_check(bool(built.get("success", false)) and site_id != "", "land boards: a QA lot is commissioned (%s)" % site_id)
+	var stocked: Dictionary = _sim.stock_land_tank(site_id, site_id + "/t01", 60000, "standard")
+	_check(bool(stocked.get("success", false)), "land boards: a tank is stocked (%s)" % str(stocked.get("message", "")))
+	_sim.advance_days(20)
+	var board: Dictionary = _sim.get_land_board(site_id)
+	var lots: Array = board.get("lots", [])
+	var tanks: Array = lots[0].get("tanks", []) if lots.size() > 0 else []
+	var stocked_tank: Dictionary = tanks[0] if tanks.size() > 0 else {}
+	var segments: Array = stocked_tank.get("segments", [])
+	_check(lots.size() == 1 and tanks.size() == 14 and segments.size() == 5
+			and str(lots[0].get("worst_tank_id", "")) == str(stocked_tank.get("id", "")),
+		"land boards: one lot, 14 tanks, five ring segments, the stocked tank is the worst (%d, %d, %d)" % [lots.size(), tanks.size(), segments.size()])
+	var binding_key := str(stocked_tank.get("binding_label_key", ""))
+	_check(binding_key.begins_with("LAND_CONSTRAINT_") and tr(binding_key) != binding_key
+			and str(stocked_tank.get("level", "")) in ["ok", "warn", "critical"],
+		"land boards: the binding constraint reads as text (%s, %s)" % [tr(binding_key), str(stocked_tank.get("level", ""))])
+	var presets: Array = _sim.get_vannstrategi_presets(site_id)
+	var names: Array = presets.map(func(p: Dictionary) -> String: return tr(str(p.get("label_key", ""))))
+	_check(presets.size() == 3 and names == ["Sparsom", "Balansert", "Høy tetthet"]
+			and presets.all(func(p: Dictionary) -> bool: return float(p.get("kwh_per_kg", 0.0)) > 0.0 and int(p.get("cycle_days", 0)) > 0),
+		"land boards: three presets with the engine's projection (%s)" % str(names))
+	_check(float(presets[2].get("maturation_risk", 0.0)) > float(presets[0].get("maturation_risk", 1.0)),
+		"land boards: the warm preset carries more maturation risk (%.2f > %.2f)" % [float(presets[2].get("maturation_risk", 0.0)), float(presets[0].get("maturation_risk", 1.0))])
+	var applied: Dictionary = _sim.apply_vannstrategi_preset(site_id, "sparsom")
+	var active: Array = _sim.get_vannstrategi_presets(site_id).filter(func(p: Dictionary) -> bool: return bool(p.get("active", false)))
+	_check(bool(applied.get("success", false)) and active.size() == 1 and str(active[0].get("id", "")) == "sparsom",
+		"land boards: applying a preset makes it the active one")
+	var competence: Dictionary = _sim.get_land_competence(site_id)
+	var levers: Array = competence.get("levers", [])
+	var untranslated: Array = levers.filter(func(l: Dictionary) -> bool: return tr(str(l.get("label_key", ""))) == str(l.get("label_key", "")))
+	_check(is_equal_approx(float(competence.get("utilisation_cap", 0.0)), 0.55) and competence.get("milestones", []).size() == 4
+			and levers.size() == 6 and untranslated.is_empty(),
+		"land boards: competence 0.4, cap 55 %%, four milestones, six levers as text (%s)" % str(untranslated))
+	var hired: Dictionary = _sim.hire_driftsleder(site_id)
+	_check(bool(hired.get("success", false)) and float(_sim.get_land_competence(site_id).get("utilisation_cap", 0.0)) > 0.55,
+		"land boards: hiring a driftsleder raises the cap")
+	var planner: Dictionary = _sim.get_land_harvest_planner(site_id)
+	var weeks: Array = planner.get("weeks", [])
+	var planner_tanks: Array = planner.get("tanks", [])
+	_check(weeks.size() == 26 and planner_tanks.size() == 1 and planner_tanks[0].get("weight_by_week_kg", []).size() == 26
+			and float(weeks[0].get("expected_price_nok", 0.0)) > 0.0,
+		"land boards: the harvest planner's 26 weeks with prices and the tank's projected weights")
+	var too_soon: Dictionary = _sim.quote_land_harvest_plan(site_id, [site_id + "/t01"], int(weeks[0].get("week_start_day", 0)) - 14)
+	_check(str(too_soon.get("reason_key", "")) == "no_slot" and tr(str(too_soon.get("label_key", ""))) != str(too_soon.get("label_key", "")),
+		"land boards: a past week is refused as text (%s)" % tr(str(too_soon.get("label_key", ""))))
+	var planned: Dictionary = _sim.plan_land_harvest(site_id, [site_id + "/t01"], int(weeks[20].get("week_start_day", 0)))
+	_check(bool(planned.get("success", false)) and _sim.get_land_harvest_planner(site_id).get("plans", []).size() == 1,
+		"land boards: a harvest is planned into week %d" % int(weeks[20].get("iso_week", 0)))
+	var account: Dictionary = _sim.get_land_account(site_id)
+	_check(bool(account.get("success", false)) and float(account.get("since_built", {}).get("energy_nok", 0.0)) > 0.0,
+		"land boards: the site's books carry its electricity")
+	# A new game for the post-smolt module (the HFS lot's running costs would empty the scenario's cash).
+	_check(_sim.start_qa_scenario("po3_red_sone", 96), "land boards: a second seeded scenario starts")
+	_sim.set_paused(true)
+	var module: Dictionary = _sim.commission_land_site("pad_delta", "post_smolt_module", 1, "Elveøyra")
+	var module_id := str(module.get("id", ""))
+	_sim.advance_days(61)
+	var module_stocked: Dictionary = _sim.stock_land_tank(module_id, module_id + "/t01", 40000, "standard")
+	_check(bool(module_stocked.get("success", false)),
+		"land boards: the post-smolt module takes smolts once its biofilter matured (%s)" % str(module_stocked.get("message", "")))
+	var salinity: Dictionary = _sim.set_salinity(module_id, 20.0)
+	var smolt: Dictionary = _sim.get_post_smolt_planner(module_id)
+	var smolt_tanks: Array = smolt.get("tanks", [])
+	_check(bool(salinity.get("success", false)) and is_equal_approx(float(smolt.get("salinity_ppt", 0.0)), 20.0)
+			and bool(smolt.get("has_river_intake", false)) and smolt_tanks.size() == 2
+			and tr(str(smolt_tanks[0].get("tier_label_key", ""))) != str(smolt_tanks[0].get("tier_label_key", "")),
+		"land boards: the post-smolt planner reads the blend and the tier as text (%s)" % tr(str(smolt_tanks[0].get("tier_label_key", ""))))
+	var small: Dictionary = _sim.sell_post_smolt(module_id, module_id + "/t01", 0)
+	_check(str(small.get("reason_key", "")) == "below_min_weight" and tr(str(small.get("label_key", ""))) != str(small.get("label_key", "")),
+		"land boards: 80 g smolts cannot be sold as post-smolt, as text (%s)" % tr(str(small.get("label_key", ""))))

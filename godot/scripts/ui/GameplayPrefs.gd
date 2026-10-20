@@ -9,6 +9,8 @@ extends RefCounted
 ## "Bremse ned før frister" (gameplay.auto_slow_deadlines, on by default): the
 ## deadline rule slows the clock to 1× a week before an order's deadline and
 ## stops it the day before.
+## "Vis opplæring" (gameplay.tutorial_enabled, on by default): the first
+## season's guide card (U2-02).
 ## "Standard hastighet" (gameplay.default_speed, 1×): the speed a new game's
 ## briefing starts the clock at (1, 3, 10 or 30; older settings snap).
 
@@ -19,6 +21,16 @@ const SPEEDS: Array[int] = [1, 3, 10, 30]
 ## Test seams: -1 follows the setting, 0 forces off, 1 forces on.
 static var _forced_auto_pause: int = -1
 static var _forced_auto_slow: int = -1
+static var _forced_tutorial: int = -1
+
+
+## "Vis opplæring" (gameplay.tutorial_enabled, on by default): the first
+## season's card and highlight show (U2-02). Off, the steps still advance on
+## the player's actions, but nothing guides or holds the clock.
+static func tutorial_enabled() -> bool:
+	if _forced_tutorial >= 0:
+		return _forced_tutorial == 1
+	return bool(_gameplay().get("tutorial_enabled", true))
 
 
 static func auto_pause_critical() -> bool:
@@ -57,6 +69,10 @@ static func force_auto_pause(value: Variant) -> void:
 
 static func force_auto_slow(value: Variant) -> void:
 	_forced_auto_slow = -1 if value == null else (1 if bool(value) else 0)
+
+
+static func force_tutorial(value: Variant) -> void:
+	_forced_tutorial = -1 if value == null else (1 if bool(value) else 0)
 
 
 static func _gameplay() -> Dictionary:

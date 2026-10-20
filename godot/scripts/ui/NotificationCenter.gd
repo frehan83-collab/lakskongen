@@ -241,6 +241,10 @@ func toggle() -> void:
 		hide_panel()
 	else:
 		show_panel()
+		# U2-02: the player opened the inbox (the bell or V).
+		var sim := get_node_or_null("/root/SimBridge")
+		if sim != null:
+			sim.tutorial_mark("inbox")
 
 func show_panel() -> void:
 	if _is_open:

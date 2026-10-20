@@ -59,16 +59,26 @@ public class HonestEconomyTests
         Assert.Equal(0m, engine.FinancialStatements.LifetimeRevenue);
     }
 
+    /// <summary>
+    /// U2-02 (stronger than "a day-0 step completes", RUN_LOG §7: no step
+    /// completes by itself any more): the five day-0 steps are done by their
+    /// own verbs and UI marks, and every completion moves no cash and books no
+    /// revenue; the cash before and after each one is the same.
+    /// </summary>
     [Fact]
     public void CompletingTutorialSteps_MovesNoCash()
     {
         var engine = Started("forste_sesong", 3, events: false);
         decimal cash = engine.FinanceManager.Balance;
-        int before = engine.Tutorial.CompletedCount;
+        var cashAtCompletion = new List<decimal>();
+        engine.Tutorial.OnStepCompleted += _ => cashAtCompletion.Add(engine.FinanceManager.Balance);
 
-        engine.Tutorial.CheckProgress();   // day-0 steps complete at once
+        engine.Tutorial.CheckProgress();
+        Assert.Equal(0, engine.Tutorial.CompletedCount);   // nothing completes by itself
+        new Tutorial.TutorialPlayer().DoToday(engine);
 
-        Assert.True(engine.Tutorial.CompletedCount > before, "no tutorial step completed");
+        Assert.Equal(5, engine.Tutorial.CompletedCount);
+        Assert.All(cashAtCompletion, c => Assert.Equal(cash, c));
         Assert.Equal(cash, engine.FinanceManager.Balance);
         Assert.Equal(0m, engine.FinancialStatements.LifetimeRevenue);
     }
@@ -87,7 +97,10 @@ public class HonestEconomyTests
     /// The tutorial played to the end (18 steps, the forste_sesong win) and a
     /// two-year po3 career unlock achievements and complete steps; on no day
     /// does a reward line appear in the revenue statement, and the ledger
-    /// still reconciles (D16 acceptance 1).
+    /// still reconciles (D16 acceptance 1). U2-02 / D19 (RUN_LOG §7): the
+    /// first season's steps are played by their verbs (every one of the 18
+    /// completes, stronger than "6 or more"); po3_red_sone runs no tutorial
+    /// (none completes, where it used to complete day-count steps).
     /// </summary>
     [Theory]
     [InlineData("forste_sesong", 7)]
@@ -96,9 +109,11 @@ public class HonestEconomyTests
     {
         var engine = Started(scenarioId, seed);
         var site = engine.State.SeaSites[0];
+        var tutorialPlayer = new Tutorial.TutorialPlayer();
         bool harvested = false;
         for (int day = 0; day < 730; day++)
         {
+            tutorialPlayer.DoToday(engine);
             engine.Advance(1);
             foreach (string category in RewardCategories)
                 Assert.False(engine.FinancialStatements.RevenueBreakdown.ContainsKey(category),
@@ -115,8 +130,10 @@ public class HonestEconomyTests
         Assert.True(harvested, "the career never sold fish");
         Assert.True(engine.State.UnlockedAchievementIds.Count >= 3,
             $"only {engine.State.UnlockedAchievementIds.Count} achievements unlocked");
-        Assert.True(engine.State.CompletedTutorialStepIds.Count >= 6,
-            $"only {engine.State.CompletedTutorialStepIds.Count} tutorial steps completed");
+        int expectedSteps = scenarioId == "forste_sesong" ? engine.Tutorial.TotalSteps : 0;
+        Assert.Equal(expectedSteps, engine.State.CompletedTutorialStepIds.Count);
+        if (scenarioId == "forste_sesong")
+            Assert.True(engine.Scenario.IsWon, "the tutorial played to the end wins Første sesong");
         Assert.Equal(0m, engine.UnbookedCashTotal);
         decimal gap = engine.FinanceManager.Balance - engine.State.OpeningBalanceNok
                       - engine.FinancialStatements.LifetimeNetCashFlow;

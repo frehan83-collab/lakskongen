@@ -497,6 +497,20 @@ func _build_node_panel(nd: Dictionary) -> void:
 
 # ── Interaction handlers ────────────────────────────────────────────────────────
 
+## U2-02: the card of the cheapest project that can start now (the first
+## season's research step points at it), or null.
+func cheapest_available_node() -> Control:
+	var best := ""
+	for id in _node_data:
+		var nd: Dictionary = _node_data[id]
+		if bool(nd.get("can_research", false)) and (best == "" or float(nd.get("cost_nok", 0.0)) < float(_node_data[best].get("cost_nok", 0.0))):
+			best = id
+	return _node_panels.get(best) as Control if best != "" else null
+
+## True while the start confirmation is open.
+func is_confirming() -> bool:
+	return _confirm_dialog != null and _confirm_dialog.visible
+
 func _on_node_clicked(node_id: String) -> void:
 	var nd: Dictionary = _node_data.get(node_id, {})
 	if nd.is_empty():

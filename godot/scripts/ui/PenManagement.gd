@@ -472,6 +472,25 @@ func select_pen(pen_id: String) -> void:
 func get_selected_pen_id() -> String:
 	return _selected_pen_id
 
+## U2-02: the controls the first season points at (TutorialTargets).
+func site_row(site_id: String) -> Button:
+	return _pen_list_items.get(site_id) as Button
+
+func feed_plan_card() -> FeedPlanCard:
+	return _feed_plan
+
+func harvest_button() -> Button:
+	return _btn_harvest
+
+func harvest_report_button() -> Button:
+	return _btn_harvest_report
+
+func stock_button() -> Button:
+	return _btn_stock
+
+func detail_scroll() -> ScrollContainer:
+	return _detail_scroll
+
 func _on_delouse() -> void:
 	if _selected_pen_id.is_empty() or not _sim:
 		return

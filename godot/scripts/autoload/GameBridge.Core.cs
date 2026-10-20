@@ -785,13 +785,13 @@ public partial class GameBridge : Node
     /// <summary>Current tutorial step number (1–TotalSteps). Returns TotalSteps when complete.</summary>
     public int TutorialStepNumber => SimulationEngine?.Tutorial?.CurrentStepNumber ?? 1;
 
-    /// <summary>Title of the current tutorial step.</summary>
+    /// <summary>Translation key of the current tutorial step's title (U2-02: the text lives in translations.csv).</summary>
     public string TutorialStepTitle => SimulationEngine?.Tutorial?.CurrentStep?.Title ?? "";
 
-    /// <summary>Description/objective of the current tutorial step.</summary>
+    /// <summary>Translation key of what the current tutorial step shows.</summary>
     public string TutorialDescription => SimulationEngine?.Tutorial?.CurrentStep?.Description ?? "";
 
-    /// <summary>Contextual hint for the current tutorial step.</summary>
+    /// <summary>Translation key of what the player does in the current tutorial step.</summary>
     public string TutorialHint => SimulationEngine?.Tutorial?.CurrentStep?.Hint ?? "";
 
     /// <summary>True after all tutorial steps are completed.</summary>
@@ -803,10 +803,15 @@ public partial class GameBridge : Node
     /// <summary>Total tutorial steps (drives UI progress bars — never hardcode).</summary>
     public int TutorialTotalSteps => SimulationEngine?.Tutorial?.TotalSteps ?? 0;
 
-    /// <summary>Skip the tutorial silently (no rewards). From TutorialUI skip button.</summary>
+    /// <summary>
+    /// Skip the tutorial (no rewards, no win: D19). From TutorialUI's skip
+    /// button; QA captures skip it to open every panel. The skip is saved.
+    /// </summary>
     public void SkipTutorial()
     {
-        SimulationEngine?.Tutorial?.Skip();
+        if (SimulationEngine?.Tutorial == null) return;
+        SimulationEngine.Tutorial.Skip();
+        EmitSignal(SignalName.GameStateUpdated);
     }
 
     // ── Achievement properties for GDScript ──────────────────────────────────

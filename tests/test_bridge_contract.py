@@ -819,6 +819,89 @@ def test_the_facility_name_parsers_are_the_bridges():
     assert "Enum.TryParse<LakskongenSim.Farm.OffshoreType>" not in farm
 
 
+# ── F2-31: the legacy facility builds are QA-only ─────────────────────────────
+# BuildRASFacility, BuildOffshoreFarm and BuildPostSmoltFacility build a unit at
+# once, with no permits, construction or preview; the family-first build flow
+# (BuildSiteDialog) replaced them in the player UI (the RAS and Offshore tabs'
+# build buttons are gone). Only QA code may still call them: the test runner
+# (godot/tests), the QA scenes and scripts (godot/qa, godot/scripts/qa), and the
+# facade's own forwarder chain (SimBridge.gd → SimProxies.gd → GameBridge).
+
+LEGACY_BUILDS = {
+    "build_ras_facility": "BuildRASFacility",
+    "build_offshore_farm": "BuildOffshoreFarm",
+    "build_post_smolt_facility": "BuildPostSmoltFacility",
+}
+LEGACY_CALL_RE = re.compile(r"\b(" + "|".join(list(LEGACY_BUILDS) + list(LEGACY_BUILDS.values())) + r")\s*\(")
+QA_DIRS = ("godot/tests/", "godot/qa/", "godot/scripts/qa/")
+FORWARDER_FILES = ("godot/scripts/SimBridge.gd", "godot/scripts/bridge/SimProxies.gd")
+
+
+def _legacy_build_callers(sources):
+    """[(file, line)] of every legacy build call outside QA and the forwarders.
+
+    `sources` maps a repo-relative path to its GDScript text. In the facade
+    files only the forwarder of the same verb may name it (its `func` line and
+    its body's call to the next link).
+    """
+    found = []
+    for rel, text in sorted(sources.items()):
+        if rel.startswith(QA_DIRS):
+            continue
+        func = None
+        for lineno, line in enumerate(_strip_gd_comments(text).splitlines(), 1):
+            m = re.match(r"\s*func\s+(\w+)\s*\(", line)
+            if m:
+                func = m.group(1)
+            elif line.strip() and not line[:1].isspace():
+                func = None
+            for call in LEGACY_CALL_RE.finditer(line):
+                name = call.group(1)
+                snake = name if name in LEGACY_BUILDS else next(k for k, v in LEGACY_BUILDS.items() if v == name)
+                if rel in FORWARDER_FILES and func == snake:
+                    continue
+                found.append((rel, lineno, line.strip()))
+    return found
+
+
+def _gdscript_sources():
+    out = {}
+    for path in (REPO / "godot").rglob("*.gd"):
+        rel = str(path.relative_to(REPO))
+        if "/.godot/" in rel or "/addons/" in rel:
+            continue
+        out[rel] = path.read_text(encoding="utf-8")
+    return out
+
+
+def test_no_gdscript_outside_qa_calls_the_legacy_facility_builds():
+    sources = _gdscript_sources()
+    assert "godot/scripts/ui/RASPanel.gd" in sources and "godot/scripts/ui/OffshorePanel.gd" in sources
+    callers = _legacy_build_callers(sources)
+    assert not callers, "legacy facility builds called outside QA:\n" + "\n".join(f"{f}:{n}: {l}" for f, n, l in callers)
+    # The forwarders are still there for QA, and QA still uses them.
+    assert re.search(r"func build_ras_facility\(", sources["godot/scripts/SimBridge.gd"])
+    assert any(LEGACY_CALL_RE.search(t) for r, t in sources.items() if r.startswith("godot/tests/"))
+
+
+def test_the_legacy_build_check_catches_a_call_outside_qa():
+    # A panel calling the facade, the bridge directly, or a facade function
+    # that is not the verb's own forwarder is found; QA and the forwarders are not.
+    planted = {
+        "godot/scripts/ui/RASPanel.gd": "func _on_build():\n\t_sim.build_ras_facility(\"x\", \"medium\")\n",
+        "godot/scripts/ui/OffshorePanel.gd": "func _on_build():\n\tgame_bridge.BuildOffshoreFarm(\"x\", \"semi\")\n",
+        "godot/scripts/SimBridge.gd": "func other() -> bool: return _proxies.build_offshore_farm(\"x\", \"y\")\n"
+                                      "func build_ras_facility(n: String, s: String) -> bool: return _proxies.build_ras_facility(n, s)\n",
+        "godot/scripts/bridge/SimProxies.gd": "func build_ras_facility(n: String, s: String) -> bool:\n"
+                                             "\treturn game_bridge.BuildRASFacility(n, s)\n",
+        "godot/tests/UiFlowTests.gd": "func t():\n\t_sim.build_ras_facility(\"x\", \"small\")\n",
+        "godot/scripts/ui/Note.gd": "# a comment naming build_ras_facility( is prose\n",
+    }
+    found = {(f, n) for f, n, _ in _legacy_build_callers(planted)}
+    assert found == {("godot/scripts/ui/RASPanel.gd", 2), ("godot/scripts/ui/OffshorePanel.gd", 2),
+                     ("godot/scripts/SimBridge.gd", 1)}, found
+
+
 if __name__ == "__main__":
     test_bridge_contract()
     test_no_snake_case_signal_access()

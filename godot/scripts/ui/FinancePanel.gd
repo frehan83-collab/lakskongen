@@ -772,6 +772,11 @@ func _refresh_trends() -> void:
 
 # ── Loan Actions ──────────────────────────────────────────────────────────────
 
+## U2-02: the loan button the first season's funding step points at.
+func loan_button() -> Button:
+	return _loan_take_btn
+
+
 ## Loan button amounts and the term the bank offers (the bank sets the rate).
 const LOAN_AMOUNT := 5_000_000.0
 const LOAN_TERM_MONTHS := 36

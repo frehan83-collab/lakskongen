@@ -38,6 +38,20 @@ namespace LakskongenSim.Finance
 
         /// <summary>A save from before S2-01: each site's old MAB became one holding.</summary>
         public const string LegacySave = "legacy_save";
+
+        /// <summary>F2-09: awarded free in a development-licence round.</summary>
+        public const string DevelopmentRound = "development_round";
+    }
+
+    /// <summary>What kind of sea licence a holding is (F2-09, spec §3.2; save data, default commercial).</summary>
+    public enum LicenceKind
+    {
+        /// <summary>An ordinary licence for salmon food fish: pooled in its production area, liable to the resource rent (a converted development licence once placed).</summary>
+        Commercial = 0,
+        /// <summary>A development licence (utviklingstillatelse): free, bound to its offshore unit, never pooled, no resource rent, at most 15 years (O:R40, V:2, V:3).</summary>
+        Development = 1,
+        /// <summary>An offshore-area licence (stage 3, F2-11).</summary>
+        OffshoreArea = 2,
     }
 
     /// <summary>
@@ -96,11 +110,42 @@ namespace LakskongenSim.Finance
         /// <summary>Price paid (NOK); 0 for a scenario's own licences.</summary>
         public decimal PricePaidNok { get; set; }
 
+        // ── F2-09 (additive; a save without them reads an ordinary placed licence) ──
+
+        /// <summary>What kind of licence it is.</summary>
+        public LicenceKind Kind { get; set; } = LicenceKind.Commercial;
+
+        /// <summary>The offshore unit a development licence is bound to ("" when unbound: not yet built on, or released by a site withdrawal).</summary>
+        public string BoundUnitId { get; set; } = "";
+
+        /// <summary>The sim day a development licence expires unconverted (int.MaxValue for an ordinary licence).</summary>
+        public int ExpiresDay { get; set; } = int.MaxValue;
+
+        /// <summary>
+        /// The zone a converted licence was placed in ("" = not placed by the
+        /// company: an ordinary licence pools in its <see cref="PooledArea"/>; a
+        /// converted one waits for <see cref="AwaitingPlacement"/> to end).
+        /// </summary>
+        public string PlacedZoneId { get; set; } = "";
+
+        /// <summary>True for a converted development licence that must be placed in a production area before use (spec §2C).</summary>
+        public bool AwaitingPlacement { get; set; }
+
+        /// <summary>The development-licence award it came from ("" otherwise).</summary>
+        public string AwardId { get; set; } = "";
+
+        /// <summary>True while a development licence runs (before its expiry); an ordinary licence always.</summary>
+        public bool IsInForce(int day) => day < ExpiresDay;
+
         /// <summary>
         /// True when this licence's MTB counts in <paramref name="productionArea"/>'s
-        /// biomass cap. The one pooling rule (F2-09 adds its kinds here).
+        /// biomass cap. The one pooling rule: an ordinary licence in its area; a
+        /// development licence never (laksetildelingsforskriften: bound to its
+        /// project, F2-09 acceptance 3), nor an offshore-area licence, nor a
+        /// converted licence before it is placed.
         /// </summary>
-        public bool IsPooledIn(int productionArea) => PooledArea == productionArea;
+        public bool IsPooledIn(int productionArea)
+            => Kind == LicenceKind.Commercial && !AwaitingPlacement && PooledArea == productionArea;
     }
 
     /// <summary>The company's licence register (pure functions over the saved list).</summary>

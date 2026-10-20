@@ -9,7 +9,7 @@ namespace LakskongenSim.Core
     /// <summary>
     /// Serializable snapshot of the game's state. Designed to be JSON-friendly.
     /// </summary>
-    public class GameState
+    public partial class GameState
     {
         /// <summary>Current simulation date (day index).</summary>
         public int Day { get; set; }
@@ -293,6 +293,13 @@ namespace LakskongenSim.Core
 
         /// <summary>IDs of completed tutorial steps.</summary>
         public HashSet<string> CompletedTutorialStepIds { get; set; } = new();
+
+        /// <summary>
+        /// U2-02: the player skipped the tutorial. Every step then counts as
+        /// done for the panels, but the Tutorial win condition stays false
+        /// (owner decision D19: skipping the tutorial is not a win). Save v11.
+        /// </summary>
+        public bool TutorialSkipped { get; set; }
 
         /// <summary>Logistics manager for vehicle fleet and carbon footprint tracking.</summary>
         [JsonIgnore]

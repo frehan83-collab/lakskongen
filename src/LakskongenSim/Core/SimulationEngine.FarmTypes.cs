@@ -63,7 +63,7 @@ public partial class SimulationEngine
             FarmTypeGateKind.OperatingPostSmoltModule => PostSmoltSites.Count(s => s.IsOperational),
             FarmTypeGateKind.ZonedPad => ZonedFreePads(),
             FarmTypeGateKind.EscapeFreeDays => EscapeFreeDays(),
-            FarmTypeGateKind.DevelopmentLicence => 0.0, // F2-09 brings the development-licence round
+            FarmTypeGateKind.DevelopmentLicence => DevelopmentAwardsWaiting(gate.Subject), // F2-09: an award waiting for its unit
             FarmTypeGateKind.OwnUnitCompletedCycle => CompletedCyclesOf(gate.Subject),
             FarmTypeGateKind.Funds => (double)(FinanceManager?.Balance ?? 0m),
             _ => 0.0,

@@ -38,7 +38,7 @@ public partial class SaveLoadManager : Node
     /// migration step in MigrateSaveData. Old saves without the field read
     /// as version 0.
     /// </summary>
-    public const int CurrentSaveVersion = 10;
+    public const int CurrentSaveVersion = 11;
 
     private JsonSerializerOptions _jsonOptions;
     private GameBridge _gameBridge;
@@ -662,6 +662,17 @@ public partial class SaveLoadManager : Node
                     // full appetite, as it did, and its pens keep the rations
                     // they were saved with.
                     saveData.SaveVersion = 10;
+                    break;
+                case 10:
+                    // v10 -> v11 (U2-02): the game records a skipped tutorial
+                    // (GameState.TutorialSkipped; a skip is no win, D19). A v10
+                    // save loads not skipped (v10 never saved a skip: the old
+                    // Skip left the saved index alone). Its tutorial progress
+                    // was on the old eighteen-step track: TutorialSystem keeps
+                    // its count of finished steps as the new track's first steps
+                    // (RestoreTutorialState), and the tutorial runs only in a
+                    // tutorial scenario.
+                    saveData.SaveVersion = 11;
                     break;
                 default:
                     GD.PrintErr($"No migrator for save version {saveData.SaveVersion}; loading as-is.");
