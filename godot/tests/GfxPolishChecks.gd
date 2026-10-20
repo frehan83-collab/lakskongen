@@ -316,8 +316,8 @@ func _check_vessel_chips(env: FjordEnvironment, cam: FjordCamera, pens: FishPenM
 ## The sun light carries the luminance the director gives it (its energy,
 ## the transmittance's against the white balance) at any elevation: its
 ## colour, sRGB-encoded as Light3D colours are, sets only the hue. A
-## 3-degree midnight sun lost about three quarters of its light to a
-## peak-normalised linear tint read as sRGB, and a 10-degree one about half.
+## peak-normalised linear tint read as sRGB left a 3-degree midnight sun
+## 0.60 of its light and a 10-degree autumn sun 0.74 (the mutation run).
 func _check_sun_keeps_its_light(env: FjordEnvironment, director: EnvironmentDirector) -> void:
 	var sun := env.get_node("Sun") as DirectionalLight3D
 	var rows := []

@@ -606,9 +606,10 @@ func _apply_sun(sun_dir: Vector3, cloud: float, c: Dictionary) -> void:
 	sun_light.light_color = tint.lerp(Color(neutral, neutral, neutral), 0.9 * smoothstep(0.8, 0.97, cloud))
 	# `energy` is the sun's luminance (the transmittance's, against the white
 	# balance's): the colour carries the hue only, so the light is scaled by
-	# its colour's luminance (gfx-polish-1: the peak-normalised tint, read as
-	# sRGB, cut a 3-degree sun to about a quarter of its light and a
-	# 10-degree one to about half, and low-sun walls lay flat).
+	# its colour's luminance (gfx-polish-1: the peak-normalised linear tint,
+	# read as sRGB, left a 3-degree sun 0.60 of its light, a 10-degree one
+	# 0.74 and a 52-degree one 0.94, with the moods' grades: low-sun walls
+	# lay flat).
 	sun_light.light_energy = energy / sun_color_luminance(sun_light.light_color)
 	sun_light.shadow_enabled = energy > 0.002
 	sun_light.shadow_opacity = lerpf(1.0, 0.25, smoothstep(0.35, 1.0, cloud))
