@@ -49,4 +49,32 @@
                       LogicalName="LakskongenSim.Core.tutorial_steps.json" />
   </ItemGroup>
 
+  <!--
+    Geodata stage 2 (docs/geo/STAGE23_PLAN.md track A): the national map data the
+    sim reads (Environment/Geo, GeoResources). Explicit names and an
+    extension-specific glob only, never *.*: godot/data/geo also holds the
+    Godot .import sidecars, which must not be embedded. Each file's SHA-256
+    equals its godot/data/geo/manifest.json entry (GeoResourceParityTests).
+  -->
+  <ItemGroup Label="geo">
+    <EmbeddedResource Include="..\..\godot\data\geo\candidates.json"
+                      Link="Geo\candidates.json"
+                      LogicalName="LakskongenSim.Geo.candidates.json" />
+    <EmbeddedResource Include="..\..\godot\data\geo\production_areas.regional.geojson"
+                      Link="Geo\production_areas.regional.geojson"
+                      LogicalName="LakskongenSim.Geo.production_areas.regional.geojson" />
+    <EmbeddedResource Include="..\..\godot\data\geo\suitability.json"
+                      Link="Geo\suitability.json"
+                      LogicalName="LakskongenSim.Geo.suitability.json" />
+    <EmbeddedResource Include="..\..\godot\data\geo\suitability_rules.json"
+                      Link="Geo\suitability_rules.json"
+                      LogicalName="LakskongenSim.Geo.suitability_rules.json" />
+    <EmbeddedResource Include="..\..\godot\data\geo\localities.geojson"
+                      Link="Geo\localities.geojson"
+                      LogicalName="LakskongenSim.Geo.localities.geojson" />
+    <EmbeddedResource Include="..\..\godot\data\geo\suitability\po*.png"
+                      Link="Geo\Suitability\%(Filename)%(Extension)"
+                      LogicalName="LakskongenSim.Geo.Suitability.%(Filename)%(Extension)" />
+  </ItemGroup>
+
 </Project>
