@@ -5668,5 +5668,5 @@ Window/icons/close_pressed = SubResource("chart_icon_362")
 Window/styles/embedded_border = SubResource("chart_sb_360")
 Window/styles/embedded_unfocused_border = SubResource("chart_sb_360")
 metadata/surface = "chart"
-metadata/tokens_sha256 = "7dfe09ebe94a22e9c40d379f54530492a6b169ecef884dcdfdb5ecff09389286"
-metadata/builder_sha256 = "7491ade0cbe2fc75ef8c4dbd2469d47e58469c13f5ece2e81d4d9971e03bca69"
+metadata/tokens_sha256 = "d0471570eadcb2cbe854076195f4c9b1774907e028cc552080e7ba84dbea3e7a"
+metadata/builder_sha256 = "7bbf41ea2d095e02c668c8cf04cbedc9a24daa755cc7a5fdaf8efa2ba418e804"

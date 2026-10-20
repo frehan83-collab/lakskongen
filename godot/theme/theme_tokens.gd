@@ -118,8 +118,17 @@ static func palette(tokens: Dictionary, surface: String) -> Dictionary:
 	p["salmon_hover"] = Color(str(brand.get("salmon-hover", "#F59C83")))
 	p["salmon_pressed"] = Color(str(brand.get("salmon-pressed", "#E97A5E")))
 	p["salmon_deep"] = Color(str(brand.get("salmon-deep", "#D9583B")))
-	p["on_salmon"] = Color(str(brand.get("on-salmon", "#0B2A3A")))
+	# A surface may name its own text on salmon (the high-contrast ones: black,
+	# at least 7:1 on every salmon state).
+	p["on_salmon"] = Color(str(src.get("on-salmon", brand.get("on-salmon", "#0B2A3A"))))
 	return p
+
+
+## The Ink palette that goes with `surface`: the HUD glass, rails, chips,
+## toasts and tooltips are Ink on every surface, and high-contrast Ink when the
+## surface is a high-contrast one (U2-08 review: they stayed translucent).
+static func ink_palette_for(tokens: Dictionary, surface: String) -> Dictionary:
+	return palette(tokens, SURFACE_INK_HC if surface.ends_with("-hc") else SURFACE_INK)
 
 
 static func font_size(tokens: Dictionary, key: String) -> int:
