@@ -56,6 +56,8 @@ lots need 43 MW).
 
 Full campus LOD0 triangles: 155,712 (budget ≤ 250 k).
 
+The committed metrics and frames are the run on `279f4c1`. A second run of all 32 shots on `af45167` (after the per-day write skipping) gave every unit, tank, phase, fleet and draw count identical, ΔE within 0.3 (pad_a 22.46, pad_b 19.34, pad_delta 21.69, home 13.11 / 10.56) and pHash tank rings vs sea works 18: the water and clouds move between runs, the structure does not.
+
 Mutations: `tank_progress` always 1 → the land-phase and handover checks
 fail; gone units kept → the cancel and freed-pad checks fail; the offshore
 phase ignored → the offshore-phase check fails; in the engine read every tank
@@ -70,6 +72,19 @@ test each fails; a SimBridge write in the presenter, a QA verb in a UI script
 | fjord (the P0-04 view, 12 sites) | 15.26 | 15.26 | +0.00 | 0.999 | 510 / 477 |
 | land (520 m, −40°, sweep) | 13.26 (best) | 12.97 (best) | +0.29 | 0.896 | 198 / 173 |
 | hav (220 m, −18°, sweep) | 12.78 | 12.36 | +0.42 | 0.953 | 166 / 126 |
+
+Per sim day (the presenter syncs on every state update), measured headless,
+best of 3 x 300 updates: 6.4 µs with no farm-type unit (the read 4.8 µs);
+422 µs with the QA set, of which the bridge read (`get_facility_visuals`,
+the C# view and its Godot dictionaries) 374 µs. A day that changes nothing in
+a campus or unit writes nothing to the renderer.
+
+U2-07's "30×: p95 of the UI side of a day" check failed in three of five
+full UI-flow runs on this branch, at load averages of 11-67 from other
+agents; it passed in the first (p95 10.1 ms). A/B of that check alone (the
+presenter in GameScene vs removed, 6 pairs in alternating order, load 11-17):
+p50 4.56 vs 4.72 ms, p95 10.95 vs 24 ms (medians): no effect from the
+presenter; the failures follow the load (RUN_LOG §8).
 
 The window came up at 1920 x 1147 (the display's limit, not 2560 x 1440);
 two land repeats were hit by load spikes (p95 25-26 ms on both sides), so the
