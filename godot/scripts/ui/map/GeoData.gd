@@ -302,12 +302,15 @@ static func _cast_ids(data: Variant) -> void:
 			_cast_record(row.get("properties") if list_key == "features" else row)
 
 
+## Casts each INT_KEYS value that is a whole number to int. The test is exact:
+## is_equal_approx's tolerance grows with the value (1e-5 relative), so it
+## would round a fractional 100000.4 to 100000 and hide a broken id.
 static func _cast_record(record: Variant) -> void:
 	if not record is Dictionary:
 		return
 	for key in INT_KEYS:
 		var v: Variant = record.get(key)
-		if typeof(v) == TYPE_FLOAT and is_equal_approx(v, roundf(v)):
+		if typeof(v) == TYPE_FLOAT and is_finite(v) and v == roundf(v):
 			record[key] = int(v)
 
 

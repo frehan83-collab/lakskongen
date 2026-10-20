@@ -182,6 +182,17 @@ func _loader_cache_and_failures() -> void:
 	_check(not_png and not_png_error != "" and absent and GeoData.last_error.contains("missing"),
 		"geo data: load_data_png refuses a picture and a missing grid, and says why")
 
+	# The id cast is exact: a fractional id stays a float (so a broken id
+	# shows), however large, and a number that is not an id is left alone.
+	var record := {"id": 7.0, "area_id": 45196.0, "po": 2.5, "rank": 100000.4, "score": 3.0}
+	GeoData._cast_record(record)
+	_check(typeof(record["id"]) == TYPE_INT and record["id"] == 7
+			and typeof(record["area_id"]) == TYPE_INT and record["area_id"] == 45196
+			and typeof(record["po"]) == TYPE_FLOAT and record["po"] == 2.5
+			and typeof(record["rank"]) == TYPE_FLOAT and record["rank"] == 100000.4
+			and typeof(record["score"]) == TYPE_FLOAT,
+		"geo data: only whole-number ids are cast to int; a fractional id keeps its value, however large (%s)" % str(record))
+
 
 func _base_maps() -> void:
 	var national := GeoData.basemap("national")
