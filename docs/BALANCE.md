@@ -1784,6 +1784,15 @@ oxygen are per kg of live-weight biomass growth (harvest + Δ standing − smolt
 stocked), the basis of [L:R2]'s "kWh/kg biomass (LW)" and "oxygen consumption
 (biomass growth (LW))".
 
+**Re-measured after F2-19 (2026-10-17, `wave4/gfx-farm-1`).** F2-19 carved the
+pads and moved pad_a's terrain slot to the F2-18 centre (−450, −1720), its quay
+on the fairway edge (−130, −1720): 25 m water now lies 80 m from the quay and the
+deep line runs 280 m to the world edge (open ocean; no 95 m water is nearer).
+The HFS anchor moves from 6.40 to **6.41** kWh/kg LW (intake 1.13 → 1.14
+kWh/kg) and the best fixed blend from 179.4 to 179.3 M NOK; every other figure
+in this section is unchanged to its printed digit and every band holds
+(`LandEnergyModelTests`, `LandWaterModelTests`, `LandVannstrategiSweepTests`).
+
 ### Acceptance (spec §7.1 F2-12, 1-5)
 
 | # | Criterion | Band | Measured | Test |

@@ -159,6 +159,8 @@ func _run() -> void:
 	await _test_offshore_unit_leaves_fjord_pens_in_place()
 	# F2-06 wiring and F2-07: the sea lane's bridge verbs in the running game.
 	await _test_offshore_bridge_verbs()
+	# F2-20: the facility presenter draws the engine's land sites and offshore units.
+	await _test_facilities_render()
 	# F2-04: the farm-type catalogue and the research gates reach the UI.
 	await _test_farm_type_catalog_reaches_the_ui()
 	# F2-05: the Driftsplan card sets, changes and ends standing orders.
@@ -3285,8 +3287,9 @@ func _finish() -> void:
 ## Golden heightfield hash of the game's fjord (seed 42, 512², 4 km): the
 ## same value TerrainGeneratorTests.GoldenHashSeed42 pins in xUnit, so the
 ## headless path, the windowed path (FjordTerrain logs it) and the .NET test
-## process all build one heightfield.
-const TERRAIN_GOLDEN_HASH := "5a84dfe1202f180d"
+## process all build one heightfield. Re-promoted by F2-19 (the land pads are
+## carved; was 5a84dfe1202f180d).
+const TERRAIN_GOLDEN_HASH := "a7b58a2c48dd4a8f"
 
 ## G1-01: the fjord is one heightfield, wound so every triangle faces up,
 ## with a HeightMapShape3D collider, uploaded without a long main-thread frame.
@@ -7325,6 +7328,227 @@ func _layout_change(before: Dictionary, after: Dictionary) -> String:
 	if before.get("barges") != after.get("barges"):
 		changes.append("barges %s -> %s" % [str(before.get("barges")), str(after.get("barges"))])
 	return ", ".join(changes)
+
+
+## F2-20: the facility presenter draws the engine's farm-type units. With the
+## QA set (one HFS lot on pad_a, one post-smolt site on pad_delta, one
+## OF1-class unit on off_1, built through the engine) the drawn tanks and
+## units equal the engine's; every construction phase draws differently; a
+## real click on a tank opens its anchored card and frames its lot, a click
+## on the unit opens its card and frames the unit, Esc closes the card;
+## dropping a unit leaves the others where they stood and a lot more re-lays
+## only its own campus; no fjord site, pen grid or feed barge stands for a
+## farm-type unit; the net stays out of the planar mirror; LOD2 casts no
+## shadow and of LOD1 only the tanks do.
+func _test_facilities_render() -> void:
+	_check(_sim.start_qa_scenario("po3_red_sone", 91), "facilities: seeded scenario starts")
+	_sim.set_paused(true)
+	var scene: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+	add_child(scene)
+	for i in 5:
+		await get_tree().process_frame
+	_sim.set_paused(true)
+	var env: Node = scene.get_node("FjordEnvironment")
+	var manager: FarmFacilityVisualManager = env.get_node("FarmFacilityVisualManager")
+	var pens: FishPenManager = env.get_node("FishPenManager")
+	var barges: FeedBargeVisualManager = env.get_node("FeedBargeVisualManager")
+	var cam: FjordCamera = env.get_node("FjordCamera")
+	var terrain: FjordTerrain = env.get_node("Terrain")
+	cam.auto_orbit_enabled = false
+	_sim.state_updated.emit()
+	for i in 3:
+		await get_tree().process_frame
+	var fjord_before := _fjord_layout(pens, barges)
+	_check(manager.visuals.is_empty(), "facilities: a game without farm-type units draws none")
+
+	var bridge := get_node("/root/GameBridge")
+	var placed: Dictionary = bridge.QaPlaceFarmTypes()
+	_check(bool(placed.get("success", false)), "facilities: the QA set is built through the engine (%s)" % str(placed.get("message", "")))
+	var land_id := str(placed.get("land_id", ""))
+	var smolt_id := str(placed.get("post_smolt_id", ""))
+	var off_id := str(placed.get("offshore_id", ""))
+	for id in [land_id, smolt_id, off_id]:
+		bridge.QaSetFacilityConstruction(id, 1.0)
+	_sim.state_updated.emit()
+	for i in 3:
+		await get_tree().process_frame
+
+	# Accept 1: what is drawn equals the engine's units and tanks.
+	var rows: Array = _sim.get_facility_visuals()
+	_check(rows.size() == 3 and manager.visuals.size() == 3,
+		"facilities: three engine units, three drawn (%d, %d)" % [rows.size(), manager.visuals.size()])
+	for row: Dictionary in rows:
+		var id := str(row["unit_id"])
+		var node: Node3D = manager.visual_of(id)
+		if str(row["family"]) == "land":
+			var c := node as LandCampusBuilder
+			var drawn := c.drawn_tanks("tank_growout") + c.drawn_tanks("tank_pregrow") if c != null else -1
+			_check(int(row["tanks"]) > 0 and drawn == int(row["tanks"]),
+				"facilities: %s (%s on %s) draws the engine's %d tanks (%d)" % [id, row["variant"], row["plot_id"], int(row["tanks"]), drawn])
+		else:
+			var u := node as OffshoreUnitVisual
+			_check(u != null and u.unit.visible and u.get_phase() == int(row["phase_count"]) and "offshore_service" in u.fleet_assets(),
+				"facilities: %s stands on %s, operational, its service vessel alongside" % [id, row["plot_id"]])
+	var campus: LandCampusBuilder = manager.visual_of(land_id)
+	var smolt: LandCampusBuilder = manager.visual_of(smolt_id)
+	var unit: OffshoreUnitVisual = manager.visual_of(off_id)
+	_check(campus != null and campus.drawn_tanks("tank_growout") == 12 and campus.drawn_tanks("tank_pregrow") == 2
+		and smolt != null and smolt.drawn_tanks("tank_pregrow") == 8,
+		"facilities: one HFS lot is 12 grow-out and 2 pre-grow tanks, the post-smolt site 4 modules of 2")
+	_check(is_equal_approx(terrain.get_pad_state("pad_a"), 1.0) and is_equal_approx(terrain.get_pad_state("pad_delta"), 1.0)
+		and is_equal_approx(terrain.get_pad_state("pad_b"), 0.0),
+		"facilities: the held pads are blasted granite, the free pad stays heath")
+
+	# Accept 7: no fjord site, pen grid or barge for a farm-type unit.
+	var fjord_ids: Array = pens.get_pen_ids()
+	var barge_ids: Array = barges.active_site_ids()
+	_check(not (land_id in fjord_ids or smolt_id in fjord_ids or off_id in fjord_ids)
+		and not (land_id in barge_ids or smolt_id in barge_ids or off_id in barge_ids),
+		"facilities: no fjord site or feed barge stands for a land site or an offshore unit")
+	_check(_fjord_layout(pens, barges) == fjord_before,
+		"facilities: the fjord's sites, pens and barges stand where they stood (%s)" % _layout_change(fjord_before, _fjord_layout(pens, barges)))
+
+	# The mirror pass and the shadow rule (spec section 5, F2-18).
+	var net_ok := true
+	for level in 3:
+		for mesh in unit.unit.get_lod_meshes(level):
+			var want := PlanarReflection.NO_MIRROR_LAYER if String(mesh.name) == "Net" else 1
+			net_ok = net_ok and mesh.layers == want
+	_check(net_ok, "facilities: the unit's net is on the no-mirror layer at every LOD, the frame is mirrored")
+	_check(_shadow_rule_holds(campus.shadow_report()) and _shadow_rule_holds(unit.shadow_report()),
+		"facilities: LOD2 casts no shadow and of LOD1 only the tanks do")
+
+	# Accept 2: every construction phase draws differently.
+	var land_sigs := await _phase_signatures(bridge, manager, terrain, land_id)
+	_check(land_sigs.size() == 6 and _all_distinct(land_sigs.values()),
+		"facilities: the six land construction phases draw six different states (%s)" % str(land_sigs.keys()))
+	var off_sigs := await _phase_signatures(bridge, manager, terrain, off_id)
+	_check(off_sigs.size() == 5 and _all_distinct(off_sigs.values()),
+		"facilities: the five offshore construction phases draw five different states (%s)" % str(off_sigs.keys()))
+	for id in [land_id, off_id]:
+		bridge.QaSetFacilityConstruction(id, 1.0)
+	manager.sync_units(_sim.get_facility_visuals())
+	campus = manager.visual_of(land_id)
+	unit = manager.visual_of(off_id)
+
+	# Accept 3: on the see-through Fjord tab, a click on a tank opens its card
+	# and frames its lot.
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	await _click_control(ui.find_child("Tab_fjord", true, false))
+	cam.frame_position(campus.tank_position(0), FarmFacilityVisualManager.LAND_FRAMING.x, FarmFacilityVisualManager.LAND_FRAMING.y, 0.0)
+	await _settle_camera(cam)
+	var tank_top := campus.tank_position(0) + Vector3(0.0, LandCampusBuilder.GROWOUT_H * 0.6, 0.0)
+	await _click_at(cam.unproject_position(tank_top))
+	_check(manager.card.visible and manager.card.unit_id == land_id and manager.card.tank_index == 0,
+		"facilities: clicking a tank opens its anchored card (unit %s, tank %d)" % [manager.card.unit_id, manager.card.tank_index])
+	_check(is_equal_approx(cam.get_zoom_distance(), FarmFacilityVisualManager.LOT_FRAMING.x),
+		"facilities: the camera frames the tank's lot at the one-lot framing (%.0f m)" % cam.get_zoom_distance())
+	await get_tree().create_timer(1.5).timeout
+	var lot := campus.lot_centre(campus.tank_lot(0))
+	_check(Vector2(cam.get_focus_point().x - lot.x, cam.get_focus_point().z - lot.z).length() < 1.0,
+		"facilities: the camera's focus is on the lot's centre")
+	_press_key(KEY_ESCAPE)
+	await get_tree().process_frame
+	_check(not manager.card.visible, "facilities: Esc closes the card (back to the dashboard, the world covered)")
+
+	# A click on the offshore unit opens its card and frames it.
+	await _click_control(ui.find_child("Tab_fjord", true, false))
+	_check(cam.focus_target(off_id, 0.0), "facilities: the unit is a camera focus target")
+	await _settle_camera(cam)
+	await _click_at(cam.unproject_position(unit.focus_point()))
+	_check(manager.card.visible and manager.card.unit_id == off_id and manager.card.tank_index == -1,
+		"facilities: clicking the unit opens its card (%s)" % manager.card.unit_id)
+	_check(is_equal_approx(cam.get_zoom_distance(), FarmFacilityVisualManager.OF1_FRAMING.x),
+		"facilities: the camera frames the unit at the OF1 framing (%.0f m)" % cam.get_zoom_distance())
+	_press_key(KEY_ESCAPE)
+	await get_tree().process_frame
+
+	# Accept 6: dropping a unit leaves the others where they stood.
+	var land_before := [campus.get_instance_id(), campus.tank_position(0), campus.tank_position(campus.tanks.size() - 1)]
+	# The unit heaves on the drawn water: its station (x, z) is what must stay.
+	var unit_before := [unit.get_instance_id(), Vector2(unit.unit.position.x, unit.unit.position.z)]
+	manager.sync_units(_sim.get_facility_visuals().filter(func(r: Dictionary) -> bool: return str(r["unit_id"]) != smolt_id))
+	await get_tree().process_frame
+	var kept: LandCampusBuilder = manager.visual_of(land_id)
+	var kept_unit: OffshoreUnitVisual = manager.visual_of(off_id)
+	_check(manager.visual_of(smolt_id) == null and kept != null and kept_unit != null
+		and [kept.get_instance_id(), kept.tank_position(0), kept.tank_position(kept.tanks.size() - 1)] == land_before
+		and [kept_unit.get_instance_id(), Vector2(kept_unit.unit.position.x, kept_unit.unit.position.z)] == unit_before,
+		"facilities: dropping the post-smolt site leaves the campus and the unit untouched")
+	_check(is_equal_approx(terrain.get_pad_state("pad_delta"), 0.0), "facilities: the freed pad goes back to heath")
+	_check(bridge.QaSetLandLots(land_id, 2), "facilities: the grow-out site grows to two lots")
+	manager.sync_units(_sim.get_facility_visuals())
+	var grown: LandCampusBuilder = manager.visual_of(land_id)
+	_check(grown != null and grown.get_instance_id() != land_before[0]
+		and grown.drawn_tanks("tank_growout") + grown.drawn_tanks("tank_pregrow") == 28
+		and (manager.visual_of(off_id) as Node).get_instance_id() == unit_before[0],
+		"facilities: a lot more re-lays its campus (28 tanks) and nothing else")
+	_check(_fjord_layout(pens, barges) == fjord_before, "facilities: the fjord layout is still unchanged")
+	scene.queue_free()
+	await get_tree().process_frame
+
+
+## The drawn state of each construction phase of unit `id`: the engine's
+## progress is stepped through the build, and for each phase (by the
+## engine's phase index) the presenter's state is recorded at the phase's
+## middle. {phase key: signature}.
+func _phase_signatures(bridge: Node, manager: FarmFacilityVisualManager, terrain: FjordTerrain, id: String) -> Dictionary:
+	var spans := {}
+	for k in 200:
+		var p := float(k) / 200.0
+		bridge.QaSetFacilityConstruction(id, p)
+		var row := _facility_row(id)
+		if bool(row.get("operational", false)):
+			continue
+		var key := str(row["phase_key"])
+		var span: Vector2 = spans.get(key, Vector2(p, p))
+		spans[key] = Vector2(minf(span.x, p), maxf(span.y, p))
+	var out := {}
+	for key: String in spans:
+		bridge.QaSetFacilityConstruction(id, (spans[key].x + spans[key].y) * 0.5)
+		manager.sync_units(_sim.get_facility_visuals())
+		await get_tree().process_frame
+		var node: Node3D = manager.visual_of(id)
+		var sig := []
+		if node is LandCampusBuilder:
+			var c := node as LandCampusBuilder
+			sig.append(snappedf(c.get_tank_progress(), 0.01))
+			for g: String in ["roads", "halls", "intake", "utility"]:
+				var nodes: Array = c.groups.get(g, {}).get("nodes", [])
+				var mi: MeshInstance3D = nodes[0] if not nodes.is_empty() else null
+				sig.append([mi.visible, snappedf(float(mi.get_instance_shader_parameter("build_cut_m")), 0.1)] if mi != null else null)
+			sig.append(snappedf(terrain.get_pad_state(str(_facility_row(id)["plot_id"])), 0.01))
+		elif node is OffshoreUnitVisual:
+			var u := node as OffshoreUnitVisual
+			var fleet := u.fleet_assets()
+			fleet.sort()
+			sig = [u.unit.visible, u.survey.visible, int(Vector2(u.unit.position.x - u.station.x, u.unit.position.z - u.station.z).length() / 100.0), fleet]
+		out[key] = sig
+	return out
+
+
+func _facility_row(id: String) -> Dictionary:
+	for row: Dictionary in _sim.get_facility_visuals():
+		if str(row["unit_id"]) == id:
+			return row
+	return {}
+
+
+static func _all_distinct(values: Array) -> bool:
+	for i in values.size():
+		for j in range(i + 1, values.size()):
+			if values[i] == values[j]:
+				return false
+	return true
+
+
+static func _shadow_rule_holds(report: Array) -> bool:
+	if report.is_empty():
+		return false
+	for e: Dictionary in report:
+		if bool(e["casts"]) and (int(e["band"]) >= 2 or (int(e["band"]) == 1 and str(e["kind"]) != "tank")):
+			return false
+	return true
 
 
 ## F2-04: the farm-type catalogue reaches the UI through SimBridge, the one

@@ -634,6 +634,23 @@ UI_FARM_STATE_CTA_OXYGEN,Open telemetry,Til telemetri
 UI_FARM_STATE_CTA_FCR,Open the feeding plan,Til fôringsplanen
 UI_FARM_STATE_CTA_BALANCE,Open finance,Til økonomi
 UI_FARM_STATE_CTA_TIP,Opens the panel where this is handled,Åpner panelet der dette håndteres
+FACILITY_CARD_CLOSE,Close,Lukk
+FACILITY_CARD_LOT,Lot %s,Byggetrinn %s
+FACILITY_CARD_MODULE,Module %s,Modul %s
+FACILITY_CARD_PHASE,Phase %s of %s,Byggefase %s av %s
+FACILITY_CARD_STOCK,%s fish · %s,%s fisk · %s
+FACILITY_CARD_TANK,Tank %s,Kar %s
+FACILITY_PHASE_BLAST,Blasting the pad,Tomta sprenges
+FACILITY_PHASE_COMMISSIONING,Commissioning,Igangkjøring
+FACILITY_PHASE_FOUNDATIONS,Foundations,Fundamenter støpes
+FACILITY_PHASE_HALL,Treatment hall going up,Behandlingshallen reises
+FACILITY_PHASE_INTAKE,Intake and outfall,Inntak og utslipp
+FACILITY_PHASE_MOORING,Mooring,Oppankring
+FACILITY_PHASE_OPERATIONAL,Operational,I drift
+FACILITY_PHASE_TANKS,Tank walls rising,Karene reises
+FACILITY_PHASE_TOW,Towed to the slot,Slep til plassen
+FACILITY_PHASE_VOYAGE,On the way to the field,På vei til feltet
+FACILITY_PHASE_YARD,Building at the yard,Bygges på verftet
 FARM_FACTOR_LICE_CRITICAL,lice %s (limit %s),lus %s (grense %s)
 FARM_FACTOR_LICE,lice %s,lus %s
 FARM_FACTOR_OXYGEN,O₂ %s mg/L,O₂ %s mg/L

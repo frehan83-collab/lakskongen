@@ -41,11 +41,16 @@ namespace LakskongenSim.Tests.Environment
                     exposure[i] = bake.Rgba[i * 4 + 2];
                     ShoreDistance[i] = bake.Rgba[i * 4 + 1];
                 }
-                var veg = new VegetationSettings { Seed = seed };
-                Masks = VegetationScatter.BuildMasks(Heights, N, World, veg, exposure);
-                Props = ShorePropPlacer.Place(Heights, N, World, ShoreDistance, Masks.LandExposure);
-                Trees = VegetationScatter.Scatter(Heights, Masks, veg, ShorePropPlacer.Clearings(Props));
+                // The ground cover the renderer builds (F2-19: kept off the
+                // land pads and their rims, whose flat tops are not shore).
+                var cover = FjordGroundCover.Build(generator, Heights, bake);
+                Masks = cover.Masks;
+                Props = cover.Props;
+                Trees = cover.Trees;
+                Cleared = cover.Cleared;
             }
+
+            public readonly IReadOnlyList<GroundRect> Cleared;
 
             public float H(float x, float z) => VegetationScatter.Bilinear(Heights, N, Spacing, Half, x, z);
         }
@@ -128,8 +133,29 @@ namespace LakskongenSim.Tests.Environment
         public void Placement_IsDeterministic()
         {
             var f = Shared.Value;
-            var again = ShorePropPlacer.Place(f.Heights, f.N, f.World, f.ShoreDistance, f.Masks.LandExposure);
+            var again = ShorePropPlacer.Place(f.Heights, f.N, f.World, f.ShoreDistance, f.Masks.LandExposure, null, f.Cleared);
             Assert.Equal(f.Props, again);
+        }
+
+        /// <summary>
+        /// F2-19: no naust corner and no quay end stands on a land pad or its
+        /// rim; with the clearings left out, the flat +3.6 m pads draw shore
+        /// buildings (so the exclusion is what keeps them off).
+        /// </summary>
+        [Fact]
+        public void NoShoreBuilding_StandsOnAPadOrItsRim()
+        {
+            var f = Shared.Value;
+            Assert.NotEmpty(f.Cleared);
+            foreach (var p in f.Props)
+            {
+                Assert.False(GroundRect.AnyContains(f.Cleared, p.X, p.Z), $"{p.Kind} at ({p.X:F0}, {p.Z:F0}) on a pad");
+                float reach = p.Kind == ShorePropKind.Quay ? f.S.QuayLengthM : f.S.NaustLengthM * 0.5f;
+                Assert.False(GroundRect.AnyContains(f.Cleared, p.X + p.FacingX * reach, p.Z + p.FacingZ * reach), $"{p.Kind} at ({p.X:F0}, {p.Z:F0}) reaches a pad");
+                Assert.False(GroundRect.AnyContains(f.Cleared, p.X - p.FacingX * reach, p.Z - p.FacingZ * reach), $"{p.Kind} at ({p.X:F0}, {p.Z:F0}) reaches a pad");
+            }
+            var open = ShorePropPlacer.Place(f.Heights, f.N, f.World, f.ShoreDistance, f.Masks.LandExposure);
+            Assert.Contains(open, p => GroundRect.AnyContains(f.Cleared, p.X, p.Z));
         }
     }
 }
