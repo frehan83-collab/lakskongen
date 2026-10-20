@@ -400,4 +400,40 @@ public class SeaCandidateTests
         Assert.Equal(engine.State.SeaSites.Single(s => s.Id == built.Id).Label, at.SiteLabel);
         Assert.Equal(rows[0], start);
     }
+
+    /// <summary>
+    /// A locality built without a place outside the home area (a catalogue zone
+    /// on a won growth licence) lies at its own zone's anchor in its own
+    /// production area, not the home area's (captain's review of track B,
+    /// finding 6: a mutant reading the home area for every anchored site
+    /// passed every other test).
+    /// </summary>
+    [Fact]
+    public void APlacelessSiteOutsideTheHomeArea_LiesAtItsZonesAnchor_InItsOwnArea()
+    {
+        const string zone = "po04_solund";
+        var engine = Started("forste_sesong", seed: 29, cash: 300_000_000m);
+        foreach (var rival in engine.CompetitorAI.Competitors)
+        {
+            rival.IsDistressed = true;
+            rival.CashReserves = 0m;
+        }
+        Assert.True(engine.ApplyForGrowthLicence(zone).Ok);
+        Assert.True(engine.BidOnLicenseAuction(zone, engine.LicenseReservePriceNOK).Ok);
+        engine.Advance(LicenseAuctionSystem.AuctionLengthDays + 1);
+        Assert.True(engine.HasGrowthLicence(zone));
+        Assert.Equal(3, engine.HomeProductionArea);
+
+        var built = engine.BuildSeaSite(zone, "");
+        Assert.True(built.Ok, built.Message);
+        var rows = engine.GetPlayerSiteLocations();
+        var away = rows.Single(l => l.SiteId == built.Id);
+        var anchor = ScenarioGeoAnchors.AnchorOf(zone, 4);
+        Assert.Equal((PlayerSiteLocation.AnchorSource, 4, "", anchor.Name, (long)anchor.X, (long)anchor.Y),
+            (away.Source, away.Po, away.CandidateId, away.Label, away.X, away.Y));
+        Assert.True(away.Approximate);
+        Assert.NotEqual(ScenarioGeoAnchors.AnchorOf(zone, 3).LocalityId, anchor.LocalityId);
+        var home = rows.Single(l => l.SiteId != built.Id);
+        Assert.Equal((3, PlayerSiteLocation.AnchorSource), (home.Po, home.Source));
+    }
 }
