@@ -290,7 +290,8 @@ The Phase 4 "Exit" in `NEXT_LEVEL_PLAN.md` has two gates an agent cannot close a
 - Calibration: `OffshoreIncidentCalibration.cs` and `OffshoreLicenceCalibration.cs` extend the partial `OffshoreCalibration`; `facilities_offshore.json` holds their sections (alarmReview, handling, incidents, liceCoupling, licences, procedures, reinforcement)
 
 ### CompetitorAI
-- 7 parody competitors (Mowier, SalMax, Herøy, Greed Gregarious, Offshore Optimists, NordLaks Nord)
+- 6 parody competitors (Mowier, SalMax, Herøy, Greed Gregarious, Offshore Optimists, Kongsemne Havbruk; ids unchanged, `nordlaks_nord` is Kongsemne since the geo D17 rename, old saves keep their stored names)
+- On the map (geo stages 2-3, `Finance/RivalLayout.cs`): the real salmonid localities get owners by MTB share, home areas first, the rest go to generated independents (`Finance/ParodyNames.cs`, word lists reviewed in BALANCE §1ab); display only, cached by a signature that names every input
 - Quarterly `AdvanceQuarter` (every 90 days) with financial updates, distress check, strategic actions
 - Actions: Harvest, Acquisition, LicenseBid (legacy, now separate from auction), PriceWar, Lobbying, International
 - Distress triggers: `FinancialHealth < 0.30` || `LeverageRatio > 5.0` || `CashReserves <= 0`

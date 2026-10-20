@@ -360,6 +360,11 @@ GIS package).
   saved). Bridge: `GetGeoProductionAreas`, `GetGeoPlotBinding`,
   `GetGeoOffshoreCandidates`, `GeoAreaAt` (GameBridge.Geo.cs, the sim·geo
   lane block). The per-area table is in BALANCE §1ab.
+  Merged into geo/int 2026-10-21 (`18953ec`) with the captain's review
+  fixes: a New Game on GameBridge's long-lived engine is back on the default
+  catalogue (Reset), and `GetGeoOffshoreCandidates` works in a game with no
+  home area (`distance_km` -1, measured as the binding measures it
+  otherwise).
 - **Rival farms**: `localities.geojson` sea and land salmonid sites, with
   `mtb_t` and `po`, give the real distribution of competitors per area; give
   them generated parody company names (D17: the data has none, by design).
@@ -378,7 +383,11 @@ GIS package).
   tick reads it. Bridge: `GetGeoSites` (packed arrays), `GetGeoSitesSignature`,
   `GetRivalSummary`, `GetZoneAnchors`; `GetCompetitorCompanies` orders the 3D
   rivals by their sites in the home area. Rules, counts and word lists in
-  BALANCE §1ab.
+  BALANCE §1ab. Merged into geo/int 2026-10-21 (`18953ec`): the captain's
+  review made the layout signature name every input (a loaded save's stored
+  names no longer follow the engine into the next game), counted no home
+  sites in a game with no home area, and approved the word lists with
+  "Tare" replaced by "Stortare" (ruling OD10).
 - **Determinism**: the files are inputs; their sha256 is in `manifest.json`.
   Golden traces are unaffected until the sim reads them; the first change that
   does must re-record them with a diff report (HANDOFF §7).
