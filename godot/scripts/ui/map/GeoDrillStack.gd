@@ -196,7 +196,8 @@ func on_sim_changed(force: bool = false) -> void:
 	if _level == "national" or not is_visible_in_tree():
 		return
 	var sig := _overview_signature()
-	if not force and sig == _last_overview_sig and not _rivals_moved():
+	var rivals_moved := _rivals_moved()
+	if not force and sig == _last_overview_sig and not rivals_moved:
 		return
 	_last_overview_sig = sig
 	_region.refresh_live(force)
@@ -298,7 +299,7 @@ func _remember_overview() -> void:
 	_last_signature = GeoRegionBridge.geo_sites_signature(_sim)
 
 
-
+## True once when the rival layout's signature moved since the last look.
 func _rivals_moved() -> bool:
 	var signature := GeoRegionBridge.geo_sites_signature(_sim)
 	if signature == _last_signature:

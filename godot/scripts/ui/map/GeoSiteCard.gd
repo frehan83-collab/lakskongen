@@ -12,10 +12,11 @@ extends Control
 ##   needs a growth licence (the subtitle names the zone), 'Vis i 3D' once it
 ##   is yours; any other refusal is a disabled button saying why.
 ## - A company site: where it lies, and 'Vis i 3D'.
-## - A rival locality: owner, kind and MTB, no action.
+## - A rival locality: owner, kind, stage and MTB, no action.
 ## - A Havbruk til havs hexagon: the hav_1 one offers 'Bygg her (Hav)'; any
 ##   other says it is not offered from your area.
-## Every number comes from the row the region level read (GeoRegionBridge).
+## Every number comes from the row the region level read (GeoRegionBridge);
+## the rings' radii from suitability_rules.json, the rules the scores used.
 
 signal build_requested(zone_id: String, candidate_id: String)
 signal licence_requested(zone_id: String)
@@ -24,7 +25,6 @@ signal hav_requested
 signal back_requested
 
 const ZOOM := 4.0
-## The rings come from suitability_rules.json, the rules the scores used.
 const CARD_WIDTH := 380.0
 const CARD_MARGIN := 12.0
 const LICENCE_REASON := "growth_licence_required"
