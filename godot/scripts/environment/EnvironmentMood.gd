@@ -107,10 +107,13 @@ const PROFILES := [
 		"deck": "#E9EDF0", "deck_grade": 0.0, "fog": "#A9BCC8", "fog_grade": 0.6, "fog_value": 0.92,
 		"sun": "#FFF1DD", "sun_grade": 0.5, "water": Color(0.0010, 0.014, 0.070), "exposure_ev": -0.15,
 		"cloud_base_m": 0.0, "cloud_base_fog": 0.0, "sky_haze": 1.0, "deck_value": 1.0, "horizon_lift": 0.0, "mist": 0.0},
-	# Midnattssol: the sun a few degrees up in the north, gold on the horizon.
-	{"zenith": "#5A8AB4", "horizon": "#F8CC8C", "horizon_sun": "#F7CC90", "sky_grade": 1.0,
-		"deck": "#F4D19C", "deck_grade": 0.85, "fog": "#E6C89C", "fog_grade": 0.6, "fog_value": 0.5,
-		"sun": "#FFC27A", "sun_grade": 0.45, "water": Color(0.0, 0.016, 0.040), "exposure_ev": 0.45,
+	# Midnattssol: the sun a few degrees up in the north, gold on the horizon
+	# and on the slopes it lights (gfx-polish-1: with the sunlight's
+	# luminance kept, its hue moves further toward the spec's #FFC27A and the
+	# sun's side of the sky and the deck a shade warmer, toward #F3D4A4).
+	{"zenith": "#5A8AB4", "horizon": "#F8CC8C", "horizon_sun": "#F6C27E", "sky_grade": 1.0,
+		"deck": "#F3C890", "deck_grade": 0.85, "fog": "#E6C89C", "fog_grade": 0.6, "fog_value": 0.5,
+		"sun": "#FFC27A", "sun_grade": 0.7, "water": Color(0.0, 0.016, 0.040), "exposure_ev": 0.45,
 		"cloud_base_m": 0.0, "cloud_base_fog": 0.0, "sky_haze": 1.0, "deck_value": 1.3, "horizon_lift": 0.0, "mist": 0.0},
 	# Gråvær: the west coast's closed grey deck, grey water, mist on the tops.
 	{"zenith": "#9AA8B0", "horizon": "#A7B3BA", "horizon_sun": "#A7B3BA", "sky_grade": 0.8,

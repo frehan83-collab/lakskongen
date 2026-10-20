@@ -380,10 +380,11 @@ void fragment() {
 	// A pixel that covers several terraces covers their flats and risers
 	// alike: half of a terrace's height is flat (the slope times 1 - k, k
 	// the ledges' strength), half riser (times 1 + k on average). The snow
-	// cover and the bare rock hold half of each (the cover of each, not the
-	// cover of their mean snow: snow sticks to the flats, slides off the
-	// risers), so a wall seen from afar keeps as much snow on its ledges as
-	// it shows close up.
+	// takes the mean of what the two hold, the rock's texture deciding where
+	// it lies, and the bare rock half of each, so a wall seen from afar
+	// keeps about as much snow as it shows close up. (Averaging the snow's
+	// cover instead, the flats' full and the risers' none, greyed the walls
+	// into an even speckle: the menu and 18 compared.)
 	float terrace_spread = macro_terrain.z * (1.0 - terrace_near);
 	vec4 n_big = noise_at(skew, 2000.0, footprint);
 	vec4 n_mid = noise_at(skew + 517.0, 520.0, footprint);
@@ -507,15 +508,11 @@ void fragment() {
 	pick_soils(w_shingle, w_grass, w_heath, w_spruce, w_birch, soil_a, soil_wa, soil_b, soil_wb);
 
 	float north = clamp(g.x * 2.0, 0.0, 1.0);
-	// The snow on the terraces' flats and on their risers (the same where
-	// the terraces draw themselves); the cover below holds half of each.
-	float snow_flat = ground_snow(h, slope_eff, north, hollow, macro);
-	float snow_riser = snow_flat;
+	float snow_amount = ground_snow(h, slope_eff, north, hollow, macro);
 	if (terrace_spread > TERRACE_SPREAD_MIN) {
-		snow_flat = ground_snow(h, snow_slope(slope_tan * (1.0 - terrace_spread), ledge, gully), north, hollow, macro);
-		snow_riser = ground_snow(h, snow_slope(slope_tan * (1.0 + terrace_spread), ledge, gully), north, hollow, macro);
+		snow_amount = 0.5 * (ground_snow(h, snow_slope(slope_tan * (1.0 - terrace_spread), ledge, gully), north, hollow, macro)
+			+ ground_snow(h, snow_slope(slope_tan * (1.0 + terrace_spread), ledge, gully), north, hollow, macro));
 	}
-	float snow_amount = max(snow_flat, snow_riser);
 
 	// ── Biplanar projections ──
 	int major = aw.x > aw.y && aw.x > aw.z ? 0 : (aw.y > aw.z ? 1 : 2);
@@ -609,8 +606,7 @@ void fragment() {
 	// On the walls it lies thin: a soft dusting the rock shows through, full
 	// only on the ledges and in the gullies.
 	float snow_soft = mix(0.12, 0.3, cliff);
-	float snow = snow_amount > 0.005 ? 0.5 * (smoothstep(ground_h - snow_soft, ground_h + snow_soft, snow_flat * 1.35 - 0.2)
-		+ smoothstep(ground_h - snow_soft, ground_h + snow_soft, snow_riser * 1.35 - 0.2)) : 0.0;
+	float snow = snow_amount > 0.005 ? smoothstep(ground_h - snow_soft, ground_h + snow_soft, snow_amount * 1.35 - 0.2) : 0.0;
 	snow *= mix(1.0, 0.82, cliff * (1.0 - max(ledge, gully)));
 	br *= 1.0 - snow;
 	ba *= 1.0 - snow;

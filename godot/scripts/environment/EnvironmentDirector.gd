@@ -85,6 +85,8 @@ const CLOUD_HEIGHT_KM := 1.6
 const SUN_ENERGY := 2.4
 ## White balance: sunlight at this elevation renders neutral white.
 const WHITE_BALANCE_ELEVATION := 60.0
+## Floor of the sun colour's luminance the light's energy is divided by.
+const SUN_COLOR_MIN_LUMINANCE := 0.05
 ## Clouds dim the sun to this fraction at full cover (roadmap: lerp(1, 0.15, c)).
 const OVERCAST_SUN_FRACTION := 0.15
 const MOON_COLOR := Color("#C7D7E8")
@@ -594,13 +596,20 @@ func _apply_sun(sun_dir: Vector3, cloud: float, c: Dictionary) -> void:
 	var clouds := lerpf(1.0, OVERCAST_SUN_FRACTION, cloud)
 	var clear_energy := _clear_sun_energy(sun_dir)
 	var energy := clear_energy * clouds
-	var tint := Color(balanced.x / peak, balanced.y / peak, balanced.z / peak) if peak > 0.0 else Color.BLACK
+	# The transmittance's tint is linear; Light3D colours are sRGB-encoded
+	# (as the mood's sun tint is), so it is encoded before the two blend.
+	var tint := Color(balanced.x / peak, balanced.y / peak, balanced.z / peak).linear_to_srgb() if peak > 0.0 else Color.BLACK
 	# The mood's sunlight (G3-05): Midnattssol's gold, Høst's low amber.
 	tint = tint.lerp(_mood_sun_tint(), clampf(float(mood.get("sun_grade", 0.0)), 0.0, 1.0))
 	# Through a closed deck the light arrives diffused and near-neutral.
 	var neutral := tint.get_luminance()
 	sun_light.light_color = tint.lerp(Color(neutral, neutral, neutral), 0.9 * smoothstep(0.8, 0.97, cloud))
-	sun_light.light_energy = energy
+	# `energy` is the sun's luminance (the transmittance's, against the white
+	# balance's): the colour carries the hue only, so the light is scaled by
+	# its colour's luminance (gfx-polish-1: the peak-normalised tint, read as
+	# sRGB, cut a 3-degree sun to about a quarter of its light and a
+	# 10-degree one to about half, and low-sun walls lay flat).
+	sun_light.light_energy = energy / sun_color_luminance(sun_light.light_color)
 	sun_light.shadow_enabled = energy > 0.002
 	sun_light.shadow_opacity = lerpf(1.0, 0.25, smoothstep(0.35, 1.0, cloud))
 	sun_light.light_angular_distance = lerpf(SUN_ANGLE_CLEAR, SUN_ANGLE_OVERCAST, smoothstep(0.3, 1.0, cloud))
@@ -612,6 +621,14 @@ func _apply_sun(sun_dir: Vector3, cloud: float, c: Dictionary) -> void:
 	c["sun_clear_energy"] = clear_energy
 	c["sun_color"] = sun_light.light_color
 	c["sun_direction"] = sun_dir
+
+
+## The linear luminance of an sRGB-encoded light colour (Light3D), at least
+## SUN_COLOR_MIN_LUMINANCE (a colour that dark is the sun under the horizon,
+## whose energy is already near zero).
+static func sun_color_luminance(srgb: Color) -> float:
+	var lin := srgb.srgb_to_linear()
+	return maxf(_luminance(Vector3(lin.r, lin.g, lin.b)), SUN_COLOR_MIN_LUMINANCE)
 
 
 func _apply_moon(sun_elev: float, cloud: float, c: Dictionary) -> void:

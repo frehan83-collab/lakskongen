@@ -186,15 +186,14 @@ def test_the_wall_masks_read_the_ground_without_its_terraces_where_a_ledge_is_sm
     blend = frag.index("slope_tan = mix(macro_terrain.x")
     for use in ("float cliff = smoothstep(0.9, 1.7, slope_tan);", "float bare = smoothstep(", "ground_snow(h, slope_eff"):
         assert frag.index(use) > blend, use
-    # Where the terraces do not draw, the snow cover and the bare rock hold
-    # half of what the flats (slope x (1 - k)) and the risers (x (1 + k))
-    # would: the cover of each, not the cover of their mean snow.
+    # Where the terraces do not draw, the snow takes the mean of what the
+    # flats (slope x (1 - k)) and the risers (x (1 + k)) hold, the bare
+    # rock half of each.
     assert "float terrace_spread = macro_terrain.z * (1.0 - terrace_near);" in frag
-    assert "snow_slope(slope_tan * (1.0 - terrace_spread), ledge, gully)" in frag
-    assert "snow_slope(slope_tan * (1.0 + terrace_spread), ledge, gully)" in frag
-    assert "0.5 * (smoothstep(ground_h - snow_soft, ground_h + snow_soft, snow_flat * 1.35 - 0.2)" in frag
-    assert "+ smoothstep(ground_h - snow_soft, ground_h + snow_soft, snow_riser * 1.35 - 0.2))" in frag
+    assert "snow_amount = 0.5 * (ground_snow(h, snow_slope(slope_tan * (1.0 - terrace_spread), ledge, gully), north, hollow, macro)" in frag
+    assert "+ ground_snow(h, snow_slope(slope_tan * (1.0 + terrace_spread), ledge, gully), north, hollow, macro));" in frag
     assert "smoothstep(soil_limit, soil_limit + bare_span, slope_tan * (1.0 - terrace_spread))" in frag
+    assert "smoothstep(soil_limit, soil_limit + bare_span, slope_tan * (1.0 + terrace_spread))" in frag
     # The strength the shader reads is the generator's (at most).
     strength = float(re.search(r"private const float LedgeStrength = ([\d.]+)f;", GENERATOR.read_text()).group(1))
     assert strength == 0.28
@@ -334,3 +333,20 @@ def test_the_menu_and_aurora_stills_pin_their_clouds_and_curtains():
 def test_the_perf_harness_splits_the_schools_by_part():
     perf = _code(PERF)
     assert '"shoal":' in perf and "return [FishSchool.SHOAL_MATERIAL, prop, true]" in perf
+
+
+# ── The sun's light ────────────────────────────────────────────────────────────
+
+def test_the_sun_light_keeps_its_luminance_and_encodes_its_tint():
+    # Light3D colours are sRGB-encoded: the transmittance's linear tint is
+    # encoded before it meets the mood's (sRGB) tint, and the light's energy
+    # is divided by its colour's luminance so the light carries the
+    # director's energy (a 3-degree sun kept about a quarter of it).
+    director = _code(DIRECTOR)
+    apply_sun = _function_gd(director, "func _apply_sun(")
+    assert "Color(balanced.x / peak, balanced.y / peak, balanced.z / peak).linear_to_srgb()" in apply_sun
+    assert "sun_light.light_energy = energy / sun_color_luminance(sun_light.light_color)" in apply_sun
+    assert apply_sun.index("linear_to_srgb()") < apply_sun.index("_mood_sun_tint()")
+    lum = _function_gd(director, "static func sun_color_luminance(")
+    assert "var lin := srgb.srgb_to_linear()" in lum and "SUN_COLOR_MIN_LUMINANCE" in lum
+    assert 'c["sun_energy"] = energy' in apply_sun, "the composed energy stays the luminance"

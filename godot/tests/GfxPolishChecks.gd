@@ -51,6 +51,7 @@ func run(tests: Node) -> void:
 	await _check_pen_calm(env, director, cam, pens)
 	await _check_shoal_lod(cam, pens)
 	await _check_vessel_chips(env, cam, pens)
+	_check_sun_keeps_its_light(env, director)
 	scene.queue_free()
 	await t.get_tree().process_frame
 
@@ -310,3 +311,26 @@ func _check_vessel_chips(env: FjordEnvironment, cam: FjordCamera, pens: FishPenM
 		"chips: a barge whose bow still shows keeps its chip slid in (anchor %.0f px past the edge, its half length %.0f px; pill left %.1f px), and loses it once the whole barge is out" % [
 			0.5 * half_px, half_px, bow_left])
 	barge.queue_free()
+
+
+## The sun light carries the luminance the director gives it (its energy,
+## the transmittance's against the white balance) at any elevation: its
+## colour, sRGB-encoded as Light3D colours are, sets only the hue. A
+## 3-degree midnight sun lost about three quarters of its light to a
+## peak-normalised linear tint read as sRGB, and a 10-degree one about half.
+func _check_sun_keeps_its_light(env: FjordEnvironment, director: EnvironmentDirector) -> void:
+	var sun := env.get_node("Sun") as DirectionalLight3D
+	var rows := []
+	var kept := true
+	for staging in [[69.65, 172.0, 0.5], [61.0, 268.0, 16.5], [60.39, 176.0, 13.0]]:
+		env.set_latitude(staging[0])
+		env.set_season(staging[1] / 365.0)
+		env.set_time(staging[2])
+		director.compose(0.0, true)
+		var composed := director.get_composed()
+		var energy := float(composed.get("sun_energy", 0.0))
+		var lum := EnvironmentDirector.sun_color_luminance(sun.light_color)
+		var light := lum * sun.light_energy
+		kept = kept and energy > 0.0 and absf(light - energy) <= 0.002 * maxf(energy, 1.0)
+		rows.append("%.1f deg: energy %.3f, light %.3f" % [float(composed.get("sun_elevation", 0.0)), energy, light])
+	t._check(kept, "sun: the light keeps the luminance its energy gives at every elevation (%s)" % ", ".join(rows))
