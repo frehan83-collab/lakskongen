@@ -202,7 +202,7 @@ func _open() -> void:
 	_done_kind = ""
 	show()
 	_refresh()
-	JuiceEffects.panel_enter(_dialog)
+	_enter()
 	_focus_after_open.call_deferred()
 
 
@@ -321,6 +321,8 @@ func choose_family(family_id: String) -> void:
 	_clear_ghost()
 	_refresh()
 	_focus_variant.call_deferred()
+	if family_id == "sjo":
+		_show_places()   # as when the dialog opens on Sjø: the places in view
 
 
 ## Choose a variant (its column's button).
@@ -384,7 +386,7 @@ func _refresh() -> void:
 		_refresh_sea()
 	else:
 		_refresh_farm()
-	_fit.call_deferred()
+	_fit_after_layout()
 
 
 func _family_dict(family_id: String) -> Dictionary:
@@ -862,6 +864,29 @@ func _focus_plot() -> void:
 	_confirm_btn.grab_focus()
 
 
+## The entrance slide, then the centre sorts the panel again. The slide ends
+## where the panel stood when it began, so a refresh during it (a choice made
+## at once, a dialog opened at another size) left the panel off centre with
+## the confirm below the window (captain's merge of track B, seen at 1280x720).
+func _enter() -> void:
+	var slide := JuiceEffects.panel_enter(_dialog)
+	var centre := _dialog.get_parent() as Container
+	if slide != null and centre != null:
+		slide.finished.connect(centre.queue_sort)
+
+
+## Fit at the end of this frame and once more on the next, when rebuilt steps
+## (the family cards, the places) and the wrapped header and strip have their
+## real size. Measured only at the end of the refresh, «Nytt anlegg» → Sjø kept
+## the steps' scroll at its 120 px floor with the places out of sight (captain's
+## merge of track B; track B's follow-up for Land and Hav too).
+func _fit_after_layout() -> void:
+	_fit.call_deferred()
+	# One more pass per frame however many refreshes ran; a freed dialog drops it.
+	if is_inside_tree() and not get_tree().process_frame.is_connected(_fit):
+		get_tree().process_frame.connect(_fit, CONNECT_ONE_SHOT)
+
+
 ## Keep the dialog inside the window at any size and UI scale: the steps
 ## scroll, the header, the family cards and the footer stay.
 func _fit() -> void:
@@ -910,7 +935,7 @@ func _confirm_sea() -> void:
 		else tr("SEA_CANDIDATE_DONE_TITLE") % [str(result.get("site_label", "")), place]
 	_result_body.text = tr("EXPANSION_BUILD_DONE_BODY") % int(_plan.get("pens", 0))
 	_refresh()
-	JuiceEffects.panel_enter(_dialog)
+	_enter()
 	built.emit(_built_site_id, _zone_id)
 
 
@@ -961,7 +986,7 @@ func _confirm_farm() -> void:
 			_result_body.text = tr("BUILD_DONE_SEA_BODY") % SimFormatters.format_day(int(
 				(_farm_preview.get("offshore", {}) as Dictionary).get("first_stocking_day", 0)))
 	_refresh()
-	JuiceEffects.panel_enter(_dialog)
+	_enter()
 	built.emit(str(result.get("id", "")), _plot)
 
 
