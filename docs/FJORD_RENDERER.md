@@ -747,7 +747,18 @@ longer has (a cancelled build) is freed, and nothing else moves.
   harvest hall, the orange pipe bridge, the intake basin, the utilities row
   behind the lots, roads, a concrete apron and an asphalt car park; a
   post-smolt site's modules (two Ø16 m tanks under a lean-to bay) side by
-  side with the river intake on the delta. Draws: one MultiMesh per tank
+  side with the river intake on the delta. The quay side is laid out from
+  the pipe bridge's line (`bridge_line_v`, over the first lot road): the
+  intake basin beside the first lot row on one side of it, the harvest hall
+  10 m off it on the other and 3 m off the cross road, the quay fronting the
+  hall from the bridge on, all from the kit's real LOD0 boxes
+  (`turned_box`: the pieces are not centred on their origins). A road along
+  the pad runs on to the apron only through the bridge's corridor. A plot
+  the terrain has no pad for (a migrated save's overflow plot) gets a frame
+  its campus fits (`frame_size_for`). `CampusLayoutCheck` lists solids in one
+  another, roads under buildings and pieces off the pad;
+  `tests/FacilityLayoutChecks.gd` runs it over every pad and lot count the
+  engine lists. Draws: one MultiMesh per tank
   type per LOD band (re-bucketed as the camera moves: LOD0 < 350 m, LOD1 <
   1,200 m), a double-sided twin of each for tanks under construction, the
   feeders at LOD0/LOD1, and each building group merged into one surface per
@@ -755,6 +766,14 @@ longer has (a cancelled build) is freed, and nothing else moves.
   pair of margins leaves a band where a camera that jumped there sees
   neither LOD): roads, the harvest hall, the sea works, the utilities, and
   each lot's hall bays. LOD2 casts no shadow; of LOD1 only the tanks do.
+- **Building one is no stall.** `KitMeshMerge` merges a group on the CPU
+  from the kit's arrays, read back from the GPU once per mesh per session
+  (`SurfaceTool.append_from` read every piece back: 84 ms warm, 236 ms
+  cold for a 4-lot campus's groups on the M1 Pro); the terrain computes its
+  pads once per generation (each lookup cost 21-31 ms); the land kit loads
+  in the background from the presenter's `_ready`. The presenter keeps
+  `last_sync_ms` / `max_sync_ms`, which `PerfHarness --facilities` reports
+  (`create_ms`, `rebuild_ms`) against the 50 ms spike line.
 - **Construction** follows each lot's project: the site works spread the
   pad's blasted granite (`FjordTerrain.set_pad_state` with the campus's
   footprint + 22 m) over their first 60 % and then pour the ring
@@ -787,7 +806,11 @@ longer has (a cancelled build) is freed, and nothing else moves.
   it waits or stands still, a progress ring of the whole build; once built,
   fish and biomass) hanging from the clicked point, and frames it: a tank its
   lot at 380 m and −40°, the campus at 520 m and −40°, an OF1-class unit at
-  220 m and −18° (spec §4). Esc closes it; so does covering the world.
+  220 m and −18° (spec §4). Esc closes it before anything else (the card is
+  in `FacilityWorldCard.WORLD_CARD_GROUP`, which `GameUI` closes first: the
+  world sits before the UI in the tree, so the card's own input came too
+  late); so does covering the world. While its anchor is behind the camera
+  the card is hidden (it takes no clicks) and stays open.
 
 QA staging (never the player's UI, `tests/test_facility_presenter.py`): the
 bridge's `QaPlaceFarmTypeSet`, `QaStartLandBuild`, `QaExpandLandSite`
@@ -796,8 +819,17 @@ approved at once), `QaContractOffshore` (the engine's
 `QaContractOffshoreUnit`: `BuildOffshoreUnit`'s contract with the unlock
 gates waived and a QA award) and `QaStageConstruction` (a project stood in a
 named phase). The capture scene `qa/scenes/FacilityPresenterCapture.tscn`
-renders shots `45_pads_*`, `32_land_construction_*` and `44_facilities_*`
-from them; evidence `docs/run/evidence/f2_20_presenter.md`.
+renders shots `45_pads_*`, `32_land_construction_*` and `46_facilities_*`
+(renamed from `44_`, which U2-08 owns) from them, the clouds' drift staged
+at one point before every grab; with a campus framed it also hashes the
+campus's own screen box (`phash_roi`), and the tank-rings state is stood
+twice (`32_land_construction_p2_tank_rings_twin`) so the phase difference is
+read against the hash's own noise. Budgets: the spec's §5 draw-call budget
+is measured at the home view (the P0-04 view); at the units' own framings
+(`46_facilities_campus_full`, `46_facilities_budget_of1_framing`) the
+counts measured at the wave-4b merge are regression ceilings. Evidence
+`docs/run/evidence/f2_20_presenter.md`,
+`docs/run/evidence/wave4b_int_gfx_farm_1.md`.
 
 ## Image pipeline (G1-06, post and anti-aliasing)
 

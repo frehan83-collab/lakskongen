@@ -15,6 +15,8 @@ extends "res://scripts/qa/QaWorldCapture.gd"
 ##   "land": {"lots": n, "phase": key, "progress": p}  an HFS site on pad_a;
 ##     "operational" commissions n lots at once, a phase key ("site_works" …
 ##     "completion") builds lot by lot and stands the projects in that phase;
+##   "land_b": {...}  the same on pad_b (built lot by lot; "operational"
+##     stands its projects complete): the second pad's layout;
 ##   "post_smolt": {"modules": n}  a post-smolt site on pad_delta, built;
 ##   "offshore": {"phase": key, "progress": p}  an OF1-class unit on off_1
 ##     ("yard_contract" … "commissioning", or "operational").
@@ -22,11 +24,16 @@ extends "res://scripts/qa/QaWorldCapture.gd"
 ## than stand already is refused (run it alone with --only).
 ##
 ## Per shot it records the units' phases and the tanks and units the
-## presenter draws against the engine's; the share of hull-yellow pixels over
-## an OF1 unit; with "perf" the draw calls the facilities add (A/B, the
-## presenter hidden and shown, or only "perf_units"); and a 64-bit perceptual
-## hash of the frame, so shots of different phases can be compared (pHash
-## Hamming distance, the variant_of pairs).
+## presenter draws against the engine's, each campus's layout clashes
+## (CampusLayoutCheck); the share of hull-yellow pixels over an OF1 unit;
+## with "perf" the draw calls the facilities add (A/B, the presenter hidden
+## and shown, or only "perf_units"); and 64-bit perceptual hashes of the
+## frame and, when the camera frames a campus ("unit:<key>"), of the campus's
+## own screen box (phash_roi), so shots of different phases can be compared
+## (Hamming distances, the variant_of pairs). The clouds' drift is staged at
+## one point before every grab (EnvironmentDirector.stage_cloud_drift), so
+## cloud shadows do not move between shots (wave4b review: the whole-frame
+## hash of two shots of one state differed by up to 8 bits in a run).
 ##
 ## Output: res://screenshots/game/<id>.png and f2_20_facilities_metrics.json
 ## (merged over runs, so --only subsets add to it).
@@ -42,7 +49,10 @@ const PHASH_SIZE := 32
 const PHASH_LOW := 8
 ## The QA set's plots (spec §4).
 const LAND_PLOT := "pad_a"
+const SECOND_LAND_PLOT := "pad_b"
 const OFFSHORE_PLOT := "off_1"
+## The campus box (m over the pad) a ROI hash covers: the tallest pieces.
+const ROI_HEIGHT_M := 20.0
 ## A pixel reads as the OF1's safety yellow (spec §5.2 #E6BE2E, lit or in
 ## shade: the swatch's hue 48 deg) when its hue lies in this band (turns),
 ## and its saturation and value reach these.
@@ -88,6 +98,7 @@ func run_shots(shots: Array) -> void:
 			focus += Vector3(float(cam_spec["offset"][0]), 0.0, float(cam_spec["offset"][1]))
 		focus = stage_camera(cam_spec, focus)
 		await wait(2.0)
+		_director.stage_cloud_drift(Vector2.ZERO)
 		var beauty := await grab()
 		save(beauty, sid + ".png")
 		var rec := {
@@ -104,6 +115,10 @@ func run_shots(shots: Array) -> void:
 		if with_units:
 			rec["facilities"] = shot["facilities"]
 			rec["units"] = _unit_record(beauty)
+			var roi := _campus_roi(str(cam_spec.get("target", "")), beauty)
+			if roi.has_area():
+				rec["roi"] = [roi.position.x, roi.position.y, roi.end.x, roi.end.y]
+				rec["phash_roi"] = phash_hex(beauty.get_region(roi))
 			if bool(shot.get("perf", false)):
 				rec["perf"] = await _perf(shot.get("perf_units", []))
 		_results[sid] = rec
@@ -172,7 +187,9 @@ func _stage_units(shot: Dictionary) -> bool:
 			push_error("[Facilities] post-smolt site refused: %s" % placed.get("message", ""))
 			return false
 		_units["post_smolt"] = str(placed["post_smolt_id"])
-	if spec.has("land") and not _stage_land(gb, spec["land"]):
+	if spec.has("land") and not _stage_land(gb, spec["land"], "land", LAND_PLOT):
+		return false
+	if spec.has("land_b") and not _stage_land(gb, spec["land_b"], "land_b", SECOND_LAND_PLOT):
 		return false
 	if spec.has("offshore"):
 		if not _units.has("offshore"):
@@ -196,45 +213,75 @@ func _stage_units(shot: Dictionary) -> bool:
 	return true
 
 
-## The HFS site on pad_a with `land.lots` lots, standing in `land.phase`.
-func _stage_land(gb: Node, land: Dictionary) -> bool:
+## The HFS site `key` on `plot` with `land.lots` lots, standing in
+## `land.phase` (pad_a's "operational" is commissioned at once, any other
+## site is built lot by lot and its projects stood complete).
+func _stage_land(gb: Node, land: Dictionary, key: String, plot: String) -> bool:
 	var lots := int(land.get("lots", 1))
 	var phase := str(land.get("phase", "operational"))
-	if not _units.has("land"):
-		if phase == "operational":
+	if not _units.has(key):
+		if phase == "operational" and plot == LAND_PLOT:
 			var placed: Dictionary = gb.QaPlaceFarmTypeSet(lots, 0, 0)
 			if not bool(placed.get("success", false)):
 				push_error("[Facilities] land site refused: %s" % placed.get("message", ""))
 				return false
-			_units["land"] = str(placed["land_id"])
+			_units[key] = str(placed["land_id"])
 			return true
-		var started: Dictionary = gb.QaStartLandBuild(LAND_PLOT, "hfs_lot")
+		var started: Dictionary = gb.QaStartLandBuild(plot, "hfs_lot")
 		if not bool(started.get("success", false)):
-			push_error("[Facilities] land build refused: %s" % started.get("message", ""))
+			push_error("[Facilities] land build on %s refused: %s" % [plot, started.get("message", "")])
 			return false
-		_units["land"] = str(started["unit_id"])
-	var have := _land_lots()
+		_units[key] = str(started["unit_id"])
+	var have := _land_lots(key)
 	if have > lots:
-		push_error("[Facilities] the land site has %d lots, the shot asks for %d: run it alone with --only" % [have, lots])
+		push_error("[Facilities] the %s site has %d lots, the shot asks for %d: run it alone with --only" % [plot, have, lots])
 		return false
 	while have < lots:
-		var grown: Dictionary = gb.QaExpandLandSite(_units["land"])
+		var grown: Dictionary = gb.QaExpandLandSite(_units[key])
 		if not bool(grown.get("success", false)):
-			push_error("[Facilities] the land site did not grow: %s" % grown.get("message", ""))
+			push_error("[Facilities] the %s site did not grow: %s" % [plot, grown.get("message", "")])
 			return false
 		have += 1
 	# A commissioned site has no project to stand in a phase; a built one does.
-	if not gb.QaStageConstruction(_units["land"], phase, float(land.get("progress", 0.5))) and phase != "operational":
+	if not gb.QaStageConstruction(_units[key], phase, float(land.get("progress", 0.5))) and phase != "operational":
 		push_error("[Facilities] land phase %s refused" % phase)
 		return false
 	return true
 
 
-func _land_lots() -> int:
+func _land_lots(key: String) -> int:
 	for row: Dictionary in get_node("/root/SimBridge").get_facility_visuals():
-		if str(row["unit_id"]) == str(_units.get("land", "")):
+		if str(row["unit_id"]) == str(_units.get(key, "")):
 			return (row["lots"] as Array).size()
 	return 0
+
+
+## The screen box of the campus a "unit:<key>" camera frames: its blasted
+## ground up to ROI_HEIGHT_M, projected and clamped to the frame (empty for
+## any other camera or a campus behind it).
+func _campus_roi(target: String, img: Image) -> Rect2i:
+	if not target.begins_with("unit:") or _manager == null:
+		return Rect2i()
+	var campus := _manager.call("visual_of", str(_units.get(target.trim_prefix("unit:"), ""))) as LandCampusBuilder
+	if campus == null:
+		return Rect2i()
+	var r := campus.blast_rect()
+	var lo := Vector2(INF, INF)
+	var hi := Vector2(-INF, -INF)
+	for x: float in [r.x, r.z]:
+		for z: float in [r.y, r.w]:
+			for y: float in [LandCampusBuilder.PAD_TOP_Y, LandCampusBuilder.PAD_TOP_Y + ROI_HEIGHT_M]:
+				var p := Vector3(x, y, z)
+				if _cam.is_position_behind(p):
+					return Rect2i()
+				var s := _cam.unproject_position(p)
+				lo = Vector2(minf(lo.x, s.x), minf(lo.y, s.y))
+				hi = Vector2(maxf(hi.x, s.x), maxf(hi.y, s.y))
+	var x0 := clampi(int(lo.x), 0, img.get_width() - 1)
+	var y0 := clampi(int(lo.y), 0, img.get_height() - 1)
+	var x1 := clampi(int(hi.x), 0, img.get_width())
+	var y1 := clampi(int(hi.y), 0, img.get_height())
+	return Rect2i(x0, y0, maxi(0, x1 - x0), maxi(0, y1 - y0))
 
 
 func _unit_record(img: Image) -> Dictionary:
@@ -261,6 +308,7 @@ func _unit_record(img: Image) -> Dictionary:
 			rec["blast_state"] = snappedf(campus.blast_state(), 0.001)
 			rec["lod0_triangles"] = campus.lod0_triangles()
 			rec["shadow_rule_ok"] = shadow_rule_ok(campus.shadow_report())
+			rec["layout_clashes"] = Array(CampusLayoutCheck.clashes(campus))
 		elif node is OffshoreUnitVisual:
 			var unit := node as OffshoreUnitVisual
 			rec["drawn_phase"] = unit.get_phase_key()
@@ -374,6 +422,8 @@ func _compare_variants(shots: Array) -> void:
 		if base == "" or not _results.has(sid) or not _results.has(base):
 			continue
 		_results[sid]["phash_distance_vs_" + base] = phash_distance(str(_results[sid]["phash"]), str(_results[base]["phash"]))
+		if _results[sid].has("phash_roi") and _results[base].has("phash_roi"):
+			_results[sid]["phash_roi_distance_vs_" + base] = phash_distance(str(_results[sid]["phash_roi"]), str(_results[base]["phash_roi"]))
 
 
 ## Spec §5 rule 5 / F2-18: LOD2 casts no shadow; of LOD1 only the tanks do.

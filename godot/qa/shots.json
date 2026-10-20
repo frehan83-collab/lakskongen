@@ -1084,6 +1084,22 @@
       "purpose": "One HFS lot built on pad_a through the engine's verbs, at the one-lot framing (380 m at -40 deg). Sea works (60%): the halls up, the quay, the intake basin and the orange pipe bridge rising (F2-20 accept 2: pHash distance to the tank rings at least 9)."
     },
     {
+      "id": "32_land_construction_p2_tank_rings_twin",
+      "item": "F2-20",
+      "scene": "res://qa/scenes/FacilityPresenterCapture.tscn",
+      "kind": "beauty",
+      "resolution": [1920, 1080],
+      "scenario": "po3_red_sone",
+      "seed": 20261012,
+      "season": 0.5,
+      "hour": 12.0,
+      "weather": "clear",
+      "camera": {"mode": "focus", "target": "unit:land", "distance_m": 380.0, "pitch_deg": -40.0},
+      "facilities": {"land": {"lots": 1, "phase": "tank_rings", "progress": 0.5}, "post_smolt": {"modules": 2}},
+      "variant_of": "32_land_construction_p2_tank_rings",
+      "purpose": "The tank-rings state stood again after the sea works (wave4b review): its campus hash against p2's is the metric's own noise in the run, read against the p2 vs p4 difference."
+    },
+    {
       "id": "32_land_construction_p5_first_tanks",
       "item": "F2-20",
       "scene": "res://qa/scenes/FacilityPresenterCapture.tscn",
@@ -1114,7 +1130,7 @@
       "purpose": "One HFS lot built on pad_a through the engine's verbs, at the one-lot framing (380 m at -40 deg). Completion (50%): the engine has handed over the first six grow-out tanks (lids on, feeders), the rest stand open-topped."
     },
     {
-      "id": "44_facilities_campus_day",
+      "id": "46_facilities_campus_day",
       "item": "F2-20",
       "scene": "res://qa/scenes/FacilityPresenterCapture.tscn",
       "kind": "beauty",
@@ -1130,7 +1146,7 @@
       "purpose": "The QA set's HFS lot (built through the engine, its project complete) at the land framing (520 m at -40 deg) by day: the lot's grid of dark lids between the hall, the dark harvest hall, the orange pipe bridge from the quay, roads and aprons on the blasted granite; the drawn tanks equal the engine's; draw calls it adds."
     },
     {
-      "id": "44_facilities_campus_dusk",
+      "id": "46_facilities_campus_dusk",
       "item": "F2-20",
       "scene": "res://qa/scenes/FacilityPresenterCapture.tscn",
       "kind": "beauty",
@@ -1145,7 +1161,7 @@
       "purpose": "The campus at dusk (ref L2's mood): low sun, the hall windows, the roof lights and the lid work-lights lit by the presenter's dusk lighting."
     },
     {
-      "id": "44_facilities_campus_dusk_hero",
+      "id": "46_facilities_campus_dusk_hero",
       "item": "F2-20",
       "scene": "res://qa/scenes/FacilityPresenterCapture.tscn",
       "kind": "beauty",
@@ -1160,7 +1176,7 @@
       "purpose": "Ref L2's wow from low over the sound at dusk: the lit campus against the low sun's sky and its reflection, the orange bridge, the lid work-lights and hall windows on."
     },
     {
-      "id": "44_facilities_campus_close",
+      "id": "46_facilities_campus_close",
       "item": "F2-20",
       "scene": "res://qa/scenes/FacilityPresenterCapture.tscn",
       "kind": "beauty",
@@ -1175,7 +1191,7 @@
       "purpose": "Closer on the lot: LOD0 tanks with walkways, rails and the feeders' rotors, the process hall, the pipe bridge over the lot road."
     },
     {
-      "id": "44_facilities_postsmolt",
+      "id": "46_facilities_postsmolt",
       "item": "F2-20",
       "scene": "res://qa/scenes/FacilityPresenterCapture.tscn",
       "kind": "beauty",
@@ -1190,7 +1206,7 @@
       "purpose": "The QA set's post-smolt site on pad_delta (two modules): their Ø16 m tanks under the lean-to bays, the river intake, on the head delta."
     },
     {
-      "id": "44_facilities_of1_yard_contract",
+      "id": "46_facilities_of1_yard_contract",
       "item": "F2-20",
       "scene": "res://qa/scenes/FacilityPresenterCapture.tscn",
       "kind": "beauty",
@@ -1205,7 +1221,7 @@
       "purpose": "The QA set's OF1-class unit on off_1 (contracted through the engine), low winter sun. Yard contract: the unit is still paper; four yellow survey buoys mark its slot."
     },
     {
-      "id": "44_facilities_of1_hull",
+      "id": "46_facilities_of1_hull",
       "item": "F2-20",
       "scene": "res://qa/scenes/FacilityPresenterCapture.tscn",
       "kind": "beauty",
@@ -1220,7 +1236,7 @@
       "purpose": "The QA set's OF1-class unit on off_1 (contracted through the engine), low winter sun. Hull at the yard: at the slot the moorings are pre-laid, their eight pick-up buoys in four pairs."
     },
     {
-      "id": "44_facilities_of1_voyage",
+      "id": "46_facilities_of1_voyage",
       "item": "F2-20",
       "scene": "res://qa/scenes/FacilityPresenterCapture.tscn",
       "kind": "beauty",
@@ -1235,7 +1251,7 @@
       "purpose": "The QA set's OF1-class unit on off_1 (contracted through the engine), low winter sun. Voyage: the finished unit approaches from the open sea behind one tug."
     },
     {
-      "id": "44_facilities_of1_tow",
+      "id": "46_facilities_of1_tow",
       "item": "F2-20",
       "scene": "res://qa/scenes/FacilityPresenterCapture.tscn",
       "kind": "beauty",
@@ -1250,7 +1266,7 @@
       "purpose": "The QA set's OF1-class unit on off_1 (contracted through the engine), low winter sun. Tow: three anchor tugs bring the unit in toward its slot."
     },
     {
-      "id": "44_facilities_of1_mooring",
+      "id": "46_facilities_of1_mooring",
       "item": "F2-20",
       "scene": "res://qa/scenes/FacilityPresenterCapture.tscn",
       "kind": "beauty",
@@ -1265,7 +1281,7 @@
       "purpose": "The QA set's OF1-class unit on off_1 (contracted through the engine), low winter sun. Mooring: the unit on station, the three tugs at the anchor bearings."
     },
     {
-      "id": "44_facilities_of1_commissioning",
+      "id": "46_facilities_of1_commissioning",
       "item": "F2-20",
       "scene": "res://qa/scenes/FacilityPresenterCapture.tscn",
       "kind": "beauty",
@@ -1280,7 +1296,7 @@
       "purpose": "The QA set's OF1-class unit on off_1 (contracted through the engine), low winter sun. Commissioning: the crew boat at the boat landing."
     },
     {
-      "id": "44_facilities_of1_winter_sun",
+      "id": "46_facilities_of1_winter_sun",
       "item": "F2-20",
       "scene": "res://qa/scenes/FacilityPresenterCapture.tscn",
       "kind": "beauty",
@@ -1296,7 +1312,7 @@
       "purpose": "The QA set's OF1-class unit on off_1 at the OF1 framing (220 m at -18 deg) in low winter sun (ref O3): the safety-yellow 12-gon on deep blue with the orange DP service vessel at its walk-to-work landing; draw calls it adds."
     },
     {
-      "id": "44_facilities_of1_hero",
+      "id": "46_facilities_of1_hero",
       "item": "F2-20",
       "scene": "res://qa/scenes/FacilityPresenterCapture.tscn",
       "kind": "beauty",
@@ -1311,7 +1327,24 @@
       "purpose": "Ref O3's angle: the unit and its service vessel from the sun side, the coast low on the horizon."
     },
     {
-      "id": "44_facilities_home",
+      "id": "46_facilities_budget_of1_framing",
+      "item": "F2-20",
+      "scene": "res://qa/scenes/FacilityPresenterCapture.tscn",
+      "kind": "beauty",
+      "resolution": [1920, 1080],
+      "scenario": "po3_red_sone",
+      "seed": 20261012,
+      "season": 0.08,
+      "hour": 13.4,
+      "weather": "clear",
+      "camera": {"mode": "focus", "target": "off_1", "distance_m": 220.0, "pitch_deg": -18.0, "focus_y": 9.0},
+      "facilities": {"land": {"lots": 1, "phase": "operational"}, "post_smolt": {"modules": 2}, "offshore": {"phase": "operational"}},
+      "perf": true,
+      "perf_units": ["offshore"],
+      "purpose": "The OF1-class unit and its service vessel alone at the unit's own framing (220 m, -18 deg): the draw calls and shadow draws they add where their LOD0 and shadows are drawn (the home view's budget cannot see them; wave4b review)."
+    },
+    {
+      "id": "46_facilities_home",
       "item": "F2-20",
       "scene": "res://qa/scenes/FacilityPresenterCapture.tscn",
       "kind": "beauty",
@@ -1327,7 +1360,7 @@
       "purpose": "The shipped home view with the QA set: the campus as a landmark at the mouth, the OF1 unit a yellow sliver beyond it; draw calls the presenter adds at the home view."
     },
     {
-      "id": "44_facilities_budget_of1_home",
+      "id": "46_facilities_budget_of1_home",
       "item": "F2-20",
       "scene": "res://qa/scenes/FacilityPresenterCapture.tscn",
       "kind": "beauty",
@@ -1344,7 +1377,7 @@
       "purpose": "Spec section 5 budget at the shipped home view: the draw calls one OF1-class unit with its service vessel adds (<= 8 opaque + <= 6 shadow)."
     },
     {
-      "id": "44_facilities_campus_full",
+      "id": "46_facilities_campus_full",
       "item": "F2-20",
       "scene": "res://qa/scenes/FacilityPresenterCapture.tscn",
       "kind": "beauty",
@@ -1361,7 +1394,7 @@
       "purpose": "The full 4-lot campus (grown lot by lot through the engine) at the land framing (520 m at -40 deg): four lots in two rows filling pad_a, the utilities behind; the draw calls the campus alone adds there, its LOD0 triangles (spec section 5: <= 250 k) and the shadow rule."
     },
     {
-      "id": "44_facilities_budget_campus_home",
+      "id": "46_facilities_budget_campus_home",
       "item": "F2-20",
       "scene": "res://qa/scenes/FacilityPresenterCapture.tscn",
       "kind": "beauty",
@@ -1376,6 +1409,36 @@
       "perf": true,
       "perf_units": ["land"],
       "purpose": "Spec section 5 budget at the shipped home view (the P0-04 view): the draw calls the full 4-lot campus alone adds (<= 20 opaque + <= 16 shadow)."
+    },
+    {
+      "id": "46_facilities_campus_pad_b",
+      "item": "F2-20",
+      "scene": "res://qa/scenes/FacilityPresenterCapture.tscn",
+      "kind": "beauty",
+      "resolution": [1920, 1080],
+      "scenario": "po3_red_sone",
+      "seed": 20261012,
+      "season": 0.5,
+      "hour": 12.0,
+      "weather": "clear",
+      "camera": {"mode": "focus", "target": "unit:land_b", "distance_m": 520.0, "pitch_deg": -40.0},
+      "facilities": {"land": {"lots": 4, "phase": "operational"}, "post_smolt": {"modules": 2}, "offshore": {"phase": "operational"}, "land_b": {"lots": 2, "phase": "operational"}},
+      "purpose": "A 2-lot HFS campus on pad_b (Skjærvika) at the land framing: the orange pipe bridge runs from the quay between the intake basin and the dark harvest hall, clear of both (wave4b review: it ran through the hall on this pad); the engine's tanks, no layout clash."
+    },
+    {
+      "id": "46_facilities_campus_pad_b_quay",
+      "item": "F2-20",
+      "scene": "res://qa/scenes/FacilityPresenterCapture.tscn",
+      "kind": "beauty",
+      "resolution": [1920, 1080],
+      "scenario": "po3_red_sone",
+      "seed": 20261012,
+      "season": 0.5,
+      "hour": 15.0,
+      "weather": "clear",
+      "camera": {"mode": "focus", "target": "unit:land_b", "distance_m": 300.0, "pitch_deg": -24.0, "focus_y": 8.0},
+      "facilities": {"land": {"lots": 4, "phase": "operational"}, "post_smolt": {"modules": 2}, "offshore": {"phase": "operational"}, "land_b": {"lots": 2, "phase": "operational"}},
+      "purpose": "pad_b's campus closer in the afternoon sun: the bridge's spans between the basin and the hall, the hall 10 m off the bridge, the apron from the hall to the quay (wave4b review)."
     }
   ]
 }

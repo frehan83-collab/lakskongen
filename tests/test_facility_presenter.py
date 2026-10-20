@@ -12,11 +12,19 @@ meet the acceptance the frames can show:
   unit, built through the engine) the presenter draws the engine's tanks and
   units, and a tank stands whole exactly when the engine has handed it over;
 - F2-20 accept 2: each construction shot stands in the engine's phase it
-  names, and the tank-rings and sea-works shots differ by pHash Δ >= 9;
+  names, and the tank-rings and sea-works shots differ by pHash Δ >= 9 over
+  the campus's own screen box, with the same state stood twice in the run
+  (the twin) at most 3 bits apart (wave4b review: the whole-frame hash of one
+  state moved by up to 8 bits with the clouds);
 - F2-20 accept 4: at the home view (the P0-04 view) a full 4-lot campus adds
   <= 20 opaque + <= 16 shadow draws and one OF1-class unit with its vessel
   <= 8 + 6; a full campus is <= 250 k LOD0 triangles; LOD2 casts no shadow
-  and of LOD1 only the tanks do.
+  and of LOD1 only the tanks do. The spec's budget is the home view's (the
+  P0-04 view); at the units' own framings, where their LOD0 and shadows are
+  drawn, the counts measured at the wave-4b merge are ceilings
+  (FRAMING_CEILINGS, wave4b review);
+- wave4b review: no campus in any shot has a layout clash, and pad_b's
+  2-lot campus draws the engine's tanks.
 
 The UI-input half of the acceptance (the click, the card, the camera,
 cancelling a build) is UiFlowTests._test_facilities_render; the frame-time
@@ -38,6 +46,13 @@ SCENE = "res://qa/scenes/FacilityPresenterCapture.tscn"
 METRICS_PATH = REPO / "docs" / "run" / "evidence" / "f2_20_facilities_metrics.json"
 OWN = [s for s in SHOTS if s["scene"] == SCENE]
 LAND_PHASES = ["site_works", "tank_rings", "treatment_hall", "sea_works", "first_tanks", "completion"]
+# Draw calls (opaque, shadow) one unit adds at its own framing, measured at
+# the wave-4b merge (FacilityPresenterCapture, 1920x1080) plus a quarter:
+# regression ceilings, not the spec's budget (that is the home view's).
+FRAMING_CEILINGS = {
+    "46_facilities_campus_full": ("land", 14, 8),  # measured +11 / +6 (4 lots at 520 m)
+    "46_facilities_budget_of1_framing": ("offshore", 24, 32),  # measured +19 / +25 (220 m, -18 deg)
+}
 SEA_PHASES = ["yard_contract", "hull", "voyage", "tow", "mooring", "commissioning"]
 PRESENTER = [
     GODOT / "scripts" / "visual" / "FarmFacilityVisualManager.gd",
@@ -53,8 +68,8 @@ def metrics():
     return json.loads(METRICS_PATH.read_text())
 
 
-def _land(units):
-    return next(u for u in units.values() if u["variant"] == "hfs")
+def _land(units, plot="pad_a"):
+    return next(u for u in units.values() if u["variant"] == "hfs" and u["plot_id"] == plot)
 
 
 def _of1(units):
@@ -84,7 +99,8 @@ def test_the_presenter_draws_the_engines_tanks_and_units(metrics):
     for s in built:
         units = metrics["shots"][s["id"]]["units"]
         variants = sorted(u["variant"] for u in units.values())
-        want = ["hfs", "post_smolt"] + (["of1"] if "offshore" in s["facilities"] else [])
+        want = ["hfs", "post_smolt"] + (["hfs"] if "land_b" in s["facilities"] else []) \
+            + (["of1"] if "offshore" in s["facilities"] else [])
         assert variants == sorted(want), (s["id"], variants)
         for uid, u in units.items():
             if u["variant"] == "of1":
@@ -97,7 +113,7 @@ def test_the_presenter_draws_the_engines_tanks_and_units(metrics):
 
 
 def test_each_construction_shot_stands_in_its_own_phase_and_hands_over_the_engines_tanks(metrics):
-    shots = sorted(s["id"] for s in OWN if s["id"].startswith("32_land_construction_"))
+    shots = sorted(s["id"] for s in OWN if s["id"].startswith("32_land_construction_") and not s["id"].endswith("_twin"))
     assert len(shots) == len(LAND_PHASES) + 1  # site works twice: the blast, then the foundations
     for sid in shots:
         spec = next(s for s in OWN if s["id"] == sid)["facilities"]["land"]
@@ -114,9 +130,16 @@ def test_each_construction_shot_stands_in_its_own_phase_and_hands_over_the_engin
     assert 0 < done["whole_tanks"] < done["engine_tanks"], done
 
 
-def test_the_tank_rings_and_the_sea_works_differ_by_phash_nine(metrics):
+def test_the_tank_rings_and_the_sea_works_differ_by_phash_nine_over_the_campus_above_its_noise(metrics):
+    """Replaces the whole-frame check (RUN_LOG §7): the hash of the campus's own
+    screen box, clouds staged, against the same state stood twice in the run."""
+    base = "32_land_construction_p2_tank_rings"
     p4 = metrics["shots"]["32_land_construction_p4_sea_works"]
-    assert p4["phash_distance_vs_32_land_construction_p2_tank_rings"] >= 9
+    twin = metrics["shots"]["32_land_construction_p2_tank_rings_twin"]
+    assert p4["roi"] == metrics["shots"][base]["roi"] == twin["roi"], "the three hashes cover one screen box"
+    signal = p4["phash_roi_distance_vs_" + base]
+    noise = twin["phash_roi_distance_vs_" + base]
+    assert signal >= 9 and noise <= 3 and signal - noise >= 6, (signal, noise)
 
 
 def test_each_offshore_phase_draws_its_own_state(metrics):
@@ -133,17 +156,42 @@ def test_each_offshore_phase_draws_its_own_state(metrics):
 
 
 def test_the_draw_call_budgets_at_the_home_view(metrics):
-    campus = metrics["shots"]["44_facilities_budget_campus_home"]
+    campus = metrics["shots"]["46_facilities_budget_campus_home"]
     assert campus["camera"]["spec"]["mode"] == "home" and campus["perf"]["units"] == ["land"]
     assert _land(campus["units"])["lots"] == 4
     assert campus["perf"]["added_opaque_draws"] <= 20 and campus["perf"]["added_shadow_draws"] <= 16, campus["perf"]
-    of1 = metrics["shots"]["44_facilities_budget_of1_home"]
+    of1 = metrics["shots"]["46_facilities_budget_of1_home"]
     assert of1["camera"]["spec"]["mode"] == "home" and of1["perf"]["units"] == ["offshore"]
     assert of1["perf"]["added_opaque_draws"] <= 8 and of1["perf"]["added_shadow_draws"] <= 6, of1["perf"]
 
 
+def test_the_units_own_framings_stay_under_their_measured_ceilings(metrics):
+    for sid, (unit, opaque, shadow) in FRAMING_CEILINGS.items():
+        rec = metrics["shots"][sid]
+        assert rec["camera"]["spec"]["mode"] == "focus" and rec["perf"]["units"] == [unit], sid
+        assert rec["perf"]["added_opaque_draws"] <= opaque and rec["perf"]["added_shadow_draws"] <= shadow, (sid, rec["perf"])
+
+
+def test_no_campus_in_any_shot_has_a_layout_clash(metrics):
+    seen = 0
+    for sid, rec in metrics["shots"].items():
+        for uid, u in rec.get("units", {}).items():
+            if u["variant"] in ("hfs", "ras", "post_smolt"):
+                assert u["layout_clashes"] == [], (sid, uid, u["layout_clashes"][:3])
+                seen += 1
+    assert seen > 0
+
+
+def test_the_pad_b_campus_draws_the_engines_tanks(metrics):
+    for sid in ["46_facilities_campus_pad_b", "46_facilities_campus_pad_b_quay"]:
+        units = metrics["shots"][sid]["units"]
+        campus = next(u for u in units.values() if u["plot_id"] == "pad_b")
+        assert campus["lots"] == 2 and campus["drawn_tanks"] == campus["engine_tanks"] == 28, (sid, campus)
+        assert campus["whole_tanks"] == campus["engine_ready_tanks"] == 28, (sid, campus)
+
+
 def test_a_full_campus_stays_under_250k_lod0_triangles(metrics):
-    land = _land(metrics["shots"]["44_facilities_campus_full"]["units"])
+    land = _land(metrics["shots"]["46_facilities_campus_full"]["units"])
     assert land["lots"] == 4 and land["drawn_tanks"] == 4 * 14
     assert 0 < land["lod0_triangles"] <= 250_000, land["lod0_triangles"]
 
@@ -156,7 +204,7 @@ def test_the_shadow_rule_holds_for_every_unit(metrics):
 
 
 def test_the_of1_unit_reads_as_hull_yellow_where_it_stands(metrics):
-    for sid in ["44_facilities_of1_winter_sun", "44_facilities_of1_hero"]:
+    for sid in ["46_facilities_of1_winter_sun", "46_facilities_of1_hero"]:
         unit = _of1(metrics["shots"][sid]["units"])
         assert unit["hull_yellow"]["share"] >= 0.05, (sid, unit["hull_yellow"])
 

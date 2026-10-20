@@ -1792,6 +1792,11 @@ The HFS anchor moves from 6.40 to **6.41** kWh/kg LW (intake 1.13 → 1.14
 kWh/kg) and the best fixed blend from 179.4 to 179.3 M NOK; every other figure
 in this section is unchanged to its printed digit and every band holds
 (`LandEnergyModelTests`, `LandWaterModelTests`, `LandVannstrategiSweepTests`).
+These figures are the test harness's (`LandTestSites` reads the reach from
+`TerrainGenerator`). The running engine does not use the computed reach yet:
+`SitePlotCatalog.WithGeometry` is called only from tests, so the game's pads
+keep `DeepIntakeReachM` = 0 (wave4b review, a gap since F2-03/F2-12; RUN_LOG
+§8 "Finding (F2-19): the computed intake reach never reaches the game").
 
 ### Acceptance (spec §7.1 F2-12, 1-5)
 

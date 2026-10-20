@@ -13,9 +13,9 @@
       "camera": {
         "fov_deg": 47.15,
         "position": [
-          -371.591247558594,
+          -371.806518554688,
           247.859298706055,
-          -1510.7373046875
+          -1506.99877929688
         ],
         "spec": {
           "distance_m": 380.0,
@@ -39,13 +39,21 @@
           "modules": 2.0
         }
       },
-      "phash": "d02e2bf5edc29c0e",
+      "phash": "d06ea9b5ccc293ce",
+      "phash_roi": "d0466b3a3d6c396d",
+      "roi": [
+        95,
+        233,
+        1871,
+        1064
+      ],
       "units": {
         "postsmolt_1": {
           "blast_state": 1.0,
           "drawn_tanks": 4,
           "engine_ready_tanks": 4,
           "engine_tanks": 4,
+          "layout_clashes": [],
           "lod0_triangles": 10842,
           "lots": 2,
           "operational": true,
@@ -64,7 +72,8 @@
           "drawn_tanks": 0,
           "engine_ready_tanks": 0,
           "engine_tanks": 14,
-          "lod0_triangles": 49570,
+          "layout_clashes": [],
+          "lod0_triangles": 49572,
           "lots": 1,
           "operational": false,
           "phase_count": 6,
@@ -83,9 +92,9 @@
       "camera": {
         "fov_deg": 47.15,
         "position": [
-          -371.591247558594,
+          -371.806518554688,
           247.859298706055,
-          -1510.7373046875
+          -1506.99877929688
         ],
         "spec": {
           "distance_m": 380.0,
@@ -109,13 +118,21 @@
           "modules": 2.0
         }
       },
-      "phash": "d03e29b5f6c29d1a",
+      "phash": "d46e6995e6c29b52",
+      "phash_roi": "d4526ab93d2c3d65",
+      "roi": [
+        95,
+        233,
+        1871,
+        1064
+      ],
       "units": {
         "postsmolt_1": {
           "blast_state": 1.0,
           "drawn_tanks": 4,
           "engine_ready_tanks": 4,
           "engine_tanks": 4,
+          "layout_clashes": [],
           "lod0_triangles": 10842,
           "lots": 2,
           "operational": true,
@@ -134,7 +151,8 @@
           "drawn_tanks": 14,
           "engine_ready_tanks": 0,
           "engine_tanks": 14,
-          "lod0_triangles": 49570,
+          "layout_clashes": [],
+          "lod0_triangles": 49572,
           "lots": 1,
           "operational": false,
           "phase_count": 6,
@@ -153,9 +171,9 @@
       "camera": {
         "fov_deg": 47.15,
         "position": [
-          -371.591247558594,
+          -371.806518554688,
           247.859298706055,
-          -1510.7373046875
+          -1506.99877929688
         ],
         "spec": {
           "distance_m": 380.0,
@@ -179,13 +197,21 @@
           "modules": 2.0
         }
       },
-      "phash": "d03e2b95f6c29d1a",
+      "phash": "d46e69b5e6c29952",
+      "phash_roi": "d4566a993d683d65",
+      "roi": [
+        95,
+        233,
+        1871,
+        1064
+      ],
       "units": {
         "postsmolt_1": {
           "blast_state": 1.0,
           "drawn_tanks": 4,
           "engine_ready_tanks": 4,
           "engine_tanks": 4,
+          "layout_clashes": [],
           "lod0_triangles": 10842,
           "lots": 2,
           "operational": true,
@@ -204,7 +230,89 @@
           "drawn_tanks": 14,
           "engine_ready_tanks": 0,
           "engine_tanks": 14,
-          "lod0_triangles": 49570,
+          "layout_clashes": [],
+          "lod0_triangles": 49572,
+          "lots": 1,
+          "operational": false,
+          "phase_count": 6,
+          "phase_index": 1,
+          "phase_key": "tank_rings",
+          "phase_progress": 0.5,
+          "plot_id": "pad_a",
+          "shadow_rule_ok": true,
+          "status": "building",
+          "variant": "hfs",
+          "whole_tanks": 0
+        }
+      }
+    },
+    "32_land_construction_p2_tank_rings_twin": {
+      "camera": {
+        "fov_deg": 47.15,
+        "position": [
+          -371.806518554688,
+          247.859298706055,
+          -1506.99877929688
+        ],
+        "spec": {
+          "distance_m": 380.0,
+          "mode": "focus",
+          "pitch_deg": -40.0,
+          "target": "unit:land"
+        }
+      },
+      "environment": {
+        "light_level": 0.0,
+        "sun_elevation_deg": 52.61,
+        "weather": "clear"
+      },
+      "facilities": {
+        "land": {
+          "lots": 1.0,
+          "phase": "tank_rings",
+          "progress": 0.5
+        },
+        "post_smolt": {
+          "modules": 2.0
+        }
+      },
+      "phash": "d46a69b5e6ca9952",
+      "phash_distance_vs_32_land_construction_p2_tank_rings": 2,
+      "phash_roi": "d4566a993d683d65",
+      "phash_roi_distance_vs_32_land_construction_p2_tank_rings": 0,
+      "roi": [
+        95,
+        233,
+        1871,
+        1064
+      ],
+      "units": {
+        "postsmolt_1": {
+          "blast_state": 1.0,
+          "drawn_tanks": 4,
+          "engine_ready_tanks": 4,
+          "engine_tanks": 4,
+          "layout_clashes": [],
+          "lod0_triangles": 10842,
+          "lots": 2,
+          "operational": true,
+          "phase_count": 5,
+          "phase_index": 5,
+          "phase_key": "operational",
+          "phase_progress": 1.0,
+          "plot_id": "pad_delta",
+          "shadow_rule_ok": true,
+          "status": "none",
+          "variant": "post_smolt",
+          "whole_tanks": 4
+        },
+        "ras_1": {
+          "blast_state": 1.0,
+          "drawn_tanks": 14,
+          "engine_ready_tanks": 0,
+          "engine_tanks": 14,
+          "layout_clashes": [],
+          "lod0_triangles": 49572,
           "lots": 1,
           "operational": false,
           "phase_count": 6,
@@ -223,9 +331,9 @@
       "camera": {
         "fov_deg": 47.15,
         "position": [
-          -371.591247558594,
+          -371.806518554688,
           247.859298706055,
-          -1510.7373046875
+          -1506.99877929688
         ],
         "spec": {
           "distance_m": 380.0,
@@ -249,13 +357,21 @@
           "modules": 2.0
         }
       },
-      "phash": "d03e2b95f6c29d92",
+      "phash": "d46e69b5e6c29992",
+      "phash_roi": "d0566a993d3c3d65",
+      "roi": [
+        95,
+        233,
+        1871,
+        1064
+      ],
       "units": {
         "postsmolt_1": {
           "blast_state": 1.0,
           "drawn_tanks": 4,
           "engine_ready_tanks": 4,
           "engine_tanks": 4,
+          "layout_clashes": [],
           "lod0_triangles": 10842,
           "lots": 2,
           "operational": true,
@@ -274,7 +390,8 @@
           "drawn_tanks": 14,
           "engine_ready_tanks": 0,
           "engine_tanks": 14,
-          "lod0_triangles": 49570,
+          "layout_clashes": [],
+          "lod0_triangles": 49572,
           "lots": 1,
           "operational": false,
           "phase_count": 6,
@@ -293,9 +410,9 @@
       "camera": {
         "fov_deg": 47.15,
         "position": [
-          -371.591247558594,
+          -371.806518554688,
           247.859298706055,
-          -1510.7373046875
+          -1506.99877929688
         ],
         "spec": {
           "distance_m": 380.0,
@@ -319,14 +436,23 @@
           "modules": 2.0
         }
       },
-      "phash": "c13e2a8db5c69b8b",
-      "phash_distance_vs_32_land_construction_p2_tank_rings": 14,
+      "phash": "957e6aade5c2ca82",
+      "phash_distance_vs_32_land_construction_p2_tank_rings": 16,
+      "phash_roi": "95167a1a293d3d67",
+      "phash_roi_distance_vs_32_land_construction_p2_tank_rings": 14,
+      "roi": [
+        95,
+        233,
+        1871,
+        1064
+      ],
       "units": {
         "postsmolt_1": {
           "blast_state": 1.0,
           "drawn_tanks": 4,
           "engine_ready_tanks": 4,
           "engine_tanks": 4,
+          "layout_clashes": [],
           "lod0_triangles": 10842,
           "lots": 2,
           "operational": true,
@@ -345,7 +471,8 @@
           "drawn_tanks": 14,
           "engine_ready_tanks": 0,
           "engine_tanks": 14,
-          "lod0_triangles": 49570,
+          "layout_clashes": [],
+          "lod0_triangles": 49572,
           "lots": 1,
           "operational": false,
           "phase_count": 6,
@@ -364,9 +491,9 @@
       "camera": {
         "fov_deg": 47.15,
         "position": [
-          -371.591247558594,
+          -371.806518554688,
           247.859298706055,
-          -1510.7373046875
+          -1506.99877929688
         ],
         "spec": {
           "distance_m": 380.0,
@@ -390,13 +517,21 @@
           "modules": 2.0
         }
       },
-      "phash": "d57e3ae5a4c2da0a",
+      "phash": "953e6aade5c2da82",
+      "phash_roi": "95167a1a2b353d67",
+      "roi": [
+        95,
+        233,
+        1871,
+        1064
+      ],
       "units": {
         "postsmolt_1": {
           "blast_state": 1.0,
           "drawn_tanks": 4,
           "engine_ready_tanks": 4,
           "engine_tanks": 4,
+          "layout_clashes": [],
           "lod0_triangles": 10842,
           "lots": 2,
           "operational": true,
@@ -415,7 +550,8 @@
           "drawn_tanks": 14,
           "engine_ready_tanks": 0,
           "engine_tanks": 14,
-          "lod0_triangles": 49570,
+          "layout_clashes": [],
+          "lod0_triangles": 49572,
           "lots": 1,
           "operational": false,
           "phase_count": 6,
@@ -434,9 +570,9 @@
       "camera": {
         "fov_deg": 47.15,
         "position": [
-          -371.591247558594,
+          -371.806518554688,
           247.859298706055,
-          -1510.7373046875
+          -1506.99877929688
         ],
         "spec": {
           "distance_m": 380.0,
@@ -460,13 +596,21 @@
           "modules": 2.0
         }
       },
-      "phash": "d13e2aade5c29a9a",
+      "phash": "953e6aade5c2da82",
+      "phash_roi": "95167a1a2b353d67",
+      "roi": [
+        95,
+        233,
+        1871,
+        1064
+      ],
       "units": {
         "postsmolt_1": {
           "blast_state": 1.0,
           "drawn_tanks": 4,
           "engine_ready_tanks": 4,
           "engine_tanks": 4,
+          "layout_clashes": [],
           "lod0_triangles": 10842,
           "lots": 2,
           "operational": true,
@@ -485,7 +629,8 @@
           "drawn_tanks": 14,
           "engine_ready_tanks": 6,
           "engine_tanks": 14,
-          "lod0_triangles": 49570,
+          "layout_clashes": [],
+          "lod0_triangles": 49572,
           "lots": 1,
           "operational": true,
           "phase_count": 6,
@@ -500,7 +645,314 @@
         }
       }
     },
-    "44_facilities_budget_campus_home": {
+    "45_pads_b_granite": {
+      "camera": {
+        "fov_deg": 46.35,
+        "position": [
+          668.456665039062,
+          337.849548339844,
+          -1250.09240722656
+        ],
+        "spec": {
+          "distance_m": 520.0,
+          "mode": "focus",
+          "pitch_deg": -40.0,
+          "target": "pad_b"
+        }
+      },
+      "delta_e_vs_heath": {
+        "pad_b": 20.53
+      },
+      "environment": {
+        "light_level": 0.0,
+        "sun_elevation_deg": 52.61,
+        "weather": "clear"
+      },
+      "pad_state": {
+        "pad_a": 1.0,
+        "pad_b": 1.0,
+        "pad_delta": 1.0
+      },
+      "pads": {
+        "pad_b": {
+          "lab": [
+            61.83,
+            -2.04,
+            -4.86
+          ],
+          "samples": 384
+        }
+      },
+      "phash": "837e70a5a2d7da91",
+      "phash_distance_vs_45_pads_b_heath": 12
+    },
+    "45_pads_b_heath": {
+      "camera": {
+        "fov_deg": 46.35,
+        "position": [
+          668.456665039062,
+          337.849548339844,
+          -1250.09240722656
+        ],
+        "spec": {
+          "distance_m": 520.0,
+          "mode": "focus",
+          "pitch_deg": -40.0,
+          "target": "pad_b"
+        }
+      },
+      "environment": {
+        "light_level": 0.0,
+        "sun_elevation_deg": 52.61,
+        "weather": "clear"
+      },
+      "pad_state": {},
+      "pads": {
+        "pad_b": {
+          "lab": [
+            45.95,
+            -3.58,
+            8.06
+          ],
+          "samples": 384
+        }
+      },
+      "phash": "837b7cada8dfd800"
+    },
+    "45_pads_delta_granite": {
+      "camera": {
+        "fov_deg": 47.15,
+        "position": [
+          40.464900970459,
+          247.859298706055,
+          1738.27075195312
+        ],
+        "spec": {
+          "distance_m": 380.0,
+          "mode": "focus",
+          "pitch_deg": -40.0,
+          "target": "pad_delta"
+        }
+      },
+      "delta_e_vs_heath": {
+        "pad_delta": 21.11
+      },
+      "environment": {
+        "light_level": 0.0,
+        "sun_elevation_deg": 52.61,
+        "weather": "clear"
+      },
+      "pad_state": {
+        "pad_a": 1.0,
+        "pad_b": 1.0,
+        "pad_delta": 1.0
+      },
+      "pads": {
+        "pad_delta": {
+          "lab": [
+            61.61,
+            -2.06,
+            -5.26
+          ],
+          "samples": 384
+        }
+      },
+      "phash": "822f3583dede2d25",
+      "phash_distance_vs_45_pads_delta_heath": 8
+    },
+    "45_pads_delta_heath": {
+      "camera": {
+        "fov_deg": 47.15,
+        "position": [
+          40.464900970459,
+          247.859298706055,
+          1738.27075195312
+        ],
+        "spec": {
+          "distance_m": 380.0,
+          "mode": "focus",
+          "pitch_deg": -40.0,
+          "target": "pad_delta"
+        }
+      },
+      "environment": {
+        "light_level": 0.0,
+        "sun_elevation_deg": 52.61,
+        "weather": "clear"
+      },
+      "pad_state": {},
+      "pads": {
+        "pad_delta": {
+          "lab": [
+            45.99,
+            -3.61,
+            8.85
+          ],
+          "samples": 384
+        }
+      },
+      "phash": "820fa7a1d6de2da5"
+    },
+    "45_pads_home_granite": {
+      "camera": {
+        "fov_deg": 45.0,
+        "position": [
+          -327.527893066406,
+          263.134521484375,
+          -205.966918945312
+        ],
+        "spec": {
+          "mode": "home"
+        }
+      },
+      "delta_e_vs_heath": {
+        "pad_a": 11.88,
+        "pad_b": 10.99
+      },
+      "environment": {
+        "light_level": 0.0,
+        "sun_elevation_deg": 52.61,
+        "weather": "clear"
+      },
+      "pad_state": {
+        "pad_a": 1.0,
+        "pad_b": 1.0,
+        "pad_delta": 1.0
+      },
+      "pads": {
+        "pad_a": {
+          "lab": [
+            53.39,
+            -2.38,
+            -6.06
+          ],
+          "samples": 384
+        },
+        "pad_b": {
+          "lab": [
+            61.81,
+            -1.99,
+            -4.09
+          ],
+          "samples": 384
+        }
+      },
+      "phash": "80d0d4fdbdaf23c8",
+      "phash_distance_vs_45_pads_home_heath": 4
+    },
+    "45_pads_home_heath": {
+      "camera": {
+        "fov_deg": 45.0,
+        "position": [
+          -327.527893066406,
+          263.134521484375,
+          -205.966918945312
+        ],
+        "spec": {
+          "mode": "home"
+        }
+      },
+      "environment": {
+        "light_level": 0.0,
+        "sun_elevation_deg": 52.61,
+        "weather": "clear"
+      },
+      "pad_state": {},
+      "pads": {
+        "pad_a": {
+          "lab": [
+            44.32,
+            -3.82,
+            1.47
+          ],
+          "samples": 384
+        },
+        "pad_b": {
+          "lab": [
+            53.63,
+            -3.31,
+            3.13
+          ],
+          "samples": 384
+        }
+      },
+      "phash": "80d0d4f5bdaf3b88"
+    },
+    "45_pads_land_granite": {
+      "camera": {
+        "fov_deg": 46.35,
+        "position": [
+          -522.703002929688,
+          337.849548339844,
+          -1328.34765625
+        ],
+        "spec": {
+          "distance_m": 520.0,
+          "mode": "focus",
+          "pitch_deg": -40.0,
+          "target": "pad_a"
+        }
+      },
+      "delta_e_vs_heath": {
+        "pad_a": 21.64
+      },
+      "environment": {
+        "light_level": 0.0,
+        "sun_elevation_deg": 52.61,
+        "weather": "clear"
+      },
+      "pad_state": {
+        "pad_a": 1.0,
+        "pad_b": 1.0,
+        "pad_delta": 1.0
+      },
+      "pads": {
+        "pad_a": {
+          "lab": [
+            58.43,
+            -2.12,
+            -5.09
+          ],
+          "samples": 381
+        }
+      },
+      "phash": "d4227aafd5c0c29f",
+      "phash_distance_vs_45_pads_land_heath": 22
+    },
+    "45_pads_land_heath": {
+      "camera": {
+        "fov_deg": 46.35,
+        "position": [
+          -522.703002929688,
+          337.849548339844,
+          -1328.34765625
+        ],
+        "spec": {
+          "distance_m": 520.0,
+          "mode": "focus",
+          "pitch_deg": -40.0,
+          "target": "pad_a"
+        }
+      },
+      "environment": {
+        "light_level": 0.0,
+        "sun_elevation_deg": 52.61,
+        "weather": "clear"
+      },
+      "pad_state": {},
+      "pads": {
+        "pad_a": {
+          "lab": [
+            40.91,
+            -3.57,
+            7.53
+          ],
+          "samples": 381
+        }
+      },
+      "phash": "f1e09ecbb7c180ad"
+    },
+    "46_facilities_budget_campus_home": {
       "camera": {
         "fov_deg": 45.0,
         "position": [
@@ -539,14 +991,14 @@
         },
         "on": {
           "opaque_draws": 182,
-          "primitives": 793425,
+          "primitives": 793427,
           "shadow_draws": 59
         },
         "units": [
           "land"
         ]
       },
-      "phash": "80d0d4f5bdaf2bc8",
+      "phash": "80d0d4f5bdaf3ac8",
       "units": {
         "offshore_1": {
           "buoys": 0,
@@ -563,11 +1015,11 @@
               296
             ],
             "mean_rgb": [
-              153,
-              142,
-              84
+              0,
+              0,
+              0
             ],
-            "share": 0.0025
+            "share": 0.0
           },
           "operational": true,
           "phase_count": 6,
@@ -585,6 +1037,7 @@
           "drawn_tanks": 4,
           "engine_ready_tanks": 4,
           "engine_tanks": 4,
+          "layout_clashes": [],
           "lod0_triangles": 10842,
           "lots": 2,
           "operational": true,
@@ -603,7 +1056,8 @@
           "drawn_tanks": 56,
           "engine_ready_tanks": 56,
           "engine_tanks": 56,
-          "lod0_triangles": 155712,
+          "layout_clashes": [],
+          "lod0_triangles": 155714,
           "lots": 4,
           "operational": true,
           "phase_count": 6,
@@ -618,7 +1072,131 @@
         }
       }
     },
-    "44_facilities_budget_of1_home": {
+    "46_facilities_budget_of1_framing": {
+      "camera": {
+        "fov_deg": 48.71,
+        "position": [
+          -450.0,
+          76.9837417602539,
+          -2540.767578125
+        ],
+        "spec": {
+          "distance_m": 220.0,
+          "focus_y": 9.0,
+          "mode": "focus",
+          "pitch_deg": -18.0,
+          "target": "off_1"
+        }
+      },
+      "environment": {
+        "light_level": 0.0,
+        "sun_elevation_deg": 10.05,
+        "weather": "clear"
+      },
+      "facilities": {
+        "land": {
+          "lots": 1.0,
+          "phase": "operational"
+        },
+        "offshore": {
+          "phase": "operational"
+        },
+        "post_smolt": {
+          "modules": 2.0
+        }
+      },
+      "perf": {
+        "added_opaque_draws": 19,
+        "added_shadow_draws": 25,
+        "off": {
+          "opaque_draws": 19,
+          "primitives": 328355,
+          "shadow_draws": 15
+        },
+        "on": {
+          "opaque_draws": 38,
+          "primitives": 395888,
+          "shadow_draws": 40
+        },
+        "units": [
+          "offshore"
+        ]
+      },
+      "phash": "ecd1b0cec1318f57",
+      "units": {
+        "offshore_1": {
+          "buoys": 0,
+          "drawn_phase": "operational",
+          "engine_tanks": 0,
+          "fleet": [
+            "offshore_service"
+          ],
+          "hull_yellow": {
+            "box": [
+              647,
+              379,
+              1272,
+              718
+            ],
+            "mean_rgb": [
+              135,
+              115,
+              44
+            ],
+            "share": 0.1349
+          },
+          "operational": true,
+          "phase_count": 6,
+          "phase_index": 6,
+          "phase_key": "operational",
+          "phase_progress": 1.0,
+          "plot_id": "off_1",
+          "shadow_rule_ok": true,
+          "status": "complete",
+          "unit_visible": true,
+          "variant": "of1"
+        },
+        "postsmolt_1": {
+          "blast_state": 1.0,
+          "drawn_tanks": 4,
+          "engine_ready_tanks": 4,
+          "engine_tanks": 4,
+          "layout_clashes": [],
+          "lod0_triangles": 10842,
+          "lots": 2,
+          "operational": true,
+          "phase_count": 5,
+          "phase_index": 5,
+          "phase_key": "operational",
+          "phase_progress": 1.0,
+          "plot_id": "pad_delta",
+          "shadow_rule_ok": true,
+          "status": "none",
+          "variant": "post_smolt",
+          "whole_tanks": 4
+        },
+        "ras_1": {
+          "blast_state": 1.0,
+          "drawn_tanks": 14,
+          "engine_ready_tanks": 14,
+          "engine_tanks": 14,
+          "layout_clashes": [],
+          "lod0_triangles": 49572,
+          "lots": 1,
+          "operational": true,
+          "phase_count": 6,
+          "phase_index": 6,
+          "phase_key": "operational",
+          "phase_progress": 1.0,
+          "plot_id": "pad_a",
+          "shadow_rule_ok": true,
+          "status": "complete",
+          "variant": "hfs",
+          "whole_tanks": 14
+        }
+      }
+    },
+    "46_facilities_budget_of1_home": {
       "camera": {
         "fov_deg": 45.0,
         "position": [
@@ -664,7 +1242,7 @@
           "offshore"
         ]
       },
-      "phash": "80d0d4f5bd2f3ba8",
+      "phash": "80d0d4f5bdaf2bc8",
       "units": {
         "offshore_1": {
           "buoys": 0,
@@ -703,6 +1281,7 @@
           "drawn_tanks": 4,
           "engine_ready_tanks": 4,
           "engine_tanks": 4,
+          "layout_clashes": [],
           "lod0_triangles": 10842,
           "lots": 2,
           "operational": true,
@@ -721,7 +1300,8 @@
           "drawn_tanks": 14,
           "engine_ready_tanks": 14,
           "engine_tanks": 14,
-          "lod0_triangles": 49570,
+          "layout_clashes": [],
+          "lod0_triangles": 49572,
           "lots": 1,
           "operational": true,
           "phase_count": 6,
@@ -736,13 +1316,13 @@
         }
       }
     },
-    "44_facilities_campus_close": {
+    "46_facilities_campus_close": {
       "camera": {
         "fov_deg": 48.23,
         "position": [
-          -399.249572753906,
+          -399.419006347656,
           133.600006103516,
-          -1605.5205078125
+          -1601.77319335938
         ],
         "spec": {
           "distance_m": 260.0,
@@ -769,13 +1349,21 @@
           "modules": 2.0
         }
       },
-      "phash": "f4e8efdea2819438",
+      "phash": "b4eaeb9a88a59536",
+      "phash_roi": "b54cead71e606b62",
+      "roi": [
+        0,
+        254,
+        1920,
+        1080
+      ],
       "units": {
         "postsmolt_1": {
           "blast_state": 1.0,
           "drawn_tanks": 4,
           "engine_ready_tanks": 4,
           "engine_tanks": 4,
+          "layout_clashes": [],
           "lod0_triangles": 10842,
           "lots": 2,
           "operational": true,
@@ -794,7 +1382,8 @@
           "drawn_tanks": 14,
           "engine_ready_tanks": 14,
           "engine_tanks": 14,
-          "lod0_triangles": 49570,
+          "layout_clashes": [],
+          "lod0_triangles": 49572,
           "lots": 1,
           "operational": true,
           "phase_count": 6,
@@ -809,13 +1398,13 @@
         }
       }
     },
-    "44_facilities_campus_day": {
+    "46_facilities_campus_day": {
       "camera": {
         "fov_deg": 46.35,
         "position": [
-          -389.493286132812,
+          -389.787872314453,
           337.849548339844,
-          -1404.99584960938
+          -1401.27075195312
         ],
         "spec": {
           "distance_m": 520.0,
@@ -839,26 +1428,34 @@
         }
       },
       "perf": {
-        "added_opaque_draws": 9,
-        "added_shadow_draws": 6,
+        "added_opaque_draws": 8,
+        "added_shadow_draws": 4,
         "off": {
           "opaque_draws": 18,
           "primitives": 394341,
           "shadow_draws": 21
         },
         "on": {
-          "opaque_draws": 27,
-          "primitives": 408417,
-          "shadow_draws": 27
+          "opaque_draws": 26,
+          "primitives": 405423,
+          "shadow_draws": 25
         }
       },
-      "phash": "d72a25c6d8c38b3d",
+      "phash": "d72a2dd496c39935",
+      "phash_roi": "9516521a2f3d3d6b",
+      "roi": [
+        403,
+        296,
+        1586,
+        883
+      ],
       "units": {
         "postsmolt_1": {
           "blast_state": 1.0,
           "drawn_tanks": 4,
           "engine_ready_tanks": 4,
           "engine_tanks": 4,
+          "layout_clashes": [],
           "lod0_triangles": 10842,
           "lots": 2,
           "operational": true,
@@ -877,7 +1474,8 @@
           "drawn_tanks": 14,
           "engine_ready_tanks": 14,
           "engine_tanks": 14,
-          "lod0_triangles": 49570,
+          "layout_clashes": [],
+          "lod0_triangles": 49572,
           "lots": 1,
           "operational": true,
           "phase_count": 6,
@@ -892,13 +1490,13 @@
         }
       }
     },
-    "44_facilities_campus_dusk": {
+    "46_facilities_campus_dusk": {
       "camera": {
         "fov_deg": 46.35,
         "position": [
-          -389.493286132812,
+          -389.787872314453,
           337.849548339844,
-          -1404.99584960938
+          -1401.27075195312
         ],
         "spec": {
           "distance_m": 520.0,
@@ -921,13 +1519,21 @@
           "modules": 2.0
         }
       },
-      "phash": "d7aab1c49cc6da38",
+      "phash": "97aab98696cbc934",
+      "phash_roi": "c5947a9a3f2d3962",
+      "roi": [
+        403,
+        296,
+        1586,
+        883
+      ],
       "units": {
         "postsmolt_1": {
           "blast_state": 1.0,
           "drawn_tanks": 4,
           "engine_ready_tanks": 4,
           "engine_tanks": 4,
+          "layout_clashes": [],
           "lod0_triangles": 10842,
           "lots": 2,
           "operational": true,
@@ -946,7 +1552,8 @@
           "drawn_tanks": 14,
           "engine_ready_tanks": 14,
           "engine_tanks": 14,
-          "lod0_triangles": 49570,
+          "layout_clashes": [],
+          "lod0_triangles": 49572,
           "lots": 1,
           "operational": true,
           "phase_count": 6,
@@ -961,13 +1568,13 @@
         }
       }
     },
-    "44_facilities_campus_dusk_hero": {
+    "46_facilities_campus_dusk_hero": {
       "camera": {
         "fov_deg": 47.64,
         "position": [
-          -375.604400634766,
+          -375.837432861328,
           63.5674171447754,
-          -1487.03295898438
+          -1483.29748535156
         ],
         "spec": {
           "distance_m": 320.0,
@@ -991,13 +1598,21 @@
           "modules": 2.0
         }
       },
-      "phash": "a993d6742dead215",
+      "phash": "aa93d46529e8d717",
+      "phash_roi": "aaaaf3d3d2d6884a",
+      "roi": [
+        0,
+        427,
+        1920,
+        799
+      ],
       "units": {
         "postsmolt_1": {
           "blast_state": 1.0,
           "drawn_tanks": 4,
           "engine_ready_tanks": 4,
           "engine_tanks": 4,
+          "layout_clashes": [],
           "lod0_triangles": 10842,
           "lots": 2,
           "operational": true,
@@ -1016,7 +1631,8 @@
           "drawn_tanks": 14,
           "engine_ready_tanks": 14,
           "engine_tanks": 14,
-          "lod0_triangles": 49570,
+          "layout_clashes": [],
+          "lod0_triangles": 49572,
           "lots": 1,
           "operational": true,
           "phase_count": 6,
@@ -1031,7 +1647,7 @@
         }
       }
     },
-    "44_facilities_campus_full": {
+    "46_facilities_campus_full": {
       "camera": {
         "fov_deg": 46.35,
         "position": [
@@ -1073,14 +1689,21 @@
         },
         "on": {
           "opaque_draws": 29,
-          "primitives": 457197,
+          "primitives": 457199,
           "shadow_draws": 30
         },
         "units": [
           "land"
         ]
       },
-      "phash": "d4366aade5c09e72",
+      "phash": "f5326aeda1c0967a",
+      "phash_roi": "c4147a3e3a6b3d65",
+      "roi": [
+        0,
+        269,
+        1915,
+        968
+      ],
       "units": {
         "offshore_1": {
           "buoys": 0,
@@ -1109,6 +1732,7 @@
           "drawn_tanks": 4,
           "engine_ready_tanks": 4,
           "engine_tanks": 4,
+          "layout_clashes": [],
           "lod0_triangles": 10842,
           "lots": 2,
           "operational": true,
@@ -1127,7 +1751,8 @@
           "drawn_tanks": 56,
           "engine_ready_tanks": 56,
           "engine_tanks": 56,
-          "lod0_triangles": 155712,
+          "layout_clashes": [],
+          "lod0_triangles": 155714,
           "lots": 4,
           "operational": true,
           "phase_count": 6,
@@ -1142,7 +1767,260 @@
         }
       }
     },
-    "44_facilities_home": {
+    "46_facilities_campus_pad_b": {
+      "camera": {
+        "fov_deg": 46.35,
+        "position": [
+          616.859069824219,
+          337.849548339844,
+          -1216.08227539062
+        ],
+        "spec": {
+          "distance_m": 520.0,
+          "mode": "focus",
+          "pitch_deg": -40.0,
+          "target": "unit:land_b"
+        }
+      },
+      "environment": {
+        "light_level": 0.0,
+        "sun_elevation_deg": 52.61,
+        "weather": "clear"
+      },
+      "facilities": {
+        "land": {
+          "lots": 4.0,
+          "phase": "operational"
+        },
+        "land_b": {
+          "lots": 2.0,
+          "phase": "operational"
+        },
+        "offshore": {
+          "phase": "operational"
+        },
+        "post_smolt": {
+          "modules": 2.0
+        }
+      },
+      "phash": "877834ede582de19",
+      "phash_roi": "fc1c01817ff73278",
+      "roi": [
+        419,
+        280,
+        1603,
+        931
+      ],
+      "units": {
+        "offshore_1": {
+          "buoys": 0,
+          "drawn_phase": "operational",
+          "engine_tanks": 0,
+          "fleet": [
+            "offshore_service"
+          ],
+          "hull_yellow": {
+            "box": [],
+            "share": 0.0
+          },
+          "operational": true,
+          "phase_count": 6,
+          "phase_index": 6,
+          "phase_key": "operational",
+          "phase_progress": 1.0,
+          "plot_id": "off_1",
+          "shadow_rule_ok": true,
+          "status": "complete",
+          "unit_visible": true,
+          "variant": "of1"
+        },
+        "postsmolt_1": {
+          "blast_state": 1.0,
+          "drawn_tanks": 4,
+          "engine_ready_tanks": 4,
+          "engine_tanks": 4,
+          "layout_clashes": [],
+          "lod0_triangles": 10842,
+          "lots": 2,
+          "operational": true,
+          "phase_count": 5,
+          "phase_index": 5,
+          "phase_key": "operational",
+          "phase_progress": 1.0,
+          "plot_id": "pad_delta",
+          "shadow_rule_ok": true,
+          "status": "none",
+          "variant": "post_smolt",
+          "whole_tanks": 4
+        },
+        "ras_1": {
+          "blast_state": 1.0,
+          "drawn_tanks": 56,
+          "engine_ready_tanks": 56,
+          "engine_tanks": 56,
+          "layout_clashes": [],
+          "lod0_triangles": 155714,
+          "lots": 4,
+          "operational": true,
+          "phase_count": 6,
+          "phase_index": 6,
+          "phase_key": "operational",
+          "phase_progress": 1.0,
+          "plot_id": "pad_a",
+          "shadow_rule_ok": true,
+          "status": "complete",
+          "variant": "hfs",
+          "whole_tanks": 56
+        },
+        "ras_2": {
+          "blast_state": 1.0,
+          "drawn_tanks": 28,
+          "engine_ready_tanks": 28,
+          "engine_tanks": 28,
+          "layout_clashes": [],
+          "lod0_triangles": 84954,
+          "lots": 2,
+          "operational": true,
+          "phase_count": 6,
+          "phase_index": 6,
+          "phase_key": "operational",
+          "phase_progress": 1.0,
+          "plot_id": "pad_b",
+          "shadow_rule_ok": true,
+          "status": "complete",
+          "variant": "hfs",
+          "whole_tanks": 28
+        }
+      }
+    },
+    "46_facilities_campus_pad_b_quay": {
+      "camera": {
+        "fov_deg": 47.82,
+        "position": [
+          643.734252929688,
+          130.02099609375,
+          -1337.42114257812
+        ],
+        "spec": {
+          "distance_m": 300.0,
+          "focus_y": 8.0,
+          "mode": "focus",
+          "pitch_deg": -24.0,
+          "target": "unit:land_b"
+        }
+      },
+      "environment": {
+        "light_level": 0.0,
+        "sun_elevation_deg": 41.39,
+        "weather": "clear"
+      },
+      "facilities": {
+        "land": {
+          "lots": 4.0,
+          "phase": "operational"
+        },
+        "land_b": {
+          "lots": 2.0,
+          "phase": "operational"
+        },
+        "offshore": {
+          "phase": "operational"
+        },
+        "post_smolt": {
+          "modules": 2.0
+        }
+      },
+      "phash": "f883879db8431b3e",
+      "phash_roi": "fcd843473e3e69c0",
+      "roi": [
+        0,
+        305,
+        1920,
+        1080
+      ],
+      "units": {
+        "offshore_1": {
+          "buoys": 0,
+          "drawn_phase": "operational",
+          "engine_tanks": 0,
+          "fleet": [
+            "offshore_service"
+          ],
+          "hull_yellow": {
+            "box": [],
+            "share": 0.0
+          },
+          "operational": true,
+          "phase_count": 6,
+          "phase_index": 6,
+          "phase_key": "operational",
+          "phase_progress": 1.0,
+          "plot_id": "off_1",
+          "shadow_rule_ok": true,
+          "status": "complete",
+          "unit_visible": true,
+          "variant": "of1"
+        },
+        "postsmolt_1": {
+          "blast_state": 1.0,
+          "drawn_tanks": 4,
+          "engine_ready_tanks": 4,
+          "engine_tanks": 4,
+          "layout_clashes": [],
+          "lod0_triangles": 10842,
+          "lots": 2,
+          "operational": true,
+          "phase_count": 5,
+          "phase_index": 5,
+          "phase_key": "operational",
+          "phase_progress": 1.0,
+          "plot_id": "pad_delta",
+          "shadow_rule_ok": true,
+          "status": "none",
+          "variant": "post_smolt",
+          "whole_tanks": 4
+        },
+        "ras_1": {
+          "blast_state": 1.0,
+          "drawn_tanks": 56,
+          "engine_ready_tanks": 56,
+          "engine_tanks": 56,
+          "layout_clashes": [],
+          "lod0_triangles": 155714,
+          "lots": 4,
+          "operational": true,
+          "phase_count": 6,
+          "phase_index": 6,
+          "phase_key": "operational",
+          "phase_progress": 1.0,
+          "plot_id": "pad_a",
+          "shadow_rule_ok": true,
+          "status": "complete",
+          "variant": "hfs",
+          "whole_tanks": 56
+        },
+        "ras_2": {
+          "blast_state": 1.0,
+          "drawn_tanks": 28,
+          "engine_ready_tanks": 28,
+          "engine_tanks": 28,
+          "layout_clashes": [],
+          "lod0_triangles": 84954,
+          "lots": 2,
+          "operational": true,
+          "phase_count": 6,
+          "phase_index": 6,
+          "phase_key": "operational",
+          "phase_progress": 1.0,
+          "plot_id": "pad_b",
+          "shadow_rule_ok": true,
+          "status": "complete",
+          "variant": "hfs",
+          "whole_tanks": 28
+        }
+      }
+    },
+    "46_facilities_home": {
       "camera": {
         "fov_deg": 45.0,
         "position": [
@@ -1181,11 +2059,11 @@
         },
         "on": {
           "opaque_draws": 186,
-          "primitives": 790441,
+          "primitives": 790443,
           "shadow_draws": 59
         }
       },
-      "phash": "80d0d4f5bd2f3ba8",
+      "phash": "80d0d4f5bdaf7b80",
       "units": {
         "offshore_1": {
           "buoys": 0,
@@ -1224,6 +2102,7 @@
           "drawn_tanks": 4,
           "engine_ready_tanks": 4,
           "engine_tanks": 4,
+          "layout_clashes": [],
           "lod0_triangles": 10842,
           "lots": 2,
           "operational": true,
@@ -1242,7 +2121,8 @@
           "drawn_tanks": 14,
           "engine_ready_tanks": 14,
           "engine_tanks": 14,
-          "lod0_triangles": 49570,
+          "layout_clashes": [],
+          "lod0_triangles": 49572,
           "lots": 1,
           "operational": true,
           "phase_count": 6,
@@ -1257,7 +2137,7 @@
         }
       }
     },
-    "44_facilities_of1_commissioning": {
+    "46_facilities_of1_commissioning": {
       "camera": {
         "fov_deg": 48.71,
         "position": [
@@ -1291,7 +2171,7 @@
           "modules": 2.0
         }
       },
-      "phash": "eac2a3cade3332ca",
+      "phash": "fcc1b296c8f11957",
       "units": {
         "offshore_1": {
           "buoys": 0,
@@ -1308,11 +2188,11 @@
               718
             ],
             "mean_rgb": [
-              133,
-              114,
+              134,
+              115,
               43
             ],
-            "share": 0.1407
+            "share": 0.1338
           },
           "operational": false,
           "phase_count": 6,
@@ -1330,6 +2210,7 @@
           "drawn_tanks": 4,
           "engine_ready_tanks": 4,
           "engine_tanks": 4,
+          "layout_clashes": [],
           "lod0_triangles": 10842,
           "lots": 2,
           "operational": true,
@@ -1348,7 +2229,8 @@
           "drawn_tanks": 14,
           "engine_ready_tanks": 14,
           "engine_tanks": 14,
-          "lod0_triangles": 49570,
+          "layout_clashes": [],
+          "lod0_triangles": 49572,
           "lots": 1,
           "operational": true,
           "phase_count": 6,
@@ -1363,7 +2245,7 @@
         }
       }
     },
-    "44_facilities_of1_hero": {
+    "46_facilities_of1_hero": {
       "camera": {
         "fov_deg": 47.92,
         "position": [
@@ -1397,7 +2279,7 @@
           "modules": 2.0
         }
       },
-      "phash": "a885677a1836775b",
+      "phash": "af85677b1830735a",
       "units": {
         "offshore_1": {
           "buoys": 0,
@@ -1414,11 +2296,11 @@
               632
             ],
             "mean_rgb": [
-              172,
-              142,
+              171,
+              141,
               66
             ],
-            "share": 0.1765
+            "share": 0.1671
           },
           "operational": true,
           "phase_count": 6,
@@ -1436,6 +2318,7 @@
           "drawn_tanks": 4,
           "engine_ready_tanks": 4,
           "engine_tanks": 4,
+          "layout_clashes": [],
           "lod0_triangles": 10842,
           "lots": 2,
           "operational": true,
@@ -1454,7 +2337,8 @@
           "drawn_tanks": 14,
           "engine_ready_tanks": 14,
           "engine_tanks": 14,
-          "lod0_triangles": 49570,
+          "layout_clashes": [],
+          "lod0_triangles": 49572,
           "lots": 1,
           "operational": true,
           "phase_count": 6,
@@ -1469,7 +2353,7 @@
         }
       }
     },
-    "44_facilities_of1_hull": {
+    "46_facilities_of1_hull": {
       "camera": {
         "fov_deg": 48.71,
         "position": [
@@ -1503,7 +2387,7 @@
           "modules": 2.0
         }
       },
-      "phash": "eac2919aca735f0b",
+      "phash": "e6d580f0f5073756",
       "units": {
         "offshore_1": {
           "buoys": 8,
@@ -1526,6 +2410,7 @@
           "drawn_tanks": 4,
           "engine_ready_tanks": 4,
           "engine_tanks": 4,
+          "layout_clashes": [],
           "lod0_triangles": 10842,
           "lots": 2,
           "operational": true,
@@ -1544,7 +2429,8 @@
           "drawn_tanks": 14,
           "engine_ready_tanks": 14,
           "engine_tanks": 14,
-          "lod0_triangles": 49570,
+          "layout_clashes": [],
+          "lod0_triangles": 49572,
           "lots": 1,
           "operational": true,
           "phase_count": 6,
@@ -1559,7 +2445,7 @@
         }
       }
     },
-    "44_facilities_of1_mooring": {
+    "46_facilities_of1_mooring": {
       "camera": {
         "fov_deg": 45.62,
         "position": [
@@ -1593,7 +2479,7 @@
           "modules": 2.0
         }
       },
-      "phash": "fac2c27a5d50731e",
+      "phash": "eec081665c577717",
       "units": {
         "offshore_1": {
           "buoys": 0,
@@ -1616,7 +2502,7 @@
               116,
               55
             ],
-            "share": 0.1054
+            "share": 0.1071
           },
           "operational": false,
           "phase_count": 6,
@@ -1634,6 +2520,7 @@
           "drawn_tanks": 4,
           "engine_ready_tanks": 4,
           "engine_tanks": 4,
+          "layout_clashes": [],
           "lod0_triangles": 10842,
           "lots": 2,
           "operational": true,
@@ -1652,7 +2539,8 @@
           "drawn_tanks": 14,
           "engine_ready_tanks": 14,
           "engine_tanks": 14,
-          "lod0_triangles": 49570,
+          "layout_clashes": [],
+          "lod0_triangles": 49572,
           "lots": 1,
           "operational": true,
           "phase_count": 6,
@@ -1667,7 +2555,7 @@
         }
       }
     },
-    "44_facilities_of1_tow": {
+    "46_facilities_of1_tow": {
       "camera": {
         "fov_deg": 45.62,
         "position": [
@@ -1701,7 +2589,7 @@
           "modules": 2.0
         }
       },
-      "phash": "eac292727c775358",
+      "phash": "fec4c0667f105717",
       "units": {
         "offshore_1": {
           "buoys": 8,
@@ -1720,11 +2608,11 @@
               487
             ],
             "mean_rgb": [
-              143,
-              120,
-              58
+              142,
+              119,
+              57
             ],
-            "share": 0.0908
+            "share": 0.0895
           },
           "operational": false,
           "phase_count": 6,
@@ -1742,6 +2630,7 @@
           "drawn_tanks": 4,
           "engine_ready_tanks": 4,
           "engine_tanks": 4,
+          "layout_clashes": [],
           "lod0_triangles": 10842,
           "lots": 2,
           "operational": true,
@@ -1760,7 +2649,8 @@
           "drawn_tanks": 14,
           "engine_ready_tanks": 14,
           "engine_tanks": 14,
-          "lod0_triangles": 49570,
+          "layout_clashes": [],
+          "lod0_triangles": 49572,
           "lots": 1,
           "operational": true,
           "phase_count": 6,
@@ -1775,7 +2665,7 @@
         }
       }
     },
-    "44_facilities_of1_voyage": {
+    "46_facilities_of1_voyage": {
       "camera": {
         "fov_deg": 45.62,
         "position": [
@@ -1809,7 +2699,7 @@
           "modules": 2.0
         }
       },
-      "phash": "fec09276535e1953",
+      "phash": "f6c584405f771755",
       "units": {
         "offshore_1": {
           "buoys": 8,
@@ -1827,10 +2717,10 @@
             ],
             "mean_rgb": [
               166,
-              137,
-              78
+              138,
+              79
             ],
-            "share": 0.0308
+            "share": 0.0291
           },
           "operational": false,
           "phase_count": 6,
@@ -1848,6 +2738,7 @@
           "drawn_tanks": 4,
           "engine_ready_tanks": 4,
           "engine_tanks": 4,
+          "layout_clashes": [],
           "lod0_triangles": 10842,
           "lots": 2,
           "operational": true,
@@ -1866,7 +2757,8 @@
           "drawn_tanks": 14,
           "engine_ready_tanks": 14,
           "engine_tanks": 14,
-          "lod0_triangles": 49570,
+          "layout_clashes": [],
+          "lod0_triangles": 49572,
           "lots": 1,
           "operational": true,
           "phase_count": 6,
@@ -1881,7 +2773,7 @@
         }
       }
     },
-    "44_facilities_of1_winter_sun": {
+    "46_facilities_of1_winter_sun": {
       "camera": {
         "fov_deg": 48.71,
         "position": [
@@ -1928,7 +2820,7 @@
           "shadow_draws": 40
         }
       },
-      "phash": "ece2b3cc8871cd1e",
+      "phash": "ecd0b3cc9a71c536",
       "units": {
         "offshore_1": {
           "buoys": 0,
@@ -1945,11 +2837,11 @@
               718
             ],
             "mean_rgb": [
-              134,
+              135,
               115,
-              43
+              44
             ],
-            "share": 0.1412
+            "share": 0.1347
           },
           "operational": true,
           "phase_count": 6,
@@ -1967,6 +2859,7 @@
           "drawn_tanks": 4,
           "engine_ready_tanks": 4,
           "engine_tanks": 4,
+          "layout_clashes": [],
           "lod0_triangles": 10842,
           "lots": 2,
           "operational": true,
@@ -1985,7 +2878,8 @@
           "drawn_tanks": 14,
           "engine_ready_tanks": 14,
           "engine_tanks": 14,
-          "lod0_triangles": 49570,
+          "layout_clashes": [],
+          "lod0_triangles": 49572,
           "lots": 1,
           "operational": true,
           "phase_count": 6,
@@ -2000,7 +2894,7 @@
         }
       }
     },
-    "44_facilities_of1_yard_contract": {
+    "46_facilities_of1_yard_contract": {
       "camera": {
         "fov_deg": 48.71,
         "position": [
@@ -2034,7 +2928,7 @@
           "modules": 2.0
         }
       },
-      "phash": "fbc2820a73f7520f",
+      "phash": "fec4849fc0761f07",
       "units": {
         "offshore_1": {
           "buoys": 4,
@@ -2057,6 +2951,7 @@
           "drawn_tanks": 4,
           "engine_ready_tanks": 4,
           "engine_tanks": 4,
+          "layout_clashes": [],
           "lod0_triangles": 10842,
           "lots": 2,
           "operational": true,
@@ -2075,7 +2970,8 @@
           "drawn_tanks": 14,
           "engine_ready_tanks": 14,
           "engine_tanks": 14,
-          "lod0_triangles": 49570,
+          "layout_clashes": [],
+          "lod0_triangles": 49572,
           "lots": 1,
           "operational": true,
           "phase_count": 6,
@@ -2090,7 +2986,7 @@
         }
       }
     },
-    "44_facilities_postsmolt": {
+    "46_facilities_postsmolt": {
       "camera": {
         "fov_deg": 47.15,
         "position": [
@@ -2119,13 +3015,21 @@
           "modules": 2.0
         }
       },
-      "phash": "ca1f258bd6dc8d25",
+      "phash": "9a1f2583d6de8d25",
+      "phash_roi": "85470b6a3abeeb2c",
+      "roi": [
+        400,
+        307,
+        1464,
+        826
+      ],
       "units": {
         "postsmolt_1": {
           "blast_state": 1.0,
           "drawn_tanks": 4,
           "engine_ready_tanks": 4,
           "engine_tanks": 4,
+          "layout_clashes": [],
           "lod0_triangles": 10842,
           "lots": 2,
           "operational": true,
@@ -2144,7 +3048,8 @@
           "drawn_tanks": 14,
           "engine_ready_tanks": 14,
           "engine_tanks": 14,
-          "lod0_triangles": 49570,
+          "layout_clashes": [],
+          "lod0_triangles": 49572,
           "lots": 1,
           "operational": true,
           "phase_count": 6,
@@ -2158,313 +3063,6 @@
           "whole_tanks": 14
         }
       }
-    },
-    "45_pads_b_granite": {
-      "camera": {
-        "fov_deg": 46.35,
-        "position": [
-          668.456665039062,
-          337.849548339844,
-          -1250.09240722656
-        ],
-        "spec": {
-          "distance_m": 520.0,
-          "mode": "focus",
-          "pitch_deg": -40.0,
-          "target": "pad_b"
-        }
-      },
-      "delta_e_vs_heath": {
-        "pad_b": 19.35
-      },
-      "environment": {
-        "light_level": 0.0,
-        "sun_elevation_deg": 52.61,
-        "weather": "clear"
-      },
-      "pad_state": {
-        "pad_a": 1.0,
-        "pad_b": 1.0,
-        "pad_delta": 1.0
-      },
-      "pads": {
-        "pad_b": {
-          "lab": [
-            58.91,
-            -2.16,
-            -4.92
-          ],
-          "samples": 384
-        }
-      },
-      "phash": "837e78a5a2df9a11",
-      "phash_distance_vs_45_pads_b_heath": 12
-    },
-    "45_pads_b_heath": {
-      "camera": {
-        "fov_deg": 46.35,
-        "position": [
-          668.456665039062,
-          337.849548339844,
-          -1250.09240722656
-        ],
-        "spec": {
-          "distance_m": 520.0,
-          "mode": "focus",
-          "pitch_deg": -40.0,
-          "target": "pad_b"
-        }
-      },
-      "environment": {
-        "light_level": 0.0,
-        "sun_elevation_deg": 52.61,
-        "weather": "clear"
-      },
-      "pad_state": {},
-      "pads": {
-        "pad_b": {
-          "lab": [
-            44.25,
-            -3.55,
-            7.63
-          ],
-          "samples": 384
-        }
-      },
-      "phash": "83ff74ada8d7c801"
-    },
-    "45_pads_delta_granite": {
-      "camera": {
-        "fov_deg": 47.15,
-        "position": [
-          40.464900970459,
-          247.859298706055,
-          1738.27075195312
-        ],
-        "spec": {
-          "distance_m": 380.0,
-          "mode": "focus",
-          "pitch_deg": -40.0,
-          "target": "pad_delta"
-        }
-      },
-      "delta_e_vs_heath": {
-        "pad_delta": 22.0
-      },
-      "environment": {
-        "light_level": 0.0,
-        "sun_elevation_deg": 52.61,
-        "weather": "clear"
-      },
-      "pad_state": {
-        "pad_a": 1.0,
-        "pad_b": 1.0,
-        "pad_delta": 1.0
-      },
-      "pads": {
-        "pad_delta": {
-          "lab": [
-            61.58,
-            -2.13,
-            -5.25
-          ],
-          "samples": 384
-        }
-      },
-      "phash": "920f3583cfde2d25",
-      "phash_distance_vs_45_pads_delta_heath": 14
-    },
-    "45_pads_delta_heath": {
-      "camera": {
-        "fov_deg": 47.15,
-        "position": [
-          40.464900970459,
-          247.859298706055,
-          1738.27075195312
-        ],
-        "spec": {
-          "distance_m": 380.0,
-          "mode": "focus",
-          "pitch_deg": -40.0,
-          "target": "pad_delta"
-        }
-      },
-      "environment": {
-        "light_level": 0.0,
-        "sun_elevation_deg": 52.61,
-        "weather": "clear"
-      },
-      "pad_state": {},
-      "pads": {
-        "pad_delta": {
-          "lab": [
-            44.39,
-            -3.54,
-            8.41
-          ],
-          "samples": 384
-        }
-      },
-      "phash": "981fa783965ea9a5"
-    },
-    "45_pads_home_granite": {
-      "camera": {
-        "fov_deg": 45.0,
-        "position": [
-          -327.527893066406,
-          263.134521484375,
-          -205.966918945312
-        ],
-        "spec": {
-          "mode": "home"
-        }
-      },
-      "delta_e_vs_heath": {
-        "pad_a": 13.21,
-        "pad_b": 10.56
-      },
-      "environment": {
-        "light_level": 0.0,
-        "sun_elevation_deg": 52.61,
-        "weather": "clear"
-      },
-      "pad_state": {
-        "pad_a": 1.0,
-        "pad_b": 1.0,
-        "pad_delta": 1.0
-      },
-      "pads": {
-        "pad_a": {
-          "lab": [
-            56.36,
-            -2.34,
-            -5.93
-          ],
-          "samples": 384
-        },
-        "pad_b": {
-          "lab": [
-            60.91,
-            -2.13,
-            -4.0
-          ],
-          "samples": 384
-        }
-      },
-      "phash": "80d0d4fdbda77388",
-      "phash_distance_vs_45_pads_home_heath": 6
-    },
-    "45_pads_home_heath": {
-      "camera": {
-        "fov_deg": 45.0,
-        "position": [
-          -327.527893066406,
-          263.134521484375,
-          -205.966918945312
-        ],
-        "spec": {
-          "mode": "home"
-        }
-      },
-      "environment": {
-        "light_level": 0.0,
-        "sun_elevation_deg": 52.61,
-        "weather": "clear"
-      },
-      "pad_state": {},
-      "pads": {
-        "pad_a": {
-          "lab": [
-            46.21,
-            -3.92,
-            2.37
-          ],
-          "samples": 384
-        },
-        "pad_b": {
-          "lab": [
-            52.59,
-            -3.26,
-            2.4
-          ],
-          "samples": 384
-        }
-      },
-      "phash": "80d0d4f5bdaf3ba0"
-    },
-    "45_pads_land_granite": {
-      "camera": {
-        "fov_deg": 46.35,
-        "position": [
-          -522.703002929688,
-          337.849548339844,
-          -1328.34765625
-        ],
-        "spec": {
-          "distance_m": 520.0,
-          "mode": "focus",
-          "pitch_deg": -40.0,
-          "target": "pad_a"
-        }
-      },
-      "delta_e_vs_heath": {
-        "pad_a": 22.37
-      },
-      "environment": {
-        "light_level": 0.0,
-        "sun_elevation_deg": 52.61,
-        "weather": "clear"
-      },
-      "pad_state": {
-        "pad_a": 1.0,
-        "pad_b": 1.0,
-        "pad_delta": 1.0
-      },
-      "pads": {
-        "pad_a": {
-          "lab": [
-            60.31,
-            -2.14,
-            -4.93
-          ],
-          "samples": 381
-        }
-      },
-      "phash": "d4136aadd5c8929f",
-      "phash_distance_vs_45_pads_land_heath": 20
-    },
-    "45_pads_land_heath": {
-      "camera": {
-        "fov_deg": 46.35,
-        "position": [
-          -522.703002929688,
-          337.849548339844,
-          -1328.34765625
-        ],
-        "spec": {
-          "distance_m": 520.0,
-          "mode": "focus",
-          "pitch_deg": -40.0,
-          "target": "pad_a"
-        }
-      },
-      "environment": {
-        "light_level": 0.0,
-        "sun_elevation_deg": 52.61,
-        "weather": "clear"
-      },
-      "pad_state": {},
-      "pads": {
-        "pad_a": {
-          "lab": [
-            41.96,
-            -3.68,
-            7.78
-          ],
-          "samples": 381
-        }
-      },
-      "phash": "f0a0e3eb958986cf"
     }
   }
 }

@@ -80,6 +80,17 @@
                 "progress": {"type": "number", "minimum": 0, "maximum": 1}
               }
             },
+            "land_b": {
+              "type": "object",
+              "description": "A second HFS site, on pad_b (wave4b review: the second pad's layout): built lot by lot through the engine's verbs, 'operational' stands its projects complete.",
+              "required": ["lots", "phase"],
+              "additionalProperties": false,
+              "properties": {
+                "lots": {"type": "integer", "minimum": 1, "maximum": 2},
+                "phase": {"enum": ["site_works", "tank_rings", "treatment_hall", "sea_works", "first_tanks", "completion", "operational"]},
+                "progress": {"type": "number", "minimum": 0, "maximum": 1}
+              }
+            },
             "post_smolt": {
               "type": "object",
               "description": "A post-smolt site on pad_delta, built.",
