@@ -302,11 +302,25 @@ GIS package).
   `GeoProductionAreas` reader can add the polygon (for "which PO is this
   point in") and `traffic_light` (the source's status) to `ProductionAreaInfo`,
   embedded like `site_plots.json` so the engine never touches the file system.
+  Status (geo A1, 2026-10-20): `src/LakskongenSim/Environment/Geo/` reads
+  the embedded `production_areas.regional.geojson`, `candidates.json`,
+  `suitability.json`, `suitability_rules.json`, `localities.geojson` and the
+  13 grids (LakskongenSim.csproj ItemGroup "geo", each SHA-256 equal to
+  `manifest.json`), each parsed once per process: `GeoProductionAreas`
+  (`AreaOf` lon/lat, `AreaAtUtm` for display), `GeoCandidates` (cleaned
+  labels via `PlaceLabels`), `GeoSuitability.CellAt` on `PngGrid`,
+  `GeoSuitabilityRules` (weights, costs, binding) and `GeoLocalities`. No
+  engine wiring and no bridge yet (A2 and A3).
 - **Zones and site validation**: a candidate or player-picked point is legal
   when its suitability cell (`origin + (c, r) * 500 m`) has R > 0; G says why
   not. Sample at the point's UTM coordinates (port `utm33` from the test, check
   it against `manifest.json` `projection_check_25833`). PNG decoding in C# is
   the stdlib loop in the test (zlib via `ZLibStream`).
+  Status (geo A1, 2026-10-20): `Utm33.Forward` matches the six reference
+  points to 1 cm (display and validation only, never game state);
+  `PngGrid.Decode` takes 8-bit grey or RGB, non-interlaced, filters 0-4 and
+  names the field it refuses; `GeoSuitability.CellAt(po, x, y)` samples
+  floor((x - ox) / 500), floor((oy - y) / 500), row 0 north.
 - **Site plots (F2-03, `SitePlotCatalog` / `ISitePlotGeometry`)**: implement a
   `GeoSitePlotGeometry` that turns `candidates.json` offshore sites into
   `OffshoreSlot` records (`X`/`Z` from the site's position relative to the
@@ -319,6 +333,9 @@ GIS package).
 - **Rival farms**: `localities.geojson` sea and land salmonid sites, with
   `mtb_t` and `po`, give the real distribution of competitors per area; give
   them generated parody company names (D17: the data has none, by design).
+  Status (geo A1, 2026-10-20): `GeoLocalities` reads all 1,781 sites;
+  `SeaGrowoutProducing` (sea salmonid grow-out without harvest pens) is 994
+  sites holding 3,722,295 t. The rival layout and the parody names are A3.
 - **Determinism**: the files are inputs; their sha256 is in `manifest.json`.
   Golden traces are unaffected until the sim reads them; the first change that
   does must re-record them with a diff report (HANDOFF §7).
