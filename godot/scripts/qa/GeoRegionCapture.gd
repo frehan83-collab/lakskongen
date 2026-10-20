@@ -20,6 +20,8 @@ const SHOTS := [
 	["geo_site_yours_1920", Vector2i(1920, 1080), 1.0, 3, "site"],
 	["geo_region_po6_1920", Vector2i(1920, 1080), 1.0, 6, "region"],
 	["geo_region_po11_1920", Vector2i(1920, 1080), 1.0, 11, "region"],
+	["geo_site_rival_1920", Vector2i(1920, 1080), 1.0, 3, "rival"],
+	["geo_national_explore_1280", Vector2i(1280, 720), 1.0, 3, "national"],
 ]
 
 var _sim: Node = null
@@ -91,6 +93,13 @@ func _stage(area: int, what: String) -> void:
 			for r: Dictionary in view.offshore():
 				if String(r.get("bound_plot_id", "")) != "":
 					drill.open_offshore(r)
+		"rival":
+			var icons: Array = (view.rival_layer() as Object).get("icons")
+			if not icons.is_empty():
+				drill.open_rival(icons[0])
+		"national":
+			drill.go_national()
+			_map.select_area(area)
 		"site":
 			var sites := view.player_sites()
 			if not sites.is_empty():

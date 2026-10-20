@@ -330,7 +330,11 @@ func _layout_markers() -> void:
 		var row: Dictionary = m.get_meta(&"row", {})
 		var at := to_view(GeoRegionMath.map_px(_po, float(row.get("x", 0.0)), float(row.get("y", 0.0))))
 		if m.name.begins_with("MapHex_"):
-			at = _pin_inside(at, r, HEX_PX * 0.5 + 4.0)
+			var pinned := _pin_inside(at, r, HEX_PX * 0.5 + 4.0)
+			# Off the map: a chevron on the hexagon points the way to it.
+			(m as _Marker).off_map = (at - pinned).normalized() if at.distance_to(pinned) > 0.5 else Vector2.ZERO
+			(m as _Marker).queue_redraw()
+			at = pinned
 		m.size = m.custom_minimum_size
 		m.position = at - m.size * 0.5
 		m.set_meta(&"anchor", at)
@@ -541,6 +545,8 @@ class _Marker extends Control:
 	var kind := "star"
 	var state := "free"
 	var bound := false
+	## For a hexagon pinned to the map edge: the way to its real position.
+	var off_map := Vector2.ZERO
 	var hovered := false
 
 	func _ready() -> void:
@@ -567,6 +573,10 @@ class _Marker extends Control:
 				GeoRegionView.draw_star(self, c, r * (1.12 if hovered else 1.0), state)
 			"hex":
 				GeoRegionView.draw_hexagon(self, c, r * (1.1 if hovered else 1.0), bound)
+				if off_map != Vector2.ZERO:
+					var side := off_map.orthogonal() * 4.0
+					draw_colored_polygon(PackedVector2Array([c + off_map * (r + 7.0), c + off_map * (r + 2.0) + side,
+						c + off_map * (r + 2.0) - side]), GeoRegionView.BUOY)
 			"site":
 				draw_circle(c, r, GeoRegionView.HALO)
 				draw_circle(c, r - 3.0, GeoRegionView.SALMON)
