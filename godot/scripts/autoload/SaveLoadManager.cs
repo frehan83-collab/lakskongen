@@ -3,6 +3,7 @@ using LakskongenSim.Core;
 using LakskongenSim.Farm;
 using LakskongenSim.Logistics;
 using System;
+using System.Globalization;
 using System.IO;
 using System.Text.Json;
 using System.Collections.Generic;
@@ -85,8 +86,12 @@ public partial class SaveLoadManager : Node
     /// <summary>
     /// Save files as Variant-safe dictionaries for GDScript (newest first):
     /// file (pass to LoadGame/DeleteSave), name, day, cash, time (ISO 8601 UTC),
-    /// time_unix (seconds, UTC), scenario (the scenario id, "" for none) and
-    /// thumbnail (the slot's picture, a user:// path, "" when it has none; U2-08).
+    /// time_unix (seconds, UTC), time_local ("yyyy-MM-dd HH:mm" in the player's
+    /// zone, by that zone's rules for the save's own instant, so a save from
+    /// before a summer-time change keeps its wall-clock time), scenario (the
+    /// scenario id, "" for none), seed (the game's RandomSeed: which game the
+    /// save belongs to, 0 when unknown) and thumbnail (the slot's picture, a
+    /// user:// path, "" when it has none; U2-08).
     /// <see cref="GetSaveFiles"/> returns a CLR list GDScript cannot marshal.
     /// </summary>
     public Godot.Collections.Array<Godot.Collections.Dictionary> GetSaveList()
@@ -103,7 +108,9 @@ public partial class SaveLoadManager : Node
                 ["cash"] = save.Cash,
                 ["time"] = save.SaveTime.ToString("o"),
                 ["time_unix"] = AsUtc(save.SaveTime).ToUnixTimeSeconds(),
+                ["time_local"] = AsUtc(save.SaveTime).ToLocalTime().ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture),
                 ["scenario"] = save.ScenarioId ?? "",
+                ["seed"] = save.Seed,
                 ["thumbnail"] = Godot.FileAccess.FileExists(thumb) ? thumb : "",
             });
         }
@@ -162,7 +169,9 @@ public partial class SaveLoadManager : Node
         _gameBridge = GetNode<GameBridge>("/root/GameBridge");
         if (_gameBridge != null)
         {
-            // Auto-save every 30 game days
+            // The autosave interval (U2-08): every game, new, scenario or
+            // loaded, starts its own; the ticks take the save when it is due.
+            _gameBridge.GameStarted += RestartAutoSaveInterval;
             _gameBridge.SimulationTicked += OnSimulationTicked;
         }
     }
@@ -759,6 +768,7 @@ public partial class SaveLoadManager : Node
                 Cash = (long)saveData.GameState.Balance, // Use Balance and cast to long
 #pragma warning restore CS0618
                 ScenarioId = saveData.GameState.ActiveScenarioId ?? "",
+                Seed = saveData.GameState.RandomSeed,
                 FileSize = (int)fileSize
             };
         }
@@ -854,7 +864,8 @@ public partial class SaveLoadManager : Node
     private ulong NowMs => ClockOverrideMs >= 0 ? (ulong)ClockOverrideMs : Time.GetTicksMsec();
 
     /// <summary>When the running interval started: the last autosave, or the
-    /// game's start or load (a new game never inherits the old one's clock).</summary>
+    /// game's start or load (GameBridge.GameStarted, which every new game,
+    /// scenario and load emits: a new game never inherits the old one's clock).</summary>
     private ulong _intervalStartMs;
     private SimulationEngine _intervalEngine;
 
@@ -884,6 +895,8 @@ public partial class SaveLoadManager : Node
         var engine = _gameBridge?.SimulationEngine;
         if (engine == null) return;
         ulong now = NowMs;
+        // A tick with no GameStarted seen (the engine was swapped some other
+        // way) starts the interval here.
         if (!ReferenceEquals(engine, _intervalEngine))
         {
             _intervalEngine = engine;
@@ -917,5 +930,7 @@ public class SaveFileInfo
     public long Cash { get; set; }
     /// <summary>The scenario the save was playing (GameState.ActiveScenarioId; "" for none).</summary>
     public string ScenarioId { get; set; } = "";
+    /// <summary>The game's seed (GameState.RandomSeed): which game the save belongs to (0: unknown).</summary>
+    public int Seed { get; set; }
     public int FileSize { get; set; }
 }

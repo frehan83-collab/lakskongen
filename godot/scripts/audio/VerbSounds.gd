@@ -47,7 +47,13 @@ static func for_action(action: String, success: bool) -> String:
 	return str(ACTION_CUES.get(action, "")) if success else ""
 
 
-static func for_event(event: Dictionary, today: int) -> String:
+## `notifications` is the player's "Varsler" (GameplayPrefs.
+## notifications_enabled, U2-08): off, a warning goes to the inbox and the
+## bell only, with no toast and no sound, so its cue (the storm forecast's
+## thunder) stays silent too. Info and critical events keep theirs.
+static func for_event(event: Dictionary, today: int, notifications: bool = true) -> String:
 	if today >= 0 and today - int(event.get("day", today)) >= STALE_EVENT_DAYS:
+		return ""
+	if not notifications and str(event.get("severity", "info")) == "warning":
 		return ""
 	return str(EVENT_CUES.get(str(event.get("type", "")), ""))

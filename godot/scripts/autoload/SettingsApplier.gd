@@ -21,7 +21,8 @@ extends Node
 ##
 ## The window settings apply when the game is launched as the game; a test
 ## or QA scene launched by path keeps its own window (tests apply them through
-## a recording port, DisplaySettings.apply).
+## a recording port, DisplaySettings.apply) and its own settings file, reset
+## to the defaults at boot (SettingsStore.BY_PATH_PATH).
 
 signal settings_applied(settings: Dictionary)
 
@@ -34,16 +35,16 @@ const BUS_KEYS := {"Master": "master", "Music": "music", "Ambient": "ambient", "
 
 
 func _ready() -> void:
+	# A run by scene path (tests, QA captures, the harnesses) starts from the
+	# defaults in a file of its own, never the player's (SettingsStore).
+	if not launched_as_game():
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(SettingsStore.BY_PATH_PATH))
 	apply_all(SettingsStore.load_all(), launched_as_game())
 
 
 ## True when the project runs its own main scene (not a test or QA scene by path).
 static func launched_as_game() -> bool:
-	var main := str(ProjectSettings.get_setting("application/run/main_scene", ""))
-	for arg in OS.get_cmdline_args():
-		if arg.ends_with(".tscn") and arg != main:
-			return false
-	return true
+	return not SettingsStore.launched_by_path()
 
 
 ## Push every setting in `settings` (SettingsStore.load_all() shape) to its

@@ -46,6 +46,9 @@ public partial class GameBridge : Node
         var r = engine.GetScenarioEndReport();
         result["success"] = true;
         result["scenario_id"] = r.ScenarioId;
+        // Which game this is (the seed is on every save: GetSaveList "seed"),
+        // so the end screen offers only this game's own autosave (U2-08 review).
+        result["game_seed"] = engine.State.RandomSeed;
         result["scenario_name"] = r.ScenarioName;
         result["verdict"] = VerdictKey(r.Verdict);
         result["loss_reason"] = r.LossReason;

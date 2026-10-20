@@ -138,8 +138,21 @@ const THUMB_SIZE := Vector2(160, 90)
 ## The width of a slot's column of verbs (Last inn, Overskriv, Slett).
 const ACTIONS_WIDTH := 132.0
 
-## A save time (unix seconds, UTC) as the player's local ISO 8601 date and
-## time: "2026-10-20 19:04".
+## A slot's save time as the player's local ISO 8601 date and time
+## ("2026-10-20 19:04"): the save list's time_local, which C# converts by the
+## zone's rules for the save's own instant (a summer save stays at its summer
+## wall-clock time after the clocks go back); iso_local() for an entry
+## without it. "" when the entry has no time.
+static func slot_time(save_info: Dictionary) -> String:
+	var local := str(save_info.get("time_local", ""))
+	if not local.is_empty():
+		return local
+	if save_info.has("time_unix"):
+		return iso_local(int(save_info["time_unix"]))
+	return ""
+
+## A save time (unix seconds, UTC) at today's UTC offset (Godot's Time API
+## knows only the current one): the fallback for an entry without time_local.
 static func iso_local(unix_utc: int) -> String:
 	var bias := int(Time.get_time_zone_from_system().get("bias", 0))
 	return Time.get_datetime_string_from_unix_time(unix_utc + bias * 60, true).substr(0, 16)
@@ -240,8 +253,9 @@ func _create_slot(save_info: Dictionary) -> PanelContainer:
 	details.name = "Details"
 	var day_fmt := _tr_or("UI_SAVELOAD_DAY_FORMAT", "Dag %s")
 	var parts: PackedStringArray = []
-	if save_info.has("time_unix"):
-		parts.append(iso_local(int(save_info["time_unix"])))
+	var when := slot_time(save_info)
+	if not when.is_empty():
+		parts.append(when)
 	parts.append(day_fmt % str(save_info.get("day", "?")))
 	var sim := _sim()
 	if sim != null and save_info.has("cash"):

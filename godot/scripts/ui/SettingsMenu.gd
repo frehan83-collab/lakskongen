@@ -283,13 +283,16 @@ func _apply_audio_live() -> void:
 	_applier_call("apply_audio", [_collect_from_widgets()["audio"]])
 	_dirty = true
 
-## Save and apply everything (the window too).
+## Save and apply everything; the window only when its settings changed (a
+## volume change must not snap a window the player moved or resized back).
 func _commit() -> void:
+	var before: Dictionary = SettingsStore.load_all().get("graphics", {})
 	_settings = _collect_from_widgets()
 	_save_settings(_settings)
 	var applier := _applier()
 	if applier != null:
-		applier.apply_all(SettingsStore.load_all(), true)
+		var now := SettingsStore.load_all()
+		applier.apply_all(now, DisplaySettings.window_changed(before, now.get("graphics", {})))
 	_dirty = false
 
 func _on_apply() -> void:

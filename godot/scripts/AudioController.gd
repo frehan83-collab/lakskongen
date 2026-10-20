@@ -352,7 +352,7 @@ func _tick_ambient_crossfade(delta: float) -> void:
 
 func _on_game_event(event: Dictionary) -> void:
 	var today := int(_game_bridge.CurrentDay) if _game_bridge != null else -1
-	play_verb(VerbSounds.for_event(event, today))
+	play_verb(VerbSounds.for_event(event, today, GameplayPrefs.notifications_enabled()))
 
 func _on_action_completed(action: String, _id: String, success: bool) -> void:
 	play_verb(VerbSounds.for_action(action, success))

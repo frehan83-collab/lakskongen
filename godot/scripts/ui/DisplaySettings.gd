@@ -17,6 +17,21 @@ const DEFAULT_RESOLUTION := Vector2i(1920, 1080)
 const MIN_SIZE := Vector2i(1280, 720)
 
 
+## The graphics keys that set the window (the quality tier does not).
+const WINDOW_KEYS: Array[String] = ["resolution", "fullscreen", "vsync"]
+
+
+## True when the window settings differ between two graphics sections (a
+## missing key reads as its default): the settings menu re-applies the window
+## only then, so a player's own move or resize survives a volume change.
+static func window_changed(before: Dictionary, after: Dictionary) -> bool:
+	var defaults: Dictionary = SettingsStore.DEFAULTS["graphics"]
+	for key in WINDOW_KEYS:
+		if str(before.get(key, defaults[key])) != str(after.get(key, defaults[key])):
+			return true
+	return false
+
+
 ## "1920x1080" -> Vector2i; anything else -> the default.
 static func parse_resolution(text: Variant) -> Vector2i:
 	var parts := str(text).to_lower().split("x")

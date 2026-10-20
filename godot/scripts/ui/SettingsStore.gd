@@ -31,12 +31,37 @@ const DEFAULTS := {
 	"general": {"language": "nb"},
 }
 
-## Tests (and QA scenes) point this at their own file; "" is the player's.
+## A run launched by a scene path (the UI tests, the QA capture scenes, the
+## screenshot and perf harnesses) reads and writes this file instead of the
+## player's, and SettingsApplier deletes it at boot: the player's high
+## contrast, language or quality never reach a baseline frame or a
+## measurement (U2-08 review). The game launched as the game uses PATH.
+const BY_PATH_PATH := "user://settings_by_path.json"
+
+## Tests (and QA scenes) point this at their own file; "" is the default:
+## the player's, or BY_PATH_PATH in a run launched by a scene path.
 static var path_override := ""
+## Cached launched_by_path() (-1: not read yet).
+static var _by_path := -1
 
 
 static func path() -> String:
-	return path_override if not path_override.is_empty() else PATH
+	if not path_override.is_empty():
+		return path_override
+	return BY_PATH_PATH if launched_by_path() else PATH
+
+
+## True when this process runs a scene named on its command line (a test or a
+## QA scene) instead of the project's main scene.
+static func launched_by_path() -> bool:
+	if _by_path < 0:
+		_by_path = 0
+		var main := str(ProjectSettings.get_setting("application/run/main_scene", ""))
+		for arg in OS.get_cmdline_args():
+			if arg.ends_with(".tscn") and arg != main:
+				_by_path = 1
+				break
+	return _by_path == 1
 
 
 static func has_file() -> bool:
