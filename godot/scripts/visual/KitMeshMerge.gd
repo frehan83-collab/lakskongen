@@ -19,14 +19,49 @@ static var read_backs := 0
 
 
 ## The surface arrays of `mesh` (surface 0), read from the GPU the first time
-## `key` is asked for; [] for no mesh.
-static func arrays_of(key: String, mesh: Mesh) -> Array:
-	if not _arrays.has(key):
-		if mesh == null:
-			return []
-		_arrays[key] = mesh.surface_get_arrays(0)
-		read_backs += 1
-	return _arrays[key]
+## `key` is asked for; [] for no mesh. A read that comes back without
+## vertices is never kept (a mesh the background loader finished in this very
+## frame can read back empty: the rendering server has not made it yet, seen
+## once in the UI-flow suite): the server is synced and the mesh read again,
+## then a copy of `source` (its glb, loaded on this thread) is read, and the
+## miss is reported.
+static func arrays_of(key: String, mesh: Mesh, source: String = "") -> Array:
+	if _arrays.has(key):
+		return _arrays[key]
+	if mesh == null:
+		return []
+	var arrays := mesh.surface_get_arrays(0)
+	read_backs += 1
+	if not has_vertices(arrays):
+		RenderingServer.force_sync()
+		arrays = mesh.surface_get_arrays(0)
+	if not has_vertices(arrays) and source != "":
+		push_warning("[KitMeshMerge] %s read back without vertices (%d surfaces); reading a fresh copy" % [key, mesh.get_surface_count()])
+		var copy := _fresh_mesh(source)
+		arrays = copy.surface_get_arrays(0) if copy != null else []
+	if not has_vertices(arrays):
+		push_warning("[KitMeshMerge] %s has no vertices: left out of the merge" % key)
+		return []
+	_arrays[key] = arrays
+	return arrays
+
+
+## True when surface `arrays` carry a vertex array.
+static func has_vertices(arrays: Array) -> bool:
+	return arrays.size() > Mesh.ARRAY_VERTEX and arrays[Mesh.ARRAY_VERTEX] is PackedVector3Array \
+		and not (arrays[Mesh.ARRAY_VERTEX] as PackedVector3Array).is_empty()
+
+
+## The first mesh of a glb loaded afresh on this thread (not the cached one).
+static func _fresh_mesh(path: String) -> Mesh:
+	var scene := ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_IGNORE) as PackedScene
+	if scene == null:
+		return null
+	var root := scene.instantiate()
+	var found := root.find_children("*", "MeshInstance3D", true, false)
+	var mesh: Mesh = (found[0] as MeshInstance3D).mesh if not found.is_empty() else null
+	root.free()
+	return mesh
 
 
 ## One triangle mesh of `parts` ([surface arrays, Transform3D] each).
@@ -39,6 +74,8 @@ static func merge(parts: Array) -> ArrayMesh:
 	for part: Array in parts:
 		var a: Array = part[0]
 		var xf: Transform3D = part[1]
+		if not has_vertices(a):
+			continue
 		var pv: PackedVector3Array = a[Mesh.ARRAY_VERTEX]
 		var n := pv.size()
 		var base := verts.size()

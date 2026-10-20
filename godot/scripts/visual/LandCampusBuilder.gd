@@ -681,7 +681,18 @@ func _rect_arrays(to_local: Transform3D, row: int, lo: Vector2, hi: Vector2) -> 
 ## The CPU copy of a kit mesh's surface, read from the GPU once per asset
 ## and LOD per session (KitMeshMerge.arrays_of).
 static func kit_arrays(asset: String, lod: String) -> Array:
-	return KitMeshMerge.arrays_of(KIT_DIR + asset + "_" + lod, kit_mesh(asset, lod))
+	var path := KIT_DIR + asset + "_" + lod + ".glb"
+	return KitMeshMerge.arrays_of(path, kit_mesh(asset, lod), path)
+
+
+## True once the kit glb at `path` is held (no background load is needed).
+static func has_kit_mesh(path: String) -> bool:
+	return _mesh_cache.has(path.get_file().get_basename())
+
+
+## The kit meshes held so far, by "<asset>_<LOD>".
+static func held_kit_meshes() -> Dictionary:
+	return _mesh_cache.duplicate()
 
 
 ## A click target: a cylinder per tank (shape index = tank index) and a thin

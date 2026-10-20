@@ -88,8 +88,10 @@ func _ready() -> void:
 	_card_layer.add_child(card)
 	# The land kit loads in the background, so the first campus built (a
 	# player's build, a loaded save) does not stall a frame reading it.
+	# A glb whose mesh the kit already holds is never loaded again.
 	for path: String in LandCampusBuilder.kit_paths():
-		if not ResourceLoader.has_cached(path) and ResourceLoader.load_threaded_get_status(path) == ResourceLoader.THREAD_LOAD_INVALID_RESOURCE:
+		if not LandCampusBuilder.has_kit_mesh(path) and not ResourceLoader.has_cached(path) \
+				and ResourceLoader.load_threaded_get_status(path) == ResourceLoader.THREAD_LOAD_INVALID_RESOURCE:
 			ResourceLoader.load_threaded_request(path)
 	var sim := get_node_or_null("/root/SimBridge")
 	if sim != null and sim.has_signal("state_updated"):

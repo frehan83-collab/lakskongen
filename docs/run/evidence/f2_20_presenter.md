@@ -122,3 +122,24 @@ the lookdev row of 2026-10-20 found under AgX.
   (the pilot stands as it is until the engine makes it a full lot).
 - `OffshoreUnitModel` (F2-26) keeps 8 m visibility-range margins on its LOD
   pair, the pattern that hid the harvest hall here.
+
+## Wave-4b merge addendum (2026-10-20)
+
+The stage merged into `wave4b/int` (`5d7f18a`); its review was handled there
+(`docs/run/evidence/wave4b_int_gfx_farm_1.md`). Read this file with these
+corrections:
+
+- The presenter's shots are `46_facilities_*` now (U2-08 owns `44_`); the
+  frames in `f2_20/` keep their stage names. `f2_20_facilities_metrics.json`
+  was re-recorded at the merge (36 shots).
+- Criterion 2 is judged on the campus's own screen box with the clouds
+  staged, against the same state stood twice (`p2` vs `p4` 14 bits, the twin
+  0), not on the whole frame.
+- Criterion 4: the spec's budget is the home view's (the P0-04 view); the
+  framing counts above are now regression ceilings
+  (`tests/test_facility_presenter.py` `FRAMING_CEILINGS`).
+- Criterion 5 is **partial**: "2 units" drew one, because the Havfarm-class
+  unit has no model before F2-29; re-measure then.
+- The layout was only ever rendered on pad_a: on pad_b the pipe bridge ran
+  through the harvest hall. Fixed at the merge (the quay side is laid out
+  from the bridge's line) and checked for every pad and lot count.

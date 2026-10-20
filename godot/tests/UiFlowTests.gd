@@ -7410,6 +7410,16 @@ func _test_facilities_render() -> void:
 	# Wave4b review (a build stalled the main thread): the kit is read back
 	# from the GPU once per mesh and the terrain computes its pads once.
 	var read_backs := KitMeshMerge.read_backs
+	# The kit loads in the background: every mesh the campus drew is a live
+	# mesh on the rendering server (a mesh taken from the loader in the frame
+	# it finished once read back empty).
+	var dead: Array[String] = []
+	var held := LandCampusBuilder.held_kit_meshes()
+	for key: String in held:
+		if RenderingServer.mesh_get_surface_count((held[key] as Mesh).get_rid()) < 1:
+			dead.append(key)
+	_check(held.size() >= 20 and dead.is_empty(),
+		"facilities: every kit mesh the campus drew is live on the rendering server (%d held; dead %s)" % [held.size(), str(dead)])
 	_check(campus != null and campus.drawn_tanks("tank_growout") == 12 and campus.drawn_tanks("tank_pregrow") == 2
 		and smolt != null and smolt.drawn_tanks("tank_pregrow") == 4,
 		"facilities: one HFS lot is 12 grow-out and 2 pre-grow tanks, the post-smolt site 2 modules of 2")
