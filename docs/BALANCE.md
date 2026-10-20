@@ -2638,6 +2638,101 @@ temperature 0.278 (15.5 °C), lice 0.150, capacity 0.039; po3_nord red → lice
 1.0 binds. In the UI flow (seed 95) capital binds; with 110 M granted the
 next constraint, lice (yellow, 0.6), binds and the strip follows.
 
+## 1y. F2-13 and F2-15: the post-smolt bridge, grow-out biology, competence and the land boards' reads (2026-10-20, branch `wave4/sim-land-2`)
+
+_Calibration `facilities.land` (registry 1.1.3) gains `smolt` (F2-13), `competence`, `growth`, `costs`,
+`maturation`, `vannstrategi`, `status` (F2-15), the templates' `fcrFactor` and `production.planGrowthMultiplier`;
+`operations.staffCostNokPerFteYear` is now sourced. 300 leaves, each with `[Range]` and one
+`[Source]`/`[GameBalance]`. Decisions: RUN_LOG §7 (2026-10-20 rows); findings: §8._
+
+### The plan, competence and the achieved result (`LandCycleTests.Acceptance1_*`)
+
+The land plan grows on the S2-03 law under continuous light (×1.2) at **0.92** of its potential
+(`production.planGrowthMultiplier`), fitted to [L:R1]'s plan (400 g → 5.2 kg LW in 8-9 months at the 12-14 °C
+rearing target; the dossier's implied TGC 2.8-3.3): without it the plan's fish reached 5.2 kg in 7.6 months at
+13 °C (an effective TGC of 3.35-3.42). Competence scales it linearly from **0.79** of the plan at 0.4 to the plan
+at 1.0 (`competence.growthAtStart`). One HFS tank stocked to its room in PO5, 20 seeds × 12 and 13 °C:
+
+| Competence | Criterion | Measured | Band |
+|---|---|---|---|
+| 0.4 | 3.85 kg HOG (0.83 × LW) crossed at | 9.24-9.99 months | 9-11 ([L:R1], [V:17]) |
+| 0.4 | HOG at 9 / 11 months | ≤ 4.2 / ≥ 3.5 on every run | 3.5-4.2 in 9-11 |
+| 1.0 | 5.2 kg LW crossed at | 8.12-8.68 months | 8-9 ([L:R1]); 4.8-5.6 within 8-10 |
+| 1.0 | survival at 5.2 kg | 0.96-0.98 | ~97 % [L:R2] |
+
+Land fish die at their plan's daily hazard (the stocking plan's 97 % cycle survival over its cycle days,
+`LandCohortPlan.DailyHazard`, booked as the baseline anchor) instead of the sea anchor, which had taken 12 % of a
+tank's fish a year (survival 0.878 at 12 months before).
+
+### FCR (`LandCycleTests.Acceptance2_*`)
+
+Economic FCR over a cohort's cycle (feed delivered over the live weight put on): HFS **1.067** (competence 1.0) and
+**1.072** (0.4), band 1.02-1.15 ([L:A3], [L:R2], [L:G2]); RAS hall (`ras.fcrFactor` 1.15, [L:R7], [L:S9])
+**1.204**/**1.209**, band 1.1-1.3. A feed-plan change under competence 0.6 adds **0.12** to the plan's FCR at 2 kg
+for 60 days ([L:R2]'s 2025 change; the size is game balance).
+
+### The farming cost (`LandCycleTests.Acceptance6_*`)
+
+A full HFS lot in PO5 run in rotation for three years (each tank stocked to its room in turn, S2-04 harvest
+orders), the third year on the site's own books (`RASFacility.Account`, ex depreciation):
+
+| Case | Harvest | HOG a year | Cost (NOK/kg HOG) | Energy share | Band |
+|---|---|---|---|---|---|
+| Full utilisation (competence 1.0) | 5.2 kg LW, the plan | 5,853 t (74 % of the 7,900 t nameplate) | **63.4** | 9.7 % | 60-75 ([L:R1] run-rate 70-75, target 60-65 [L:R9]) |
+| 55 % (competence held at 0.4) | 4.2 kg LW = 3.5 kg HOG, the achieved result [L:R1] | 3,552 t | **74.3** | 11.3 % | 70-80 (Salmon Evolution 2025: 77.1 at 4,403 t, 56 %) |
+| 55 %, harvested at the plan's 5.2 kg (information) | 5.2 kg LW | 4,365 t | 68.2 | 10.7 % | — |
+
+Lines at full utilisation (NOK/kg HOG): feed 27.2, smolt (400 g SuperSmolt-priced) 7.1, electricity 5.8, oxygen
+2.2, staff 5.8 (33 FTE × **1,028,208 NOK**, Fiskeridirektoratet's gross labour cost per årsverk in 2023, which
+replaces F2-12's 650 k salary from code), maintenance 3.1 (0.88 % of capex a year), insurance 1.6, other 6.8
+(laboratory, chemicals, office and sludge; Bjørndal & Tusvik 2017 in 2025 NOK), harvest 3.5 (the site's own
+hall: slaughter only). Feed is 43 % of the cost against Salmon Evolution's "roughly half" (SalmonBusiness
+18.08.2026): the game's feed costs 22.3 NOK/kg against 19.56 in 2023 (Fiskeridirektoratet).
+
+Sources checked 2026-10-20: Bjørndal & Tusvik, NTNU Working Paper 1/2017
+(https://www.ntnu.no/documents/1265701259/1281473463/WPS+1+2017.pdf: tables 4.1, 4.3-4.5, the insurance rates in
+§4.1); Fiskeridirektoratet, Lønnsomhetsundersøkelse for produksjon av laks og regnbueørret 2023 (published
+14.11.2024, https://www.fiskeridir.no/Akvakultur/Tall-og-analyse/Statistiske-publikasjoner: table C.4.5 gross labour
+cost per årsverk 1,028,208 NOK, table C.5.3 feed price 19.56 NOK/kg, table C.4.1 cost per kg); Salmon Evolution Q2
+2026 and 2025 (https://www.salmonbusiness.com/salmon-evolution-targets-nok-53-kg-farming-cost-as-production-doubles/,
+https://www.salmonbusiness.com/?p=136206: 70.7 NOK/kg in Q2 2026, run-rate 70-75, 77.1 in 2025 on 4,403 t HOG, 67.8 in
+2024, eFCR 1.06).
+
+### The post-smolt bridge (`PostSmoltBridgeTests`)
+
+| Measure | Value |
+|---|---|
+| Tier | SuperSmolt from 400 g after 30 days at ≥ 25 ppt; large from 200 g; else standard |
+| Desmoltification | > 60 days under 12 ppt: the transfer's handling deaths × 2 (0.3 % → 0.6 % at 450 g) |
+| Sulphate factor (F2-16's H2S) | salinity / 35 |
+| Transfer | 450 t live a wellboat day (one smolt wellboat, FishFarmingExpert 2019), 1-3 days, 150 k NOK a day; MTB checked at booking and again when the boat comes |
+| Bought tiers | large × 1.6, SuperSmolt × 2.5 the standard smolt (12 NOK); the own module's fish pay no smolt price |
+| Sale | 90 NOK/kg live (`post_smolt_sales`) |
+| Sea-phase carryover, 240 days, same smolts bought at each tier | anchor deaths 0.826× (large), 0.679× (SuperSmolt) of standard |
+| Days to 4.5 kg at sea, land-grown fish against 100 g standard smolts, 20 seeds | SuperSmolt (450 g) **0.584** median (max 0.766); large (250 g) **0.858** |
+| The same without the tier's quality carryover (diagnosis, not shipped) | 0.764 and 0.903 |
+| 1-4 modules | tanks, capacity (400 t/yr each), staff (6 each) exactly linear; energy linear within 0.1 % |
+
+A land-grown SuperSmolt carries the tier's quality carryover (P5, the Chilean trial at equal stocking) on top of
+its own weight, so its sea phase is shorter than the tier's 0.70 alone (RUN_LOG §7).
+
+### The land boards' reads (`LandBoardTests`)
+
+The water ring's ok edges are the model's own (outlet O2 floor 7 mg/L, CO2 appetite limit 12, TAN 2, the density
+knee 50 kg/m³, the setpoint ± 1 °C); the critical edges are `facilities.land.status` (O2 5 mg/L [L:F2], CO2 20,
+TAN 4, ± 2.5 °C, the template's density limit). The Vannstrategi presets on a fresh HFS lot in PO5 (competence 0.4,
+projected a year from day 0): Sparsom (r 0.75, deep, 12 °C) 8.88 kWh/kg, cycle 325 d, maturation 0 %; Balansert
+(r 0.65, blended, 12.5 °C) 9.37 kWh/kg, 312 d, 31 % of the fish maturing; Høy tetthet (r 0.80, deep, 13 °C) 9.27
+kWh/kg, 300 d, 40 %. The slower growth at competence 0.4 is what lifts the kWh/kg: the same lot at competence
+1.0 on Salmon Evolution's strategy reads 6.44 (the F2-12 anchor, below).
+
+### F2-12's anchors re-measured on the plan
+
+`LandSiteEngineTests.TheEngineLot_HoldsTheStandaloneEnergyAndOxygenAnchors` (competence 1.0, the plan's 0.92, the
+plan's survival): engine **6.44 kWh/kg** LW growth and **0.476 kg O2/kg** (bands 6.0-7.5, 0.45-0.65 [L:R2]);
+the standalone projection on the engine's pad, intake lines and year of water 6.51 and 0.475 (−1 %, was −4 %
+on the dossier's pad lines); growth 6,240 t a year (was 6,617 at the faster plan).
+
 ## 2. Key economic knobs
 
 | Knob | Current | Real reference | Source | Recommended playtest band |

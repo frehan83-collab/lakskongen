@@ -100,3 +100,80 @@ def test_no_land_bridge_signature_carries_decimal_or_a_default():
         params = match.group(1)
         assert "decimal" not in params, match.group(0)
         assert "=" not in params, f"GDScript never fills a C# default: {match.group(0)}"
+
+
+# ── F2-13 / F2-15 (wave4/sim-land-2) ────────────────────────────────────────
+
+def _method_body(text: str, signature: str) -> str:
+    start = text.index(signature)
+    brace = text.index("{", start)
+    depth, i = 0, brace
+    while True:
+        if text[i] == "{":
+            depth += 1
+        elif text[i] == "}":
+            depth -= 1
+            if depth == 0:
+                return text[brace:i + 1]
+        i += 1
+
+
+MUTATIONS = ("PayCost", "TryPayCost", "ReceiveIncome", ".Balance", "RemoveAlive", "RemoveDead", "Cohorts.Add",
+             "Populations.Add", "Populations.Remove", "EventLog.Add", "new Random", "ExecuteTransfer(", "Rng.Stream")
+
+
+def test_f2_13_acceptance1_post_smolt_and_transfer_bridge_verbs_are_thin_engine_calls():
+    farm = (GODOT / "scripts" / "autoload" / "GameBridge.Farm.cs").read_text(encoding="utf-8")
+    depth = (GODOT / "scripts" / "autoload" / "GameBridge.Depth.cs").read_text(encoding="utf-8")
+    verbs = [(farm, "public bool StartSmoltBatch(", "SimulationEngine?.StartSmoltBatch("),
+             (farm, "public float VaccinateBatch(", "SimulationEngine?.VaccinateSmoltBatch("),
+             (farm, "public bool TransferBatchToSea(", "SimulationEngine?.TransferSmoltBatchToSea("),
+             (depth, "public Godot.Collections.Dictionary PlanCohortTransfer(", "SimulationEngine.PlanCohortTransfer("),
+             (depth, "public Godot.Collections.Dictionary ExecuteCohortTransfer(", "SimulationEngine.ExecuteCohortTransfer(")]
+    for text, signature, call in verbs:
+        body = _method_body(text, signature)
+        assert call in body, f"{signature} does not call {call}"
+        hits = [m for m in MUTATIONS if m in body]
+        assert not hits, f"{signature} moves money or fish itself: {hits}"
+    for name, text in (("GameBridge.Farm.cs", farm), ("GameBridge.Depth.cs", depth)):
+        assert "new Random" not in text and "new System.Random" not in text, f"{name} keeps a random source"
+
+
+def test_f2_15_land_board_ids_have_text():
+    texts = _texts()
+    status = (SIM / "Farm" / "Land" / "LandStatus.cs").read_text(encoding="utf-8")
+    constraints = re.findall(r'public const string \w+ = "([a-z0-9_]+)";', status)
+    board = (SIM / "Core" / "SimulationEngine.LandBoard.cs").read_text(encoding="utf-8")
+    presets = re.findall(r'"([a-z_]+)"', re.search(r"VannstrategiPresetIds = \{([^}]*)\}", board).group(1))
+    levers = re.findall(r'public const string \w+ = "([a-z_]+)";', board[board.index("class LandCompetenceLevers"):])
+    plan = (SIM / "Farm" / "Land" / "LandCohortPlan.cs").read_text(encoding="utf-8")
+    drivers = re.findall(r'public const string \w+ = "([a-z0-9_]+)";', plan)
+    wanted = [f"LAND_CONSTRAINT_{c.upper()}" for c in constraints] + [f"LAND_PRESET_{p.upper()}" for p in presets]
+    wanted += [f"LAND_LEVER_{lever.upper()}" for lever in levers] + [f"LAND_SHORTFALL_{d.upper()}" for d in drivers]
+    wanted += [f"LAND_TIER_{t}" for t in ("STANDARD", "LARGE", "SUPER_SMOLT")]
+    assert (len(constraints), len(presets), len(levers), len(drivers)) == (5, 3, 6, 5), "harness parsed nothing"
+    missing = [k for k in wanted if k not in texts or not texts[k][0].strip() or not texts[k][1].strip()]
+    assert not missing, f"land board keys without en/no text: {missing}"
+
+
+def test_f2_15_land_ledger_lines_have_display_names():
+    texts = _texts()
+    cats = set()
+    for name in ("SimulationEngine.LandBiology.cs", "SimulationEngine.PostSmolt.cs"):
+        text = (SIM / "Core" / name).read_text(encoding="utf-8")
+        cats |= set(re.findall(r'CostBooking\.\w+\s*,\s*"([a-z_]+)"', text))
+        cats |= set(re.findall(r'ReceiveIncome\([^;]*?"([a-z_]+)"', text))
+    assert {"land_maintenance", "land_insurance", "land_other", "land_competence", "post_smolt_sales", "wellboat"} <= cats, cats
+    missing = [c for c in cats if f"LEDGER_{c.upper()}" not in texts]
+    assert not missing, missing
+
+
+def test_commission_land_site_is_only_called_from_qa_and_tests():
+    callers = []
+    for path in (GODOT / "scripts").rglob("*.gd"):
+        rel = path.relative_to(GODOT).as_posix()
+        if rel in ("scripts/SimBridge.gd", "scripts/bridge/SimProxies.gd"):
+            continue
+        if "commission_land_site(" in path.read_text(encoding="utf-8"):
+            callers.append(rel)
+    assert not callers, f"a player-facing script builds a land site without permits: {callers}"

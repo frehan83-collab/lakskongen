@@ -1951,6 +1951,190 @@ CAPACITY_REASON_INSUFFICIENT_FUNDS,Not enough money for the smolts,Ikke nok peng
 CAPACITY_REASON_MAB_EXCEEDED,The smolts would put the site over its MTB,Smolten ville satt lokaliteten over MTB-en
 CAPACITY_REASON_INVALID_COUNT,Choose a number of smolts above zero,Velg et antall smolt over null
 CAPACITY_REASON_SITE_NOT_FOUND,The site was not found,Fant ikke lokaliteten
+BUILD_AXIS_BUILD_DAYS,Time to a working unit,Tid til drift
+BUILD_AXIS_CAPACITY_T_YEAR,Capacity per unit,Kapasitet per enhet
+BUILD_AXIS_CAPEX_NOK_PER_T_YEAR,Capacity cost incl. licence,Kapasitetskostnad inkl. lisens
+BUILD_AXIS_ENERGY_KWH_PER_KG,Power per kg,Strøm per kg
+BUILD_AXIS_EXTERNAL_LICE_FACTOR,Lice from outside,Lus utenfra
+BUILD_AXIS_OPEX_NOK_PER_KG_HOG,Farming cost per kg HOG,Driftskostnad per kg HOG
+BUILD_AXIS_SURVIVAL,Survival per cycle,Overlevelse per syklus
+BUILD_COMPARE_HEADER,Compare,Sammenlign
+BUILD_COMPARE_NOTE,Industry figures from the sources (hover a number). In brackets: the bad case. The game's own figures arrive once the farms run.,Bransjetall fra kildene (hold musen over et tall). I parentes: dårlig tilfelle. Spillets egne tall kommer når anleggene går.
+BUILD_COMPARE_REFERENCE,(for comparison),(til sammenligning)
+BUILD_CONFIRM_APPLY,Apply for permits (%d cases),Søk tillatelser (%d saker)
+BUILD_CONFIRM_BUILD_LAND,Start construction (%s),Start byggingen (%s)
+BUILD_CONFIRM_BUILD_SEA,Sign the contract (first payment %s),Kontraher (første betaling %s)
+BUILD_CONFIRM_GENERIC,Confirm,Bekreft
+BUILD_CONSORTIUM_TOGGLE,Consortium (%s equity),Konsortium (%s egenkapital)
+BUILD_CONTRACT_TIP_MANAGED,You manage the build and carry the overrun.,Du styrer byggingen selv og bærer overskridelsen.
+BUILD_CONTRACT_TIP_TURNKEY,"Fixed price with a premium: no overrun, though delays can happen.","Fastpris med påslag: ingen overskridelse, men forsinkelser kan komme."
+BUILD_DIAG_CAPACITY,MTB in PO %d: %s in use,MTB i PO %d: %s i bruk
+BUILD_DIAG_CAPITAL,capital: %s in cash against %s for the smallest farm on land or at sea,kapital: %s i kassen mot %s for minste anlegg på land eller til havs
+BUILD_DIAG_LICE,lice in PO %d (%s traffic light),lus i PO %d (%s trafikklys)
+BUILD_DIAG_LIGHT_0,green,grønt
+BUILD_DIAG_LIGHT_1,yellow,gult
+BUILD_DIAG_LIGHT_2,red,rødt
+BUILD_DIAG_LINE,Your bottleneck: %s → %s,Din flaskehals: %s → %s
+BUILD_DIAG_OXYGEN,"the water: %s of deaths from low oxygen, algae and jellyfish","vannet: %s av dødeligheten fra lavt oksygen, alger og maneter"
+BUILD_DIAG_RELIEF_BOTH,Land or Offshore removes it,Land eller Hav fjerner den
+BUILD_DIAG_RELIEF_CAPITAL,a consortium offshore or a post-smolt module lowers the entry,konsortium i Hav eller en postsmoltmodul senker inngangen
+BUILD_DIAG_RELIEF_HAV,Offshore removes it,Hav fjerner den
+BUILD_DIAG_RELIEF_LAND,Land removes it,Land fjerner den
+BUILD_DIAG_TEMPERATURE,sea temperature in PO %d: %s °C in the warmest month (best growth at %s °C),sjøtemperatur i PO %d: %s °C i varmeste måned (vekst best ved %s °C)
+BUILD_DIAG_THEN,Then: %s,Deretter: %s
+BUILD_DIAG_UNKNOWN,no clear bottleneck,ingen klar flaskehals
+BUILD_DONE_LAND_BODY,The first tanks take fish %s.,De første karene tar fisk %s.
+BUILD_DONE_LAND_TITLE,Construction on %s has started,Byggingen på %s har startet
+BUILD_DONE_PERMITS_BODY,%d cases are being decided; risk of at least one refusal %s. The last is decided %s.,%d saker er til behandling; risiko for minst ett avslag %s. Den siste avgjøres %s.
+BUILD_DONE_PERMITS_TITLE,The applications for %s are filed,Søknadene for %s er sendt
+BUILD_DONE_SEA_BODY,First stocking at the earliest %s. Start the tow when the weather window holds.,Første utsett tidligst %s. Start slepet når værvinduet holder.
+BUILD_DONE_SEA_TITLE,The offshore unit for %s is contracted,Havmerden for %s er kontrahert
+BUILD_DONE_VIEW_HAV,Go to the offshore units,Til havmerdene
+BUILD_DONE_VIEW_LAND,Go to the land farms,Til landanleggene
+BUILD_FAMILY_CHOOSE,Choose %s,Velg %s
+BUILD_FAMILY_CHOSEN,Chosen,Valgt
+BUILD_FAMILY_LIMITS_HAV,"Limited by weather windows, logistics, crew and alarm load.","Begrenses av værvinduer, logistikk, mannskap og alarmlast."
+BUILD_FAMILY_LIMITS_LAND,"Limited by capital, pumps, power, oxygen and competence.","Begrenses av kapital, pumper, strøm, oksygen og kompetanse."
+BUILD_FAMILY_LIMITS_SJO,"Limited by lice, temperature and oxygen.","Begrenses av lus, temperatur og oksygen."
+BUILD_FAMILY_LOCKED_ALL,Locked,Låst
+BUILD_FAMILY_OPEN_ALL,Every type open,Alle typer åpne
+BUILD_FAMILY_OPEN_SOME,%d of %d types open,%d av %d typer åpne
+BUILD_FAMILY_PAYS_HAV,"You pay for capacity with steel and vessels, plus free development licences.","Kapasitet kjøpes med stål og fartøy, og gratis utviklingstillatelser."
+BUILD_FAMILY_PAYS_LAND,You pay for capacity with concrete and kilowatt-hours.,Kapasitet kjøpes med betong og kilowattimer.
+BUILD_FAMILY_PAYS_SJO,You pay for capacity with licences at auction.,Kapasitet kjøpes med lisenser på auksjon.
+BUILD_GATES_HEADER,What it takes,Dette må på plass
+BUILD_GATE_DEVELOPMENTLICENCE,Development licence awarded,Utviklingstillatelse tildelt
+BUILD_GATE_ESCAPEFREEDAYS,%s months without an escape,%s mnd uten rømming
+BUILD_GATE_FIRSTHARVEST,Complete your first sea harvest,Fullfør første slakt i sjø
+BUILD_GATE_FUNDS,Funding,Finansiering
+BUILD_GATE_FUNDS_HAV,Funding your share in a consortium,Finansiering av egen andel i konsortium
+BUILD_GATE_OPERATINGPOSTSMOLTMODULE,A post-smolt module in operation,En postsmoltmodul i drift
+BUILD_GATE_OWNUNITCOMPLETEDCYCLE,Complete a cycle with %s,Fullfør en syklus med %s
+BUILD_GATE_RESEARCH,Research: %s,Forsk: %s
+BUILD_GATE_RESEARCH_UNKNOWN,a research project,et forskningsprosjekt
+BUILD_GATE_START,Open from the start,Åpen fra start
+BUILD_GATE_WAIVED_DEVELOPMENTLICENCE,The development round has not opened yet: you may build without one.,Utviklingsrunden er ikke åpnet ennå: du kan bygge uten.
+BUILD_GATE_WAIVED_ZONEDPAD,Applied for with the permits of the pad you choose.,Søkes sammen med tillatelsene for tomten du velger.
+BUILD_GATE_ZONEDPAD,A zoned pad,En regulert tomt
+BUILD_HINT_HAV,Construction starts with the yard contract; the rest is paid phase by phase.,Byggingen starter med verftskontrakten; resten betales fase for fase.
+BUILD_HINT_LAND,The application costs only the fees. Construction starts once the permits are granted.,Søknaden koster bare gebyrene. Byggingen starter når tillatelsene er gitt.
+BUILD_KPI_CAPACITY_COST,Capacity cost,Kapasitetskostnad
+BUILD_KPI_CAPACITY_NOTE,"Per tonne HOG a year, %s t a year","Per tonn HOG i året, %s t i året"
+BUILD_KPI_CAPACITY_NOTE_LICENCE,"Per tonne HOG a year, %s t a year, with licences for %s","Per tonn HOG i året, %s t i året, med lisenser for %s"
+BUILD_KPI_CAPEX,Capex (your share),Investering (din andel)
+BUILD_KPI_CAPEX_NOTE,"Overrun: median %s, bad case %s","Overskridelse: median %s, dårlig %s"
+BUILD_KPI_FARMING_COST,Farming cost,Driftskostnad
+BUILD_KPI_FARMING_NOTE,"Per kg HOG, industry figure","Per kg HOG, bransjetall"
+BUILD_KPI_FIRST_HARVEST,First harvest,Første slakt
+BUILD_KPI_FIRST_HARVEST_NOW,Construction starts now,Byggingen starter nå
+BUILD_KPI_FIRST_HARVEST_PERMITS,After about %s months of permits,Etter cirka %s mnd med tillatelser
+BUILD_KPI_PAYBACK,Paid back,Tilbakebetalt
+BUILD_KPI_PAYBACK_NEVER,Not at today's price,Ikke ved dagens pris
+BUILD_KPI_PAYBACK_NOTE,Operating margin %s a year at full output,Driftsmargin %s i året ved full drift
+BUILD_KPI_PAYBACK_NO_MARGIN_HAV,The price does not cover the farming cost; the value is in the licences,Prisen dekker ikke driftskostnaden; verdien ligger i lisensene
+BUILD_KPI_PAYBACK_NO_MARGIN_LAND,"The price does not cover the farming cost, or the module supplies your own pens","Prisen dekker ikke driftskostnaden, eller modulen leverer fisk til egne merder"
+BUILD_KPI_PRICE,Salmon price now,Laksepris nå
+BUILD_KPI_PRICE_NOTE,Weekly mean per kg HOG,Ukesnitt per kg HOG
+BUILD_NEW_FARM,New farm on land or at sea,Nytt anlegg på land eller til havs
+BUILD_NEW_FARM_TIP,"Choose the farm type, the variant and the site, and see what it costs before you decide.","Velg anleggstype, variant og tomt, og se hva det koster før du bestemmer deg."
+BUILD_NOTE_NO_PUBLISHED_FIGURE,No published figure,Ingen publiserte tall
+BUILD_OPTION_HFS_LOT,Full lot,Fullt trinn
+BUILD_OPTION_HFS_PILOT_LOT,Pilot lot,Pilottrinn
+BUILD_OPTION_SIZE,Size,Størrelse
+BUILD_PAYMENTS_TITLE,Payment schedule by phase,Betalingsplan per fase
+BUILD_PAY_AMOUNT,Payment,Betaling
+BUILD_PAY_OVERRUN,Overrun p50–p90,Overskridelse p50–p90
+BUILD_PAY_PHASE,Phase,Fase
+BUILD_PAY_STARTS,Starts,Starter
+BUILD_PERMITS_DECIDED_ON,Decided %s,Avgjøres %s
+BUILD_PERMITS_DONE,Done,Klar
+BUILD_PERMITS_DRIVERS,Refusal risk: %s,Avslagsrisiko: %s
+BUILD_PERMITS_GRID_OK,"Power: the plant needs %s MW, the pad has %s MW.","Strøm: anlegget trenger %s MW, tomten har %s MW."
+BUILD_PERMITS_GRID_SHORT,"Power: the plant needs %s MW, the pad has only %s MW. A grid project is needed before construction.","Strøm: anlegget trenger %s MW, tomten har bare %s MW. Et nettprosjekt trengs før bygging."
+BUILD_PERMITS_PACKAGE,Risk of at least one refusal: %s,Risiko for minst ett avslag: %s
+BUILD_PERMITS_SEA_WORKS_SEASON,Sea works never run in April–June.,Tiltak i sjø gjøres aldri i april–juni.
+BUILD_PERMITS_TITLE,Permits,Tillatelser
+BUILD_PERMITS_WINDOW,%s–%s months · refusal %s,%s–%s mnd · avslag %s
+BUILD_PICK_FAMILY,Choose a farm type,Velg anleggstype
+BUILD_PICK_PLOT,Choose a site,Velg en tomt
+BUILD_PICK_VARIANT,Choose an open variant,Velg en åpen variant
+BUILD_PLAN_HAV,Plan an offshore unit,Planlegg havmerd
+BUILD_PLAN_HAV_TIP,"Opens the build guide on the map: the site, the payments, the cash and the licences.","Åpner byggeveiviseren på kartet: lokalitet, betalinger, kontantstrøm og lisenser."
+BUILD_PLAN_LAND,Plan a land farm,Planlegg landanlegg
+BUILD_PLAN_LAND_TIP,"Opens the build guide on the map: permits, the construction plan and the cash flow.","Åpner byggeveiviseren på kartet: tillatelser, byggeplan og kontantstrøm."
+BUILD_PLOT_BLASTING,Blasting,Sprengning
+BUILD_PLOT_DEPTH,Water depth,Vanndybde
+BUILD_PLOT_DISTANCE,Distance,Avstand
+BUILD_PLOT_EXPOSURE,Exposure,Eksponering
+BUILD_PLOT_EXPOSURE_OPENOCEAN,open ocean,havområde
+BUILD_PLOT_EXPOSURE_OUTERCOAST,outer coast,ytre kyst
+BUILD_PLOT_EXPOSURE_OUTERCOASTEXPOSED,exposed coast,havkanten
+BUILD_PLOT_EXPOSURE_SHELTERED,sheltered,skjermet
+BUILD_PLOT_GRID,Grid,Strømnett
+BUILD_PLOT_GRID_VALUE,"%s MW, %d feed(s)","%s MW, %d tilførsel(er)"
+BUILD_PLOT_HEADER,Site,Tomt
+BUILD_PLOT_HELD,The plot is taken,Tomten er tatt
+BUILD_PLOT_HS100,100-year wave,Hundreårsbølge
+BUILD_PLOT_INTAKE,Deep intake,Dypvannsinntak
+BUILD_PLOT_LICE,Lice from outside,Lus utenfra
+BUILD_PLOT_PICK,Choose a site: the farm shows as a ghost on it. That costs nothing.,Velg en tomt: anlegget vises som et spøkelse på den. Det koster ingenting.
+BUILD_PLOT_PRE_ZONED,already zoned,allerede regulert
+BUILD_PLOT_PUMPS,Pumps per lot,Pumper per trinn
+BUILD_PLOT_ROOM,Room,Plass
+BUILD_PLOT_ROOM_VALUE,"%d lots, %d post-smolt modules","%d trinn, %d postsmoltmoduler"
+BUILD_PLOT_SEA,Waves (mean),Bølger (snitt)
+BUILD_PLOT_SEA_VALUE,"%s m in January, %s m in July","%s m i januar, %s m i juli"
+BUILD_PLOT_SENSITIVITY,Nature sensitivity,Natursårbarhet
+BUILD_PLOT_SIZE,Pad,Tomtestørrelse
+BUILD_PLOT_STATE_HELD,taken,tatt
+BUILD_PLOT_STATE_UNZONED,needs zoning,må reguleres
+BUILD_PLOT_STATE_ZONED,zoned,regulert
+BUILD_PLOT_ZONING,Zoning,Regulering
+BUILD_PLOT_ZONING_NEEDED,a zoning plan is needed,reguleringsplan trengs
+BUILD_RUNWAY_LEGEND,Solid line: with the payments and the median overrun. Shaded: down to the 90th percentile. Red dashes: the cash runs out. Green marker: first harvest.,Hel linje: med betalingene og median overskridelse. Skravert: ned til 90-persentilen. Rød stiplet: kassen er tom. Grønn markør: første slakt.
+BUILD_RUNWAY_LEGEND_LOAN,Green dashes: with a construction loan of %s at %s over %d years (the bank's free room).,Grønn stiplet: med byggelån på %s til %s rente over %d år (bankens ledige ramme).
+BUILD_RUNWAY_LOW,Lowest %s (bad case %s) in month %d,Lavest %s (dårlig tilfelle %s) i måned %d
+BUILD_RUNWAY_TITLE,Cash over the next 36 months,Kontantbeholdning neste 36 måneder
+BUILD_SEA_CONSORTIUM_LINE,Consortium: you own %s and pay %s; the partner can be bought out at book value × %s.,Konsortium: du eier %s og betaler %s; partneren kan kjøpes ut til bokført verdi × %s.
+BUILD_SEA_LICENCE_LINE,"Development licences: %d × %s t, market value ≈ %s (auction ≈ %s a tonne); conversion fee ≈ %s; no resource rent before conversion.","Utviklingstillatelser: %d × %s t, markedsverdi ≈ %s (auksjon ≈ %s per tonn); konverteringsgebyr ≈ %s; ingen grunnrente før konvertering."
+BUILD_SEA_PHASE_COMMISSIONING,Commissioning,Igangkjøring
+BUILD_SEA_PHASE_HULL,Hull,Skrog
+BUILD_SEA_PHASE_MOORING,Mooring,Fortøyning
+BUILD_SEA_PHASE_TOW,Tow to the site,Slep til lokaliteten
+BUILD_SEA_PHASE_VOYAGE,Voyage,Overfart
+BUILD_SEA_PHASE_YARD_CONTRACT,Yard contract,Verftskontrakt
+BUILD_SEA_PICK_ZONE,Choose a zone on the map and press “Build locality”.,Velg en sone på kartet og trykk «Bygg lokalitet».
+BUILD_SEA_REASON_ENGINE_NOT_READY,The game is not ready,Spillet er ikke klart
+BUILD_SEA_REASON_EXPOSURE_EXCEEDS_DESIGN,The waves here are bigger than the unit is built for,Bølgene her er større enn enheten er bygget for
+BUILD_SEA_REASON_INSUFFICIENT_FUNDS,Not enough cash,Ikke nok penger
+BUILD_SEA_REASON_INVALID_TYPE,Unknown unit type,Ukjent enhetstype
+BUILD_SEA_REASON_NOT_AN_OFFSHORE_SLOT,This is no offshore site,Dette er ingen havlokalitet
+BUILD_SEA_REASON_NOT_UNLOCKED,This farm type is still locked,Denne anleggstypen er fortsatt låst
+BUILD_SEA_REASON_OUT_OF_RANGE,A value is out of range,En verdi er utenfor gyldig område
+BUILD_SEA_REASON_PLOT_NOT_FOUND,The site does not exist,Lokaliteten finnes ikke
+BUILD_SEA_REASON_PLOT_TAKEN,The site is taken,Lokaliteten er tatt
+BUILD_SEA_TEETHING_LINE,"Teething: %d–%d unknown defects, budget %s; a shakedown of up to %d days reveals them.","Barnesykdommer: %d–%d ukjente feil, budsjett %s; prøvedrift inntil %d dager avslører dem."
+BUILD_SEA_TOW_LINE,First stocking at the earliest %s. You start the tow yourself when the weather window holds.,Første utsett tidligst %s. Slepet starter du selv når værvinduet holder.
+BUILD_SOURCES,Source: %s,Kilde: %s
+BUILD_SOURCE_CODE,the game's own figures,spillets egne tall
+BUILD_SOURCE_GB,game balance,spillbalanse
+BUILD_SUBTITLE_HAV,Offshore farming in exposed water beyond the fjord.,Havbruk i eksponert farvann utenfor fjorden.
+BUILD_SUBTITLE_LAND,"Land farms on blasted rock by the shore: apply for permits, then build.","Landanlegg på sprengt fjell ved kysten: søk tillatelser, så bygg."
+BUILD_SUBTITLE_PICK_FAMILY,"Choose the farm type first, then the variant and the site.","Velg anleggstype først, så variant og tomt."
+BUILD_SUBTITLE_SEA_PICK_ZONE,Open pens are built in a zone on the map.,Åpne merder bygges i en sone på kartet.
+BUILD_TITLE,Build a new farm,Bygg nytt anlegg
+BUILD_TITLE_FAMILY,Build a new farm: %s,Bygg nytt anlegg: %s
+BUILD_VARIANT_CHOOSE,Choose,Velg
+BUILD_VARIANT_CHOSEN,Chosen,Valgt
+BUILD_VARIANT_HEADER,Variant,Variant
+BUILD_VARIANT_LOCKED,Locked,Låst
+BUILD_VARIANT_LOCKED_TIP,Locked: see what it takes below,Låst: se hva som må på plass under
+BUILD_VARIANT_NEEDS_FUNDS,Needs funds,Mangler penger
+BUILD_VARIANT_OPEN,Open,Åpen
+BUILD_VARIANT_STAGE3,Later stage,Senere trinn
+BUILD_VARIANT_UPGRADE_ON_PEN,"Upgraded on the pen card, not here","Oppgraderes på merdkortet, ikke her"
+BUILD_WATCH_HAV,"What to watch: weather windows, silo days, the crew clock and the alarm load.","Dette må du følge med på: værvinduer, silodager, mannskapsklokken og alarmlasten."
+BUILD_WATCH_LAND,"What to watch: oxygen and CO₂ in the tanks, power per kg, growth against the plan and the harvest against the price.","Dette må du følge med på: oksygen og CO₂ i karene, strøm per kg, vekst mot plan og slakting mot prisen."
 EXPANSION_AREA_PICKER_PROMPT,Choose a production area,Velg produksjonsområde
 EXPANSION_AREA_PICKER_TIP,Pick an area here or on the map,Velg et område her eller på kartet
 EXPANSION_AUCTION_AGAIN_BUTTON,Apply again,Søk på nytt
@@ -2221,9 +2405,47 @@ HARVESTREPORT_NET_DETAIL,Gross %s · harvest cost %s,Brutto %s · slaktekost %s
 HARVESTREPORT_ONE_DAY,Slaughtered %s,Slaktet %s
 HARVESTREPORT_OVERLINE,HARVEST REPORT,SLAKTERAPPORT
 HARVESTREPORT_ROW_PENALTY,Forced-harvest price,Tvangsslaktpris
+LAND_CONSTRAINT_CO2,CO₂,CO₂
+LAND_CONSTRAINT_DENSITY,Density,Tetthet
+LAND_CONSTRAINT_O2,Oxygen,Oksygen
+LAND_CONSTRAINT_TAN,Ammonia,Ammoniakk
+LAND_CONSTRAINT_TEMPERATURE,Temperature,Temperatur
+LAND_LEVER_CONSULTANCY,External consultants,Eksterne konsulenter
+LAND_LEVER_CYCLES,Completed production cycles,Fullførte produksjonssykluser
+LAND_LEVER_DRIFTSLEDER,Operations manager,Driftsleder
+LAND_LEVER_EARLY_HIRING,Staff hired before the first fish,Mannskap ansatt før første utsett
+LAND_LEVER_RESEARCH,Research: land-based farming,Forskning: landbasert oppdrett
+LAND_LEVER_TRAINING,Training programme,Opplæringsprogram
+LAND_PRESET_BALANSERT,Balanced,Balansert
+LAND_PRESET_HOY_TETTHET,High density,Høy tetthet
+LAND_PRESET_SPARSOM,Frugal,Sparsom
+LAND_REASON_ALREADY_PLANNED,The tank is already in a harvest plan,Karet er allerede med i en slakteplan
+LAND_REASON_BELOW_MIN_WEIGHT,The fish are too small to leave the tank,Fisken er for liten til å forlate karet
+LAND_REASON_MAB_EXCEEDED,The fish would put the sea site over its allowed biomass,Fisken ville gitt lokaliteten mer enn tillatt biomasse
+LAND_REASON_NO_RIVER_INTAKE,The pad has no river intake,Tomten har ikke elveinntak
+LAND_REASON_NO_SLOT,The slaughter hall has no room that week,Slakteriet har ikke plass den uken
+LAND_REASON_NO_WELLBOAT_SLOT,No wellboat can take this transfer,Ingen brønnbåt kan ta denne flyttingen
+LAND_REASON_OFFSHORE_UNIT,An offshore farm takes its smolt through its own board,Et havanlegg får smolt via sin egen tavle
+LAND_REASON_SITE_NOT_FOUND,No such sea site,Lokaliteten finnes ikke
+LAND_REASON_UTIL_CAP,The plant's competence cannot run more yet,Anlegget har ikke kompetanse til å drive mer ennå
+LAND_REASON_WRONG_SITE_KIND,Not possible at this kind of land site,Ikke mulig på denne typen landanlegg
+LAND_SHORTFALL_CO2,CO₂ in the tank,CO₂ i karet
+LAND_SHORTFALL_DENSITY,Stocking density,Tettheten
+LAND_SHORTFALL_FEED_PLAN,The feeding plan,Fôringsplanen
+LAND_SHORTFALL_GILL_HEALTH,Gill health (ammonia and oxygen),Gjellehelse (ammoniakk og oksygen)
+LAND_SHORTFALL_TEMPERATURE,Water temperature,Vanntemperaturen
+LAND_TIER_LARGE,Large smolt,Storsmolt
+LAND_TIER_STANDARD,Standard smolt,Standard smolt
+LAND_TIER_SUPER_SMOLT,SuperSmolt,Supersmolt
 LEDGER_HARVEST_COST,Harvest and transport,Slakting og transport
+LEDGER_LAND_COMPETENCE,Land farm competence,Kompetanse på landanlegg
+LEDGER_LAND_INSURANCE,Land farm insurance,Forsikring på landanlegg
+LEDGER_LAND_MAINTENANCE,Land farm maintenance,Vedlikehold på landanlegg
+LEDGER_LAND_OTHER,Land farm other costs,Andre kostnader på landanlegg
 LEDGER_OVERDRAFT_INTEREST,Overdraft interest,Renter på overtrekk
+LEDGER_POST_SMOLT_SALES,Post-smolt sales,Salg av postsmolt
 LEDGER_RESCUE_LOAN_FEE,Rescue loan fee,Gebyr for redningslån
+LEDGER_TRANSFERS,Fish transfers,Flytting av fisk
 UI_AIFEED_PLAN_ALL_STANDARD,"All %d sites: full appetite, standard feed.","Alle %d lokaliteter: full appetitt, standardfôr."
 UI_AIFEED_PLAN_MOVED,"Feed type and ration are chosen per site, in its feeding plan.","Fôrtype og fôrmengde velges per lokalitet, i fôringsplanen."
 UI_AIFEED_PLAN_NO_SITES,No sea sites yet.,Ingen sjølokaliteter ennå.
@@ -2376,187 +2598,3 @@ ZONE_PO10_SENJA,Senja,Senja
 ZONE_PO11_SKJERVOY,Skjervøy,Skjervøy
 ZONE_PO12_HASVIK,Hasvik,Hasvik
 ZONE_PO13_LEBESBY,Lebesby,Lebesby
-BUILD_AXIS_BUILD_DAYS,Time to a working unit,Tid til drift
-BUILD_AXIS_CAPACITY_T_YEAR,Capacity per unit,Kapasitet per enhet
-BUILD_AXIS_CAPEX_NOK_PER_T_YEAR,Capacity cost incl. licence,Kapasitetskostnad inkl. lisens
-BUILD_AXIS_ENERGY_KWH_PER_KG,Power per kg,Strøm per kg
-BUILD_AXIS_EXTERNAL_LICE_FACTOR,Lice from outside,Lus utenfra
-BUILD_AXIS_OPEX_NOK_PER_KG_HOG,Farming cost per kg HOG,Driftskostnad per kg HOG
-BUILD_AXIS_SURVIVAL,Survival per cycle,Overlevelse per syklus
-BUILD_COMPARE_HEADER,Compare,Sammenlign
-BUILD_COMPARE_NOTE,Industry figures from the sources (hover a number). In brackets: the bad case. The game's own figures arrive once the farms run.,Bransjetall fra kildene (hold musen over et tall). I parentes: dårlig tilfelle. Spillets egne tall kommer når anleggene går.
-BUILD_COMPARE_REFERENCE,(for comparison),(til sammenligning)
-BUILD_CONFIRM_APPLY,Apply for permits (%d cases),Søk tillatelser (%d saker)
-BUILD_CONFIRM_BUILD_LAND,Start construction (%s),Start byggingen (%s)
-BUILD_CONFIRM_BUILD_SEA,Sign the contract (first payment %s),Kontraher (første betaling %s)
-BUILD_CONFIRM_GENERIC,Confirm,Bekreft
-BUILD_CONSORTIUM_TOGGLE,Consortium (%s equity),Konsortium (%s egenkapital)
-BUILD_CONTRACT_TIP_MANAGED,You manage the build and carry the overrun.,Du styrer byggingen selv og bærer overskridelsen.
-BUILD_CONTRACT_TIP_TURNKEY,"Fixed price with a premium: no overrun, though delays can happen.","Fastpris med påslag: ingen overskridelse, men forsinkelser kan komme."
-BUILD_DIAG_CAPACITY,MTB in PO %d: %s in use,MTB i PO %d: %s i bruk
-BUILD_DIAG_CAPITAL,capital: %s in cash against %s for the smallest farm on land or at sea,kapital: %s i kassen mot %s for minste anlegg på land eller til havs
-BUILD_DIAG_LICE,lice in PO %d (%s traffic light),lus i PO %d (%s trafikklys)
-BUILD_DIAG_LIGHT_0,green,grønt
-BUILD_DIAG_LIGHT_1,yellow,gult
-BUILD_DIAG_LIGHT_2,red,rødt
-BUILD_DIAG_LINE,Your bottleneck: %s → %s,Din flaskehals: %s → %s
-BUILD_DIAG_OXYGEN,"the water: %s of deaths from low oxygen, algae and jellyfish","vannet: %s av dødeligheten fra lavt oksygen, alger og maneter"
-BUILD_DIAG_RELIEF_BOTH,Land or Offshore removes it,Land eller Hav fjerner den
-BUILD_DIAG_RELIEF_CAPITAL,a consortium offshore or a post-smolt module lowers the entry,konsortium i Hav eller en postsmoltmodul senker inngangen
-BUILD_DIAG_RELIEF_HAV,Offshore removes it,Hav fjerner den
-BUILD_DIAG_RELIEF_LAND,Land removes it,Land fjerner den
-BUILD_DIAG_TEMPERATURE,sea temperature in PO %d: %s °C in the warmest month (best growth at %s °C),sjøtemperatur i PO %d: %s °C i varmeste måned (vekst best ved %s °C)
-BUILD_DIAG_THEN,Then: %s,Deretter: %s
-BUILD_DIAG_UNKNOWN,no clear bottleneck,ingen klar flaskehals
-BUILD_DONE_LAND_BODY,The first tanks take fish %s.,De første karene tar fisk %s.
-BUILD_DONE_LAND_TITLE,Construction on %s has started,Byggingen på %s har startet
-BUILD_DONE_PERMITS_BODY,%d cases are being decided; risk of at least one refusal %s. The last is decided %s.,%d saker er til behandling; risiko for minst ett avslag %s. Den siste avgjøres %s.
-BUILD_DONE_PERMITS_TITLE,The applications for %s are filed,Søknadene for %s er sendt
-BUILD_DONE_SEA_BODY,First stocking at the earliest %s. Start the tow when the weather window holds.,Første utsett tidligst %s. Start slepet når værvinduet holder.
-BUILD_DONE_SEA_TITLE,The offshore unit for %s is contracted,Havmerden for %s er kontrahert
-BUILD_DONE_VIEW_HAV,Go to the offshore units,Til havmerdene
-BUILD_DONE_VIEW_LAND,Go to the land farms,Til landanleggene
-BUILD_FAMILY_CHOOSE,Choose %s,Velg %s
-BUILD_FAMILY_CHOSEN,Chosen,Valgt
-BUILD_FAMILY_LIMITS_HAV,"Limited by weather windows, logistics, crew and alarm load.","Begrenses av værvinduer, logistikk, mannskap og alarmlast."
-BUILD_FAMILY_LIMITS_LAND,"Limited by capital, pumps, power, oxygen and competence.","Begrenses av kapital, pumper, strøm, oksygen og kompetanse."
-BUILD_FAMILY_LIMITS_SJO,"Limited by lice, temperature and oxygen.","Begrenses av lus, temperatur og oksygen."
-BUILD_FAMILY_LOCKED_ALL,Locked,Låst
-BUILD_FAMILY_OPEN_ALL,Every type open,Alle typer åpne
-BUILD_FAMILY_OPEN_SOME,%d of %d types open,%d av %d typer åpne
-BUILD_FAMILY_PAYS_HAV,"You pay for capacity with steel and vessels, plus free development licences.","Kapasitet kjøpes med stål og fartøy, og gratis utviklingstillatelser."
-BUILD_FAMILY_PAYS_LAND,You pay for capacity with concrete and kilowatt-hours.,Kapasitet kjøpes med betong og kilowattimer.
-BUILD_FAMILY_PAYS_SJO,You pay for capacity with licences at auction.,Kapasitet kjøpes med lisenser på auksjon.
-BUILD_GATES_HEADER,What it takes,Dette må på plass
-BUILD_GATE_DEVELOPMENTLICENCE,Development licence awarded,Utviklingstillatelse tildelt
-BUILD_GATE_ESCAPEFREEDAYS,%s months without an escape,%s mnd uten rømming
-BUILD_GATE_FIRSTHARVEST,Complete your first sea harvest,Fullfør første slakt i sjø
-BUILD_GATE_FUNDS,Funding,Finansiering
-BUILD_GATE_FUNDS_HAV,Funding your share in a consortium,Finansiering av egen andel i konsortium
-BUILD_GATE_OPERATINGPOSTSMOLTMODULE,A post-smolt module in operation,En postsmoltmodul i drift
-BUILD_GATE_OWNUNITCOMPLETEDCYCLE,Complete a cycle with %s,Fullfør en syklus med %s
-BUILD_GATE_RESEARCH,Research: %s,Forsk: %s
-BUILD_GATE_RESEARCH_UNKNOWN,a research project,et forskningsprosjekt
-BUILD_GATE_START,Open from the start,Åpen fra start
-BUILD_GATE_WAIVED_DEVELOPMENTLICENCE,The development round has not opened yet: you may build without one.,Utviklingsrunden er ikke åpnet ennå: du kan bygge uten.
-BUILD_GATE_WAIVED_ZONEDPAD,Applied for with the permits of the pad you choose.,Søkes sammen med tillatelsene for tomten du velger.
-BUILD_GATE_ZONEDPAD,A zoned pad,En regulert tomt
-BUILD_HINT_HAV,Construction starts with the yard contract; the rest is paid phase by phase.,Byggingen starter med verftskontrakten; resten betales fase for fase.
-BUILD_HINT_LAND,The application costs only the fees. Construction starts once the permits are granted.,Søknaden koster bare gebyrene. Byggingen starter når tillatelsene er gitt.
-BUILD_KPI_CAPACITY_COST,Capacity cost,Kapasitetskostnad
-BUILD_KPI_CAPACITY_NOTE,"Per tonne HOG a year, %s t a year","Per tonn HOG i året, %s t i året"
-BUILD_KPI_CAPACITY_NOTE_LICENCE,"Per tonne HOG a year, %s t a year, with licences for %s","Per tonn HOG i året, %s t i året, med lisenser for %s"
-BUILD_KPI_CAPEX,Capex (your share),Investering (din andel)
-BUILD_KPI_CAPEX_NOTE,"Overrun: median %s, bad case %s","Overskridelse: median %s, dårlig %s"
-BUILD_KPI_FARMING_COST,Farming cost,Driftskostnad
-BUILD_KPI_FARMING_NOTE,"Per kg HOG, industry figure","Per kg HOG, bransjetall"
-BUILD_KPI_FIRST_HARVEST,First harvest,Første slakt
-BUILD_KPI_FIRST_HARVEST_NOW,Construction starts now,Byggingen starter nå
-BUILD_KPI_FIRST_HARVEST_PERMITS,After about %s months of permits,Etter cirka %s mnd med tillatelser
-BUILD_KPI_PAYBACK,Paid back,Tilbakebetalt
-BUILD_KPI_PAYBACK_NEVER,Not at today's price,Ikke ved dagens pris
-BUILD_KPI_PAYBACK_NOTE,Operating margin %s a year at full output,Driftsmargin %s i året ved full drift
-BUILD_KPI_PAYBACK_NO_MARGIN_HAV,The price does not cover the farming cost; the value is in the licences,Prisen dekker ikke driftskostnaden; verdien ligger i lisensene
-BUILD_KPI_PAYBACK_NO_MARGIN_LAND,"The price does not cover the farming cost, or the module supplies your own pens","Prisen dekker ikke driftskostnaden, eller modulen leverer fisk til egne merder"
-BUILD_KPI_PRICE,Salmon price now,Laksepris nå
-BUILD_KPI_PRICE_NOTE,Weekly mean per kg HOG,Ukesnitt per kg HOG
-BUILD_NEW_FARM,New farm on land or at sea,Nytt anlegg på land eller til havs
-BUILD_NEW_FARM_TIP,"Choose the farm type, the variant and the site, and see what it costs before you decide.","Velg anleggstype, variant og tomt, og se hva det koster før du bestemmer deg."
-BUILD_NOTE_NO_PUBLISHED_FIGURE,No published figure,Ingen publiserte tall
-BUILD_OPTION_HFS_LOT,Full lot,Fullt trinn
-BUILD_OPTION_HFS_PILOT_LOT,Pilot lot,Pilottrinn
-BUILD_OPTION_SIZE,Size,Størrelse
-BUILD_PAYMENTS_TITLE,Payment schedule by phase,Betalingsplan per fase
-BUILD_PAY_AMOUNT,Payment,Betaling
-BUILD_PAY_OVERRUN,Overrun p50–p90,Overskridelse p50–p90
-BUILD_PAY_PHASE,Phase,Fase
-BUILD_PAY_STARTS,Starts,Starter
-BUILD_PERMITS_DECIDED_ON,Decided %s,Avgjøres %s
-BUILD_PERMITS_DONE,Done,Klar
-BUILD_PERMITS_DRIVERS,Refusal risk: %s,Avslagsrisiko: %s
-BUILD_PERMITS_GRID_OK,"Power: the plant needs %s MW, the pad has %s MW.","Strøm: anlegget trenger %s MW, tomten har %s MW."
-BUILD_PERMITS_GRID_SHORT,"Power: the plant needs %s MW, the pad has only %s MW. A grid project is needed before construction.","Strøm: anlegget trenger %s MW, tomten har bare %s MW. Et nettprosjekt trengs før bygging."
-BUILD_PERMITS_PACKAGE,Risk of at least one refusal: %s,Risiko for minst ett avslag: %s
-BUILD_PERMITS_SEA_WORKS_SEASON,Sea works never run in April–June.,Tiltak i sjø gjøres aldri i april–juni.
-BUILD_PERMITS_TITLE,Permits,Tillatelser
-BUILD_PERMITS_WINDOW,%s–%s months · refusal %s,%s–%s mnd · avslag %s
-BUILD_PICK_FAMILY,Choose a farm type,Velg anleggstype
-BUILD_PICK_PLOT,Choose a site,Velg en tomt
-BUILD_PICK_VARIANT,Choose an open variant,Velg en åpen variant
-BUILD_PLAN_HAV,Plan an offshore unit,Planlegg havmerd
-BUILD_PLAN_HAV_TIP,"Opens the build guide on the map: the site, the payments, the cash and the licences.","Åpner byggeveiviseren på kartet: lokalitet, betalinger, kontantstrøm og lisenser."
-BUILD_PLAN_LAND,Plan a land farm,Planlegg landanlegg
-BUILD_PLAN_LAND_TIP,"Opens the build guide on the map: permits, the construction plan and the cash flow.","Åpner byggeveiviseren på kartet: tillatelser, byggeplan og kontantstrøm."
-BUILD_PLOT_BLASTING,Blasting,Sprengning
-BUILD_PLOT_DEPTH,Water depth,Vanndybde
-BUILD_PLOT_DISTANCE,Distance,Avstand
-BUILD_PLOT_EXPOSURE,Exposure,Eksponering
-BUILD_PLOT_EXPOSURE_OPENOCEAN,open ocean,havområde
-BUILD_PLOT_EXPOSURE_OUTERCOAST,outer coast,ytre kyst
-BUILD_PLOT_EXPOSURE_OUTERCOASTEXPOSED,exposed coast,havkanten
-BUILD_PLOT_EXPOSURE_SHELTERED,sheltered,skjermet
-BUILD_PLOT_GRID,Grid,Strømnett
-BUILD_PLOT_GRID_VALUE,"%s MW, %d feed(s)","%s MW, %d tilførsel(er)"
-BUILD_PLOT_HEADER,Site,Tomt
-BUILD_PLOT_HELD,The plot is taken,Tomten er tatt
-BUILD_PLOT_HS100,100-year wave,Hundreårsbølge
-BUILD_PLOT_INTAKE,Deep intake,Dypvannsinntak
-BUILD_PLOT_LICE,Lice from outside,Lus utenfra
-BUILD_PLOT_PICK,Choose a site: the farm shows as a ghost on it. That costs nothing.,Velg en tomt: anlegget vises som et spøkelse på den. Det koster ingenting.
-BUILD_PLOT_PRE_ZONED,already zoned,allerede regulert
-BUILD_PLOT_PUMPS,Pumps per lot,Pumper per trinn
-BUILD_PLOT_ROOM,Room,Plass
-BUILD_PLOT_ROOM_VALUE,"%d lots, %d post-smolt modules","%d trinn, %d postsmoltmoduler"
-BUILD_PLOT_SEA,Waves (mean),Bølger (snitt)
-BUILD_PLOT_SEA_VALUE,"%s m in January, %s m in July","%s m i januar, %s m i juli"
-BUILD_PLOT_SENSITIVITY,Nature sensitivity,Natursårbarhet
-BUILD_PLOT_SIZE,Pad,Tomtestørrelse
-BUILD_PLOT_STATE_HELD,taken,tatt
-BUILD_PLOT_STATE_UNZONED,needs zoning,må reguleres
-BUILD_PLOT_STATE_ZONED,zoned,regulert
-BUILD_PLOT_ZONING,Zoning,Regulering
-BUILD_PLOT_ZONING_NEEDED,a zoning plan is needed,reguleringsplan trengs
-BUILD_RUNWAY_LEGEND,Solid line: with the payments and the median overrun. Shaded: down to the 90th percentile. Red dashes: the cash runs out. Green marker: first harvest.,Hel linje: med betalingene og median overskridelse. Skravert: ned til 90-persentilen. Rød stiplet: kassen er tom. Grønn markør: første slakt.
-BUILD_RUNWAY_LEGEND_LOAN,Green dashes: with a construction loan of %s at %s over %d years (the bank's free room).,Grønn stiplet: med byggelån på %s til %s rente over %d år (bankens ledige ramme).
-BUILD_RUNWAY_LOW,Lowest %s (bad case %s) in month %d,Lavest %s (dårlig tilfelle %s) i måned %d
-BUILD_RUNWAY_TITLE,Cash over the next 36 months,Kontantbeholdning neste 36 måneder
-BUILD_SEA_CONSORTIUM_LINE,Consortium: you own %s and pay %s; the partner can be bought out at book value × %s.,Konsortium: du eier %s og betaler %s; partneren kan kjøpes ut til bokført verdi × %s.
-BUILD_SEA_LICENCE_LINE,"Development licences: %d × %s t, market value ≈ %s (auction ≈ %s a tonne); conversion fee ≈ %s; no resource rent before conversion.","Utviklingstillatelser: %d × %s t, markedsverdi ≈ %s (auksjon ≈ %s per tonn); konverteringsgebyr ≈ %s; ingen grunnrente før konvertering."
-BUILD_SEA_PHASE_COMMISSIONING,Commissioning,Igangkjøring
-BUILD_SEA_PHASE_HULL,Hull,Skrog
-BUILD_SEA_PHASE_MOORING,Mooring,Fortøyning
-BUILD_SEA_PHASE_TOW,Tow to the site,Slep til lokaliteten
-BUILD_SEA_PHASE_VOYAGE,Voyage,Overfart
-BUILD_SEA_PHASE_YARD_CONTRACT,Yard contract,Verftskontrakt
-BUILD_SEA_PICK_ZONE,Choose a zone on the map and press “Build locality”.,Velg en sone på kartet og trykk «Bygg lokalitet».
-BUILD_SEA_REASON_ENGINE_NOT_READY,The game is not ready,Spillet er ikke klart
-BUILD_SEA_REASON_EXPOSURE_EXCEEDS_DESIGN,The waves here are bigger than the unit is built for,Bølgene her er større enn enheten er bygget for
-BUILD_SEA_REASON_INSUFFICIENT_FUNDS,Not enough cash,Ikke nok penger
-BUILD_SEA_REASON_INVALID_TYPE,Unknown unit type,Ukjent enhetstype
-BUILD_SEA_REASON_NOT_AN_OFFSHORE_SLOT,This is no offshore site,Dette er ingen havlokalitet
-BUILD_SEA_REASON_NOT_UNLOCKED,This farm type is still locked,Denne anleggstypen er fortsatt låst
-BUILD_SEA_REASON_OUT_OF_RANGE,A value is out of range,En verdi er utenfor gyldig område
-BUILD_SEA_REASON_PLOT_NOT_FOUND,The site does not exist,Lokaliteten finnes ikke
-BUILD_SEA_REASON_PLOT_TAKEN,The site is taken,Lokaliteten er tatt
-BUILD_SEA_TEETHING_LINE,"Teething: %d–%d unknown defects, budget %s; a shakedown of up to %d days reveals them.","Barnesykdommer: %d–%d ukjente feil, budsjett %s; prøvedrift inntil %d dager avslører dem."
-BUILD_SEA_TOW_LINE,First stocking at the earliest %s. You start the tow yourself when the weather window holds.,Første utsett tidligst %s. Slepet starter du selv når værvinduet holder.
-BUILD_SOURCES,Source: %s,Kilde: %s
-BUILD_SOURCE_CODE,the game's own figures,spillets egne tall
-BUILD_SOURCE_GB,game balance,spillbalanse
-BUILD_SUBTITLE_HAV,Offshore farming in exposed water beyond the fjord.,Havbruk i eksponert farvann utenfor fjorden.
-BUILD_SUBTITLE_LAND,"Land farms on blasted rock by the shore: apply for permits, then build.","Landanlegg på sprengt fjell ved kysten: søk tillatelser, så bygg."
-BUILD_SUBTITLE_PICK_FAMILY,"Choose the farm type first, then the variant and the site.","Velg anleggstype først, så variant og tomt."
-BUILD_SUBTITLE_SEA_PICK_ZONE,Open pens are built in a zone on the map.,Åpne merder bygges i en sone på kartet.
-BUILD_TITLE,Build a new farm,Bygg nytt anlegg
-BUILD_TITLE_FAMILY,Build a new farm: %s,Bygg nytt anlegg: %s
-BUILD_VARIANT_CHOOSE,Choose,Velg
-BUILD_VARIANT_CHOSEN,Chosen,Valgt
-BUILD_VARIANT_HEADER,Variant,Variant
-BUILD_VARIANT_LOCKED,Locked,Låst
-BUILD_VARIANT_LOCKED_TIP,Locked: see what it takes below,Låst: se hva som må på plass under
-BUILD_VARIANT_NEEDS_FUNDS,Needs funds,Mangler penger
-BUILD_VARIANT_OPEN,Open,Åpen
-BUILD_VARIANT_STAGE3,Later stage,Senere trinn
-BUILD_VARIANT_UPGRADE_ON_PEN,"Upgraded on the pen card, not here","Oppgraderes på merdkortet, ikke her"
-BUILD_WATCH_HAV,"What to watch: weather windows, silo days, the crew clock and the alarm load.","Dette må du følge med på: værvinduer, silodager, mannskapsklokken og alarmlasten."
-BUILD_WATCH_LAND,"What to watch: oxygen and CO₂ in the tanks, power per kg, growth against the plan and the harvest against the price.","Dette må du følge med på: oksygen og CO₂ i karene, strøm per kg, vekst mot plan og slakting mot prisen."

@@ -81,6 +81,47 @@ namespace LakskongenSim.Farm.Land
         /// </summary>
         public double AppetiteFactor { get; set; } = 1.0;
 
+        // ─── The fish in the tank (F2-13, F2-15; reset when the tank empties) ───
+
+        /// <summary>The strain the tank's fish were stocked as ("" when empty).</summary>
+        public string StrainId { get; set; } = "";
+
+        /// <summary>Day the tank's fish were stocked (-1 when empty).</summary>
+        public int StockedDay { get; set; } = -1;
+
+        /// <summary>
+        /// Days in a row the fish have stood in at least the SuperSmolt salinity
+        /// (F2-13: the seawater record a SuperSmolt needs).
+        /// </summary>
+        public int SeawaterDays { get; set; }
+
+        /// <summary>Days in a row the fish have stood under the desmoltification salinity (F2-13).</summary>
+        public int LowSalinityDays { get; set; }
+
+        /// <summary>The fish's plan (F2-15: the growth they should make, and how far behind they are); null when empty.</summary>
+        public LandCohortPlan? Plan { get; set; }
+
+        /// <summary>Forget the fish (the tank emptied): their record and plan go with them.</summary>
+        public void ClearFishRecord()
+        {
+            StrainId = "";
+            StockedDay = -1;
+            SeawaterDays = 0;
+            LowSalinityDays = 0;
+            Plan = null;
+        }
+
+        /// <summary>Take <paramref name="other"/>'s fish record (grading moves the fish with their record and plan).</summary>
+        public void TakeFishRecordOf(LandTank other)
+        {
+            if (other == null) throw new ArgumentNullException(nameof(other));
+            StrainId = other.StrainId;
+            StockedDay = other.StockedDay;
+            SeawaterDays = other.SeawaterDays;
+            LowSalinityDays = other.LowSalinityDays;
+            Plan = other.Plan?.Clone();
+        }
+
         /// <summary>Water volume (m³): the pen's.</summary>
         [System.Text.Json.Serialization.JsonIgnore] public double VolumeM3 => Pen.VolumeM3;
 

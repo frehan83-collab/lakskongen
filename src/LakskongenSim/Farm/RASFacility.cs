@@ -13,7 +13,7 @@ namespace LakskongenSim.Farm
     /// - Higher FCR (~1.3 vs 1.15 open net) due to lower water flow
     /// - Full environmental control: temperature, oxygen, pH, CO2
     /// </summary>
-    public class RASFacility
+    public partial class RASFacility
     {
         // ─── Identity ───
         public string Id { get; init; } = "";

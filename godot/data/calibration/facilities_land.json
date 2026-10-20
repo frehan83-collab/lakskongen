@@ -87,6 +87,31 @@
     "appetiteLimitMgL": 20,
     "co2PerO2": 1.375
   },
+  "competence": {
+    "consultancy": 0.1,
+    "consultancyDays": 365,
+    "consultancyNok": 8000000,
+    "driftsleder": 0.1,
+    "driftslederNokPerYear": 2500000,
+    "earlyHiring": 0.1,
+    "earlyHiringLeadDays": 180,
+    "growthAtStart": 0.79,
+    "perCycle": 0.2,
+    "research": 0.1,
+    "start": 0.4,
+    "trainingMax": 0.15,
+    "trainingNok": 3000000,
+    "trainingPerStep": 0.05,
+    "trainingStepDays": 182,
+    "utilisationCapAtStart": 0.55
+  },
+  "costs": {
+    "equipmentInsuranceShareOfCapexPerYear": 0.0015,
+    "fishInsuranceNokPerKgFeed": 0.86,
+    "maintenanceShareOfCapexPerYear": 0.0088,
+    "otherNokPerTonneNameplateYear": 3617,
+    "sludgeNokPerKgFeed": 1.57
+  },
   "density": {
     "growthAtReference": 0.85,
     "kneeKgM3": 50,
@@ -108,12 +133,21 @@
     "seawaterDensityKgM3": 1027,
     "staticLiftM": 13
   },
+  "growth": {
+    "feedPlanFcrPenalty": 0.12,
+    "feedPlanPenaltyBelowCompetence": 0.6,
+    "feedPlanPenaltyDays": 60,
+    "harvestPlanWeeks": 26,
+    "shortfallDays": 30,
+    "shortfallShare": 0.85
+  },
   "hfs": {
     "baseKWhPerDay": 6000,
     "biofilterKgTanPerM3Day": 0,
     "biofilterMaturationDays": 30,
     "defaultReuse": 0.65,
     "defaultSetpointC": 12,
+    "fcrFactor": 1,
     "growOutDiameterM": 28,
     "growOutTanks": 12,
     "heatPumpMWe": 8,
@@ -137,6 +171,7 @@
     "biofilterMaturationDays": 30,
     "defaultReuse": 0.65,
     "defaultSetpointC": 12,
+    "fcrFactor": 1,
     "growOutDiameterM": 28,
     "growOutTanks": 4,
     "heatPumpMWe": 3,
@@ -160,8 +195,16 @@
     "maxReuse": 0.995,
     "no3NMgL": 0.1
   },
+  "maturation": {
+    "allFemaleFactor": 0.1,
+    "maleShare": 0.5,
+    "maxMaleShare": 0.8,
+    "ratePerDegreeDay": 0.004,
+    "shortDayFactor": 0.3,
+    "thresholdC": 12
+  },
   "operations": {
-    "staffCostNokPerFteYear": 650000
+    "staffCostNokPerFteYear": 1028208
   },
   "oxygen": {
     "injectionEfficiency": 0.7,
@@ -212,6 +255,7 @@
     "biofilterMaturationDays": 60,
     "defaultReuse": 0.97,
     "defaultSetpointC": 12,
+    "fcrFactor": 1,
     "growOutDiameterM": 16,
     "growOutTanks": 2,
     "heatPumpMWe": 0.3,
@@ -233,7 +277,8 @@
     "biologicalFcrAt2Kg": 1,
     "cycleSurvival": 0.97,
     "fallowDays": 7,
-    "hogPerLw": 0.83
+    "hogPerLw": 0.83,
+    "planGrowthMultiplier": 0.92
   },
   "ras": {
     "baseKWhPerDay": 8000,
@@ -241,6 +286,7 @@
     "biofilterMaturationDays": 60,
     "defaultReuse": 0.97,
     "defaultSetpointC": 12,
+    "fcrFactor": 1.15,
     "growOutDiameterM": 20,
     "growOutTanks": 16,
     "heatPumpMWe": 1.5,
@@ -258,11 +304,57 @@
     "treatKWhPerM3Reused": 0.05,
     "waterDepthM": 8
   },
+  "smolt": {
+    "desmoltDays": 60,
+    "desmoltSalinityPpt": 12,
+    "desmoltTransferMortalityMultiplier": 2,
+    "largeMinWeightKg": 0.2,
+    "maxTransferDays": 3,
+    "minBlendSalinityPpt": 0,
+    "minTransferWeightKg": 0.1,
+    "salePriceNokPerKgLive": 90,
+    "seawaterRecordDays": 30,
+    "seawaterSalinityPpt": 35,
+    "sulphateReferenceSalinityPpt": 35,
+    "superSmoltMinSalinityPpt": 25,
+    "superSmoltMinWeightKg": 0.4,
+    "tierPremiumLarge": 1.6,
+    "tierPremiumSuperSmolt": 2.5,
+    "transferHireNokPerDay": 150000,
+    "transferTonnesPerDay": 450
+  },
+  "status": {
+    "doCriticalMgL": 5,
+    "doWarnMgL": 7,
+    "tanCriticalFactor": 2,
+    "temperatureCriticalC": 2.5,
+    "temperatureWarnC": 1
+  },
   "tan": {
     "appetiteLimitMgL": 2,
     "appetiteLossPerMgL": 0.25,
     "kgTanPerKgFeed": 0.03,
     "maturityAtStart": 0.2,
     "passRemovalEfficiency": 0.6
+  },
+  "vannstrategi": {
+    "balansert": {
+      "blendTowardSetpoint": true,
+      "deepIntakeShare": 0.5,
+      "reuse": 0.65,
+      "setpointC": 12.5
+    },
+    "hoyTetthet": {
+      "blendTowardSetpoint": false,
+      "deepIntakeShare": 1,
+      "reuse": 0.8,
+      "setpointC": 13
+    },
+    "sparsom": {
+      "blendTowardSetpoint": false,
+      "deepIntakeShare": 1,
+      "reuse": 0.75,
+      "setpointC": 12
+    }
   }
 }

@@ -73,6 +73,27 @@ namespace LakskongenSim.Calibration
         /// <summary>Running costs of a land site beyond energy and oxygen (F2-12).</summary>
         public LandOperationsCalibration Operations { get; init; } = new();
 
+        /// <summary>The post-smolt bridge: tiers, salinity, desmoltification, transfers, sales and the tier premium (F2-13).</summary>
+        public LandSmoltCalibration Smolt { get; init; } = new();
+
+        /// <summary>Competence, its levers, the utilisation cap and the growth it gives (F2-15).</summary>
+        public LandCompetenceCalibration Competence { get; init; } = new();
+
+        /// <summary>A cohort against its plan, the feed-plan penalty, the harvest planner's reach (F2-15).</summary>
+        public LandGrowthCalibration Growth { get; init; } = new();
+
+        /// <summary>Maintenance, insurance, sludge and the other running costs (F2-15).</summary>
+        public LandCostCalibration Costs { get; init; } = new();
+
+        /// <summary>Early maturation: the index and the maturing share of males (F2-15 projection, F2-16 tick).</summary>
+        public LandMaturationCalibration Maturation { get; init; } = new();
+
+        /// <summary>The three Vannstrategi presets the land board projects (F2-15, spec §6.5).</summary>
+        public LandVannstrategiCalibration Vannstrategi { get; init; } = new();
+
+        /// <summary>The land board's comfort bands, the critical edges (F2-15, spec §6.5).</summary>
+        public LandStatusCalibration Status { get; init; } = new();
+
         /// <summary>The code defaults (the values the draft JSON holds).</summary>
         public static LandCalibration Default { get; } = new();
 
@@ -312,6 +333,17 @@ namespace LakskongenSim.Calibration
         [Source("L:R2")]
         public int Staff { get; init; }
 
+        /// <summary>
+        /// The unit's FCR against the land plan's biological FCR at 2 kg (unit
+        /// ×, F2-15). HFS, pilot and post-smolt 1.0, RAS hall 1.15. Range:
+        /// 0.8-1.5. Source: [L:A3] (Andfjord flow-through, accumulated FCR 1.02)
+        /// and [L:R2] (Salmon Evolution 1.03-1.06 per kg LW) for the flow-through
+        /// units; [L:R7] and [L:S9] (RAS FCR 1.1-1.3 achieved) for the RAS hall.
+        /// </summary>
+        [Range(0.8, 1.5)]
+        [Source("L:A3", "L:R2", "L:R7", "L:S9")]
+        public double FcrFactor { get; init; } = 1.0;
+
         /// <summary>Total tanks in one unit.</summary>
         [JsonIgnore]
         public int TankCount => GrowOutTanks + PreGrowTanks;
@@ -385,6 +417,7 @@ namespace LakskongenSim.Calibration
             PlanHarvestWeightKg = 4.5,
             NameplateTonnesHogPerYear = 4_300.0,
             Staff = 35,
+            FcrFactor = 1.15,
         };
 
         /// <summary>
@@ -830,6 +863,20 @@ namespace LakskongenSim.Calibration
         [Range(0.8, 0.9)]
         [Source("L:R1")]
         public double HogPerLw { get; init; } = 0.83;
+
+        /// <summary>
+        /// The plan's multiplier on the growth law's potential for land fish
+        /// under continuous light (unit ×, F2-15): what a plant at competence 1.0
+        /// grows, the plan the stocking check, the projections and the cohort
+        /// plans run on. 0.92. Range: 0.7-1.1. Game balance: fitted to the plan
+        /// of [L:R1] (Q2 2026: 400 g → 5.2 kg LW in 8-9 months at the 12-14 °C
+        /// rearing target, an implied TGC of 2.8-3.3, research dossier); without
+        /// it the law's continuous-light factor (×1.2) took the plan's fish to
+        /// 5.2 kg in 7.6 months at 13 °C. F2-15 acceptance 1 decides it.
+        /// </summary>
+        [Range(0.7, 1.1)]
+        [GameBalance("fitted to the [L:R1] plan: 400 g -> 5.2 kg LW in 8-9 months at 12-14 degC (implied TGC 2.8-3.3); F2-15 acceptance 1")]
+        public double PlanGrowthMultiplier { get; init; } = 0.92;
     }
 
     #endregion

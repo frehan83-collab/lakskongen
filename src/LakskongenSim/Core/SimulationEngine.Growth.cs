@@ -122,6 +122,8 @@ public partial class SimulationEngine
         {
             var landHolding = HoldingOf(population);
             densityGrowth *= Farm.Land.LandHooks.DensityGrowthMultiplier(this, landHolding, population);
+            // F2-15: a grow-out site's competence (the achieved result at 0.4, the plan at 1.0).
+            densityGrowth *= Farm.Land.LandHooks.CompetenceGrowthMultiplier(this, landHolding, population);
             landFcrAt2Kg = Farm.Land.LandHooks.BiologicalFcrAt2Kg(this, landHolding, population);
         }
 
@@ -162,7 +164,7 @@ public partial class SimulationEngine
         // F2-04: a land tank's (or a non-liable offshore unit's) feed stays out of the rent base.
         if (husbandry.Water.Kind != HoldingKind.SeaPen) AttributePopulationCost(population, fed.CostNOK);
         // F2-12: the land tick runs on the feed the fish ate today (their oxygen, CO2 and ammonia).
-        if (husbandry.Water.Kind == HoldingKind.LandTank) NoteLandFeed(population, eatenKg);
+        if (husbandry.Water.Kind == HoldingKind.LandTank) NoteLandFeed(population, eatenKg, fed.FeedUsedKg, fed.CostNOK);
         // F2-07: an offshore unit's fish eat from its silo.
         if (husbandry.Water.Kind == HoldingKind.Offshore) TakeOffshoreFeed(population, fed.FeedUsedKg);
         return fed;

@@ -109,7 +109,11 @@ public partial class GameBridge : Node
     private static ContractForm LandContract(string id) => id == "turnkey" ? ContractForm.Turnkey : ContractForm.Managed;
 
     private static string LandLabelKey(string reasonKey)
-        => string.IsNullOrEmpty(reasonKey) ? "" : "LAND_REASON_" + reasonKey.ToUpperInvariant();
+        => string.IsNullOrEmpty(reasonKey) ? ""
+            // F2-13: a transfer's destination refuses with S2-01's capacity keys (mtb_*, pen_*, pens_full).
+            : reasonKey.StartsWith("mtb_", System.StringComparison.Ordinal) || reasonKey.StartsWith("pen", System.StringComparison.Ordinal)
+                ? "CAPACITY_REASON_" + reasonKey.ToUpperInvariant()
+                : "LAND_REASON_" + reasonKey.ToUpperInvariant();
 
     private static string[] LandMitigations(Godot.Collections.Array mitigations)
     {
@@ -501,6 +505,535 @@ public partial class GameBridge : Node
     /// <summary>Fit heat recovery to a lot.</summary>
     public Godot.Collections.Dictionary InstallHeatRecovery(string lotId)
         => SimulationEngine?.State == null ? LandNotReady() : LandOutcome(SimulationEngine.InstallHeatRecovery(lotId));
+
+    // F2-13 / F2-15 (wave4/sim-land-2): the land boards' reads and verbs for
+    // F2-32: the board (lots and tanks against their comfort bands with the
+    // binding constraint, the cohorts against their plans), the Vannstrategi
+    // presets with the engine's projection (kWh/kg, growth, maturation risk),
+    // competence and the Oppkjøring with its levers, the feeding plan, the
+    // harvest planner (weeks, the expected price, projected weights and size
+    // grades; quote, plan, cancel), the post-smolt planner (salinity, tiers,
+    // destinations with MTB headroom; transfer, sell) and the site's books.
+    // Thin projections of SimulationEngine.LandBoard.cs, .LandBiology.cs and
+    // .PostSmolt.cs. Statuses travel as "ok"/"warn"/"critical", constraints as
+    // ids with LAND_CONSTRAINT_* keys, tiers as "standard"/"large"/"super_smolt".
+
+    private static string LandLevelId(Farm.Land.LandStatusLevel level) => level switch
+    {
+        Farm.Land.LandStatusLevel.Critical => "critical",
+        Farm.Land.LandStatusLevel.Warn => "warn",
+        _ => "ok",
+    };
+
+    private static string LandTierId(Farm.SmoltQualityTier tier) => tier switch
+    {
+        Farm.SmoltQualityTier.SuperSmolt => "super_smolt",
+        Farm.SmoltQualityTier.Large => "large",
+        _ => "standard",
+    };
+
+    private static string LandConstraintKey(string constraint)
+        => string.IsNullOrEmpty(constraint) ? "" : "LAND_CONSTRAINT_" + constraint.ToUpperInvariant();
+
+    private static System.Collections.Generic.List<string> LandIds(Godot.Collections.Array ids)
+    {
+        var list = new System.Collections.Generic.List<string>();
+        if (ids != null)
+            foreach (var item in ids)
+                list.Add(item.AsString());
+        return list;
+    }
+
+    /// <summary>
+    /// The land board of a site (spec §6.5 "Tankkart"): its lots in the 3D
+    /// layout order, each with its worst stocked tank's status and binding
+    /// constraint (the one click to the worst tank) and its exceptions; each
+    /// tank with its water ring (o2, co2, tan, temperature, density: value, ok
+    /// edge, critical edge, load, level), the binding constraint, its cohort
+    /// against the plan (plan weight, share, shortfall days and driver), the
+    /// tier it would carry to sea and any harvest plan. Keys: "success", "id",
+    /// "name", "kind", "lots" (each: "id", "template", "commissioned", "level",
+    /// "binding", "binding_label_key", "worst_tank_id", "exceptions", "tanks").
+    /// </summary>
+    public Godot.Collections.Dictionary GetLandBoard(string siteId)
+    {
+        var board = SimulationEngine?.LandBoardOf(siteId);
+        if (board == null) return LandResult(CommandResult.Fail(LandSiteReasons.NotFound, $"No land site with tanks '{siteId}'"));
+        var lots = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        foreach (var lot in board.Lots)
+        {
+            var tanks = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+            foreach (var tank in lot.Tanks)
+            {
+                var segments = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+                foreach (var s in tank.Status.Segments)
+                    segments.Add(new Godot.Collections.Dictionary
+                    {
+                        ["key"] = s.Key,
+                        ["label_key"] = LandConstraintKey(s.Key),
+                        ["value"] = s.Value,
+                        ["ok_edge"] = s.OkEdge,
+                        ["critical_edge"] = s.CriticalEdge,
+                        ["load"] = s.Load,
+                        ["level"] = LandLevelId(s.Level),
+                    });
+                tanks.Add(new Godot.Collections.Dictionary
+                {
+                    ["id"] = tank.TankId,
+                    ["number"] = tank.Number,
+                    ["role"] = tank.Role.ToString(),
+                    ["ready"] = tank.Ready,
+                    ["fish_count"] = tank.Fish,
+                    ["mean_weight_kg"] = tank.MeanWeightKg,
+                    ["biomass_kg"] = tank.BiomassKg,
+                    ["density_kg_m3"] = tank.DensityKgM3,
+                    ["level"] = LandLevelId(tank.Status.Level),
+                    ["binding"] = tank.Status.Binding,
+                    ["binding_label_key"] = LandConstraintKey(tank.Status.Binding),
+                    ["load"] = tank.Status.Load,
+                    ["segments"] = segments,
+                    ["plan_weight_kg"] = tank.PlanWeightKg,
+                    ["share_of_plan"] = tank.ShareOfPlan,
+                    ["shortfall_days"] = tank.ShortfallDays,
+                    ["shortfall_driver"] = tank.ShortfallDriver,
+                    ["shortfall_driver_label_key"] = tank.ShortfallDriver == "" ? "" : "LAND_SHORTFALL_" + tank.ShortfallDriver.ToUpperInvariant(),
+                    ["stocked_day"] = tank.StockedDay,
+                    ["days_in_tank"] = tank.DaysInTank,
+                    ["tier"] = LandTierId(tank.Tier),
+                    ["tier_label_key"] = "LAND_TIER_" + LandTierId(tank.Tier).ToUpperInvariant(),
+                    ["seawater_days"] = tank.SeawaterDays,
+                    ["harvest_plan_id"] = tank.HarvestPlanId,
+                });
+            }
+            lots.Add(new Godot.Collections.Dictionary
+            {
+                ["id"] = lot.LotId,
+                ["template"] = LandTemplateId(lot.Template),
+                ["commissioned"] = lot.Commissioned,
+                ["level"] = LandLevelId(lot.Level),
+                ["binding"] = lot.Binding,
+                ["binding_label_key"] = LandConstraintKey(lot.Binding),
+                ["worst_tank_id"] = lot.WorstTankId,
+                ["exceptions"] = lot.Exceptions,
+                ["tanks"] = tanks,
+            });
+        }
+        return new Godot.Collections.Dictionary
+        {
+            ["success"] = true,
+            ["id"] = board.SiteId,
+            ["name"] = board.Name,
+            ["kind"] = board.Kind.ToString(),
+            ["lots"] = lots,
+        };
+    }
+
+    /// <summary>
+    /// The three Vannstrategi presets of a site with the engine's projection
+    /// of each (spec §6.5): "id" ("sparsom", "balansert", "hoy_tetthet"),
+    /// "label_key", "reuse", "deep_intake_share", "blend", "setpoint_c",
+    /// "kwh_per_kg", "energy_nok_per_kg", "growth_tonnes_per_year",
+    /// "production_index", "cycle_days", "mean_tank_c", "lox_per_kg",
+    /// "mean_co2_mgl", "maturation_index", "maturation_risk", "active".
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetVannstrategiPresets(string siteId)
+    {
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        if (SimulationEngine?.State == null) return result;
+        foreach (var p in SimulationEngine.VannstrategiPresetsOf(siteId))
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["id"] = p.Id,
+                ["label_key"] = "LAND_PRESET_" + p.Id.ToUpperInvariant(),
+                ["reuse"] = p.Strategy.Reuse,
+                ["deep_intake_share"] = p.Strategy.DeepIntakeShare,
+                ["blend"] = p.Strategy.BlendTowardSetpoint,
+                ["setpoint_c"] = p.Strategy.SetpointC,
+                ["kwh_per_kg"] = p.KWhPerKg,
+                ["energy_nok_per_kg"] = p.EnergyNokPerKg,
+                ["growth_tonnes_per_year"] = p.GrowthTonnesPerYear,
+                ["production_index"] = p.ProductionIndexKgM3Yr,
+                ["cycle_days"] = p.CycleDays,
+                ["mean_tank_c"] = p.MeanTankC,
+                ["lox_per_kg"] = p.LoxPerKg,
+                ["mean_co2_mgl"] = p.MeanCo2MgL,
+                ["maturation_index"] = p.MaturationIndex,
+                ["maturation_risk"] = p.MaturationRisk,
+                ["active"] = p.Active,
+            });
+        return result;
+    }
+
+    /// <summary>Set a site's Vannstrategi to a preset ("sparsom", "balansert", "hoy_tetthet").</summary>
+    public Godot.Collections.Dictionary ApplyVannstrategiPreset(string siteId, string presetId)
+        => SimulationEngine?.State == null ? LandNotReady() : LandOutcome(SimulationEngine.ApplyVannstrategiPreset(siteId, presetId));
+
+    /// <summary>
+    /// A site's competence and Oppkjøring (spec §3.3, §6.5): "applies" (a
+    /// grow-out site), "competence" and its parts ("start", "research",
+    /// "driftsleder", "training", "consultancy", "early_hiring", "cycles"),
+    /// "utilisation_cap", "growth_against_plan", "growth_multiplier",
+    /// "completed_cycles", "rotation_fish", "harvested_fish", "milestones"
+    /// ("cap", "competence", "reached"), "levers" ("id", "label_key", "gain",
+    /// "one_off_nok", "per_year_nok", "active", "until_day"), "feed_ration_pct",
+    /// "fcr_penalty", "fcr_penalty_until_day", "nameplate_tonnes", "annual_cap_tonnes".
+    /// </summary>
+    public Godot.Collections.Dictionary GetLandCompetence(string siteId)
+    {
+        var view = SimulationEngine?.LandCompetenceViewOf(siteId);
+        if (view == null) return LandResult(CommandResult.Fail(LandSiteReasons.NotFound, $"No land site with tanks '{siteId}'"));
+        var milestones = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        foreach (var m in view.Milestones)
+            milestones.Add(new Godot.Collections.Dictionary { ["cap"] = m.Cap, ["competence"] = m.Competence, ["reached"] = m.Reached });
+        var levers = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        foreach (var l in view.Levers)
+            levers.Add(new Godot.Collections.Dictionary
+            {
+                ["id"] = l.Id,
+                ["label_key"] = "LAND_LEVER_" + l.Id.ToUpperInvariant(),
+                ["gain"] = l.Gain,
+                ["one_off_nok"] = (double)l.OneOffNok,
+                ["per_year_nok"] = (double)l.PerYearNok,
+                ["active"] = l.Active,
+                ["until_day"] = l.UntilDay,
+            });
+        var b = view.Breakdown;
+        return new Godot.Collections.Dictionary
+        {
+            ["success"] = true,
+            ["id"] = view.SiteId,
+            ["applies"] = view.Applies,
+            ["competence"] = b.Total,
+            ["start"] = b.Start,
+            ["research"] = b.Research,
+            ["driftsleder"] = b.Driftsleder,
+            ["training"] = b.Training,
+            ["consultancy"] = b.Consultancy,
+            ["early_hiring"] = b.EarlyHiring,
+            ["cycles"] = b.Cycles,
+            ["utilisation_cap"] = view.UtilisationCap,
+            ["growth_against_plan"] = view.GrowthAgainstPlan,
+            ["growth_multiplier"] = view.GrowthMultiplier,
+            ["completed_cycles"] = view.CompletedCycles,
+            ["rotation_fish"] = view.RotationFish,
+            ["harvested_fish"] = view.HarvestedFish,
+            ["milestones"] = milestones,
+            ["levers"] = levers,
+            ["feed_ration_pct"] = view.FeedRationFraction * 100.0,
+            ["fcr_penalty"] = view.FcrPenalty,
+            ["fcr_penalty_until_day"] = view.FcrPenaltyUntilDay,
+            ["nameplate_tonnes"] = view.NameplateTonnes,
+            ["annual_cap_tonnes"] = view.AnnualCapTonnes,
+        };
+    }
+
+    /// <summary>Hire an operations manager (driftsleder) at a land grow-out site.</summary>
+    public Godot.Collections.Dictionary HireDriftsleder(string siteId)
+        => SimulationEngine?.State == null ? LandNotReady() : LandOutcome(SimulationEngine.HireDriftsleder(siteId));
+
+    /// <summary>Start a land grow-out site's training programme.</summary>
+    public Godot.Collections.Dictionary StartTrainingProgramme(string siteId)
+        => SimulationEngine?.State == null ? LandNotReady() : LandOutcome(SimulationEngine.StartTrainingProgramme(siteId));
+
+    /// <summary>Hire an external consultancy at a land grow-out site (12 months).</summary>
+    public Godot.Collections.Dictionary HireConsultancy(string siteId)
+        => SimulationEngine?.State == null ? LandNotReady() : LandOutcome(SimulationEngine.HireConsultancy(siteId));
+
+    /// <summary>Hire a land grow-out site's operating staff before its first fish.</summary>
+    public Godot.Collections.Dictionary HireLandStaffEarly(string siteId)
+        => SimulationEngine?.State == null ? LandNotReady() : LandOutcome(SimulationEngine.HireLandStaffEarly(siteId));
+
+    /// <summary>Set a land site's feeding plan: the share of the appetite fed (50-100 %).</summary>
+    public Godot.Collections.Dictionary SetLandFeedPlan(string siteId, double rationPct)
+        => SimulationEngine?.State == null ? LandNotReady() : LandOutcome(SimulationEngine.SetLandFeedPlan(siteId, rationPct));
+
+    private static Godot.Collections.Dictionary LandHarvestPlanDictionary(Farm.Land.LandHarvestPlan p)
+    {
+        var tanks = new Godot.Collections.Array<string>();
+        foreach (var id in p.TankIds) tanks.Add(id);
+        return new Godot.Collections.Dictionary
+        {
+            ["id"] = p.Id,
+            ["tank_ids"] = tanks,
+            ["week_start_day"] = p.WeekStartDay,
+            ["iso_week"] = p.IsoWeek,
+            ["planned_on_day"] = p.PlannedOnDay,
+            ["status"] = p.Status.ToString(),
+            ["order_id"] = p.OrderId,
+            ["ordered_day"] = p.OrderedDay,
+            ["failure_key"] = p.FailureKey,
+        };
+    }
+
+    /// <summary>
+    /// A site's harvest planner (spec §6.5): "weeks" ("week_start_day",
+    /// "iso_week", "expected_price_nok": the seasonal curve), "tanks"
+    /// ("tank_id", "fish_count", "mean_weight_kg", "weight_by_week_kg",
+    /// "size_factor_by_week", "harvest_plan_id"), "plans", "hall_tonnes_per_day".
+    /// </summary>
+    public Godot.Collections.Dictionary GetLandHarvestPlanner(string siteId)
+    {
+        var view = SimulationEngine?.LandHarvestPlannerOf(siteId);
+        if (view == null) return LandResult(CommandResult.Fail(LandSiteReasons.NotFound, $"No land site with tanks '{siteId}'"));
+        var weeks = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        foreach (var w in view.Weeks)
+            weeks.Add(new Godot.Collections.Dictionary
+            {
+                ["week_start_day"] = w.WeekStartDay,
+                ["iso_week"] = w.IsoWeek,
+                ["expected_price_nok"] = (double)w.ExpectedPriceNok,
+            });
+        var tanks = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        foreach (var t in view.Tanks)
+        {
+            var byWeek = new Godot.Collections.Array<double>();
+            foreach (var kg in t.WeightByWeekKg) byWeek.Add(kg);
+            var factors = new Godot.Collections.Array<double>();
+            foreach (var f in t.SizeFactorByWeek) factors.Add(f);
+            tanks.Add(new Godot.Collections.Dictionary
+            {
+                ["tank_id"] = t.TankId,
+                ["fish_count"] = t.Fish,
+                ["mean_weight_kg"] = t.MeanWeightKg,
+                ["weight_by_week_kg"] = byWeek,
+                ["size_factor_by_week"] = factors,
+                ["harvest_plan_id"] = t.HarvestPlanId,
+            });
+        }
+        var plans = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        foreach (var p in view.Plans) plans.Add(LandHarvestPlanDictionary(p));
+        return new Godot.Collections.Dictionary
+        {
+            ["success"] = true,
+            ["id"] = view.SiteId,
+            ["weeks"] = weeks,
+            ["tanks"] = tanks,
+            ["plans"] = plans,
+            ["hall_tonnes_per_day"] = view.HallTonnesPerDay,
+        };
+    }
+
+    /// <summary>
+    /// What harvesting tanks in the ISO week of a day would bring: "allowed",
+    /// "reason_key", "label_key", "week_start_day", "iso_week", "slot_day",
+    /// "first_slaughter_day", "last_slaughter_day", "fish", "hog_kg",
+    /// "mean_live_weight_kg", "size_factor", "grade_factor",
+    /// "expected_reference_price_nok", "gross_revenue_nok", "net_revenue_nok",
+    /// "hall_tonnes_per_day", "other_planned_hog_kg". A read.
+    /// </summary>
+    public Godot.Collections.Dictionary QuoteLandHarvestPlan(string siteId, Godot.Collections.Array tankIds, int weekStartDay)
+    {
+        if (SimulationEngine?.State == null) return LandNotReady();
+        var q = SimulationEngine.QuoteLandHarvestPlan(siteId, LandIds(tankIds), weekStartDay);
+        return new Godot.Collections.Dictionary
+        {
+            ["success"] = q.Allowed,
+            ["allowed"] = q.Allowed,
+            ["reason_key"] = q.Reason,
+            ["label_key"] = LandLabelKey(q.Reason),
+            ["message"] = q.Message,
+            ["week_start_day"] = q.WeekStartDay,
+            ["iso_week"] = q.IsoWeek,
+            ["slot_day"] = q.SlotDay,
+            ["first_slaughter_day"] = q.FirstSlaughterDay,
+            ["last_slaughter_day"] = q.LastSlaughterDay,
+            ["fish"] = q.Fish,
+            ["hog_kg"] = q.HogKg,
+            ["mean_live_weight_kg"] = q.MeanLiveWeightKg,
+            ["size_factor"] = q.SizeFactor,
+            ["grade_factor"] = q.GradeFactor,
+            ["expected_reference_price_nok"] = (double)q.ExpectedReferencePriceNok,
+            ["gross_revenue_nok"] = (double)q.GrossRevenueNok,
+            ["net_revenue_nok"] = (double)q.NetRevenueNok,
+            ["hall_tonnes_per_day"] = q.HallTonnesPerDay,
+            ["other_planned_hog_kg"] = q.OtherPlannedHogKg,
+        };
+    }
+
+    /// <summary>Plan tanks' harvest into the ISO week of a day (the order goes out so the slot falls on the Monday).</summary>
+    public Godot.Collections.Dictionary PlanLandHarvest(string siteId, Godot.Collections.Array tankIds, int weekStartDay)
+        => SimulationEngine?.State == null ? LandNotReady() : LandOutcome(SimulationEngine.PlanLandHarvest(siteId, LandIds(tankIds), weekStartDay));
+
+    /// <summary>Cancel a harvest plan whose order is not placed yet.</summary>
+    public Godot.Collections.Dictionary CancelLandHarvestPlan(string siteId, string planId)
+        => SimulationEngine?.State == null ? LandNotReady() : LandOutcome(SimulationEngine.CancelLandHarvestPlan(siteId, planId));
+
+    /// <summary>
+    /// A site's post-smolt planner (spec §6.5): "salinity_ppt",
+    /// "has_river_intake", "sulphate_factor", the tier rules
+    /// ("super_smolt_min_weight_kg", "large_min_weight_kg",
+    /// "super_smolt_min_salinity_ppt", "seawater_record_days",
+    /// "desmolt_salinity_ppt", "desmolt_days"), "tanks" ("tank_id",
+    /// "fish_count", "mean_weight_kg", "target_weight_kg", "tier",
+    /// "tier_label_key", "seawater_days", "low_salinity_days", "desmoltified",
+    /// "vaccinated", "sale_value_nok", "bought_value_nok", "transfer_job_id",
+    /// "transfer_due_day", "transfer_destination_id"), "destinations"
+    /// ("sea_site_id", "label", "mtb_tonnes", "biomass_tonnes",
+    /// "pending_tonnes", "headroom_tonnes").
+    /// </summary>
+    public Godot.Collections.Dictionary GetPostSmoltPlanner(string siteId)
+    {
+        var view = SimulationEngine?.PostSmoltPlannerOf(siteId);
+        if (view == null) return LandResult(CommandResult.Fail(LandSiteReasons.NotFound, $"No land site with tanks '{siteId}'"));
+        var tanks = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        foreach (var t in view.Tanks)
+            tanks.Add(new Godot.Collections.Dictionary
+            {
+                ["tank_id"] = t.TankId,
+                ["fish_count"] = t.Fish,
+                ["mean_weight_kg"] = t.MeanWeightKg,
+                ["target_weight_kg"] = t.TargetWeightKg,
+                ["tier"] = LandTierId(t.Tier),
+                ["tier_label_key"] = "LAND_TIER_" + LandTierId(t.Tier).ToUpperInvariant(),
+                ["seawater_days"] = t.SeawaterDays,
+                ["low_salinity_days"] = t.LowSalinityDays,
+                ["desmoltified"] = t.Desmoltified,
+                ["vaccinated"] = t.Vaccinated,
+                ["sale_value_nok"] = (double)t.SaleValueNok,
+                ["bought_value_nok"] = (double)t.BoughtValueNok,
+                ["transfer_job_id"] = t.TransferJobId,
+                ["transfer_due_day"] = t.TransferDueDay,
+                ["transfer_destination_id"] = t.TransferDestinationId,
+            });
+        var destinations = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        foreach (var d in view.Destinations)
+            destinations.Add(new Godot.Collections.Dictionary
+            {
+                ["sea_site_id"] = d.SeaSiteId,
+                ["label"] = d.Label,
+                ["mtb_tonnes"] = d.MtbTonnes,
+                ["biomass_tonnes"] = d.BiomassTonnes,
+                ["pending_tonnes"] = d.PendingTonnes,
+                ["headroom_tonnes"] = d.HeadroomTonnes,
+            });
+        return new Godot.Collections.Dictionary
+        {
+            ["success"] = true,
+            ["id"] = view.SiteId,
+            ["salinity_ppt"] = view.SalinityPpt,
+            ["has_river_intake"] = view.HasRiverIntake,
+            ["sulphate_factor"] = view.SulphateFactor,
+            ["super_smolt_min_weight_kg"] = view.SuperSmoltMinWeightKg,
+            ["large_min_weight_kg"] = view.LargeMinWeightKg,
+            ["super_smolt_min_salinity_ppt"] = view.SuperSmoltMinSalinityPpt,
+            ["seawater_record_days"] = view.SeawaterRecordDays,
+            ["desmolt_salinity_ppt"] = view.DesmoltSalinityPpt,
+            ["desmolt_days"] = view.DesmoltDays,
+            ["tanks"] = tanks,
+            ["destinations"] = destinations,
+        };
+    }
+
+    /// <summary>
+    /// What moving a tank's fish to a fjord site would do (count 0 = the
+    /// whole tank): "allowed", "reason_key", "label_key", "fish",
+    /// "mean_weight_kg", "tier", "tier_label_key", "seawater_days",
+    /// "low_salinity_days", "desmoltified", "days", "hire_nok", "due_day",
+    /// "mortality_share", "expected_deaths", "bought_value_nok",
+    /// "sale_value_nok", "sea_days_saved". A read.
+    /// </summary>
+    public Godot.Collections.Dictionary PreviewTransferTankToSea(string siteId, string tankId, string seaSiteId, int count)
+    {
+        if (SimulationEngine?.State == null) return LandNotReady();
+        var p = SimulationEngine.PreviewTransferTankToSea(siteId, tankId, seaSiteId, count);
+        return new Godot.Collections.Dictionary
+        {
+            ["success"] = p.Allowed,
+            ["allowed"] = p.Allowed,
+            ["reason_key"] = p.Reason,
+            ["label_key"] = LandLabelKey(p.Reason),
+            ["message"] = p.Message,
+            ["tank_id"] = p.TankId,
+            ["sea_site_id"] = p.SeaSiteId,
+            ["fish"] = p.Fish,
+            ["mean_weight_kg"] = p.MeanWeightKg,
+            ["tier"] = LandTierId(p.Tier),
+            ["tier_label_key"] = "LAND_TIER_" + LandTierId(p.Tier).ToUpperInvariant(),
+            ["seawater_days"] = p.SeawaterDays,
+            ["low_salinity_days"] = p.LowSalinityDays,
+            ["desmoltified"] = p.Desmoltified,
+            ["days"] = p.Days,
+            ["hire_nok"] = (double)p.HireNok,
+            ["due_day"] = p.DueDay,
+            ["mortality_share"] = p.MortalityShare,
+            ["expected_deaths"] = p.ExpectedDeaths,
+            ["bought_value_nok"] = (double)p.BoughtValueNok,
+            ["sale_value_nok"] = (double)p.SaleValueNok,
+            ["sea_days_saved"] = p.SeaDaysSaved,
+        };
+    }
+
+    /// <summary>Book a wellboat to move a tank's fish to a fjord site (count 0 = the whole tank). Id = the job.</summary>
+    public Godot.Collections.Dictionary TransferTankToSea(string siteId, string tankId, string seaSiteId, int count)
+        => SimulationEngine?.State == null ? LandNotReady() : LandOutcome(SimulationEngine.TransferTankToSea(siteId, tankId, seaSiteId, count));
+
+    /// <summary>Sell a post-smolt tank's fish alive (count 0 = the whole tank).</summary>
+    public Godot.Collections.Dictionary SellPostSmolt(string siteId, string tankId, int count)
+        => SimulationEngine?.State == null ? LandNotReady() : LandOutcome(SimulationEngine.SellPostSmolt(siteId, tankId, count));
+
+    /// <summary>Set a post-smolt site's salinity (a pad with a river intake).</summary>
+    public Godot.Collections.Dictionary SetSalinity(string siteId, double salinityPpt)
+        => SimulationEngine?.State == null ? LandNotReady() : LandOutcome(SimulationEngine.SetSalinity(siteId, salinityPpt));
+
+    private static Godot.Collections.Dictionary LandAccountDictionary(Farm.Land.LandSiteAccount a) => new()
+    {
+        ["day"] = a.Day,
+        ["farming_cost_nok"] = (double)a.FarmingCostNok,
+        ["farming_cost_per_kg_hog"] = a.FarmingCostPerKgHog,
+        ["energy_share"] = a.EnergyShare,
+        ["feed_nok"] = (double)a.FeedNok,
+        ["smolt_nok"] = (double)a.SmoltNok,
+        ["energy_nok"] = (double)a.EnergyNok,
+        ["oxygen_nok"] = (double)a.OxygenNok,
+        ["staff_nok"] = (double)a.StaffNok,
+        ["maintenance_nok"] = (double)a.MaintenanceNok,
+        ["insurance_nok"] = (double)a.InsuranceNok,
+        ["other_nok"] = (double)a.OtherNok,
+        ["competence_nok"] = (double)a.CompetenceNok,
+        ["harvest_nok"] = (double)a.HarvestNok,
+        ["transfer_nok"] = (double)a.TransferNok,
+        ["harvest_revenue_nok"] = (double)a.HarvestRevenueNok,
+        ["post_smolt_revenue_nok"] = (double)a.PostSmoltRevenueNok,
+        ["harvested_hog_kg"] = a.HarvestedHogKg,
+        ["harvested_live_kg"] = a.HarvestedLiveKg,
+        ["harvested_fish"] = a.HarvestedFish,
+        ["sold_live_kg"] = a.SoldLiveKg,
+        ["transferred_fish"] = a.TransferredFish,
+        ["energy_kwh"] = a.EnergyKWh,
+        ["feed_kg"] = a.FeedKg,
+    };
+
+    /// <summary>
+    /// A land site's own books (F2-15): "since_built" and "last_year" (the last
+    /// complete sim year), each with "farming_cost_per_kg_hog" (ex depreciation),
+    /// "energy_share" and every line.
+    /// </summary>
+    public Godot.Collections.Dictionary GetLandAccount(string siteId)
+    {
+        var site = SimulationEngine?.FindLandSite(siteId);
+        if (SimulationEngine?.State == null || site == null)
+            return LandResult(CommandResult.Fail(LandSiteReasons.NotFound, $"No land site '{siteId}'"));
+        return new Godot.Collections.Dictionary
+        {
+            ["success"] = true,
+            ["id"] = site.Id,
+            ["since_built"] = LandAccountDictionary(site.Account),
+            ["last_year"] = LandAccountDictionary(site.LastYear),
+        };
+    }
+
+    /// <summary>
+    /// A land site built at once on a pad with no permits and no payment: the
+    /// scenario-start and QA path (spec §3.1 decision 5). Only QA and tests
+    /// call it (tests/test_land_bridge.py). Id = the site.
+    /// </summary>
+    public Godot.Collections.Dictionary CommissionLandSite(string plotId, string template, int lots, string name)
+    {
+        if (SimulationEngine?.State == null) return LandNotReady();
+        if (!TryLandTemplate(template, out var t))
+            return LandResult(CommandResult.Fail(LandSiteReasons.OutOfRange, $"Unknown template '{template}'"));
+        return LandOutcome(SimulationEngine.CommissionLandSite(plotId, t, lots, name));
+    }
 
     // ═══ END sim·land lane block ═══
 }

@@ -54,6 +54,26 @@ public static class LandSiteReasons
     public const string NothingToApply = "nothing_to_apply";
     /// <summary>The upgrade is already in place.</summary>
     public const string AlreadyActive = "already_active";
+    /// <summary>The stocking would plan more than the site's competence lets it run (F2-15's utilisation cap).</summary>
+    public const string UtilCap = "util_cap";
+    /// <summary>The pad has no river intake to blend the water with (F2-13).</summary>
+    public const string NoRiverIntake = "no_river_intake";
+    /// <summary>The fish are lighter than a smolt that may go to sea or be sold (F2-13).</summary>
+    public const string BelowMinWeight = "below_min_weight";
+    /// <summary>The transfer needs more wellboat days than a slot holds, or the tank already has a boat booked (F2-13).</summary>
+    public const string NoWellboatSlot = "no_wellboat_slot";
+    /// <summary>The verb belongs to the other land site kind (grow-out or post-smolt).</summary>
+    public const string WrongSiteKind = "wrong_site_kind";
+    /// <summary>No sea site with that id.</summary>
+    public const string SiteNotFound = "site_not_found";
+    /// <summary>The destination is an offshore unit: its own verbs stock it.</summary>
+    public const string OffshoreUnit = "offshore_unit";
+    /// <summary>The fish would put the destination over its MTB.</summary>
+    public const string MabExceeded = "mab_exceeded";
+    /// <summary>The planned week cannot take the harvest: it is past, too close, too far ahead, or the hall is full that week (F2-15).</summary>
+    public const string NoSlot = "no_slot";
+    /// <summary>The tank is already in another harvest plan (F2-15).</summary>
+    public const string AlreadyPlanned = "already_planned";
 }
 
 /// <summary>
@@ -99,29 +119,40 @@ public partial class SimulationEngine
 
     // ── The day's feed per land population (the land tick's input) ─────────
 
-    private readonly Dictionary<FishPopulation, double> _landFeedKg = new(ReferenceEqualityComparer.Instance);
+    private readonly Dictionary<FishPopulation, LandFeedDay> _landFeedKg = new(ReferenceEqualityComparer.Instance);
     private int _landFeedStep = -1;
+
+    /// <summary>One land population's feed in a step: eaten (kg), delivered (kg) and its price (NOK).</summary>
+    private readonly record struct LandFeedDay(double EatenKg, double DeliveredKg, decimal CostNok);
 
     /// <summary>
     /// The biology fed <paramref name="population"/> in a land tank
-    /// <paramref name="kg"/> today (<see cref="GrowAndFeedOneDay"/>). Kept for
-    /// the step only: the land tick reads it later in the same step; nothing
-    /// is saved.
+    /// <paramref name="kg"/> today (<see cref="GrowAndFeedOneDay"/>), delivering
+    /// <paramref name="deliveredKg"/> at <paramref name="costNok"/> (F2-15: the
+    /// site's own books). Kept for the step only: the land tick reads it later
+    /// in the same step; nothing is saved.
     /// </summary>
-    internal void NoteLandFeed(FishPopulation population, double kg)
+    internal void NoteLandFeed(FishPopulation population, double kg, double deliveredKg = 0.0, decimal costNok = 0m)
     {
         if (_landFeedStep != HoldingIndexBuilds)
         {
             _landFeedKg.Clear();
             _landFeedStep = HoldingIndexBuilds;
         }
-        _landFeedKg.TryGetValue(population, out double before);
-        _landFeedKg[population] = before + Math.Max(0.0, kg);
+        _landFeedKg.TryGetValue(population, out var before);
+        _landFeedKg[population] = new LandFeedDay(before.EatenKg + Math.Max(0.0, kg),
+            before.DeliveredKg + Math.Max(0.0, deliveredKg), before.CostNok + Math.Max(0m, costNok));
     }
 
     /// <summary>Feed <paramref name="population"/> ate in this step (kg; 0 outside the step that fed it).</summary>
     internal double LandFeedTodayKg(FishPopulation population)
-        => _landFeedStep == HoldingIndexBuilds && _landFeedKg.TryGetValue(population, out double kg) ? kg : 0.0;
+        => _landFeedStep == HoldingIndexBuilds && _landFeedKg.TryGetValue(population, out var day) ? day.EatenKg : 0.0;
+
+    /// <summary>Feed delivered to <paramref name="population"/> in this step (kg) and its price (NOK); 0 outside the step.</summary>
+    internal (double DeliveredKg, decimal CostNok) LandFeedBoughtToday(FishPopulation population)
+        => _landFeedStep == HoldingIndexBuilds && _landFeedKg.TryGetValue(population, out var day)
+            ? (day.DeliveredKg, day.CostNok)
+            : (0.0, 0m);
 
     // ── Building a site and its lots ───────────────────────────────────────
 
@@ -277,7 +308,10 @@ public partial class SimulationEngine
         var present = new HashSet<string>(site.Tanks.Select(p => p.Id), StringComparer.Ordinal);
         foreach (var tank in site.AllTanks())
             if (!tank.Pen.IsEmpty && !present.Contains(tank.Pen.PopulationId))
+            {
                 tank.Pen.PopulationId = "";
+                tank.ClearFishRecord(); // F2-13/F2-15: the record and plan leave with the fish
+            }
         foreach (var population in site.Tanks)
         {
             if (site.TankOf(population) != null) continue;
@@ -429,6 +463,7 @@ public partial class SimulationEngine
             return CommandResult.Fail(LandSiteReasons.InsufficientFunds,
                 $"Insufficient funds: need {preview.CostNok:N0} NOK for {count:N0} smolts", (double)preview.CostNok);
         AttributeUnitCost(site.Id, HoldingKind.LandTank, preview.CostNok); // F2-04 ring-fence: land is never in the rent base
+        site.Account.SmoltNok += preview.CostNok; // F2-15: the site's own books
 
         var strain = SmoltStrainRegistry.Get(strainId);
         var population = new FishPopulation { ZoneId = site.ZoneId, SiteId = site.Id, SeaLiceLoad = 0.0 };
@@ -440,6 +475,8 @@ public partial class SimulationEngine
         site.Tanks.Add(population);
         State.Populations.Add(population);
         tank.Pen.PopulationId = population.Id;
+        // F2-13/F2-15: the fish's record, plan (with the plan's daily hazard) and feeding plan.
+        NoteLandStocking(site, tank, population, strain, 1.0 - preview.DailySurvival);
         site.StockingLog.Add(new LandStockingRecord(State.Day, tank.Id, count, preview.PlannedHogKg));
         PruneStockingLog(site);
 
@@ -471,16 +508,23 @@ public partial class SimulationEngine
         double releaseKg = t.PlanReleaseWeightKg;
         var tier = TierOfWeight(releaseKg);
         double growth = strain.BuildGenome().GetGrowthMultiplier(); // the cohort's: land fish carry no sea-phase tier bonus
-        var plan = LandStockingPlan.For(t, cal.Production) with { TemperatureC = site.TargetWaterTemp, GrowthMultiplier = growth };
+        var basePlan = LandStockingPlan.For(t, cal.Production);
+        var plan = basePlan with { TemperatureC = site.TargetWaterTemp, GrowthMultiplier = basePlan.GrowthMultiplier * growth };
         var verdict = LandStockingPlanner.Check(Growth.Law, plan, tank.VolumeM3, Math.Max(0, count), t.MaxDensityKgM3);
         double hogPerSmolt = t.PlanHarvestWeightKg * cal.Production.CycleSurvival * cal.Production.HogPerLw;
         double nameplateKg = AnnualProductionCapTonnes(site) * 1000.0;
         double plannedKg = PlannedProductionKg(site);
         int annualRoom = hogPerSmolt > 0.0 ? (int)Math.Max(0.0, Math.Floor((nameplateKg - plannedKg) / hogPerSmolt)) : int.MaxValue;
         decimal cost = Math.Max(0, count) * SmoltTierCostPerFish(tier, strain, SmoltSource.Purchased);
-        int maxSmolts = Math.Min(verdict.MaxSmolts, annualRoom);
+        // F2-15: a grow-out site runs at most its utilisation cap of the nameplate (competence).
+        double utilisationCap = LandUtilisationCapOf(site);
+        int utilisationRoom = hogPerSmolt > 0.0 && utilisationCap < 1.0
+            ? (int)Math.Max(0.0, Math.Floor((Math.Min(nameplateKg, utilisationCap * LandNameplateTonnesNow(site) * 1000.0) - plannedKg) / hogPerSmolt))
+            : int.MaxValue;
+        int maxSmolts = Math.Min(Math.Min(verdict.MaxSmolts, annualRoom), utilisationRoom);
         var preview = new LandStockingPreview(true, "", "", tank.Id, releaseKg, tier, verdict.PeakDensityKgM3,
-            verdict.Forecast.CycleDays, maxSmolts, verdict.MaxSmolts, annualRoom, Math.Max(0, count) * hogPerSmolt, cost);
+            verdict.Forecast.CycleDays, maxSmolts, verdict.MaxSmolts, annualRoom, Math.Max(0, count) * hogPerSmolt, cost,
+            utilisationCap, utilisationRoom, verdict.Forecast.DailySurvival);
 
         int index = lot.Tanks.IndexOf(tank);
         if (count <= 0)
@@ -498,6 +542,9 @@ public partial class SimulationEngine
         if (count > annualRoom)
             return preview with { Allowed = false, Reason = LandSiteReasons.AnnualCapacity, Message =
                 $"The rolling year's plan would pass the site's {nameplateKg / 1000.0:N0} t HOG a year" };
+        if (count > utilisationRoom)
+            return preview with { Allowed = false, Reason = LandSiteReasons.UtilCap, Message =
+                $"The rolling year's plan would pass {utilisationCap:P0} of the nameplate, all the site's competence runs" };
         return preview;
     }
 
@@ -603,12 +650,14 @@ public partial class SimulationEngine
         var cal = LandCalibration;
         var t = cal.For(toLot.Template);
         double meanKg = moves.Sum(m => m.Count * m.Cohort.MeanWeightKg) / fish;
-        var plan = LandStockingPlan.For(t, cal.Production) with
+        var basePlan = LandStockingPlan.For(t, cal.Production);
+        var plan = basePlan with
         {
             ReleaseWeightKg = meanKg,
             HarvestWeightKg = Math.Max(meanKg, t.PlanHarvestWeightKg),
             TemperatureC = site.TargetWaterTemp,
-            GrowthMultiplier = source.Cohorts.Where(c => c.Count > 0).Select(CohortGrowthMultiplier).DefaultIfEmpty(1.0).Max(),
+            GrowthMultiplier = basePlan.GrowthMultiplier
+                * source.Cohorts.Where(c => c.Count > 0).Select(CohortGrowthMultiplier).DefaultIfEmpty(1.0).Max(),
         };
         var verdict = LandStockingPlanner.Check(Growth.Law, plan, to.VolumeM3, fish, t.MaxDensityKgM3);
         if (!verdict.Allowed)
@@ -619,6 +668,8 @@ public partial class SimulationEngine
         {
             to.Pen.PopulationId = source.Id;
             from.Pen.PopulationId = "";
+            to.TakeFishRecordOf(from); // F2-13/F2-15: the record and plan move with the fish
+            from.ClearFishRecord();
         }
         else
         {
@@ -634,9 +685,11 @@ public partial class SimulationEngine
                     WeightCv = cohort.WeightCv,
                 });
             }
+            split.Ration = source.Ration;
             site.Tanks.Add(split);
             State.Populations.Add(split);
             to.Pen.PopulationId = split.Id;
+            to.TakeFishRecordOf(from);
         }
         LogFacilityEvent("Sortering av kar", SimText.Nb($"{site.Name}: {fish:N0} fisk flyttet fra {from.Id} til {to.Id}"), 0m);
         return CommandResult.Success($"Graded {fish:N0} fish from {from.Id} to {to.Id}", fish, verdict.PeakDensityKgM3, to.Id);
@@ -742,7 +795,7 @@ public partial class SimulationEngine
                     : new TankLoad(population.GetTotalBiomassKg(), LandFeedTodayKg(population));
             }
             var input = new LandLotDayInput(lot, strategy, intake, shallowC, loads,
-                HoldingWater.SeawaterSalinityPsu, Math.Clamp(site.BiofilterEfficiency, 0.0, 1.0));
+                LandSalinityOf(site), Math.Clamp(site.BiofilterEfficiency, 0.0, 1.0));
             var day = LandLotDaySolver.Solve(input, cal);
             LandLotDaySolver.Apply(lot, day);
             energy += day.Energy;
@@ -780,6 +833,15 @@ public partial class SimulationEngine
         if (oxygen > 0m) PayCost(oxygen, CostBooking.Opex, "land_oxygen");
         if (wages > 0m) PayCost(wages, CostBooking.Opex, "land_staff");
         AttributeUnitCost(site.Id, HoldingKind.LandTank, power + oxygen + wages); // F2-04 ring-fence
+
+        // F2-13/F2-15: the site's own books, its fish against their plan, its
+        // competence, its other running costs, its planned harvests and its
+        // transfers to sea (SimulationEngine.LandBiology.cs, .PostSmolt.cs).
+        site.Account.EnergyNok += power;
+        site.Account.OxygenNok += oxygen;
+        site.Account.StaffNok += wages;
+        site.Account.EnergyKWh += energy.TotalKWh;
+        CloseLandSiteDay(site);
     }
 
     /// <summary>
@@ -818,10 +880,13 @@ public sealed record LandStockingRecord(int Day, string TankId, int Smolts, doub
 /// <param name="AnnualRoomSmolts">Fish the rolling year's nameplate leaves room for.</param>
 /// <param name="PlannedHogKg">The plan's harvest of the stocking (kg HOG).</param>
 /// <param name="CostNok">Price of the smolts.</param>
+/// <param name="UtilisationCap">The site's utilisation cap (share of nameplate a year; 1 at a post-smolt site, F2-15).</param>
+/// <param name="UtilisationRoomSmolts">Fish the utilisation cap leaves room for in the rolling year (int.MaxValue when it does not bind).</param>
+/// <param name="DailySurvival">The plan's share of the fish alive the next day (its cycle survival over its cycle days, F2-15).</param>
 public sealed record LandStockingPreview(bool Allowed, string Reason, string Message, string TankId, double ReleaseWeightKg,
     SmoltQualityTier Tier, double PeakDensityKgM3, int CycleDays, int MaxSmolts, int DensityRoomSmolts, int AnnualRoomSmolts,
     double PlannedHogKg,
-    decimal CostNok)
+    decimal CostNok, double UtilisationCap = 1.0, int UtilisationRoomSmolts = int.MaxValue, double DailySurvival = 1.0)
 {
     /// <summary>A refusal before the tank is known.</summary>
     public static LandStockingPreview Refused(string reason, string message)
