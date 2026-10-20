@@ -66,7 +66,7 @@ namespace LakskongenSim.Environment.Geo
         internal static string ReadText(string logicalName)
         {
             string text = Encoding.UTF8.GetString(ReadBytes(logicalName));
-            return text.Length > 0 && text[0] == '﻿' ? text[1..] : text;
+            return text.Length > 0 && text[0] == '\uFEFF' ? text[1..] : text;
         }
     }
 }

@@ -268,6 +268,11 @@ public class GeoProductionAreasTests
     [InlineData("bbox_25833", "[1, 2, 3]", "field 'bbox_25833'")]
     [InlineData("sea_area_km2", "500.0", "field 'sea_area_km2'")]
     [InlineData("id", "7", "field 'id'")]
+    // A mistyped integer array is a data defect naming its field, not a JsonElement InvalidOperationException.
+    [InlineData("bbox_25833", "[\"0\", 0, 10, 10]", "field 'bbox_25833'")]
+    [InlineData("bbox_25833", "[0, 0, 10.5, 10]", "field 'bbox_25833'")]
+    [InlineData("label_25833", "[\"5\", 5]", "field 'label_25833'")]
+    [InlineData("label_25833", "[5, null]", "field 'label_25833'")]
     public void Parse_RefusesADefect_NamingTheAreaAndTheField(string field, string value, string expected)
     {
         var file = SyntheticFile();

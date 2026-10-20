@@ -112,6 +112,18 @@ namespace LakskongenSim.Environment.Geo
             return (Number(v[0], $"{context}: field '{name}'"), Number(v[1], $"{context}: field '{name}'"));
         }
 
+        /// <summary>
+        /// An array element read as an integer: false for a fraction and for a
+        /// non-number (a string, null or bool), where <see cref="JsonElement.TryGetInt64"/>
+        /// would throw <see cref="InvalidOperationException"/> instead of letting
+        /// the caller name the field.
+        /// </summary>
+        internal static bool TryInteger(JsonElement v, out long value)
+        {
+            value = 0;
+            return v.ValueKind == JsonValueKind.Number && v.TryGetInt64(out value);
+        }
+
         internal static double Number(JsonElement v, string context)
         {
             if (v.ValueKind != JsonValueKind.Number || !v.TryGetDouble(out double d) || !double.IsFinite(d))

@@ -167,14 +167,14 @@ namespace LakskongenSim.Environment.Geo
             var bboxElement = GeoJson.RequiredArray(p, "bbox_25833", context);
             if (bboxElement.GetArrayLength() != 4)
                 throw new InvalidDataException($"{context}: field 'bbox_25833' must hold four integers");
-            var bbox = bboxElement.EnumerateArray().Select(v => v.TryGetInt64(out long n)
+            var bbox = bboxElement.EnumerateArray().Select(v => GeoJson.TryInteger(v, out long n)
                 ? n
                 : throw new InvalidDataException($"{context}: field 'bbox_25833' must hold four integers")).ToArray();
             if (bbox[0] >= bbox[2] || bbox[1] >= bbox[3])
                 throw new InvalidDataException($"{context}: field 'bbox_25833' is not min x, min y, max x, max y");
             var label = GeoJson.RequiredPair(p, "label", context);
             var label25833 = GeoJson.RequiredArray(p, "label_25833", context);
-            if (label25833.GetArrayLength() != 2 || !label25833[0].TryGetInt64(out long lx) || !label25833[1].TryGetInt64(out long ly))
+            if (label25833.GetArrayLength() != 2 || !GeoJson.TryInteger(label25833[0], out long lx) || !GeoJson.TryInteger(label25833[1], out long ly))
                 throw new InvalidDataException($"{context}: field 'label_25833' must hold two integers");
             double areaKm2 = GeoJson.RequiredDouble(p, "area_km2", context);
             double seaKm2 = GeoJson.RequiredDouble(p, "sea_area_km2", context);

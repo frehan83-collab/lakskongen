@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 
 namespace LakskongenSim.Environment.Geo
 {
@@ -141,7 +142,9 @@ namespace LakskongenSim.Environment.Geo
             {
                 if (!int.TryParse(code.Name, NumberStyles.None, CultureInfo.InvariantCulture, out int n) || n > byte.MaxValue)
                     throw new InvalidDataException($"{FileName}: field 'codes' has the non-byte key '{code.Name}'");
-                reasons[n] = code.Value.GetString() ?? "";
+                if (code.Value.ValueKind != JsonValueKind.String || string.IsNullOrWhiteSpace(code.Value.GetString()))
+                    throw new InvalidDataException($"{FileName}: field 'codes.{code.Name}' must be a non-empty string");
+                reasons[n] = code.Value.GetString()!;
             }
 
             var gridsElement = GeoJson.RequiredObject(root, "grids", FileName);
@@ -154,7 +157,7 @@ namespace LakskongenSim.Environment.Geo
                 string expectedFile = string.Create(CultureInfo.InvariantCulture, $"suitability/po{po:00}.png");
                 if (file != expectedFile) throw new InvalidDataException($"{context}: field 'file' is '{file}', expected '{expectedFile}'");
                 var origin = GeoJson.RequiredArray(g, "origin_25833", context);
-                if (origin.GetArrayLength() != 2 || !origin[0].TryGetInt64(out long ox) || !origin[1].TryGetInt64(out long oy))
+                if (origin.GetArrayLength() != 2 || !GeoJson.TryInteger(origin[0], out long ox) || !GeoJson.TryInteger(origin[1], out long oy))
                     throw new InvalidDataException($"{context}: field 'origin_25833' must hold two integers");
                 int res = GeoJson.RequiredInt(g, "res_m", context);
                 int width = GeoJson.RequiredInt(g, "width", context);

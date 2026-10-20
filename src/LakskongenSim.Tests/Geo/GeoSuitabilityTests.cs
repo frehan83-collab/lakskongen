@@ -138,6 +138,32 @@ public class GeoSuitabilityTests
         Assert.Contains("field 'row0'", Assert.Throws<InvalidDataException>(() => GeoSuitability.Parse(north.ToJsonString(), GeoResources.ReadBytes)).Message);
     }
 
+    /// <summary>
+    /// A mistyped origin or reason-code value is a data defect naming its field
+    /// (InvalidDataException), never a JsonElement InvalidOperationException.
+    /// </summary>
+    [Theory]
+    [InlineData("[\"-120000\", 6650000]")]
+    [InlineData("[-120000.5, 6650000]")]
+    [InlineData("[-120000, true]")]
+    public void Parse_RefusesAMistypedOrigin_NamingTheGridAndTheField(string origin)
+    {
+        var file = JsonNode.Parse(GeoTestData.ReadGeoText("suitability.json"))!.AsObject();
+        file["grids"]!["7"]!["origin_25833"] = JsonNode.Parse(origin);
+        var e = Assert.Throws<InvalidDataException>(() => GeoSuitability.Parse(file.ToJsonString(), GeoResources.ReadBytes));
+        Assert.Contains("grid 7", e.Message);
+        Assert.Contains("field 'origin_25833'", e.Message);
+    }
+
+    [Fact]
+    public void Parse_RefusesAReasonCodeThatIsNotAName_NamingIt()
+    {
+        var file = JsonNode.Parse(GeoTestData.ReadGeoText("suitability.json"))!.AsObject();
+        file["codes"]!["4"] = 4;
+        var e = Assert.Throws<InvalidDataException>(() => GeoSuitability.Parse(file.ToJsonString(), GeoResources.ReadBytes));
+        Assert.Contains("field 'codes.4'", e.Message);
+    }
+
     [Fact]
     public void AGridOfTheWrongSize_IsRefusedOnItsFirstRead_NamingIt()
     {
@@ -189,6 +215,31 @@ public class GeoSuitabilityTests
         Assert.Equal(0.15, Rules.ComponentCost(hth, GeoSuitabilityRules.StageTerm), 12);
         Assert.Equal(0.0, Rules.ComponentCost(hth, "temperature"), 12);
         Assert.Equal(0.85, Rules.Score(hth), 12);
+    }
+
+    /// <summary>
+    /// Every shipped offshore candidate has depth 1 and river factor 1, so the
+    /// data alone cannot tell the offshore cost formula from a wrong one. A
+    /// synthetic HTH13-01 (depth 0.8, river factor 0.9, stage 0.85) pins each
+    /// factor of depth × stage × river costing (1 − its value) times the other two.
+    /// </summary>
+    [Fact]
+    public void OffshoreCosts_AreEachFactorsShortfallTimesTheOtherTwo()
+    {
+        var file = JsonNode.Parse(GeoTestData.ReadGeoText("candidates.json"))!.AsObject();
+        var site = file["sites"]!.AsArray().Select(s => s!.AsObject()).First(s => (string?)s["id"] == "HTH13-01");
+        site["components"]!["depth"] = 0.8;
+        site["components"]!["river"] = 0.75;
+        site["river_factor"] = 0.9;
+        var hth = GeoCandidates.Parse(file.ToJsonString()).Find("HTH13-01")!;
+        Assert.Equal(0.85, hth.StageFactor);
+
+        Assert.Equal(0.2 * 0.85 * 0.9, Rules.ComponentCost(hth, "depth"), 12);
+        Assert.Equal(0.8 * 0.15 * 0.9, Rules.ComponentCost(hth, GeoSuitabilityRules.StageTerm), 12);
+        Assert.Equal(0.8 * 0.85 * 0.1, Rules.ComponentCost(hth, GeoSuitabilityRules.RiverTerm), 12);
+        Assert.Equal(0.0, Rules.ComponentCost(hth, "waves"), 12);
+        Assert.Equal(0.8 * 0.85 * 0.9, Rules.Score(hth), 12);
+        Assert.Equal("depth", Rules.BindingOf(hth));
     }
 
     [Fact]
