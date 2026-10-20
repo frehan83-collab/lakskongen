@@ -90,11 +90,55 @@ func sites_signature() -> String:
 
 
 ## Every locality as packed arrays: {signature, ids, x, y, kind, po, mtb_t,
-## owner, owners[{id, name, is_major}]} (plan §3).
+## owner, owners[{id, name, is_major}]} (plan §3), each array in the plan's
+## packed type whatever the bridge marshals (a C# long[] arrives as a
+## PackedInt64Array, a List<int> as an Array).
 func sites() -> Dictionary:
 	if has_real("get_geo_sites"):
-		return _sim.get_geo_sites()
+		return normalize_sites(_sim.get_geo_sites())
 	return _stub_sites()
+
+
+## A get_geo_sites dictionary with every array in the plan's packed type.
+static func normalize_sites(raw: Dictionary) -> Dictionary:
+	var out := raw.duplicate()
+	for key in ["ids", "x", "y", "owner"]:
+		out[key] = _ints(raw.get(key, []))
+	for key in ["kind", "po"]:
+		out[key] = _bytes(raw.get(key, []))
+	out["mtb_t"] = _floats(raw.get("mtb_t", []))
+	out["owners"] = raw.get("owners", []) if raw.get("owners", []) is Array else []
+	return out
+
+
+static func _ints(v: Variant) -> PackedInt32Array:
+	if v is PackedInt32Array:
+		return v
+	var out := PackedInt32Array()
+	if v is Array or v is PackedInt64Array or v is PackedFloat32Array or v is PackedFloat64Array or v is PackedByteArray:
+		for x: Variant in v:
+			out.append(int(x))
+	return out
+
+
+static func _bytes(v: Variant) -> PackedByteArray:
+	if v is PackedByteArray:
+		return v
+	var out := PackedByteArray()
+	if v is Array or v is PackedInt32Array or v is PackedInt64Array:
+		for x: Variant in v:
+			out.append(int(x))
+	return out
+
+
+static func _floats(v: Variant) -> PackedFloat32Array:
+	if v is PackedFloat32Array:
+		return v
+	var out := PackedFloat32Array()
+	if v is Array or v is PackedFloat64Array or v is PackedInt32Array or v is PackedInt64Array:
+		for x: Variant in v:
+			out.append(float(x))
+	return out
 
 
 ## One area's rival picture: {sites_by_kind, sea_growout_mtb_t, top_owners}.

@@ -6,7 +6,8 @@ extends RefCounted
 ## the checks read node state, the layers' records (redraw counters, what
 ## each _draw drew), the raw po_index on the CPU and real input.
 ##
-## 1. The adapter answers the plan's reads (stubbed until Track A and B).
+## 1. The adapter answers the plan's reads (stubbed until Track A and B),
+##    and calls the facade's reads once they exist.
 ## 2. Plates: each anchor within 1 px of its label_25833 in drawn_rect(), at
 ##    the default size, at a 1280x720 layout (UI at 150 %) and after the
 ##    resize back; no plate overlaps a plate, a city name or another area's
@@ -65,6 +66,7 @@ func run(runner: Node) -> void:
 	await _frames(4)
 	var chart: GeoMapView = map.chart()
 	_adapter(chart)
+	_adapter_uses_the_real_reads()
 	_plates_anchored(chart, "the default size")
 	_plates_clear(map, chart, "the default size")
 	await _small_size(map, chart)
@@ -117,6 +119,38 @@ func _adapter(chart: GeoMapView) -> void:
 	_check(ok and chart.areas().size() == AREAS,
 		"geo map: get_geo_production_areas gives the 13 areas with names, official lights and label points (stubbed: %s)"
 			% ", ".join(chart.bridge.stubbed()))
+
+
+## Once Tracks A and B are merged the facade has the reads: the adapter then
+## calls them, never the stub, and hands the sites over in the plan's packed
+## types whatever the bridge marshals.
+func _adapter_uses_the_real_reads() -> void:
+	var fake := _FakeSim.new()
+	var adapter := GeoBridgeAdapter.new(fake)
+	var sites := adapter.sites()
+	var ok := adapter.stubbed().is_empty() and adapter.production_areas() == [{"id": 99}] \
+		and adapter.offshore_candidates() == [{"id": "HTH99"}] and adapter.area_at(1.0, 2.0) == 7 \
+		and adapter.sites_signature() == "fake:2" and adapter.rival_summary(3) == {"po": 3} \
+		and adapter.player_site_locations() == [{"site_id": "s1"}]
+	_check(ok and sites["ids"] is PackedInt32Array and sites["x"] is PackedInt32Array and sites["kind"] is PackedByteArray
+			and sites["po"] is PackedByteArray and sites["mtb_t"] is PackedFloat32Array and sites["owner"] is PackedInt32Array
+			and Array(sites["x"]) == [1, 2] and Array(sites["kind"]) == [0, 5] and Array(sites["owner"]) == [-1, 0]
+			and is_equal_approx(sites["mtb_t"][0], 1.5) and (sites["owners"] as Array).size() == 1,
+		"geo map: with the lanes merged the adapter calls the seven reads, and normalises the sites' arrays")
+	fake.free()
+
+
+class _FakeSim extends Node:
+	func get_geo_production_areas() -> Array: return [{"id": 99}]
+	func get_geo_offshore_candidates() -> Array: return [{"id": "HTH99"}]
+	func get_geo_area_at(_x: float, _y: float) -> int: return 7
+	func get_geo_sites_signature() -> String: return "fake:2"
+	func get_geo_sites() -> Dictionary:
+		return {"signature": "fake:2", "ids": [5, 7], "x": PackedInt64Array([1, 2]), "y": [3.0, 4.0],
+			"kind": PackedInt32Array([0, 5]), "po": [3, 4], "mtb_t": PackedFloat64Array([1.5, 0.0]),
+			"owner": [-1, 0], "owners": [{"id": "fake", "name": "Fake", "is_major": true}]}
+	func get_rival_summary(po: int) -> Dictionary: return {"po": po}
+	func get_player_site_locations() -> Array: return [{"site_id": "s1"}]
 
 
 # ── 2. Plates ─────────────────────────────────────────────────────────────────
