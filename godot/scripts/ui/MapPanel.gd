@@ -12,7 +12,7 @@ extends Control
 ## "Søk vekstlisens" the LicenceAuctionCard. Every refusal is rendered as text.
 ##
 ## Track D adds the region and site levels through the marked hooks:
-## drill_into() and the marked branch of Esc.
+## drill_into(), _on_feature_clicked() and the marked branch of Esc.
 
 signal close_requested
 signal region_selected(region_id: String)
@@ -74,6 +74,7 @@ func _ready() -> void:
 	_chart.setup(_sim)
 	_chart.area_clicked.connect(_on_chart_area_clicked)
 	_chart.area_drill_requested.connect(func(area: int) -> void: drill_into(area))
+	_chart.feature_clicked.connect(_on_feature_clicked)
 	for area: int in _chart.plates():
 		_region_nodes[_region_of_area(area)] = _chart.plate(area)
 	# Temperature bar visualisation (custom drawing, added to its slot).
@@ -379,6 +380,12 @@ func _on_area_picked(index: int) -> void:
 ## national level, so nothing happens yet.
 func drill_into(_area: int) -> bool:
 	return false
+
+
+## Track D's site hook: a click on a site, a candidate or a hexagon opens its
+## card. Track C has no site level; the same click selects the area.
+func _on_feature_clicked(_kind: String, _id: String) -> void:
+	pass  # geo-site hook
 
 
 ## The national chart.

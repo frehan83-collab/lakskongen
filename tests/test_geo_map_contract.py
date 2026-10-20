@@ -193,8 +193,9 @@ def test_map_panel_is_under_800_lines_and_keeps_its_public_api():
         assert re.search(rf"^func {name}\(", text, flags=re.MULTILINE), name
     assert re.search(r"^signal region_selected\(region_id: String\)", text, flags=re.MULTILINE)
     assert re.search(r"^var _region_nodes: Dictionary", text, flags=re.MULTILINE)
-    # Track D's marked hooks: the drill stub and one Esc branch.
+    # Track D's marked hooks: the drill stub, one Esc branch, the site hook.
     assert text.count("# geo-drill hook") == 1 and "func drill_into(" in text
+    assert text.count("# geo-site hook") == 1 and "feature_clicked.connect(_on_feature_clicked)" in text
     # REGIONS and its invented stats are gone.
     assert "const REGIONS" not in text and "key_operators" not in text and "disease_risk" not in text
 

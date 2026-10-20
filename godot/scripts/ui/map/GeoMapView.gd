@@ -6,10 +6,11 @@ extends Control
 ##
 ## Bottom to top: a deep-water frame; basemap/national.jpg in a TextureRect
 ## (keep aspect, centred) with map_po_tint.gdshader tinting each production
-## area's sea from the raw po_index; the planning overlays (GeoOverlayLayer);
-## the aquaculture sites (GeoSiteLayer) and the company's own farms; a hover
-## ring; the 13 area plates (MapMarker, placed by MapLabelPlacer); the city
-## names, a scale bar and a north arrow; the layer chips and the key.
+## area's sea from the raw po_index; a faint graticule; the salmon fjords and
+## offshore areas (GeoOverlayLayer); the aquaculture sites (GeoSiteLayer);
+## the candidates (a second GeoOverlayLayer); the company's own farms; a
+## hover ring; the 13 area plates (MapMarker, placed by MapLabelPlacer); the
+## city names, a scale bar and a north arrow; the layer chips and the key.
 ##
 ## Hit-testing reads the CPU copy of the same raw po_index the shader tints
 ## with, and falls back to the sim's polygons (get_geo_area_at) where the
@@ -29,7 +30,7 @@ signal area_hovered(area: int)
 const TINT_SHADER := preload("res://shaders/map_po_tint.gdshader")
 const TINT_STRENGTH := 0.35
 const AREA_COUNT := 13
-## [id, chip translation key, tooltip key, the edge colour's MapPalette call].
+## [layer id, chip translation key, tooltip key]; layer_color() gives the edge.
 const LAYERS: Array = [
 	["sites", "MAP_GEO_LAYER_SITES", "MAP_GEO_LAYER_SITES_TIP"],
 	["candidates", "MAP_GEO_LAYER_CANDIDATES", "MAP_GEO_LAYER_CANDIDATES_TIP"],

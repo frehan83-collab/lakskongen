@@ -309,6 +309,17 @@ GIS package).
   Merged into geo/int (`4ea2cf8`); the captain's fix `e87371f` makes the id
   cast exact, so only a whole-number `id`, `po`, `rank` or `area_id` becomes
   an int and a fractional one keeps its float value.
+- Status (geo C2, 2026-10-20): `MapPalette` completes the plan's GDScript
+  interface (`landscape(key)`, plus `brand`, `chart` and the map's signal
+  colours, all read from `tokens.json` through `theme_tokens.gd`). The
+  national map reads the sim only through `GeoBridgeAdapter.gd`, by the
+  plan's names (`get_geo_production_areas`, `get_geo_offshore_candidates`,
+  `get_geo_area_at`, `get_geo_sites_signature`, `get_geo_sites`,
+  `get_rival_summary`, `get_player_site_locations`). Until Tracks A and B
+  merge, a marked stub answers each read from these files; it has no rival
+  owners and places the company's farms at their area's label point, and it
+  is the only GDScript that parses `localities.geojson` (pinned by
+  `tests/test_geo_map_contract.py`).
 - Credits: `godot/data/credits.json` already lists the seven map-data
   providers with their attribution notices (translation keys in
   `translations.csv`), so `CreditsScreen` shows them with no code change.
@@ -372,6 +383,25 @@ GIS package).
   dashed by stage), `exclusions.national` salmon fjords as a soft red hatch,
   and candidates as salmon stars (open pens) and yellow hexagons (offshore).
   This replaces `NorwayCoastline.gd` and the hand-placed `REGIONS[].pos`.
+  Status (geo C2, 2026-10-20): built as `GeoMapView` in
+  `godot/scripts/ui/map/` and hosted by `MapPanel` (the 'Kart' tab). The base
+  map sits in a keep-aspect `TextureRect` in a deep-water frame with a faint
+  graticule; `map_po_tint.gdshader` mixes each area's `tint` at 35 % over the
+  raw `po_index` (more for the hovered and picked area), and a click reads the
+  same raw image on the CPU, falling back to the sim's polygons where it is 0.
+  Thirteen plates (the engine's traffic light as a badge, the code, the name
+  where it fits) are placed by `MapLabelPlacer` around their label points,
+  clear of each other, the anchors, the chips and the key, and where they can
+  of the site clusters, with leader lines. Sites are shape-coded by kind and
+  ringed in the owner's band, in screen-grid clusters; the player's farms
+  are salmon discs. Offshore areas are dashed by stage (solid once they can
+  be announced), the 30 salmon fjords hatched (outlined when a fjord does
+  not triangulate), the 156 open-pen candidates one salmon star per area,
+  the 33 offshore ones yellow hexagons with hav_1's ringed. Layer chips, a
+  key, tooltips and eight city names complete it. `NorwayCoastline.gd`,
+  `MiniMap.gd` and `norway_coastline.json` are deleted. Checked headless by
+  `godot/tests/GeoMapNationalChecks.gd`; frames for the visual review come
+  from `godot/qa/scenes/GeoMapCapture.tscn`.
 - **Regional (PO) view**: `basemap/poNN.jpg` with the suitability heat from
   `suitability/poNN.png` (R through a cool-to-gold ramp, hard exclusions from
   G as a muted hatch, the planning-area limit quieter still), site polygons

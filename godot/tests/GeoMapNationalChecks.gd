@@ -509,9 +509,12 @@ func _reopen(ui: Control, map: Control) -> void:
 	await _frames(2)
 	var closed: bool = ui.get_active_tab() == "dashboard"
 	var again: Control = await t._open_map_by_key(ui)
-	var once := NATIONAL_FILES.all(func(rel: String) -> bool: return GeoData.parses_of(rel) == 1)
+	# At most once: a file another part already holds (the adapter's stub
+	# keeps its rows across GeoData.reset_cache) is not read again at all.
+	var once := NATIONAL_FILES.all(func(rel: String) -> bool: return GeoData.parses_of(rel) <= 1) \
+		and GeoData.parses_of("basemap.json") == 1
 	_check(closed and again == map and again.is_visible_in_tree() and GeoData.parse_count == parses and once,
-		"geo map: Esc closes the map and Cmd+2 reopens it with no file parsed again (each national file once, parse_count %d)" % GeoData.parse_count)
+		"geo map: Esc closes the map and Cmd+2 reopens it with no file parsed again (each national file at most once, parse_count %d)" % GeoData.parse_count)
 	_check(int(map.expansion_section().area().get("production_area", 0)) == 3 and map.chart().is_visible_in_tree()
 			and not map.drill_into(3),
 		"geo map: the map reopens on the national chart with the area still picked (drill_into is Track D's hook)")

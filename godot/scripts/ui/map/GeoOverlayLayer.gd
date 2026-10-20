@@ -37,7 +37,7 @@ var fjords_filled: int = 0
 var fjords_outlined: int = 0
 var offshore_drawn: int = 0
 
-## National-image pixel polygons, once per process: [{name, stage, area_id, ring}].
+## National-image pixel polygons, once per process: [{name, stage, ring}].
 static var _offshore_px: Array = []
 static var _fjords_px: Array = []
 static var _hatch: ImageTexture = null
@@ -121,9 +121,13 @@ func _rebuild() -> void:
 	if _bounds.size() != 4:
 		return
 	_project_once()
-	_offshore_local = _to_local(_offshore_px)
-	_fjords_local = _to_local(_fjords_px)
+	_offshore_local = _to_local(_offshore_px) if part == "areas" else []
+	_fjords_local = _to_local(_fjords_px) if part == "areas" else []
 	_stars.clear()
+	_hexes.clear()
+	if part != "candidates":
+		queue_redraw()
+		return
 	var best_by_po := {}
 	var count_by_po := {}
 	for s: Dictionary in GeoData.candidates():
