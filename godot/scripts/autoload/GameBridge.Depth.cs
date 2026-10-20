@@ -941,14 +941,20 @@ public partial class GameBridge : Node
 
     /// <summary>
     /// AI competitor companies for grey farm visuals (Phase 3).
-    /// Keys: "id", "name", "market_share", "position_x", "position_z", "strategy".
+    /// Keys: "id", "name", "market_share", "position_x", "position_z", "strategy",
+    /// "market_cap", "home_po_sites" (geo track A: the company's producing sea
+    /// grow-out localities in the home production area). Ordered by
+    /// home_po_sites, most first, then roster order (a stable sort read from
+    /// the cached rival layout), so the 3D fjord shows the rivals that farm
+    /// the player's own waters.
     /// </summary>
     public Godot.Collections.Array<Godot.Collections.Dictionary> GetCompetitorCompanies()
     {
         var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
         var competitors = SimulationEngine?.CompetitorAI?.Competitors;
         if (competitors == null || competitors.Count == 0) return result;
-        
+        var ordered = SimulationEngine.CompetitorsByHomePresence();
+
         // Assign fixed visual positions around the fjord for each competitor
         // These are synthetic positions for visual representation only
         var positions = new List<Vector3>
@@ -964,11 +970,12 @@ public partial class GameBridge : Node
         };
         
         int posIndex = 0;
-        foreach (var c in competitors)
+        foreach (var presence in ordered)
         {
+            var c = presence.Company;
             var pos = positions[posIndex % positions.Count];
             posIndex++;
-            
+
             result.Add(new Godot.Collections.Dictionary
             {
                 ["id"] = c.Id,
@@ -978,6 +985,7 @@ public partial class GameBridge : Node
                 ["position_z"] = pos.Z,
                 ["strategy"] = c.Strategy.ToString(),
                 ["market_cap"] = (double)c.MarketCap,
+                ["home_po_sites"] = presence.HomePoSites,
             });
         }
         return result;

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -77,7 +78,7 @@ namespace LakskongenSim.Environment.Geo
             // PO3 Rød Sone: north (Øygarden, Sotra) and south (Karmøy) of the area.
             ("po3_red_sone", "po3_nord", 3, 20115),
             ("po3_red_sone", "po3_sor", 3, 18217),
-            // ISA-utbruddet: a core site with neighbours 2.3 km north and 3.3 km south (Smøla).
+            // ISA-utbruddet: a core site with neighbours 2.3 km north and 3.7 km south (Smøla).
             ("isa_utbrudd", "isa_kjerne", 6, 29116),
             ("isa_utbrudd", "isa_nord", 6, 45129),
             ("isa_utbrudd", "isa_sor", 6, 39217),
@@ -109,8 +110,13 @@ namespace LakskongenSim.Environment.Geo
         /// An area outside 1-13 picks from every producing locality.
         /// </summary>
         public static GeoAnchor AnchorOf(string zoneId, int productionArea)
+            => Resolved.GetOrAdd((zoneId ?? "", productionArea), key => Resolve(key.Zone, key.Po));
+
+        /// <summary>Every anchor resolved so far (a pure function, so caching it changes no answer).</summary>
+        private static readonly ConcurrentDictionary<(string Zone, int Po), GeoAnchor> Resolved = new();
+
+        private static GeoAnchor Resolve(string zone, int productionArea)
         {
-            string zone = zoneId ?? "";
             if (LazyAuthored.Value.TryGetValue((zone, productionArea), out var authored))
                 return authored;
             if (ExpansionZones.TryGet(zone, out var catalogue) && catalogue.ProductionArea == productionArea)
