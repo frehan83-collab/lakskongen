@@ -84,6 +84,11 @@ func _init(max_distance: float = 1400.0) -> void:
 	_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_label.render_priority = 3
 	_label.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# Fixed-size text grows with distance and slides with the pill off a
+	# screen edge (keep_on_screen): its own bounds sit round the anchor,
+	# which may be off screen then, so it is culled no sooner than the pill
+	# (gfx-polish-1: 08b's slid-in barge chip showed an empty pill).
+	_label.extra_cull_margin = _quad.extra_cull_margin
 	add_child(_label)
 	for node: GeometryInstance3D in [_quad, _label]:
 		# A chip is not part of the world: no reflection in the water (G2-03).

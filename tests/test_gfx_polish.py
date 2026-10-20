@@ -293,6 +293,8 @@ def test_vessel_chips_keep_on_screen():
     assert "var reach := OFFSCREEN_PX + boat_reach_px(cam, view_size, anchor, vessel_half_length_m())" in chip
     assert 'var length: Variant = boat.get("length_m")' in chip
     assert "return half_length_m * focal_px / depth" in chip
+    # The text is culled no sooner than the pill (an empty pill showed in 08b).
+    assert "_label.extra_cull_margin = _quad.extra_cull_margin" in chip
 
 
 # ── The mirror's edges ─────────────────────────────────────────────────────────

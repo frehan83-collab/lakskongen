@@ -384,7 +384,10 @@ func _apply_variant(v: Dictionary) -> void:
 ## "mirrorcam.<property>" and "mirrorvp.<property>" (the planar mirror's
 ## environment, camera and viewport), and "hideall.<name prefix>=true" (every
 ## GeometryInstance3D under the FjordEnvironment whose name begins with the
-## prefix: "Shoal", "FishSchool", "Net"... to split a node's cost by part).
+## prefix: "Shoal", "FishSchool", "Net"... to split a node's cost by part), and
+## "eachgeom.<name glob>/<property>=value" (that property on every
+## GeometryInstance3D whose name matches, e.g. the trees' far LOD's
+## "eachgeom.Spruce_*_LOD1/visibility_range_end=4000").
 ## They are set right before every draw, after the director composed the
 ## frame, so they win.
 var _raw := {}
@@ -400,6 +403,9 @@ func _apply_raw_overrides() -> void:
 	for key: String in _raw:
 		if scope_of(key) == "hideall":
 			_hide_all(key.substr(key.find(".") + 1), bool(_raw[key]))
+			continue
+		if scope_of(key) == "eachgeom":
+			_set_each(key.substr(key.find(".") + 1), _raw[key])
 			continue
 		var target := _raw_target(key)
 		if target.is_empty():
@@ -438,6 +444,33 @@ func _hide_all(prefix: String, hidden: bool) -> void:
 	for node: Node3D in _hideall_nodes[prefix]:
 		if is_instance_valid(node):
 			node.visible = not hidden
+
+
+## Set a property on every GeometryInstance3D under the environment whose
+## name matches a glob ("eachgeom.Spruce_*_LOD1/visibility_range_end=4000":
+## pattern, slash, property), remembering each one's value for the restore.
+## The nodes are found once per variant.
+func _set_each(spec: String, value: Variant) -> void:
+	var slash := spec.rfind("/")
+	if slash <= 0:
+		return
+	var pattern := spec.substr(0, slash)
+	var prop := spec.substr(slash + 1)
+	if not _hideall_nodes.has(spec):
+		var found: Array[Node3D] = []
+		var stack: Array[Node] = [_env]
+		while not stack.is_empty():
+			var node: Node = stack.pop_back()
+			for child in node.get_children():
+				stack.append(child)
+			if node is GeometryInstance3D and String(node.name).match(pattern):
+				found.append(node as Node3D)
+				_raw_saved["eachgeom:%d:%s" % [node.get_instance_id(), prop]] = [node, prop, node.get(prop), false]
+		_hideall_nodes[spec] = found
+		print("PERF_EACHGEOM pattern=%s property=%s nodes=%d" % [pattern, prop, found.size()])
+	for node: Node3D in _hideall_nodes[spec]:
+		if is_instance_valid(node):
+			node.set(prop, value)
 
 
 func _restore_raw() -> void:

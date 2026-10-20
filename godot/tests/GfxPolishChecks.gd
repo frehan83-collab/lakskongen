@@ -302,7 +302,10 @@ func _check_vessel_chips(env: FjordEnvironment, cam: FjordCamera, pens: FishPenM
 	for i in 3:
 		await t.get_tree().process_frame
 	var bow_left := cam.unproject_position(ride.global_position).x + ride.edge_shift.x * kk - ride.get_size_px().x * kk * 0.5
-	var stays := ride.on_screen and (ride.get_node("Pill") as Node3D).visible and bow_left >= VesselChip.EDGE_MARGIN_PX - 0.6
+	# The text slides with the pill and is culled no sooner than it (its own
+	# bounds sit round the off-screen anchor).
+	var text_kept := (ride.get_node("Text") as GeometryInstance3D).extra_cull_margin >= (ride.get_node("Pill") as GeometryInstance3D).extra_cull_margin
+	var stays := ride.on_screen and (ride.get_node("Pill") as Node3D).visible and bow_left >= VesselChip.EDGE_MARGIN_PX - 0.6 and text_kept
 	barge.global_position = cam.project_position(Vector2(-1.5 * half_px - 20.0, view.y * 0.5), depth)
 	for i in 3:
 		await t.get_tree().process_frame
