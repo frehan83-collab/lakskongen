@@ -167,6 +167,10 @@ func _run() -> void:
 	await _test_every_build_refusal_reads_as_text()
 	# U2-03: end screens, the liquidity ladder, the rescue loan, campaign progress.
 	await preload("res://tests/EndScreenFlowChecks.gd").new().run(self)
+	# U2-02: the learn-by-doing first season (the card, the pointer, the
+	# clock's pace, no tutorial elsewhere, a skip is no win, the season won
+	# by input alone).
+	await preload("res://tests/FirstSeasonFlowChecks.gd").new().run(self)
 
 	_clear_test_saves()
 	CampaignProgress.reset()

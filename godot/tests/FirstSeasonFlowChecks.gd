@@ -6,6 +6,8 @@ extends RefCounted
 ## 1. The card shows on a tutorial step (its @export nodes are wired), one
 ##    progress dot per step, the pointer on the step's control, the clock
 ##    held while a "do" step waits; a click on the pointed-at tab is step 1.
+##    With "Vis opplæring" off: no card, no hold, no locked tab, and the
+##    click still completes step 1.
 ## 2. po3_red_sone, ISA and the algae scenario: every tab open on day 0, no
 ##    card, no hold; the research tab opens by its shortcut.
 ## 3. "Hopp over" by real clicks: the tutorial is skipped, every tab opens,
@@ -14,10 +16,16 @@ extends RefCounted
 ##    at (and presses the keys the card names) wins Første sesong. Nothing
 ##    calls a bridge verb: every step is a click, a key or the clock running.
 ##    On the way: every "hold" step stops the clock when it comes up, the
-##    "slow" steps drop it to 1×, the pointer's ring encloses the control.
+##    "slow" step drops it to 1×, the pointer rings a control on screen (or
+##    points the way to scroll to it).
+##    The seed is one where the cash falls short of the second site at the
+##    funding step: the pointer leads to «Økonomi» and the bank's loan, and
+##    the click on it is the step (the loan verb, RUN_LOG §7).
 
 const GAME_SCENE := "res://scenes/GameScene.tscn"
-const WIN_SEED := 9
+## Seed of the input season: the funding step waits for cash on it (seed 9
+## has the cash on arrival, and its funding step completes as it comes up).
+const WIN_SEED := 7
 ## Real seconds the input player may take for the whole season.
 const WIN_TIMEOUT_S := 300.0
 const SETTLE_S := 0.25
@@ -26,6 +34,10 @@ const WHEEL_TICKS := 3
 const NO_EVENT_SCENARIOS := ["po3_red_sone", "isa_utbrudd", "algekatastrofe"]
 
 var t: Node = null
+## Called (and awaited) at the moments a capture wants a frame of:
+## "step_<id>" when a step comes up in the input season, "skip_dialog",
+## "season_won" (qa/scenes/FirstSeasonCapture.tscn). Unset in the tests.
+var on_moment: Callable = Callable()
 
 
 func run(runner: Node) -> void:
@@ -34,6 +46,7 @@ func run(runner: Node) -> void:
 	GameplayPrefs.force_auto_pause(true)
 	MotionPrefs.force(true)
 	await _the_card_shows_with_a_dot_per_step_and_points_at_the_tab()
+	await _with_the_guide_off_nothing_is_gated_and_steps_still_count()
 	await _every_tab_is_open_outside_the_first_season()
 	await _a_skip_by_input_is_no_win()
 	await _a_player_using_only_input_wins_the_first_season()
@@ -44,6 +57,11 @@ func run(runner: Node) -> void:
 
 func _check(ok: bool, label: String) -> void:
 	t._check(ok, label)
+
+
+func _moment(moment: String) -> void:
+	if on_moment.is_valid():
+		await on_moment.call(moment)
 
 
 func _frames(n: int) -> void:
@@ -107,11 +125,16 @@ func _the_card_shows_with_a_dot_per_step_and_points_at_the_tab() -> void:
 	_check(card.highlight().target() == tab and ring.encloses(tab.get_global_rect()),
 		"first season: the pointer rings the Merder tab (%s around %s)" % [str(ring), str(tab.get_global_rect())])
 	_check(t._sim.is_clock_held("tutorial") and card.is_holding_clock(), "first season: a 'do' step holds the clock")
+	# Space twice (a pause key toggles): the clock runs after neither.
 	var day := int(t._sim.current_day)
-	t.get_viewport().gui_release_focus()
-	await t._press_key(KEY_SPACE, 32)
-	await _settle(1.4)
-	_check(int(t._sim.current_day) == day, "first season: Space cannot run the clock past a waiting step (day %d)" % int(t._sim.current_day))
+	var ran := []
+	for press in 2:
+		t.get_viewport().gui_release_focus()
+		await t._press_key(KEY_SPACE, 32)
+		await _settle(0.7)
+		ran.append(bool(t._sim.get_clock_state().get("running", true)))
+	_check(int(t._sim.current_day) == day and ran == [false, false],
+		"first season: Space cannot run the clock past a waiting step (day %d, running after each press %s)" % [int(t._sim.current_day), str(ran)])
 	await t._lint_screen("first season card")
 	await _click(tab)
 	await _settle()
@@ -126,6 +149,32 @@ func _the_card_shows_with_a_dot_per_step_and_points_at_the_tab() -> void:
 		"first season: the research tab is locked until step 11 and says so ('%s')" % research_tip)
 	await _free(scene)
 	_check(not t._sim.is_clock_held("tutorial"), "first season: a freed scene gives the clock back")
+
+
+## "Vis opplæring" off: no card, no hold, no locked tab in Første sesong, and
+## a step still completes on what the player does (a click on Merder).
+func _with_the_guide_off_nothing_is_gated_and_steps_still_count() -> void:
+	GameplayPrefs.force_tutorial(false)
+	_check(t._sim.start_qa_scenario("forste_sesong", 41), "guide off: Første sesong starts")
+	var scene := await _spawn()
+	var card := _card(scene)
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	var locked_tabs := func() -> Array[String]:
+		var ids: Array[String] = []
+		for id: String in ui._tab_buttons:
+			if (ui._tab_buttons[id] as Button).disabled:
+				ids.append(id)
+		return ids
+	# The rail re-reads the setting within TutorialState.GUIDE_PREF_INTERVAL_S.
+	await t._wait_until(func() -> bool: return (locked_tabs.call() as Array).is_empty(), 3.0)
+	var locked: Array[String] = locked_tabs.call()
+	_check(not card.visible and not t._sim.is_clock_held("tutorial") and locked.is_empty() and bool(t._sim.tutorial_active),
+		"guide off: no card, no hold and no locked tab %s while the season runs" % str(locked))
+	await _click(ui.tab_route("pens"))
+	await _settle()
+	_check(int(t._sim.tutorial_step_number) == 2, "guide off: a click on Merder still completes step 1 (step %d)" % int(t._sim.tutorial_step_number))
+	await _free(scene)
+	GameplayPrefs.force_tutorial(true)
 
 
 # ── 2. D19: no tutorial and no gate elsewhere ─────────────────────────────────
@@ -162,6 +211,7 @@ func _a_skip_by_input_is_no_win() -> void:
 	var dialog: ConfirmationDialog = card.skip_dialog()
 	_check(dialog != null and dialog.visible and dialog.dialog_text == tr("TUTORIAL_CARD_SKIP_CONFIRM"),
 		"skip: 'Hopp over' asks first, and says a skip is no win")
+	await _moment("skip_dialog")
 	if dialog != null:
 		await _click(dialog.get_ok_button())
 		await _settle()
@@ -185,8 +235,8 @@ func _a_skip_by_input_is_no_win() -> void:
 
 # ── 4. The season, by input only ──────────────────────────────────────────────
 
-func _a_player_using_only_input_wins_the_first_season() -> void:
-	_check(t._sim.start_qa_scenario("forste_sesong", WIN_SEED), "input season: Første sesong starts (seed %d)" % WIN_SEED)
+func _a_player_using_only_input_wins_the_first_season(seed: int = WIN_SEED) -> void:
+	_check(t._sim.start_qa_scenario("forste_sesong", seed), "input season: Første sesong starts (seed %d)" % seed)
 	var scene := await _spawn()
 	var card := _card(scene)
 	var crit: Control = scene.get_node("%CriticalEventCard")
@@ -194,6 +244,8 @@ func _a_player_using_only_input_wins_the_first_season() -> void:
 	end_screen.scene_change_override = func(_path: String) -> void: pass
 	var seen := {}            # step number -> what the step looked like when it came up
 	var unreached := []       # steps whose pointer did not ring a visible control
+	var funding_route := []   # what the pointer ringed while the funding step waited
+	var loans_before := (t._sim.get_active_loans() as Array).size()
 	var deadline := Time.get_ticks_msec() + int(WIN_TIMEOUT_S * 1000.0)
 	var actions := 0
 	while Time.get_ticks_msec() < deadline:
@@ -217,29 +269,50 @@ func _a_player_using_only_input_wins_the_first_season() -> void:
 			seen[step] = _snapshot(card, status)
 			if str(status.get("kind", "")) == "do" and not bool(seen[step]["ringed"]):
 				unreached.append(step)
+			await _moment("step_" + str(status.get("id", "")))
+		if str(status.get("id", "")) == "funding" and card.highlight().is_pointing():
+			var ringed_name := str(card.highlight().target().name)
+			if funding_route.is_empty() or funding_route.back() != ringed_name:
+				funding_route.append(ringed_name)
 		actions += 1
 		await _act(scene, card, status)
 	var won := bool(t._sim.get_scenario_goal().get("won", false))
 	await _settle(0.6)
+	await _moment("season_won")
 	_check(won and end_screen.is_open() and str(end_screen.verdict()) == "won",
-		"input season: a player using only clicks and keys wins Første sesong on day %d (%d actions, seed %d)" % [int(t._sim.current_day), actions, WIN_SEED])
+		"input season: a player using only clicks and keys wins Første sesong on day %d (%d actions, seed %d)" % [int(t._sim.current_day), actions, seed])
 	_check(int(t._sim.tutorial_completed_count) == 18 and bool(t._sim.get_tutorial_status().get("earned", false)),
 		"input season: all 18 steps were done by play (%d)" % int(t._sim.tutorial_completed_count))
-	var held_ok := true
-	var slow_ok := true
-	var holds := []
-	for step: int in seen:
-		var s: Dictionary = seen[step]
-		if s["pace"] == "hold":
-			held_ok = held_ok and bool(s["held"])
-			holds.append(step)
-		if s["pace"] == "slow":
-			slow_ok = slow_ok and int(s["speed"]) == 1
-	_check(seen.size() == 18 and held_ok and holds.size() >= 12,
-		"input season: every 'hold' step stopped the clock when it came up (%d steps seen, holds at %s)" % [seen.size(), str(holds)])
-	_check(slow_ok, "input season: the 'slow' steps (the harvest order, the funding) dropped the clock to 1×")
-	_check(unreached.is_empty(), "input season: every 'do' step's pointer ringed a control on screen %s" % str(unreached))
+	# Every step the player acts on ("do") came up on screen; a "wait" step
+	# (the growth, the sale) may pass at 30× while the player is busy.
+	var hold_steps := []
+	var slow_steps := []
+	var unseen_do := []
+	for step: Dictionary in t._sim.get_tutorial_steps():
+		var number := int(step.get("number", 0))
+		if str(step.get("kind", "")) == "do" and not seen.has(number):
+			unseen_do.append(number)
+		if str(step.get("pace", "")) == "hold":
+			hold_steps.append(number)
+		elif str(step.get("pace", "")) == "slow":
+			slow_steps.append(number)
+	var not_held := hold_steps.filter(func(n: int) -> bool: return not seen.has(n) or not bool(seen[n]["held"]))
+	var not_slowed := slow_steps.filter(func(n: int) -> bool: return not seen.has(n) or int(seen[n]["speed"]) != 1)
+	_check(unseen_do.is_empty() and not_held.is_empty() and hold_steps.size() == 14,
+		"input season: every 'hold' step stopped the clock when it came up (holds %s, not held %s, 'do' steps never shown %s)" % [str(hold_steps), str(not_held), str(unseen_do)])
+	_check(not slow_steps.is_empty() and not_slowed.is_empty(),
+		"input season: the 'slow' step (the funding) dropped the clock to 1× (%s, not slowed %s)" % [str(slow_steps), str(not_slowed)])
+	_check(unreached.is_empty(), "input season: every 'do' step's pointer showed its control on screen, or the way to scroll to it %s" % str(unreached))
 	_check(not card.visible or card.done_button.visible, "input season: the card ends on the finished season")
+	# The loan verb: the funding step came up short of its goal, the pointer
+	# led to the finance tab and then the bank's loan button, and the click
+	# took the loan, which finished the step (the pointer moved on).
+	var funding: Dictionary = seen.get(13, {})
+	var loans := (t._sim.get_active_loans() as Array).size()
+	_check(not funding.is_empty() and float(funding.get("cash", 0.0)) < float(funding.get("goal", 0.0)),
+		"input season: the funding step waited for cash (%.0f of %.0f NOK)" % [float(funding.get("cash", 0.0)), float(funding.get("goal", 0.0))])
+	_check(funding_route == ["Tab_finance", "BtnTakeLoan"] and loans == loans_before + 1,
+		"input season: the pointer led to «Økonomi» and the loan, and the click on it was the step (route %s, %d loan(s))" % [str(funding_route), loans - loans_before])
 	print("[U2-02] input season: won=%s day=%d actions=%d steps=%s" % [str(won), int(t._sim.current_day), actions, str(seen)])
 	await _free(scene)
 
@@ -250,10 +323,15 @@ func _snapshot(card: Control, status: Dictionary) -> Dictionary:
 	var clock: Dictionary = t._sim.get_clock_state()
 	var h: TutorialHighlight = card.highlight()
 	var target := h.target() if h != null else null
-	var ringed := target != null and h.ring_rect().encloses(target.get_global_rect().intersection(h.ring_rect()))
+	# On screen: the ring around a control the viewport shows, or the
+	# chevron on the edge of the list the control is scrolled out of.
+	var screen := t.get_viewport().get_visible_rect()
+	var ringed := target != null and (h.is_scrolled_away() or screen.intersects(h.ring_rect()))
+	var progress: Dictionary = status.get("progress", {})
 	return {"id": str(status.get("id", "")), "pace": str(status.get("pace", "")), "held": t._sim.is_clock_held("tutorial"),
 		"speed": int(clock.get("speed", 0)), "day": int(t._sim.current_day), "ringed": ringed,
-		"target": target.name if target != null else ""}
+		"target": target.name if target != null else "",
+		"cash": float(progress.get("value", 0.0)), "goal": float(progress.get("goal", 0.0))}
 
 
 ## Do what the current step asks, by input only.

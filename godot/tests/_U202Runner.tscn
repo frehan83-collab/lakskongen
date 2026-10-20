@@ -1,6 +1,0 @@
-[gd_scene load_steps=2 format=3]
-
-[ext_resource type="Script" path="res://tests/_U202Runner.gd" id="1_u202"]
-
-[node name="U202Runner" type="Node"]
-script = ExtResource("1_u202")
