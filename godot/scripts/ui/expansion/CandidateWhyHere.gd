@@ -39,6 +39,9 @@ var _note: Label = null
 ## The candidate shown ({} none) and the zone its build uses.
 var shown: Dictionary = {}
 var _zone_id := ""
+## True when every listed place already holds one of the company's sites
+## (the empty panel then says the build is the zone's, without a place).
+var all_held := false
 
 
 func _init() -> void:
@@ -103,9 +106,8 @@ func _init() -> void:
 func _ready() -> void:
 	_overline.text = tr("SEA_CANDIDATE_WHY_TITLE")
 	_score_head.text = tr("SEA_CANDIDATE_SCORE_LABEL")
-	_empty.text = tr("SEA_CANDIDATE_WHY_EMPTY")
 	_note.text = tr("SEA_CANDIDATE_HONEST_NOTE")
-	show_candidate(shown, _zone_id)
+	_show(shown, _zone_id, all_held)
 
 
 ## A score term's name ("current" → "Strøm").
@@ -121,11 +123,32 @@ static func binding_text(term: String) -> String:
 ## Show a candidate (the bridge's row; {} for the hint) built through `zone_id`
 ## ("" for its own build zone).
 func show_candidate(c: Dictionary, zone_id: String) -> void:
+	_show(c, zone_id, false)
+
+
+## Nothing to choose: every listed place already holds one of the company's
+## sites, so the build through `zone_id` makes a locality without a place of
+## its own, placed approximately where the zone lies (captain's review of
+## track B, finding 5).
+func show_all_held(zone_id: String) -> void:
+	_show({}, zone_id, true)
+
+
+## The hint an empty panel shows ("choose a place", or "every place is yours").
+func hint_label() -> Label:
+	return _empty
+
+
+func _show(c: Dictionary, zone_id: String, every_place_held: bool) -> void:
 	shown = c
 	_zone_id = zone_id
+	all_held = every_place_held and c.is_empty()
 	_empty.visible = c.is_empty()
 	_body.visible = not c.is_empty()
-	if c.is_empty() or not is_inside_tree():
+	if not is_inside_tree():
+		return
+	_empty.text = tr("SEA_CANDIDATE_WHY_ALL_HELD") % SimLabels.zone(zone_id) if all_held else tr("SEA_CANDIDATE_WHY_EMPTY")
+	if c.is_empty():
 		return
 	var binding := str(c.get("binding", "none"))
 	_place.text = str(c.get("label", ""))

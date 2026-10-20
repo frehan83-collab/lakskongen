@@ -163,10 +163,16 @@ func open_for_zone(zone_id: String) -> void:
 
 
 ## Geo B: open the dialog on Sjø at an open-pen candidate (the map's site
-## card); with no zone, the candidate's build zone.
+## card). The place asked for is the place shown and built: with no zone, or a
+## zone in another production area, the build uses the place's own build
+## zone; a held or unknown place stays chosen and the verdict says why it
+## cannot be built (captain's review of track B, finding 1).
 func open_for_candidate(zone_id: String, candidate_id: String) -> void:
-	if zone_id == "" and _sim != null:
-		zone_id = str((_sim.plan_site_build_at("", candidate_id).get("candidate", {}) as Dictionary).get("build_zone_id", ""))
+	if _sim != null:
+		var at: Dictionary = _sim.plan_site_build_at(zone_id, candidate_id)
+		var place: Dictionary = at.get("candidate", {})
+		if not place.is_empty() and int(place.get("po", 0)) != int(at.get("production_area", 0)):
+			zone_id = str(place.get("build_zone_id", zone_id))
 	_zone_id = zone_id
 	_reset_choices("sjo")
 	_candidate = candidate_id
@@ -568,6 +574,8 @@ func _build_options() -> void:
 # ── Sjø: the fjord zone's locality (U2-01) ──────────────────────────────────
 
 func _refresh_sea() -> void:
+	if _zone_id == "" and _candidate == "":
+		_zone_id = _zone_when_every_place_is_held()
 	_facility_host.visible = false
 	var has_zone := _zone_id != ""
 	_preview_header.visible = has_zone and _variant == SEA_BUILD
@@ -590,12 +598,17 @@ func _refresh_sea() -> void:
 		_explain.text = tr("EXPANSION_BUILD_EXPLAIN") % [SimFormatters.num(float(_plan.get("area_licence_mtb_t", 0.0))), area]
 	else:
 		_title.text = tr("BUILD_TITLE")
-		_subtitle.text = tr("BUILD_SUBTITLE_SEA_PICK_ZONE")
+		# The picker's list frames the step; without one the map is the way in.
+		_subtitle.text = tr("BUILD_SUBTITLE_SEA_PICK_ZONE") if _sea_rows.is_empty() \
+			else tr("SEA_CANDIDATE_SUBTITLE_PICK") % int(_sea_rows[0].get("po", 0))
 	var built_now := _built_site_id != ""
 	var allowed := has_zone and bool(_plan.get("allowed", false))
 	var reason := ""
 	if not has_zone:
-		reason = tr("SEA_CANDIDATE_PICK") if not _sea_rows.is_empty() else tr("BUILD_SEA_PICK_ZONE")
+		reason = tr("SEA_CANDIDATE_PICK") if _candidates.first_free_row() != null else tr("BUILD_SEA_PICK_ZONE")
+		if _candidate != "":
+			# An unknown place asked for with no zone: the candidate check's own text.
+			reason = tr(str(_sim.plan_site_build_at("", _candidate).get("candidate_label_key", "")))
 	elif not allowed:
 		reason = tr(str(_plan.get("label_key", "")))
 		if str(_plan.get("reason_key", "")) == "insufficient_funds":
@@ -618,30 +631,48 @@ func _refresh_sea() -> void:
 ## Geo B: the area's open-pen places beside the chosen one's 'why here' (no
 ## zone: the home area's, nothing chosen). A zone's build preselects the first
 ## free place, so tutorial step 16 stays BuildBtn then ConfirmBtn; with none
-## free the build is U2-01's without a place. Returns the chosen place's label.
+## free the build is U2-01's without a place. A place already chosen (by the
+## player or the map) is never swapped for the suggestion, even held or
+## unknown: the plan's verdict says why it cannot be built. Returns the chosen
+## place's label.
 func _refresh_places() -> String:
 	var listed := _variant == SEA_BUILD and (_zone_id == "" or bool(_plan.get("success", false)))
 	_sea_rows = _sim.get_sea_candidates(int(_plan.get("production_area", 0))) if listed else []
 	var chosen: Dictionary = {}
 	for c in _sea_rows:
-		if str(c.get("id", "")) == _candidate:
+		if str(c.get("id", "")) == _candidate or (_candidate == "" and _zone_id != "" and bool(c.get("suggested", false))):
 			chosen = c
-	for c in _sea_rows:
-		if chosen.is_empty() and _zone_id != "" and bool(c.get("suggested", false)):
-			chosen = c
-	_candidate = str(chosen.get("id", ""))
+			break
+	if _candidate == "":
+		_candidate = str(chosen.get("id", ""))
 	_plot_header.text = tr("SEA_CANDIDATE_HEADER")
 	_plot_header.visible = not _sea_rows.is_empty()
 	_plot_host.visible = not _sea_rows.is_empty()
 	_plot_lens.visible = false
 	_candidates.get_parent().visible = true
 	_candidates.show_candidates(_sea_rows, _candidate)
-	_why.show_candidate(chosen, _zone_id)
+	if chosen.is_empty() and not _sea_rows.is_empty() and _candidates.first_free_row() == null:
+		_why.show_all_held(_zone_id)
+	else:
+		_why.show_candidate(chosen, _zone_id)
 	var row := _candidates.row_button(_candidate)
-	_confirm_btn.focus_neighbor_top = _confirm_btn.get_path_to(row) if row != null else NodePath()
+	var reachable := row != null and row.focus_mode != Control.FOCUS_NONE
+	_confirm_btn.focus_neighbor_top = _confirm_btn.get_path_to(row) if reachable else NodePath()
 	if _candidate != "" and _zone_id != "":
 		_plan = _sim.plan_site_build_at(_zone_id, _candidate)
 	return str(chosen.get("label", ""))
+
+
+## Geo B: the zone a Sjø build with no zone takes when every place in the
+## home area already holds one of the company's sites ("" while one is free):
+## the build is then the zone's, without a place, instead of a list with
+## nothing to choose (captain's review of track B, finding 3).
+func _zone_when_every_place_is_held() -> String:
+	var rows: Array = _sim.get_sea_candidates(0)
+	for c in rows:
+		if str(c.get("taken_by_site_id", "")) == "":
+			return ""
+	return str(rows[0].get("build_zone_id", "")) if not rows.is_empty() else ""
 
 
 func _build_ledger() -> void:
@@ -840,6 +871,9 @@ func _show_places() -> void:
 func _focus_variant() -> void:
 	if _family == "sjo" and _zone_id == "" and _plot_host.visible and _candidates.first_free_row() != null:
 		_candidates.first_free_row().grab_focus()   # Geo B: the no-zone picker's places come first
+		return
+	if _family == "sjo" and _plot_host.visible and _candidates.first_free_row() == null and not _confirm_btn.disabled:
+		_confirm_btn.grab_focus()   # Geo B: every place held, the zone's build is what is left to do
 		return
 	var b := variant_button(_variant) if _variant != "" else null
 	if b == null or b.disabled:

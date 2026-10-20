@@ -2568,7 +2568,9 @@ SEA_CANDIDATE_SHORT_RIVER,River,Lakseelv
 SEA_CANDIDATE_SHORT_STAGE,Stage,Planstatus
 SEA_CANDIDATE_SHORT_TEMPERATURE,Temperature,Temperatur
 SEA_CANDIDATE_SHORT_WAVES,Waves,Bølger
+SEA_CANDIDATE_SUBTITLE_PICK,Production area %d · open pens at the area's places,Produksjonsområde %d · åpne merder på områdets steder
 SEA_CANDIDATE_TAKEN_TIP,%s already stands here.,%s står allerede her.
+SEA_CANDIDATE_WHY_ALL_HELD,Every place in the list already holds one of your localities. A new one is built in %s without a place of its own and is placed approximately where the zone lies.,Alle stedene i listen har allerede et av anleggene dine. Et nytt anlegg bygges i %s uten eget sted og plasseres omtrent der sonen ligger.
 SEA_CANDIDATE_WHY_EMPTY,Choose a place to see why it ranks where it does.,Velg et sted for å se hvorfor det ligger der det gjør i rekken.
 SEA_CANDIDATE_WHY_TITLE,Why here,Hvorfor her
 SEA_CANDIDATE_ZONE,Licence and water: the zone %s,Lisens og vann: sonen %s

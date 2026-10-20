@@ -19,6 +19,13 @@ extends RefCounted
 ##    choose a place, follow it in the 'why here' and build there.
 ## 5. The Hav lens: hav_1 shows its open-sea area, planning stage, real
 ##    distance and depth with the climate note; off_1 has no geo rows.
+## 6-8. The captain's review of track B (findings 1-5): a build goes to the
+##    place the player chose, not the suggestion, by a click and by keys that
+##    skip a held place, and the picker's subtitle frames its list (one
+##    instruction); open_for_candidate keeps the place it is given (the zone
+##    follows a place in another area, a held or unknown place stays chosen
+##    with its check's text); with every place in the home area held, Sjø
+##    takes the home zone, the 'why here' says so, the confirm builds there.
 
 const DialogLayoutLint := preload("res://tests/DialogLayoutLint.gd")
 
@@ -49,6 +56,9 @@ func run(runner: Node) -> void:
 		await _tutorial_route_builds_at_the_first_place(map)
 		await _the_picker_builds_by_keys_alone(map)
 		_the_hav_lens_names_the_open_sea_area(map)
+		await _a_chosen_place_is_where_the_build_goes(map)
+		await _open_for_candidate_keeps_the_place_asked_for(map)
+		await _every_place_held(map)
 	scene.queue_free()
 	await t.get_tree().process_frame
 	GameplayPrefs.force_auto_pause(null)
@@ -316,3 +326,180 @@ func _the_hav_lens_names_the_open_sea_area(map: Control) -> void:
 			and not off.has(tr("GEO_PLOT_STAGE")) and not lens.geo_note().visible
 			and off.get(tr("BUILD_PLOT_DISTANCE"), "") == SimFormatters.num(float(off_1.get("real_distance_km", 0.0)), 1) + " km",
 		"geo hav: off_1 has no geo rows and keeps its own distance")
+
+
+# ── 6-8: the captain's review of track B ─────────────────────────────────────
+
+## The newest of the company's site locations ({} none).
+func _last_location() -> Dictionary:
+	var locations: Array = sim.get_player_site_locations()
+	return locations[locations.size() - 1] if not locations.is_empty() else {}
+
+
+func _suggested_id(rows: Array) -> String:
+	for r in rows:
+		if bool(r.get("suggested", false)):
+			return str(r.get("id", ""))
+	return ""
+
+
+## Finding 2: the build goes to the place the player chose, not to the
+## suggestion (a click on a later place; keys that skip a held place).
+## Finding 4: the picker's subtitle frames its list instead of pointing at the
+## map, so the dialog gives one instruction.
+func _a_chosen_place_is_where_the_build_goes(map: Control) -> void:
+	_check(bool(t.get_node("/root/GameBridge").QaGrantCash(100_000_000.0)),
+		"geo sjø: setup: a second QA grant pays for every place in PO 3")
+	var rows: Array = sim.get_sea_candidates(3)
+	var suggested := _suggested_id(rows)
+	var dialog := await _open_home_build(map)
+	if dialog == null:
+		return
+	var list := dialog.candidate_list() as SeaCandidateList
+	var pick := "PO03-05"
+	list.scroll().ensure_control_visible(list.row_button(pick))
+	await _scroll_to(dialog, list.row_button(pick))
+	await t._click_control(list.row_button(pick))
+	var count: int = sim.get_player_site_locations().size()
+	await t._click_control(dialog.get_node("%ConfirmBtn"))
+	var built := _last_location()
+	var row := _row(rows, pick)
+	_check(suggested == "PO03-03" and sim.get_player_site_locations().size() == count + 1
+			and str(built.get("candidate_id", "")) == pick and str(built.get("source", "")) == "candidate"
+			and int(built.get("x", 0)) == int(row.get("x", -1)) and int(built.get("y", 0)) == int(row.get("y", -1))
+			and (dialog.get_node("%ResultTitle") as Label).text == tr("SEA_CANDIDATE_DONE_TITLE") % [str(built.get("site_label", "")), str(row.get("label", ""))],
+		"geo sjø: a click on %s, not the suggested %s, builds the site there (%s)" % [pick, suggested, str(built)])
+	await t._click_control(dialog.get_node("%CancelBtn"))
+	# Keys alone, from «Nytt anlegg»: the picker's first free place is PO03-03.
+	await t._click_control(map.new_farm_button())
+	dialog = map.build_dialog()
+	await t.get_tree().process_frame
+	await t._press_key(KEY_ENTER)
+	await t.get_tree().process_frame
+	var subtitle := (dialog.get_node("%SubtitleLabel") as Label).text
+	_check(dialog.zone_id() == "" and subtitle == tr("SEA_CANDIDATE_SUBTITLE_PICK") % 3
+			and subtitle != tr("BUILD_SUBTITLE_SEA_PICK_ZONE")
+			and (dialog.get_node("%VerdictLabel") as Label).text == tr("SEA_CANDIDATE_PICK"),
+		"geo sjø: the picker's subtitle frames its list ('%s'), one instruction with the verdict" % subtitle)
+	list = dialog.candidate_list() as SeaCandidateList
+	# The steps fit their content and scroll to the places a few frames on.
+	for i in 4:
+		await t.get_tree().process_frame
+	var view := (dialog.get_node("%StepScroll") as Control).get_global_rect()
+	var shown: Array = [dialog.get_node("%PlotHeader")]
+	for id: String in ["PO03-01", "PO03-02", "PO03-03", "PO03-04"]:
+		shown.append(list.row_button(id))
+	_check(shown.all(func(c: Control) -> bool: return view.encloses(c.get_global_rect().grow(-1.0))),
+		"geo sjø: «Nytt anlegg» → Sjø opens on the places: the list's head and first four rows lie in the steps' view (%s)" % str(view))
+	await t._lint_screen("geo sjø picker")
+	var focus := func() -> Control: return t.get_viewport().gui_get_focus_owner()
+	await t._press_key(KEY_DOWN)
+	await t._press_key(KEY_DOWN)
+	var keyed := "PO03-06"
+	_check(focus.call() == list.row_button(keyed) and dialog.selected_candidate() == keyed and dialog.zone_id() == HOME_ZONE,
+		"geo sjø: keyboard: Down, Down from PO03-03 skips the held %s to %s" % [pick, dialog.selected_candidate()])
+	await t._press_key(KEY_ENTER)
+	await t.get_tree().process_frame
+	count = sim.get_player_site_locations().size()
+	await t._press_key(KEY_ENTER)
+	built = _last_location()
+	row = _row(rows, keyed)
+	_check(sim.get_player_site_locations().size() == count + 1 and str(built.get("candidate_id", "")) == keyed
+			and int(built.get("x", 0)) == int(row.get("x", -1)) and int(built.get("y", 0)) == int(row.get("y", -1)),
+		"geo sjø: keyboard: Enter, Enter builds at %s, the place chosen, not the suggestion" % keyed)
+	await t._press_key(KEY_ESCAPE)
+
+
+## Finding 1: open_for_candidate (the map's 'Bygg her') opens on the place it
+## is given: the zone follows a place given with no zone or a zone in another
+## area; a held place or an id that names no open-pen place stays chosen, and
+## the verdict is its check's text with the confirm waiting.
+func _open_for_candidate_keeps_the_place_asked_for(map: Control) -> void:
+	var dialog: BuildSiteDialog = map.build_dialog()
+	var list := dialog.candidate_list() as SeaCandidateList
+	var confirm: Button = dialog.get_node("%ConfirmBtn")
+	var verdict: Label = dialog.get_node("%VerdictLabel")
+	var digest: String = sim.qa_state_digest()
+	var po3: Array = sim.get_sea_candidates(3)
+	var po4: Array = sim.get_sea_candidates(4)
+	var free3 := "PO03-07"
+	var zone4 := str(_row(po4, "PO04-03").get("build_zone_id", ""))
+	dialog.open_for_candidate(HOME_ZONE, free3)
+	await t.get_tree().process_frame
+	_check(dialog.zone_id() == HOME_ZONE and dialog.selected_candidate() == free3 and list.row_button(free3).button_pressed
+			and str(dialog.why_here().shown.get("id", "")) == free3 and not confirm.disabled
+			and (dialog.get_node("%TitleLabel") as Label).text == tr("SEA_CANDIDATE_BUILD_TITLE") % str(_row(po3, free3).get("label", "")),
+		"geo sjø: open_for_candidate(%s, %s) opens on that place, ready to build" % [HOME_ZONE, free3])
+	var opened: Array = []
+	for zone: String in ["", HOME_ZONE]:
+		dialog.open_for_candidate(zone, "PO04-03")
+		await t.get_tree().process_frame
+		opened.append([dialog.zone_id(), dialog.selected_candidate(), _ids(list.candidates) == _ids(po4),
+			str(dialog.why_here().shown.get("id", ""))])
+	var want := [zone4, "PO04-03", true, "PO04-03"]
+	_check(zone4 != "" and zone4 != HOME_ZONE and opened == [want, want],
+		"geo sjø: open_for_candidate with no zone or %s opens PO04-03 in its own zone %s %s" % [HOME_ZONE, zone4, str(opened)])
+	dialog.open_for_candidate(zone4, free3)
+	await t.get_tree().process_frame
+	_check(dialog.zone_id() == HOME_ZONE and dialog.selected_candidate() == free3 and _ids(list.candidates) == _ids(po3),
+		"geo sjø: open_for_candidate(%s, %s) follows the place back to %s" % [zone4, free3, dialog.zone_id()])
+	dialog.open_for_candidate(HOME_ZONE, FIRST)
+	await t.get_tree().process_frame
+	var taken := tr("SEA_CANDIDATE_REASON_CANDIDATE_TAKEN")
+	_check(dialog.selected_candidate() == FIRST and list.row_button(FIRST).disabled and list.row_button(FIRST).button_pressed
+			and str(dialog.why_here().shown.get("id", "")) == FIRST and verdict.visible and verdict.text == taken
+			and confirm.disabled and confirm.tooltip_text == taken,
+		"geo sjø: open_for_candidate on the held %s keeps it and says why ('%s')" % [FIRST, verdict.text])
+	dialog.open_for_candidate(HOME_ZONE, "HTH02-01")
+	await t.get_tree().process_frame
+	var missing := tr("SEA_CANDIDATE_REASON_CANDIDATE_NOT_FOUND")
+	var none_pressed := _ids(list.candidates).all(func(id: String) -> bool: return not list.row_button(id).button_pressed)
+	_check(dialog.selected_candidate() == "HTH02-01" and none_pressed and verdict.visible and verdict.text == missing
+			and confirm.disabled,
+		"geo sjø: open_for_candidate on an offshore id keeps it, builds nothing and says why ('%s')" % verdict.text)
+	_check(sim.qa_state_digest() == digest, "geo sjø: opening the dialog at places leaves the engine state digest unchanged")
+	dialog.close()
+
+
+## Findings 3 and 5: with every place in the home area held, «Nytt anlegg» →
+## Sjø is no dead end. It takes the home zone, the 'why here' says every place
+## is the company's and the new locality has none of its own, and the confirm
+## builds it there (anchored, approximate). The zone's own route says the same.
+func _every_place_held(map: Control) -> void:
+	var free: Array = sim.get_sea_candidates(3).filter(func(r: Dictionary) -> bool: return str(r.get("taken_by_site_id", "")) == "")
+	var built := 0
+	for r: Dictionary in free:
+		if bool(sim.build_expansion_site_at(HOME_ZONE, str(r.get("id", ""))).get("success", false)):
+			built += 1
+	var held: bool = sim.get_sea_candidates(3).all(func(r: Dictionary) -> bool: return str(r.get("taken_by_site_id", "")) != "")
+	_check(not free.is_empty() and built == free.size() and held, "geo sjø: setup: the other %d places in PO 3 are built" % built)
+	await t._click_control(map.new_farm_button())
+	var dialog: BuildSiteDialog = map.build_dialog()
+	await t.get_tree().process_frame
+	await t._press_key(KEY_ENTER)
+	await t.get_tree().process_frame
+	var list := dialog.candidate_list() as SeaCandidateList
+	var confirm: Button = dialog.get_node("%ConfirmBtn")
+	var why := dialog.why_here()
+	var all_disabled := list.candidates.size() == 12 and _ids(list.candidates).all(func(id: String) -> bool: return list.row_button(id).disabled)
+	_check(dialog.zone_id() == HOME_ZONE and dialog.selected_candidate() == "" and all_disabled and not confirm.disabled
+			and not (dialog.get_node("%VerdictLabel") as Label).visible and t.get_viewport().gui_get_focus_owner() == confirm,
+		"geo sjø: every place held: Enter on Sjø takes the home zone, the confirm ready and focused (zone '%s')" % dialog.zone_id())
+	_check(why.all_held and why.hint_label().is_visible_in_tree()
+			and why.hint_label().text == tr("SEA_CANDIDATE_WHY_ALL_HELD") % SimLabels.zone(HOME_ZONE),
+		"geo sjø: every place held: the 'why here' says so and where the new locality goes ('%s')" % why.hint_label().text)
+	await _lint_dialog(dialog, "every place held")
+	confirm.grab_focus()
+	var count: int = sim.get_player_site_locations().size()
+	await t._press_key(KEY_ENTER)
+	var last := _last_location()
+	_check(sim.get_player_site_locations().size() == count + 1 and str(last.get("source", "")) == "anchor"
+			and str(last.get("candidate_id", "-")) == "",
+		"geo sjø: every place held: the confirm builds the zone's locality without a place, at the zone's anchor")
+	await t._press_key(KEY_ESCAPE)
+	dialog = await _open_home_build(map)
+	if dialog == null:
+		return
+	_check(dialog.why_here().all_held and dialog.selected_candidate() == "" and not (dialog.get_node("%ConfirmBtn") as Button).disabled,
+		"geo sjø: every place held: the zone's «Bygg lokalitet» says so too, its build ready")
+	dialog.close()
