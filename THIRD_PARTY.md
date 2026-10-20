@@ -19,6 +19,13 @@ and the example mod pack are MIT.
 | Freesound sounds | Alert sounds | Freesound.org contributors | CC0 1.0 | `godot/assets/audio/sfx/lice_alert.wav`, `financial_crisis.wav`, `achievement_unlock.wav` |
 | Mixkit sound effects | Ambient sound | Mixkit (mixkit.co) | Mixkit Sound Effects Free License | `godot/assets/audio/ambient/*.ogg` |
 | Music by Kevin MacLeod | Music | Kevin MacLeod (incompetech.com) | CC BY 4.0 | `godot/assets/audio/music/*.ogg`: "Lotus", "Soaring", "Morning", "Dreamer", "Evening", "Bittersweet" |
+| Kartverket map data | National and regional base maps, coastline, sea depth, place names, the baseline | Kartverket (kartverket.no / geonorge.no) | CC BY 4.0 | `godot/data/geo/basemap/*`, `coastline.national.geojson`, `suitability/*`, `candidates.json` (N1000, N250, DTM 50, depth WCS) |
+| Fiskeridirektoratet map data | Aquaculture sites and areas, production areas, Havbruk til havs areas, national salmon fjords, coral closures | Fiskeridirektoratet (fiskeridir.no) | NLOD 2.0 | `godot/data/geo/localities.geojson`, `locality_areas.geojson`, `mooring_areas.geojson`, `production_areas.*`, `offshore_areas.*`, `exclusions.*` |
+| Miljødirektoratet map data | Protected areas and salmon-river mouths (Naturbase, Lakseregisteret) | Miljødirektoratet (miljodirektoratet.no) | NLOD 2.0 | `godot/data/geo/exclusions.*`, `constraint_points.geojson` |
+| Kystverket fairways | Main and secondary fairways | Kystverket (kystverket.no) | NLOD 2.0 | `godot/data/geo/fairways.*` |
+| Havforskningsinstituttet coral reefs | Coral reefs (MAREANO) | Havforskningsinstituttet (MAREANO) (hi.no) | NLOD 2.0 | `godot/data/geo/constraint_points.geojson` |
+| EMODnet Bathymetry | Sea depth where Kartverket's grid has gaps, and the sea outside Norway | EMODnet Bathymetry Consortium (emodnet-bathymetry.eu) | CC BY 4.0 | `godot/data/geo/basemap/*`, `suitability/*` |
+| Copernicus Marine Service | Currents, waves and oxygen in the site suitability score | E.U. Copernicus Marine Service (marine.copernicus.eu) | Copernicus Marine Service Licence | `godot/data/geo/ocean_climatology.json`, `suitability/*`, `candidates.json` |
 
 ## Attribution notices
 
@@ -31,6 +38,23 @@ and the example mod pack are MIT.
 - **Barlow Condensed:** Copyright 2017 The Barlow Project Authors
   (https://github.com/jpt/barlow), under the SIL Open Font License 1.1 (full
   text in `godot/assets/fonts/OFL-BarlowCondensed.txt`). Unmodified.
+- **Map data** (`godot/data/geo`, built by `tools/geodata`; every layer's
+  source, licence, URL, fetch date and attribution is in
+  `godot/data/geo/LICENCES.md`):
+  - © Kartverket (N1000, N250, DTM 50, depth data), Creative Commons
+    Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/);
+    generalised and restyled, not for navigation.
+  - Contains data under the Norwegian Licence for Open Government Data
+    (NLOD) made available by Fiskeridirektoratet, Miljødirektoratet,
+    Kystverket and Havforskningsinstituttet (https://data.norge.no/nlod/no/2.0).
+  - EMODnet Bathymetry Consortium (2022): EMODnet Digital Bathymetry (DTM
+    2022), https://doi.org/10.12770/ff3aff8a-cff1-44a3-a2c8-1910bf109f85,
+    CC BY 4.0; resampled.
+  - Generated using E.U. Copernicus Marine Service Information;
+    https://doi.org/10.48670/moi-00007, https://doi.org/10.48670/moi-00006,
+    https://doi.org/10.48670/moi-00008.
+  - No owner or operator names are taken from the aquaculture register
+    (roadmap D17).
 - **Godot Engine:** Copyright (c) 2014-present Godot Engine contributors;
   Copyright (c) 2007-2014 Juan Linietsky, Ariel Manzur. MIT licence.
 

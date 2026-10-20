@@ -541,6 +541,7 @@ public partial class SimulationEngine
         // S2-02: the home production area (0 in legacy saves: resolved from the sites).
         State.HomeProductionArea = snapshot.HomeProductionArea;
         State.TutorialCurrentStepIndex = snapshot.TutorialCurrentStepIndex;
+        State.TutorialSkipped = snapshot.TutorialSkipped;
         // Economy / sustainability / external-data continuity.
         State.ContractActive = snapshot.ContractActive;
         State.AcquisitionCount = snapshot.AcquisitionCount;
@@ -711,6 +712,7 @@ public partial class SimulationEngine
             State.SitePlots.AddRange(snapshot.SitePlots.Where(p => p != null && !string.IsNullOrEmpty(p.Id)));
         AdoptFacilityFinanceState(snapshot); // F2-04: assets, projects, permit cases, ring-fence
         AdoptDriftsplanState(snapshot);      // F2-05: the standing orders
+        AdoptOffshoreState(snapshot);        // F2-06/F2-07: the open sea
         foreach (var kvp in snapshot.FactionRelations)
             State.FactionRelations[kvp.Key] = kvp.Value;
         foreach (var rep in snapshot.RecentMarketReports)

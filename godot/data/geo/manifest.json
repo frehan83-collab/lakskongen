@@ -1,0 +1,887 @@
+{
+ "crs": {
+  "display": "EPSG:4326 (lon, lat) in every GeoJSON",
+  "metric": "EPSG:25833 (ETRS89 / UTM 33N), metres: x/y on points, grids and base maps, row 0 = north"
+ },
+ "files": {
+  "LICENCES.md": {
+   "bytes": 29297,
+   "format": "Markdown",
+   "layer": "Licence record",
+   "sha256": "f83b85a1920e839cc7f8bc235f872272fc2bc2048ee0c3db103e1fd8a1cc8f06",
+   "sources": []
+  },
+  "basemap.json": {
+   "bytes": 3066,
+   "format": "JSON",
+   "layer": "Georeference of the base maps",
+   "sha256": "21513fc51850b6e216ccd4442766bba59688eaab25b742ba69a74a2bd0d5babd",
+   "sources": []
+  },
+  "basemap/national.jpg": {
+   "bytes": 437876,
+   "format": "JPEG",
+   "layer": "Stylised national base map",
+   "sha256": "1cb579cfd603744cc4de88c8064a4c107c946dd848b371ea83286aef2fda04f8",
+   "sources": [
+    "kv_n250",
+    "kv_dtm50",
+    "kv_bathymetry",
+    "emodnet_bathymetry"
+   ]
+  },
+  "basemap/po01.jpg": {
+   "bytes": 162735,
+   "format": "JPEG",
+   "layer": "Stylised base map per production area",
+   "sha256": "6050e736c7602e9dc517fb4b195b451b4ccae190f7f9323e9af6a6721f124624",
+   "sources": [
+    "kv_n250",
+    "kv_dtm50",
+    "kv_bathymetry",
+    "emodnet_bathymetry"
+   ]
+  },
+  "basemap/po02.jpg": {
+   "bytes": 162889,
+   "format": "JPEG",
+   "layer": "Stylised base map per production area",
+   "sha256": "4840c230f752dccc0c3621b97527b0297ef14e25892a041481aa5eb7e7329874",
+   "sources": [
+    "kv_n250",
+    "kv_dtm50",
+    "kv_bathymetry",
+    "emodnet_bathymetry"
+   ]
+  },
+  "basemap/po03.jpg": {
+   "bytes": 196444,
+   "format": "JPEG",
+   "layer": "Stylised base map per production area",
+   "sha256": "165b65a5c9f53cfbe81a64d4946ddaaf92992d7143d4f7fe01593fba44579104",
+   "sources": [
+    "kv_n250",
+    "kv_dtm50",
+    "kv_bathymetry",
+    "emodnet_bathymetry"
+   ]
+  },
+  "basemap/po04.jpg": {
+   "bytes": 265835,
+   "format": "JPEG",
+   "layer": "Stylised base map per production area",
+   "sha256": "3ed0978f66d04a509b0c0191f8cea0550b153ed0a8c206968472371ae7bd5ea7",
+   "sources": [
+    "kv_n250",
+    "kv_dtm50",
+    "kv_bathymetry",
+    "emodnet_bathymetry"
+   ]
+  },
+  "basemap/po05.jpg": {
+   "bytes": 140733,
+   "format": "JPEG",
+   "layer": "Stylised base map per production area",
+   "sha256": "1a30f877e6bbd919aa1bc4e9213ffd1cafecb37c0c89b7b2c64222d0054ea594",
+   "sources": [
+    "kv_n250",
+    "kv_dtm50",
+    "kv_bathymetry",
+    "emodnet_bathymetry"
+   ]
+  },
+  "basemap/po06.jpg": {
+   "bytes": 119295,
+   "format": "JPEG",
+   "layer": "Stylised base map per production area",
+   "sha256": "518aa4cd612125a0b7e3151e74d1aadda0cdd59ea69a4ade9ce6a8c4c4c41f1f",
+   "sources": [
+    "kv_n250",
+    "kv_dtm50",
+    "kv_bathymetry",
+    "emodnet_bathymetry"
+   ]
+  },
+  "basemap/po07.jpg": {
+   "bytes": 174928,
+   "format": "JPEG",
+   "layer": "Stylised base map per production area",
+   "sha256": "a7436192281013d9aa883087d55c77067ddf7364b18949102c337bcf4438f5a0",
+   "sources": [
+    "kv_n250",
+    "kv_dtm50",
+    "kv_bathymetry",
+    "emodnet_bathymetry"
+   ]
+  },
+  "basemap/po08.jpg": {
+   "bytes": 86240,
+   "format": "JPEG",
+   "layer": "Stylised base map per production area",
+   "sha256": "a3c30eeedf53f3fe77c12a1725045d50ce27e596887bbba3cedcc7e00a616c1b",
+   "sources": [
+    "kv_n250",
+    "kv_dtm50",
+    "kv_bathymetry",
+    "emodnet_bathymetry"
+   ]
+  },
+  "basemap/po09.jpg": {
+   "bytes": 96578,
+   "format": "JPEG",
+   "layer": "Stylised base map per production area",
+   "sha256": "baa5e3bc585b0aea749e6f34d09935060eb07437c04f6ae354ae712b8ef79712",
+   "sources": [
+    "kv_n250",
+    "kv_dtm50",
+    "kv_bathymetry",
+    "emodnet_bathymetry"
+   ]
+  },
+  "basemap/po10.jpg": {
+   "bytes": 126381,
+   "format": "JPEG",
+   "layer": "Stylised base map per production area",
+   "sha256": "8e07f75f303414d943bffa542d964e671840c8798cc7a57138f8ee7432d88a96",
+   "sources": [
+    "kv_n250",
+    "kv_dtm50",
+    "kv_bathymetry",
+    "emodnet_bathymetry"
+   ]
+  },
+  "basemap/po11.jpg": {
+   "bytes": 173584,
+   "format": "JPEG",
+   "layer": "Stylised base map per production area",
+   "sha256": "fbdf1d6870427c638b7b9f576c8a33793c160537cd4f290a63b668f8cb93bca1",
+   "sources": [
+    "kv_n250",
+    "kv_dtm50",
+    "kv_bathymetry",
+    "emodnet_bathymetry"
+   ]
+  },
+  "basemap/po12.jpg": {
+   "bytes": 82126,
+   "format": "JPEG",
+   "layer": "Stylised base map per production area",
+   "sha256": "09fc8745a6ca1666501196c724d083c81f7339a29d210655be5e0b17f9c95f44",
+   "sources": [
+    "kv_n250",
+    "kv_dtm50",
+    "kv_bathymetry",
+    "emodnet_bathymetry"
+   ]
+  },
+  "basemap/po13.jpg": {
+   "bytes": 100826,
+   "format": "JPEG",
+   "layer": "Stylised base map per production area",
+   "sha256": "1c0d5fa16d12150e0e7e799b20ed3395aa984aa32ec0f0f9f015df77c57cc5c6",
+   "sources": [
+    "kv_n250",
+    "kv_dtm50",
+    "kv_bathymetry",
+    "emodnet_bathymetry"
+   ]
+  },
+  "basemap/po_index.national.png": {
+   "bytes": 27045,
+   "format": "JPEG",
+   "layer": "Stylised base map per production area",
+   "sha256": "51bbc371c69713cd065330cb52225baf0690049ddb9ddb37d6ced11c607c994f",
+   "sources": [
+    "kv_n250",
+    "kv_dtm50",
+    "kv_bathymetry",
+    "emodnet_bathymetry"
+   ]
+  },
+  "candidates.json": {
+   "bytes": 115106,
+   "format": "JSON",
+   "layer": "Candidate new sites (open pens and offshore)",
+   "sha256": "11310cafc907531b1fc324d56c70c752e0ba10631f67eece29bd28acdfeb91a3",
+   "sources": [
+    "fdir_localities",
+    "fdir_salmon_fjords",
+    "fdir_coral_closures",
+    "hi_coral_reefs",
+    "mdir_protected_areas",
+    "mdir_anadromous_outlets",
+    "lovdata_salmon_rivers",
+    "kyv_fairway_lines",
+    "kv_n250",
+    "kv_bathymetry",
+    "emodnet_bathymetry",
+    "sim_po_temperature",
+    "fdir_production_areas",
+    "fdir_hth_2019",
+    "fdir_hth_2022",
+    "fdir_hth_2024",
+    "fdir_hth_2026"
+   ]
+  },
+  "coastline.national.geojson": {
+   "bytes": 85441,
+   "format": "GeoJSON",
+   "layer": "Norway's land outline for the national overview",
+   "sha256": "6987edaa6ba639baafa0932400c93272ef239018263540a311beaf8ff831ffb1",
+   "sources": [
+    "kv_n1000"
+   ]
+  },
+  "constraint_points.geojson": {
+   "bytes": 320662,
+   "format": "GeoJSON",
+   "layer": "River mouths (national salmon rivers, other anadromous) and coral reefs",
+   "sha256": "81ac2985c5b2eaa6ca8f0d4351d1b43c92fa675d3de8306f032c618018e5a175",
+   "sources": [
+    "mdir_anadromous_outlets",
+    "lovdata_salmon_rivers",
+    "hi_coral_reefs"
+   ]
+  },
+  "exclusions.national.geojson": {
+   "bytes": 63470,
+   "format": "GeoJSON",
+   "layer": "Salmon fjords, marine protected areas, coral closures (national)",
+   "sha256": "a7d9cf44165ed7983ab7a5e983221cabdd57aa1317fe87fd9f264c96e1f28b32",
+   "sources": [
+    "fdir_salmon_fjords",
+    "mdir_protected_areas",
+    "fdir_coral_closures"
+   ]
+  },
+  "exclusions.regional.geojson": {
+   "bytes": 418622,
+   "format": "GeoJSON",
+   "layer": "Salmon fjords, marine protected areas, coral closures (regional)",
+   "sha256": "8acc910752386d57daafe448211766208548f0f6baee8ce54c6aef233b15cfa2",
+   "sources": [
+    "fdir_salmon_fjords",
+    "mdir_protected_areas",
+    "fdir_coral_closures"
+   ]
+  },
+  "fairways.national.geojson": {
+   "bytes": 42780,
+   "format": "GeoJSON",
+   "layer": "Main fairways (hovedled)",
+   "sha256": "b184e3eea8352b3c84c1fead6e9ad713dc4c9a2eec05c2616b90727c095fd1f4",
+   "sources": [
+    "kyv_fairway_lines"
+   ]
+  },
+  "fairways.regional.geojson": {
+   "bytes": 269758,
+   "format": "GeoJSON",
+   "layer": "Main and secondary fairways with exclusion buffers",
+   "sha256": "ed5fc4c2c14b02a75340b53220920cc9b0b54bd5d7bfb0197ed702fff4c673a1",
+   "sources": [
+    "kyv_fairway_lines"
+   ]
+  },
+  "localities.geojson": {
+   "bytes": 618004,
+   "format": "GeoJSON",
+   "layer": "Active aquaculture localities (no owner fields, D17)",
+   "sha256": "5e1ff1831808755b0b7bd9650268b8b873a96ee2644271451e11b0483170ec76",
+   "sources": [
+    "fdir_localities",
+    "kv_n250"
+   ]
+  },
+  "locality_areas.geojson": {
+   "bytes": 307241,
+   "format": "GeoJSON",
+   "layer": "Registered locality area polygons",
+   "sha256": "6bb184b7fad98bc3dda08b418eecf5538928e45b5b826a65f27be39044797328",
+   "sources": [
+    "fdir_locality_areas"
+   ]
+  },
+  "mooring_areas.geojson": {
+   "bytes": 290369,
+   "format": "GeoJSON",
+   "layer": "NYTEK installation and mooring areas",
+   "sha256": "ec1fc30f3b1d6f19f0c6a79e3439a2594afe1e5e43cd8544db52ad98503b4b18",
+   "sources": [
+    "fdir_mooring_areas"
+   ]
+  },
+  "ocean_climatology.json": {
+   "bytes": 98175,
+   "format": "JSON",
+   "layer": "Per-PO ocean climatology (currents, waves, oxygen, temperature)",
+   "sha256": "9e195122440cadf6059ec40d85fe2c041b2ccc293cbd5245d3d96c7fa5a27477",
+   "sources": [
+    "cmems_arc_phy",
+    "cmems_arc_bgc",
+    "cmems_arc_wav",
+    "sim_po_temperature"
+   ]
+  },
+  "offshore_areas.national.geojson": {
+   "bytes": 7774,
+   "format": "GeoJSON",
+   "layer": "Havbruk til havs areas by stage, national",
+   "sha256": "adb695a779f7db3496720674efbf273b74c9c9305991c732291f61a92fd566e4",
+   "sources": [
+    "fdir_hth_2019",
+    "fdir_hth_2022",
+    "fdir_hth_2024",
+    "fdir_hth_2026"
+   ]
+  },
+  "offshore_areas.regional.geojson": {
+   "bytes": 10816,
+   "format": "GeoJSON",
+   "layer": "Havbruk til havs areas by stage, regional",
+   "sha256": "1f2995e4033dfc795e42dc5458ded3b55cbaae67eef32fa347f6311775d832e0",
+   "sources": [
+    "fdir_hth_2019",
+    "fdir_hth_2022",
+    "fdir_hth_2024",
+    "fdir_hth_2026"
+   ]
+  },
+  "production_areas.national.geojson": {
+   "bytes": 8892,
+   "format": "GeoJSON",
+   "layer": "Production areas PO1-PO13, national level of detail",
+   "sha256": "5d614cc09aab5fd02f1886a625c7d2c84fcdbe7002b6af646804b85abaf6bfdd",
+   "sources": [
+    "fdir_production_areas",
+    "sim_po_temperature"
+   ]
+  },
+  "production_areas.regional.geojson": {
+   "bytes": 10326,
+   "format": "GeoJSON",
+   "layer": "Production areas PO1-PO13, regional level of detail",
+   "sha256": "37081d9f72c492b9d39f0ec3adbaeb25ff7f9e07daee1af862c1587a5e9f3419",
+   "sources": [
+    "fdir_production_areas",
+    "sim_po_temperature"
+   ]
+  },
+  "suitability.json": {
+   "bytes": 9220,
+   "format": "JSON",
+   "layer": "Suitability grid georeference, codes and statistics",
+   "sha256": "ec136a9e8ca3ddb7e5fdd0a0659120f9ce753b2687c76e3573c1aeeed6a48967",
+   "sources": [
+    "fdir_localities",
+    "fdir_salmon_fjords",
+    "fdir_coral_closures",
+    "hi_coral_reefs",
+    "mdir_protected_areas",
+    "mdir_anadromous_outlets",
+    "lovdata_salmon_rivers",
+    "kyv_fairway_lines",
+    "kv_n250",
+    "kv_bathymetry",
+    "emodnet_bathymetry",
+    "sim_po_temperature",
+    "fdir_production_areas"
+   ]
+  },
+  "suitability/po01.png": {
+   "bytes": 39748,
+   "format": "PNG (RGB)",
+   "layer": "Suitability grid per production area (500 m)",
+   "sha256": "677f8ce15b0b1315564398e7defb42463324a5405995671104871b4016caf097",
+   "sources": [
+    "fdir_localities",
+    "fdir_salmon_fjords",
+    "fdir_coral_closures",
+    "hi_coral_reefs",
+    "mdir_protected_areas",
+    "mdir_anadromous_outlets",
+    "lovdata_salmon_rivers",
+    "kyv_fairway_lines",
+    "kv_n250",
+    "kv_bathymetry",
+    "emodnet_bathymetry",
+    "sim_po_temperature",
+    "fdir_production_areas"
+   ]
+  },
+  "suitability/po02.png": {
+   "bytes": 23361,
+   "format": "PNG (RGB)",
+   "layer": "Suitability grid per production area (500 m)",
+   "sha256": "29b1f7c4f11787c4cb2cf754161481bcbb55763e995403337d1a518ab33c65a3",
+   "sources": [
+    "fdir_localities",
+    "fdir_salmon_fjords",
+    "fdir_coral_closures",
+    "hi_coral_reefs",
+    "mdir_protected_areas",
+    "mdir_anadromous_outlets",
+    "lovdata_salmon_rivers",
+    "kyv_fairway_lines",
+    "kv_n250",
+    "kv_bathymetry",
+    "emodnet_bathymetry",
+    "sim_po_temperature",
+    "fdir_production_areas"
+   ]
+  },
+  "suitability/po03.png": {
+   "bytes": 47166,
+   "format": "PNG (RGB)",
+   "layer": "Suitability grid per production area (500 m)",
+   "sha256": "b1546825558a2dbd32e1617623755c564577c5a7bf20cca1d5cd8c4ec49f9016",
+   "sources": [
+    "fdir_localities",
+    "fdir_salmon_fjords",
+    "fdir_coral_closures",
+    "hi_coral_reefs",
+    "mdir_protected_areas",
+    "mdir_anadromous_outlets",
+    "lovdata_salmon_rivers",
+    "kyv_fairway_lines",
+    "kv_n250",
+    "kv_bathymetry",
+    "emodnet_bathymetry",
+    "sim_po_temperature",
+    "fdir_production_areas"
+   ]
+  },
+  "suitability/po04.png": {
+   "bytes": 66359,
+   "format": "PNG (RGB)",
+   "layer": "Suitability grid per production area (500 m)",
+   "sha256": "38318ecb1d70c6fe08f6b4d78dc521968ca70b6d3b827930b401a3a1cfce5e0b",
+   "sources": [
+    "fdir_localities",
+    "fdir_salmon_fjords",
+    "fdir_coral_closures",
+    "hi_coral_reefs",
+    "mdir_protected_areas",
+    "mdir_anadromous_outlets",
+    "lovdata_salmon_rivers",
+    "kyv_fairway_lines",
+    "kv_n250",
+    "kv_bathymetry",
+    "emodnet_bathymetry",
+    "sim_po_temperature",
+    "fdir_production_areas"
+   ]
+  },
+  "suitability/po05.png": {
+   "bytes": 40995,
+   "format": "PNG (RGB)",
+   "layer": "Suitability grid per production area (500 m)",
+   "sha256": "1fa2e00072569c7ac7f26ae86759fa74cd4c60f1ba5f29d14595f28ca643c715",
+   "sources": [
+    "fdir_localities",
+    "fdir_salmon_fjords",
+    "fdir_coral_closures",
+    "hi_coral_reefs",
+    "mdir_protected_areas",
+    "mdir_anadromous_outlets",
+    "lovdata_salmon_rivers",
+    "kyv_fairway_lines",
+    "kv_n250",
+    "kv_bathymetry",
+    "emodnet_bathymetry",
+    "sim_po_temperature",
+    "fdir_production_areas"
+   ]
+  },
+  "suitability/po06.png": {
+   "bytes": 88260,
+   "format": "PNG (RGB)",
+   "layer": "Suitability grid per production area (500 m)",
+   "sha256": "b470a053cc0bc34b5d7f5f6dacabac297355c6ea93f28f7354060e5aca4b7f5a",
+   "sources": [
+    "fdir_localities",
+    "fdir_salmon_fjords",
+    "fdir_coral_closures",
+    "hi_coral_reefs",
+    "mdir_protected_areas",
+    "mdir_anadromous_outlets",
+    "lovdata_salmon_rivers",
+    "kyv_fairway_lines",
+    "kv_n250",
+    "kv_bathymetry",
+    "emodnet_bathymetry",
+    "sim_po_temperature",
+    "fdir_production_areas"
+   ]
+  },
+  "suitability/po07.png": {
+   "bytes": 45949,
+   "format": "PNG (RGB)",
+   "layer": "Suitability grid per production area (500 m)",
+   "sha256": "45edc372d99377853f0f16f8be55dfc1819af96d88d34df1faef05b2dafb2b6a",
+   "sources": [
+    "fdir_localities",
+    "fdir_salmon_fjords",
+    "fdir_coral_closures",
+    "hi_coral_reefs",
+    "mdir_protected_areas",
+    "mdir_anadromous_outlets",
+    "lovdata_salmon_rivers",
+    "kyv_fairway_lines",
+    "kv_n250",
+    "kv_bathymetry",
+    "emodnet_bathymetry",
+    "sim_po_temperature",
+    "fdir_production_areas"
+   ]
+  },
+  "suitability/po08.png": {
+   "bytes": 107731,
+   "format": "PNG (RGB)",
+   "layer": "Suitability grid per production area (500 m)",
+   "sha256": "673fb1a0b6a4c9e3a6400dee85759263838142198508051f727987bac2c79416",
+   "sources": [
+    "fdir_localities",
+    "fdir_salmon_fjords",
+    "fdir_coral_closures",
+    "hi_coral_reefs",
+    "mdir_protected_areas",
+    "mdir_anadromous_outlets",
+    "lovdata_salmon_rivers",
+    "kyv_fairway_lines",
+    "kv_n250",
+    "kv_bathymetry",
+    "emodnet_bathymetry",
+    "sim_po_temperature",
+    "fdir_production_areas"
+   ]
+  },
+  "suitability/po09.png": {
+   "bytes": 119005,
+   "format": "PNG (RGB)",
+   "layer": "Suitability grid per production area (500 m)",
+   "sha256": "f176a8d4db7d187c9972f60767d2d31e1d65971bca7ed09e585c21c3532a1899",
+   "sources": [
+    "fdir_localities",
+    "fdir_salmon_fjords",
+    "fdir_coral_closures",
+    "hi_coral_reefs",
+    "mdir_protected_areas",
+    "mdir_anadromous_outlets",
+    "lovdata_salmon_rivers",
+    "kyv_fairway_lines",
+    "kv_n250",
+    "kv_bathymetry",
+    "emodnet_bathymetry",
+    "sim_po_temperature",
+    "fdir_production_areas"
+   ]
+  },
+  "suitability/po10.png": {
+   "bytes": 43300,
+   "format": "PNG (RGB)",
+   "layer": "Suitability grid per production area (500 m)",
+   "sha256": "35a338760204a5c9b812996c4d54a5f3dd2f802627d07181250d47e4d3848210",
+   "sources": [
+    "fdir_localities",
+    "fdir_salmon_fjords",
+    "fdir_coral_closures",
+    "hi_coral_reefs",
+    "mdir_protected_areas",
+    "mdir_anadromous_outlets",
+    "lovdata_salmon_rivers",
+    "kyv_fairway_lines",
+    "kv_n250",
+    "kv_bathymetry",
+    "emodnet_bathymetry",
+    "sim_po_temperature",
+    "fdir_production_areas"
+   ]
+  },
+  "suitability/po11.png": {
+   "bytes": 64429,
+   "format": "PNG (RGB)",
+   "layer": "Suitability grid per production area (500 m)",
+   "sha256": "103f1aea911c4a046d25fa4749f78bf78d1bd3a1113f550ef3d28374a8766e8a",
+   "sources": [
+    "fdir_localities",
+    "fdir_salmon_fjords",
+    "fdir_coral_closures",
+    "hi_coral_reefs",
+    "mdir_protected_areas",
+    "mdir_anadromous_outlets",
+    "lovdata_salmon_rivers",
+    "kyv_fairway_lines",
+    "kv_n250",
+    "kv_bathymetry",
+    "emodnet_bathymetry",
+    "sim_po_temperature",
+    "fdir_production_areas"
+   ]
+  },
+  "suitability/po12.png": {
+   "bytes": 89273,
+   "format": "PNG (RGB)",
+   "layer": "Suitability grid per production area (500 m)",
+   "sha256": "b90600ba65f8c370776d491e26447b331666ad8d844ce3bf96818dad41a0322d",
+   "sources": [
+    "fdir_localities",
+    "fdir_salmon_fjords",
+    "fdir_coral_closures",
+    "hi_coral_reefs",
+    "mdir_protected_areas",
+    "mdir_anadromous_outlets",
+    "lovdata_salmon_rivers",
+    "kyv_fairway_lines",
+    "kv_n250",
+    "kv_bathymetry",
+    "emodnet_bathymetry",
+    "sim_po_temperature",
+    "fdir_production_areas"
+   ]
+  },
+  "suitability/po13.png": {
+   "bytes": 30445,
+   "format": "PNG (RGB)",
+   "layer": "Suitability grid per production area (500 m)",
+   "sha256": "e9639cc93908a0b406be7cb612e4f815426be8507e3bc85cb439b8a9ec75d112",
+   "sources": [
+    "fdir_localities",
+    "fdir_salmon_fjords",
+    "fdir_coral_closures",
+    "hi_coral_reefs",
+    "mdir_protected_areas",
+    "mdir_anadromous_outlets",
+    "lovdata_salmon_rivers",
+    "kyv_fairway_lines",
+    "kv_n250",
+    "kv_bathymetry",
+    "emodnet_bathymetry",
+    "sim_po_temperature",
+    "fdir_production_areas"
+   ]
+  },
+  "suitability_rules.json": {
+   "bytes": 11963,
+   "format": "JSON",
+   "layer": "Scoring rules: weights, thresholds and their sources",
+   "sha256": "421f3fa6343e0df39cf99ac4e8b147e1845f2efe717f5d54eddb83078a990f1a",
+   "sources": []
+  }
+ },
+ "projection_check_25833": [
+  {
+   "lat": 60.3913,
+   "lon": 5.3221,
+   "x": -32117.391,
+   "y": 6734201.592
+  },
+  {
+   "lat": 63.4305,
+   "lon": 10.3951,
+   "x": 270340.023,
+   "y": 7041816.28
+  },
+  {
+   "lat": 67.2804,
+   "lon": 14.4049,
+   "x": 474351.684,
+   "y": 7462761.73
+  },
+  {
+   "lat": 69.6492,
+   "lon": 18.9553,
+   "x": 653421.188,
+   "y": 7731721.083
+  },
+  {
+   "lat": 70.0742,
+   "lon": 29.7417,
+   "x": 1055939.316,
+   "y": 7841845.49
+  },
+  {
+   "lat": 58.15,
+   "lon": 8.0,
+   "x": 88422.939,
+   "y": 6466808.118
+  }
+ ],
+ "size_budget_bytes": 8000000,
+ "sources": {
+  "cmems_arc_bgc": {
+   "attribution": "Generated using E.U. Copernicus Marine Service Information; https://doi.org/10.48670/moi-00006",
+   "fetched": "2026-10-20",
+   "licence": "Copernicus Marine Service Licence",
+   "owner": "Copernicus Marine Service (E.U.)",
+   "title": "Arctic Ocean Biogeochemistry Reanalysis (ECOSMO), ARCTIC_MULTIYEAR_BGC_002_005"
+  },
+  "cmems_arc_phy": {
+   "attribution": "Generated using E.U. Copernicus Marine Service Information; https://doi.org/10.48670/moi-00007",
+   "fetched": "2026-10-20",
+   "licence": "Copernicus Marine Service Licence",
+   "owner": "Copernicus Marine Service (E.U.)",
+   "title": "Arctic Ocean Physics Reanalysis (TOPAZ4), ARCTIC_MULTIYEAR_PHY_002_003"
+  },
+  "cmems_arc_wav": {
+   "attribution": "Generated using E.U. Copernicus Marine Service Information; https://doi.org/10.48670/moi-00008",
+   "fetched": "2026-10-20",
+   "licence": "Copernicus Marine Service Licence",
+   "owner": "Copernicus Marine Service (E.U.)",
+   "title": "Arctic Ocean Wave Hindcast (WAM 3 km), ARCTIC_MULTIYEAR_WAV_002_013"
+  },
+  "emodnet_bathymetry": {
+   "attribution": "EMODnet Bathymetry Consortium (2022): EMODnet Digital Bathymetry (DTM 2022), https://doi.org/10.12770/ff3aff8a-cff1-44a3-a2c8-1910bf109f85",
+   "fetched": "2026-10-20",
+   "licence": "CC BY 4.0",
+   "owner": "EMODnet Bathymetry Consortium",
+   "title": "EMODnet Digital Bathymetry (DTM 2022), WCS coverage emodnet:mean"
+  },
+  "fdir_coral_closures": {
+   "attribution": "Fiskeridirektoratet",
+   "fetched": "2026-10-20",
+   "licence": "NLOD 2.0",
+   "owner": "Fiskeridirektoratet",
+   "title": "Korallrev - forbudsområder"
+  },
+  "fdir_hth_2019": {
+   "attribution": "Fiskeridirektoratet, Havbruk til havs",
+   "fetched": "2026-10-20",
+   "licence": "NLOD 2.0",
+   "owner": "Fiskeridirektoratet / Havforskningsinstituttet",
+   "title": "Havbruk til havs: undersøkelsesområder, tilrådning 2019"
+  },
+  "fdir_hth_2022": {
+   "attribution": "Fiskeridirektoratet, Havbruk til havs",
+   "fetched": "2026-10-20",
+   "licence": "NLOD 2.0",
+   "owner": "Fiskeridirektoratet",
+   "title": "Havbruk til havs: undersøkelsesområder, anbefaling 2022"
+  },
+  "fdir_hth_2024": {
+   "attribution": "Fiskeridirektoratet, Havbruk til havs",
+   "fetched": "2026-10-20",
+   "licence": "NLOD 2.0",
+   "owner": "Fiskeridirektoratet",
+   "title": "Havbruk til havs: konsekvensvurdering 2024"
+  },
+  "fdir_hth_2026": {
+   "attribution": "Fiskeridirektoratet, Havbruk til havs",
+   "fetched": "2026-10-20",
+   "licence": "NLOD 2.0",
+   "owner": "Fiskeridirektoratet",
+   "title": "Havbruk til havs: områder som kan utlyses (kgl.res. 2026)"
+  },
+  "fdir_localities": {
+   "attribution": "Fiskeridirektoratet, Akvakulturregisteret",
+   "fetched": "2026-10-20",
+   "licence": "NLOD 2.0",
+   "owner": "Fiskeridirektoratet",
+   "title": "Akvakultur - lokaliteter (Akvakulturregisteret)"
+  },
+  "fdir_locality_areas": {
+   "attribution": "Fiskeridirektoratet, Akvakulturregisteret",
+   "fetched": "2026-10-20",
+   "licence": "NLOD 2.0",
+   "owner": "Fiskeridirektoratet",
+   "title": "Flate ihht Akvakulturregisteret (locality area polygons)"
+  },
+  "fdir_mooring_areas": {
+   "attribution": "Fiskeridirektoratet, NYTEK",
+   "fetched": "2026-10-20",
+   "licence": "NLOD 2.0",
+   "owner": "Fiskeridirektoratet",
+   "title": "NYTEK areal (installation and mooring areas)"
+  },
+  "fdir_production_areas": {
+   "attribution": "Fiskeridirektoratet (produksjonsområdeforskriften FOR-2017-01-16-61)",
+   "fetched": "2026-10-20",
+   "licence": "NLOD 2.0",
+   "owner": "Nærings- og fiskeridepartementet / Fiskeridirektoratet",
+   "title": "Produksjonsområder for akvakultur (PO1-PO13)"
+  },
+  "fdir_salmon_fjords": {
+   "attribution": "Fiskeridirektoratet",
+   "fetched": "2026-10-20",
+   "licence": "NLOD 2.0",
+   "owner": "Fiskeridirektoratet",
+   "title": "Nasjonale laksefjorder"
+  },
+  "hi_coral_reefs": {
+   "attribution": "Havforskningsinstituttet (MAREANO)",
+   "fetched": "2026-10-20",
+   "licence": "NLOD 2.0",
+   "owner": "Havforskningsinstituttet",
+   "title": "Korallrev (MAREANO / Havforskningsinstituttet)"
+  },
+  "kv_bathymetry": {
+   "attribution": "© Kartverket (Dybdedata)",
+   "fetched": "2026-10-20",
+   "licence": "CC BY 4.0",
+   "owner": "Kartverket",
+   "title": "Dybdedata terrengmodeller DTM WCS (bathymetry50m)"
+  },
+  "kv_dtm50": {
+   "attribution": "© Kartverket",
+   "fetched": "2026-10-20",
+   "licence": "CC BY 4.0",
+   "owner": "Kartverket",
+   "title": "DTM 50 (land elevation, 50 m grid)"
+  },
+  "kv_n1000": {
+   "attribution": "© Kartverket",
+   "fetched": "2026-10-20",
+   "licence": "CC BY 4.0",
+   "owner": "Kartverket",
+   "title": "N1000 Kartdata"
+  },
+  "kv_n250": {
+   "attribution": "© Kartverket",
+   "fetched": "2026-10-20",
+   "licence": "CC BY 4.0",
+   "owner": "Kartverket",
+   "title": "N250 Kartdata"
+  },
+  "kyv_fairway_lines": {
+   "attribution": "Kystverket",
+   "fetched": "2026-10-20",
+   "licence": "NLOD 2.0",
+   "owner": "Kystverket",
+   "title": "Hovedled og biled (centre lines)"
+  },
+  "lovdata_salmon_rivers": {
+   "attribution": "Forskrift om beskyttelse av laksebestander (FOR-2009-06-22-961)",
+   "fetched": "derived",
+   "licence": "Public domain (åndsverkloven § 14)",
+   "owner": "Nærings- og fiskeridepartementet (Lovdata)",
+   "title": "Nasjonale laksevassdrag (FOR-2009-06-22-961 vedlegg 2)"
+  },
+  "mdir_anadromous_outlets": {
+   "attribution": "Miljødirektoratet (Lakseregisteret)",
+   "fetched": "2026-10-20",
+   "licence": "NLOD 2.0",
+   "owner": "Miljødirektoratet",
+   "title": "Anadrome laksefisk - utløpspunkt (Lakseregisteret)"
+  },
+  "mdir_protected_areas": {
+   "attribution": "Miljødirektoratet (Naturbase)",
+   "fetched": "2026-10-20",
+   "licence": "NLOD 2.0",
+   "owner": "Miljødirektoratet",
+   "title": "Naturvernområder"
+  },
+  "sim_po_temperature": {
+   "attribution": "Havforskningsinstituttet (normal temperatures per production area)",
+   "fetched": "derived",
+   "licence": "Project data",
+   "owner": "Lakskongen (derived from Havforskningsinstituttet, Rapport fra havforskningen 2025-69)",
+   "title": "Production-area sea temperature climatology (ProductionAreas.cs, S2-02)"
+  }
+ },
+ "supersedes": {
+  "MapPanel.gd REGIONS[].pos/lonlat": "production_areas.*.geojson properties.label / label_25833",
+  "godot/data/norway_coastline.json": "basemap/national.jpg + coastline.national.geojson"
+ },
+ "total_bytes": 5880518,
+ "version": 1
+}

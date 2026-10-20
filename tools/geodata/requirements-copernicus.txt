@@ -1,0 +1,6 @@
+# Optional Copernicus Marine step (tools/geodata/fetch_copernicus.py), in its own venv:
+#   python3.12 -m venv ~/.local/share/lakskongen-copernicus/venv
+#   ~/.local/share/lakskongen-copernicus/venv/bin/pip install -r tools/geodata/requirements-copernicus.txt
+#   ~/.local/share/lakskongen-copernicus/venv/bin/copernicusmarine login   # the owner, once
+# The toolbox pulls in xarray, h5netcdf and dask, which the reduction uses.
+copernicusmarine==2.5.0

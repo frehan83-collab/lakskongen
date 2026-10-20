@@ -106,15 +106,33 @@ public class FarmTypeHooksTests
     /// <c>lice = fish &gt; 0 ? pops.Sum(p =&gt; p.Cohorts.Sum(c =&gt; c.Count) * p.SeaLiceLoad) / fish : 0</c>.
     /// </summary>
     /// <summary>
-    /// The pre-move terms for every population not in an offshore unit, and the
-    /// pre-move zone mean of every fjord zone, bit for bit; an offshore unit's
-    /// fish add nothing to any zone's mean (F2-03: they never dilute a fjord
+    /// The pre-move terms for every population not in an offshore unit and not
+    /// the first of its zone, bit for bit; the first population of each fjord
+    /// zone adds exactly its production area's offshore units' larval output
+    /// (F2-08, spec §3.3 "Lice and zones": each unit's fish × lice per fish ×
+    /// the calibrated 0.08, summed in the pens' order, and no fish), so each
+    /// fjord zone's mean is the pre-move mean plus that output over the zone's
+    /// fish, never less, and a zone with no unit in its area (or a zone the game
+    /// does not hold) is the pre-move mean bit for bit; an offshore unit's fish
+    /// add nothing to any zone's fish count (F2-03: they never dilute a fjord
     /// zone, spec §3.1 decision 1), and its own water area's mean is empty.
+    /// Replaces F2-02's <c>..._AndTheZoneMeanIsThePreMoveMean</c> (every term the
+    /// pre-move one): F2-08 fills this hook on purpose (RUN_LOG §7, F2-08;
+    /// docs/run/evidence/f2_08_replaced_tests.md).
     /// </summary>
     [Fact]
-    public void ZoneLiceContribution_IsEachPopulationsFishTimesItsLice_AndTheZoneMeanIsThePreMoveMean()
+    public void ZoneLiceContribution_IsEachPopulationsFishTimesItsLice_AndTheZoneMeanAddsOnlyTheUnitsOutput()
     {
-        int offshorePopulations = 0;
+        double weight = LakskongenSim.Calibration.OffshoreCalibration.Default.LiceCoupling.ZoneOutputWeight;
+        var unit = Assert.Single(Engine.OffshoreUnits);
+        int area = Engine.ProductionAreaOfSite(unit);
+        double unitOutput = 0.0;
+        foreach (var pop in unit.Pens)
+            unitOutput += pop.Cohorts.Sum(c => c.Count) * pop.SeaLiceLoad;
+        Assert.True(unitOutput > 0.0, "the fixture's unit carries no lice: the output term would be vacuous");
+        double output = weight * unitOutput;
+
+        int offshorePopulations = 0, anchors = 0;
         foreach (var population in Engine.State.Populations)
         {
             var holding = Engine.HoldingOf(population);
@@ -127,9 +145,21 @@ public class FarmTypeHooksTests
             }
             int fish = population.Cohorts.Sum(c => c.Count);
             Assert.Equal(fish, share.Fish);
-            SameBits(population.Cohorts.Sum(c => c.Count) * population.SeaLiceLoad, share.LiceWeightedFish, population.ZoneId);
+            double own = population.Cohorts.Sum(c => c.Count) * population.SeaLiceLoad;
+            var zone = Engine.State.Zones.FirstOrDefault(z => z.Id == population.ZoneId);
+            bool anchor = ReferenceEquals(Engine.State.Populations.First(p => p.ZoneId == population.ZoneId), population);
+            if (anchor && zone != null && Engine.ProductionAreaOf(zone) == area)
+            {
+                anchors++;
+                SameBits(own + output, share.LiceWeightedFish, population.ZoneId + " (its first population carries the unit's larvae)");
+            }
+            else
+            {
+                SameBits(own, share.LiceWeightedFish, population.ZoneId);
+            }
         }
         Assert.Equal(2, offshorePopulations);
+        Assert.True(anchors >= 1, "no fjord zone shares the unit's production area");
 
         var zoneIds = Engine.State.Zones.Select(z => z.Id).Concat(new[] { "", "no_such_zone" }).ToList();
         Assert.Contains(zoneIds, id => Engine.State.Populations.Count(p => p.ZoneId == id) >= 2);
@@ -138,14 +168,30 @@ public class FarmTypeHooksTests
             var pops = Engine.State.Populations.Where(p => p.ZoneId == zoneId).ToList();
             Assert.DoesNotContain(pops, p => Engine.HoldingOf(p).Site?.Kind == SiteKind.Offshore);
             int fish = pops.SelectMany(p => p.Cohorts).Sum(c => c.Count);
-            double lice = fish > 0
-                ? pops.Sum(p => p.Cohorts.Sum(c => c.Count) * p.SeaLiceLoad) / fish
-                : 0.0;
+            var zone = Engine.State.Zones.FirstOrDefault(z => z.Id == zoneId);
+            bool carries = zone != null && Engine.ProductionAreaOf(zone) == area && pops.Count > 0;
+            double weighted = 0.0;
+            for (int i = 0; i < pops.Count; i++)
+                weighted += pops[i].Cohorts.Sum(c => c.Count) * pops[i].SeaLiceLoad + (i == 0 && carries ? output : 0.0);
+            double preMove = fish > 0 ? pops.Sum(p => p.Cohorts.Sum(c => c.Count) * p.SeaLiceLoad) / fish : 0.0;
+            double lice = fish > 0 ? weighted / fish : 0.0;
             var (hookFish, hookLice) = Engine.ZoneLiceForTrafficLight(zoneId);
             Assert.Equal(fish, hookFish);
-            SameBits(lice, hookLice, $"zone '{zoneId}'");
+            if (carries)
+            {
+                // The exact sum the engine makes (the anchor's share holds its own term plus the output).
+                double engineSum = 0.0;
+                foreach (var p in pops)
+                    engineSum += Engine.ZoneLiceContribution(Engine.HoldingOf(p).Site, p).LiceWeightedFish;
+                SameBits(engineSum / fish, hookLice, $"zone '{zoneId}'");
+                Assert.Equal(lice, hookLice, 12);
+                Assert.True(hookLice >= preMove, $"zone '{zoneId}' looks better with the unit");
+            }
+            else
+            {
+                SameBits(preMove, hookLice, $"zone '{zoneId}'");
+            }
         }
-        var unit = Assert.Single(Engine.OffshoreUnits);
         Assert.Equal((0, 0.0), Engine.ZoneLiceForTrafficLight(unit.ZoneId));
     }
 
@@ -277,22 +323,47 @@ public class FarmTypeHooksTests
 
     /// <summary>
     /// Pre-move (Biology mortality): the anchor hazard was BaselineDailyRate ×
-    /// StageMultiplier, unscaled. With the hooks' multipliers (terms × quality)
-    /// it is that hazard × 1.0, the same bits: a population's deaths over a
-    /// year match a population run without the multiplier, cohort for cohort.
+    /// StageMultiplier, unscaled. F2-13 makes the smolt tier's carryover live
+    /// (RUN_LOG §7, 2026-10-20; replaces F2-02's
+    /// <c>QualityMortalityMultiplier_IsOne_WhateverTheSmoltTier_AndLeavesTheAnchorDeathsUnchanged</c>,
+    /// whose every assertion still holds where the behaviour is unchanged):
+    /// a standard smolt's multiplier is exactly 1.0, so every fixture
+    /// population (all standard) and a population run with the multiplier kill
+    /// exactly the fish the pre-move call did; and more: a sea population of
+    /// large smolts dies at 0.82 and of SuperSmolts at 0.67 of the anchor
+    /// (<see cref="SmoltQuality.MortalityMultiplier"/>, the Chilean trial),
+    /// fish-weighted over mixed cohorts, and a land tank's fish carry no
+    /// sea-phase carryover whatever their tier.
     /// </summary>
     [Fact]
-    public void QualityMortalityMultiplier_IsOne_WhateverTheSmoltTier_AndLeavesTheAnchorDeathsUnchanged()
+    public void QualityMortalityMultiplier_IsOneForStandardSmolts_AndTheTiersCarryoverIsLiveAtSea()
     {
         foreach (var tier in Enum.GetValues<SmoltQualityTier>())
-        {
-            var population = new FishPopulation { ZoneId = "z", SiteId = "s" };
-            population.Cohorts.Add(new FishPopulation.Cohort(400, 10_000, 1.0, LifeStage.Seawater) { Quality = tier });
-            population.InjectDependencies(Engine.Growth, Engine.Mortality);
-            Assert.Equal(1.0, Engine.QualityMortalityMultiplier(population));
-        }
+            SameBits(SmoltQualityRegistry.Get(tier).MortalityMultiplier, Engine.QualityMortalityMultiplier(Population(tier)), $"{tier}");
+        Assert.Equal(1.0, Engine.QualityMortalityMultiplier(Population(SmoltQualityTier.Standard)));
+        Assert.Equal(0.82, Engine.QualityMortalityMultiplier(Population(SmoltQualityTier.Large)));
+        Assert.Equal(0.67, Engine.QualityMortalityMultiplier(Population(SmoltQualityTier.SuperSmolt)));
+        // Fish-weighted over the cohorts: 30,000 SuperSmolts and 10,000 standard smolts.
+        var mixed = Population(SmoltQualityTier.SuperSmolt, 30_000);
+        mixed.Cohorts.Add(new FishPopulation.Cohort(400, 10_000, 1.0, LifeStage.Seawater));
+        Assert.Equal((30_000 * 0.67 + 10_000 * 1.0) / 40_000, Engine.QualityMortalityMultiplier(mixed), 12);
+        // Every fixture population is standard: the call site's multiplier is exactly 1.0, as before F2-13.
+        Assert.All(Engine.State.Populations, p => Assert.All(p.Cohorts, c => Assert.Equal(SmoltQualityTier.Standard, c.Quality)));
         foreach (var population in Engine.State.Populations)
             Assert.Equal(1.0, Engine.UnitMortalityTerms(population).AnchorMultiplier * Engine.QualityMortalityMultiplier(population));
+        // A land tank's fish carry no sea-phase carryover, whatever their tier.
+        var land = Engine.RASFacilities.SelectMany(f => f.Tanks).First(p => p.TotalCount > 0);
+        var tiers = land.Cohorts.Select(c => c.Quality).ToList();
+        try
+        {
+            foreach (var cohort in land.Cohorts) cohort.Quality = SmoltQualityTier.SuperSmolt;
+            Assert.Equal(HoldingKind.LandTank, Engine.HoldingOf(land).Kind);
+            Assert.Equal(1.0, Engine.QualityMortalityMultiplier(land));
+        }
+        finally
+        {
+            for (int i = 0; i < tiers.Count; i++) land.Cohorts[i].Quality = tiers[i];
+        }
 
         // The call site's multiplier of 1.0 kills exactly the fish the pre-move call did.
         var plain = AnchorOnlyEngine();
@@ -306,6 +377,20 @@ public class FarmTypeHooksTests
         Assert.Equal(plain.Pop.Cohorts.Select(c => (c.Count, c.AgeDays)), hooked.Pop.Cohorts.Select(c => (c.Count, c.AgeDays)));
         Assert.Equal(plain.Engine.MortalityLedger.Cumulative().Total.Fish, hooked.Engine.MortalityLedger.Cumulative().Total.Fish);
         Assert.Equal(50_000 - plain.Pop.TotalCount, plain.Engine.MortalityLedger.Cumulative().Deaths(MortalityCause.BaselineAnchor).Fish);
+        // ... and the SuperSmolt's multiplier kills about 0.67 of them.
+        var super = AnchorOnlyEngine();
+        for (int day = 0; day < SimCalendar.DaysPerYear; day++)
+            super.Pop.AdvanceDays(1, skipGrowth: true, 0.05, 0.0, anchorHazardMultiplier: 0.67);
+        double ratio = (50_000.0 - super.Pop.TotalCount) / (50_000.0 - plain.Pop.TotalCount);
+        Assert.InRange(ratio, 0.6, 0.7);
+    }
+
+    private static FishPopulation Population(SmoltQualityTier tier, int count = 10_000)
+    {
+        var population = new FishPopulation { ZoneId = "z", SiteId = "s" };
+        population.Cohorts.Add(new FishPopulation.Cohort(400, count, 1.0, LifeStage.Seawater) { Quality = tier });
+        population.InjectDependencies(Engine.Growth, Engine.Mortality);
+        return population;
     }
 
     private static (SimulationEngine Engine, FishPopulation Pop) AnchorOnlyEngine()
@@ -323,22 +408,51 @@ public class FarmTypeHooksTests
 
     /// <summary>
     /// Pre-move (StockSmolts → PlaceSmolts): <c>count * _balancing.SmoltCostPerFish * (decimal)strain.CostMultiplier</c>,
-    /// whatever the quality tier (no premium). The engine's smolt price is the calibrated one.
+    /// whatever the quality tier (no premium). F2-13 closes the exploit of
+    /// buying the tier's carryover at the standard price (RUN_LOG §7,
+    /// 2026-10-20; replaces F2-02's
+    /// <c>SmoltTierCostPerFish_TimesCount_IsThePreMoveStockingCost_ForEveryStrainTierAndSource</c>,
+    /// whose assertion still holds bit for bit for every standard smolt and
+    /// every smolt from the player's own source): a bought large smolt costs
+    /// ×1.6 and a bought SuperSmolt ×2.5 (<c>facilities.land.smolt</c>), and a
+    /// stocking through the sea verb pays exactly that.
     /// </summary>
     [Fact]
-    public void SmoltTierCostPerFish_TimesCount_IsThePreMoveStockingCost_ForEveryStrainTierAndSource()
+    public void SmoltTierCostPerFish_IsThePreMoveCost_ForStandardAndOwnSmolts_AndChargesTheTierPremiumOnBoughtOnes()
     {
         decimal price = CalibrationRegistry.Default.Economy.SmoltCostPerFishNOK;
+        var smolt = CalibrationRegistry.Default.Facilities.Land.Smolt;
         int[] counts = { 1, 7, 999, 10_000, 36_000, 200_000, 561_600, 1_000_003 };
         foreach (var strain in SmoltStrainRegistry.All)
             foreach (var tier in Enum.GetValues<SmoltQualityTier>())
                 foreach (var source in Enum.GetValues<SmoltSource>())
                 {
                     decimal perFish = Engine.SmoltTierCostPerFish(tier, strain, source);
+                    decimal premium = source == SmoltSource.OwnFacility || tier == SmoltQualityTier.Standard ? 1m
+                        : tier == SmoltQualityTier.SuperSmolt ? (decimal)smolt.TierPremiumSuperSmolt : (decimal)smolt.TierPremiumLarge;
                     foreach (int count in counts)
-                        SameBits(count * price * (decimal)strain.CostMultiplier, count * perFish,
-                            $"{strain.Id} {tier} {source} x{count}");
+                    {
+                        if (premium == 1m)
+                            SameBits(count * price * (decimal)strain.CostMultiplier, count * perFish, $"{strain.Id} {tier} {source} x{count}");
+                        else
+                            Assert.Equal(count * price * (decimal)strain.CostMultiplier * premium, count * perFish);
+                    }
                 }
+        Assert.Equal((1.6, 2.5), (smolt.TierPremiumLarge, smolt.TierPremiumSuperSmolt));
+
+        // The sea verb pays the hook's price: a bought SuperSmolt costs 2.5 standard smolts.
+        foreach (var (tier, factor) in new[] { (SmoltQualityTier.Standard, 1m), (SmoltQualityTier.Large, 1.6m), (SmoltQualityTier.SuperSmolt, 2.5m) })
+        {
+            var engine = new SimulationEngine();
+            engine.Initialize(enableEvents: false, seed: 3);
+            Assert.True(engine.StartScenario("po3_red_sone").Ok);
+            engine.ReceiveLoan(100_000_000m);
+            var site = engine.FjordSites().First();
+            decimal before = engine.FinanceManager.Balance;
+            var stocked = engine.StockSmolts(site.Id, 10_000, "standard", tier);
+            Assert.True(stocked.Ok, stocked.Message);
+            Assert.Equal(10_000 * price * factor, before - engine.FinanceManager.Balance);
+        }
     }
 
     /// <summary>

@@ -26,8 +26,16 @@ internal static class LandSiteTickSystem
     {
         foreach (var rasFacility in engine.RASFacilities)
         {
-            rasFacility.SetRng(engine.Rng.Stream(SimRngStreams.RASFacility,
-                string.IsNullOrEmpty(rasFacility.Id) ? rasFacility.Name : rasFacility.Id));
+            var stream = engine.Rng.Stream(SimRngStreams.RASFacility,
+                string.IsNullOrEmpty(rasFacility.Id) ? rasFacility.Name : rasFacility.Id);
+            rasFacility.SetRng(stream);
+            if (rasFacility.HasLots)
+            {
+                // F2-12: a site with lots runs the land physics (water, heat,
+                // oxygen and electricity per lot) and books its own opex lines.
+                engine.TickLandSiteDay(rasFacility, stream);
+                continue;
+            }
             var rasResult = rasFacility.TickDay(engine.State.Day, engine.Weather.CurrentTemperatureC);
             engine._dailyFarmSystemsOpex += rasResult.TotalDailyOPEX;
             engine.AttributeUnitCost(rasFacility.Id, Environment.HoldingKind.LandTank, rasResult.TotalDailyOPEX); // F2-04 ring-fence
@@ -66,6 +74,11 @@ internal static class LandSiteTickSystem
             if (!ras.IsOperational) continue;
             double elecCO2e = ras.DailyEnergyKWh * Farm.CarbonLedger.GridElectricityKgCO2ePerKwh * energyEmissionFactor;
             ras.CarbonTracker.AddEmission("Scope2_Electricity", ras.Id, elecCO2e, day);
+            // F2-12 (spec §3.6): the liquid oxygen an F2 site buys was made off
+            // its meter, Scope 3 at the same grid factor.
+            if (ras.HasLots && ras.DailyLoxUpstreamKWh > 0.0)
+                ras.CarbonTracker.AddEmission("Scope3_Oxygen", ras.Id,
+                    ras.DailyLoxUpstreamKWh * Farm.CarbonLedger.GridElectricityKgCO2ePerKwh * energyEmissionFactor, day);
         }
     }
 }

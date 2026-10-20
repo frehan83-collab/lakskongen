@@ -503,6 +503,7 @@ namespace LakskongenSim.Core
             _inDayPhases = new ITickSystem[]
             {
                 new WeatherAndEnvironmentTickSystem(),
+                new OffshoreSeaTickSystem(),          // F2-06: the open sea, right after the weather it reads
                 new HealthPrepTickSystem(),
                 new BiologyTickSystem(),
                 new FarmOpexTickSystem(),
@@ -1057,24 +1058,9 @@ namespace LakskongenSim.Core
 
         private void LoadTutorialSteps(string dataPath)
         {
-            var filePath = Path.Combine(dataPath, "tutorial_steps.json");
-            if (!File.Exists(filePath))
-            {
-                SimLog.Warn("⚠️  tutorial_steps.json not found, using built-in tutorial.");
-                return;
-            }
-
-            try
-            {
-                var json = File.ReadAllText(filePath);
-                // Tutorial steps in JSON don't include CompletionCondition delegates,
-                // so we log the existence but don't override the hardcoded tutorial
-                SimLog.Info($"✓ Found tutorial_steps.json (tutorial uses built-in conditions)");
-            }
-            catch (Exception ex)
-            {
-                SimLog.Warn($"⚠️  Failed to read tutorial_steps.json: {ex.Message}");
-            }
+            // U2-02: TutorialSystem reads the embedded copy of
+            // tutorial_steps.json (TutorialSystem.Template), validated on load.
+            SimLog.Info($"Tutorial: {TutorialSystem.Template().Count} steps (embedded tutorial_steps.json)");
         }
 
         private void LoadScenarios(string dataPath)

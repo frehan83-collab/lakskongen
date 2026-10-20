@@ -173,6 +173,10 @@ func close() -> void:
 	if _held and _sim != null:
 		_sim.release_clock(CLOCK_HOLD)
 	_held = false
+	# U2-02: the player read a harvest report (also when it opened before the
+	# first season's report step came up, e.g. after an express harvest).
+	if _sim != null:
+		_sim.tutorial_mark("harvest_report")
 	report_closed.emit()
 
 
@@ -293,6 +297,8 @@ func _open() -> void:
 	if _sim != null and not _held:
 		_sim.hold_clock(CLOCK_HOLD)
 		_held = true
+	if _sim != null:
+		_sim.tutorial_mark("harvest_report")
 	var still := MotionPrefs.reduced_motion()
 	_card.modulate.a = 1.0 if still else 0.0
 	if not still:

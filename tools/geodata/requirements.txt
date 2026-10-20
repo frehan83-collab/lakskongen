@@ -1,0 +1,10 @@
+# Geo pipeline (tools/geodata). Install into a venv OUTSIDE the repo, e.g.
+#   python3.12 -m venv "$(mktemp -d)/geo-venv" && <venv>/bin/pip install -r tools/geodata/requirements.txt
+# run_pipeline.sh does this. CI does not need these: tests/test_geodata.py is stdlib + pytest.
+numpy==2.4.2        # grids (same pin as requirements-dev.txt)
+pillow==10.4.0      # rasterising, GeoTIFF tiles, JPEG/PNG output (same pin as requirements-dev.txt)
+scipy==1.18.1       # distance transforms, convolution, KD-trees (same pin as requirements-dev.txt)
+shapely==2.2.0      # vector geometry
+pyproj==3.8.0       # EPSG:4326 <-> EPSG:25833
+pyogrio==0.13.0     # reads Kartverket/Kystverket FGDB and GML downloads (bundles GDAL 3.12)
+matplotlib==3.11.2  # preview images (Agg backend, no windows)

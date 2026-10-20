@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/qa/FirstSeasonCapture.gd" id="1_firstseason"]
+
+[node name="FirstSeasonCapture" type="Node"]
+script = ExtResource("1_firstseason")

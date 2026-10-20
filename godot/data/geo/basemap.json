@@ -1,0 +1,200 @@
+{
+ "crs": "EPSG:25833",
+ "images": {
+  "national": {
+   "bounds_25833": [
+    -200000,
+    6311200,
+    1292800,
+    8060000
+   ],
+   "file": "basemap/national.jpg",
+   "height": 2186,
+   "res_m": 800,
+   "width": 1866
+  },
+  "po01": {
+   "bounds_25833": [
+    -66375.0,
+    6431250.0,
+    300375.0,
+    6677250.0
+   ],
+   "file": "basemap/po01.jpg",
+   "height": 656,
+   "po": 1,
+   "res_m": 375,
+   "width": 978
+  },
+  "po02": {
+   "bounds_25833": [
+    -98250.0,
+    6518250.0,
+    110500.0,
+    6693500.0
+   ],
+   "file": "basemap/po02.jpg",
+   "height": 701,
+   "po": 2,
+   "res_m": 250,
+   "width": 835
+  },
+  "po03": {
+   "bounds_25833": [
+    -107250.0,
+    6582750.0,
+    133500.0,
+    6772500.0
+   ],
+   "file": "basemap/po03.jpg",
+   "height": 759,
+   "po": 3,
+   "res_m": 250,
+   "width": 963
+  },
+  "po04": {
+   "bounds_25833": [
+    -88250.0,
+    6717250.0,
+    149000.0,
+    6962250.0
+   ],
+   "file": "basemap/po04.jpg",
+   "height": 980,
+   "po": 4,
+   "res_m": 250,
+   "width": 949
+  },
+  "po05": {
+   "bounds_25833": [
+    -30250.0,
+    6878750.0,
+    185750.0,
+    7040500.0
+   ],
+   "file": "basemap/po05.jpg",
+   "height": 647,
+   "po": 5,
+   "res_m": 250,
+   "width": 864
+  },
+  "po06": {
+   "bounds_25833": [
+    76500.0,
+    6931125.0,
+    382500.0,
+    7180500.0
+   ],
+   "file": "basemap/po06.jpg",
+   "height": 665,
+   "po": 6,
+   "res_m": 375,
+   "width": 816
+  },
+  "po07": {
+   "bounds_25833": [
+    237750.0,
+    7073500.0,
+    436000.0,
+    7284000.0
+   ],
+   "file": "basemap/po07.jpg",
+   "height": 842,
+   "po": 7,
+   "res_m": 250,
+   "width": 793
+  },
+  "po08": {
+   "bounds_25833": [
+    303000.0,
+    7220625.0,
+    545250.0,
+    7495500.0
+   ],
+   "file": "basemap/po08.jpg",
+   "height": 733,
+   "po": 8,
+   "res_m": 375,
+   "width": 646
+  },
+  "po09": {
+   "bounds_25833": [
+    346875.0,
+    7417500.0,
+    637125.0,
+    7710750.0
+   ],
+   "file": "basemap/po09.jpg",
+   "height": 782,
+   "po": 9,
+   "res_m": 375,
+   "width": 774
+  },
+  "po10": {
+   "bounds_25833": [
+    510250.0,
+    7583750.0,
+    683000.0,
+    7761250.0
+   ],
+   "file": "basemap/po10.jpg",
+   "height": 710,
+   "po": 10,
+   "res_m": 250,
+   "width": 691
+  },
+  "po11": {
+   "bounds_25833": [
+    590750.0,
+    7645000.0,
+    812500.0,
+    7854750.0
+   ],
+   "file": "basemap/po11.jpg",
+   "height": 839,
+   "po": 11,
+   "res_m": 250,
+   "width": 887
+  },
+  "po12": {
+   "bounds_25833": [
+    705000.0,
+    7735875.0,
+    984375.0,
+    7957500.0
+   ],
+   "file": "basemap/po12.jpg",
+   "height": 591,
+   "po": 12,
+   "res_m": 375,
+   "width": 745
+  },
+  "po13": {
+   "bounds_25833": [
+    937500.0,
+    7764000.0,
+    1120250.0,
+    7957500.0
+   ],
+   "file": "basemap/po13.jpg",
+   "height": 774,
+   "po": 13,
+   "res_m": 250,
+   "width": 731
+  },
+  "po_index_national": {
+   "bounds_25833": [
+    -200000,
+    6311200,
+    1292800,
+    8060000
+   ],
+   "encoding": "8-bit grey: production area 1-13 on its sea, 0 elsewhere",
+   "file": "basemap/po_index.national.png",
+   "height": 2186,
+   "res_m": 800,
+   "width": 1866
+  }
+ },
+ "row0": "north"
+}

@@ -1,106 +1,127 @@
 extends Node
 
-## TutorialState — progressive-disclosure autoload.
+## TutorialState — progressive disclosure for the first season (roadmap U2-02).
 ##
-## Single read-only view of onboarding progress for gating advanced UI panels.
-## The C# TutorialSystem (exposed through /root/SimBridge) is the source of
-## truth; this node only mirrors it and maps step numbers to panel unlocks.
+## A read-only mirror of the C# TutorialSystem (through /root/SimBridge) that
+## the tab rail asks which tabs are open. Only Første sesong runs the tutorial
+## (owner decision D19): anywhere else, and once the season is done or
+## skipped, every tab is open. In Første sesong a tab named in a step's
+## "unlocks" (godot/data/tutorial_steps.json) opens when that step is reached,
+## so the step that teaches a tab is the one that opens it. With the guide
+## switched off ("Vis opplæring", GameplayPrefs) nothing is gated either: a
+## locked tab with no card to say how it opens would only be a wall; the
+## steps still advance on what the player does.
 ##
-## Register in project.godot [autoload] AFTER SimBridge:
-##   TutorialState="*res://scripts/autoload/TutorialState.gd"
-##
-## Everything is null-guarded: if SimBridge (or its properties) is missing the
-## node simply reports phase 0 / not complete and never crashes. Non-gated
-## panels always report unlocked, so a missing autoload cannot soft-lock the UI.
+## Everything is null-guarded: without SimBridge every tab reports open, so a
+## missing autoload can never soft-lock the UI.
 
-## Emitted when the mirrored tutorial phase (step number) changes.
+## Emitted when the mirrored tutorial step changes (or the tutorial starts or ends).
 signal phase_changed(phase: int)
 
-## Emitted once per advanced panel when it first becomes available.
+## Emitted once per gated tab when it opens.
 signal panel_unlocked(panel_id: String)
 
-## Advanced panels are locked until the tutorial reaches the mapped step number.
-## All other panel ids are always unlocked.
-const ADVANCED_PANELS: Dictionary = {
-	"analytics": 8,
-	"telemetry": 8,
-	"genetics": 11,
-	"research": 12,
-	"insurance": 13,
-	"mitigation": 14,
-	"carbon": 15,
-	"sustainability": 15,
-	"ras": 16,
-	"offshore": 17,
-}
-
-## Current 1-based tutorial step number (0 when no simulation/bridge).
+## Current 1-based tutorial step number (0 when no tutorial runs).
 var phase: int = 0
 
-## True once the C# tutorial reports completion — unlocks everything.
-var is_complete: bool = false
+## True once the tutorial is finished or skipped, or when none runs.
+var is_complete: bool = true
+
+## True while the tutorial runs (Første sesong, neither finished nor skipped).
+var is_active: bool = false
+
+## How often the guide setting is re-read (s): it lives in a file.
+const GUIDE_PREF_INTERVAL_S := 1.0
 
 var _sim: Node = null
-var _has_data: bool = false
-var _phase_seen: bool = false
+var _unlock_step: Dictionary = {}   # tab id -> step number that opens it
+var _steps_total: int = -1
 var _emitted_unlocks: Dictionary = {}
+var _guide_on := true
+var _guide_check_s := 0.0
 
 # ── Godot lifecycle ───────────────────────────────────────────────────────────
 
 func _ready() -> void:
 	_sim = get_node_or_null("/root/SimBridge")
 	if _sim and _sim.has_signal("state_updated"):
-		_sim.state_updated.connect(_refresh)
+		_sim.state_updated.connect(_on_state_updated)
+	_read_guide_pref()
 	_refresh()
 
-func _process(_delta: float) -> void:
-	# Cheap poll — keeps us correct even if state_updated is never emitted
-	# (stub mode / menu state).
+func _process(delta: float) -> void:
+	_guide_check_s -= delta
+	if _guide_check_s <= 0.0:
+		_read_guide_pref()
+	# Cheap poll of SimState's mirror (no C# call): keeps the rail right even
+	# when no state_updated is emitted (menu state, a loaded game).
+	_refresh()
+
+func _on_state_updated() -> void:
+	_read_guide_pref()
 	_refresh()
 
 # ── Public API ────────────────────────────────────────────────────────────────
 
-## True when the panel is available to the player.
-## Non-gated panels are always unlocked; gated panels unlock at their step.
+## True when the tab may be opened.
 func is_panel_unlocked(panel_id: String) -> bool:
-	if not ADVANCED_PANELS.has(panel_id):
+	if not is_active or not _guide_on:
 		return true
-	if is_complete:
+	if not _unlock_step.has(panel_id):
 		return true
-	if not _has_data:
-		return true
-	return phase >= int(ADVANCED_PANELS[panel_id])
+	return phase >= int(_unlock_step[panel_id])
+
+## The step that opens a gated tab (0 when the tab is never gated).
+func unlock_step(panel_id: String) -> int:
+	return int(_unlock_step.get(panel_id, 0))
 
 # ── Internal ──────────────────────────────────────────────────────────────────
 
 func _refresh() -> void:
-	_has_data = _sim != null and "tutorial_step_number" in _sim
-	var new_phase: int = int(_read_sim_value("tutorial_step_number", 0))
-	var new_complete: bool = bool(_read_sim_value("tutorial_is_complete", false))
-
-	var changed: bool = (not _phase_seen) or new_phase != phase or new_complete != is_complete
+	var active := bool(_read("tutorial_active", false))
+	var new_phase := int(_read("tutorial_step_number", 0)) if active else 0
+	var total := int(_read("tutorial_total_steps", 0))
+	if total != _steps_total:
+		_steps_total = total
+		_load_unlocks()
+	var changed := active != is_active or new_phase != phase
+	is_active = active
+	is_complete = not active
 	phase = new_phase
-	is_complete = new_complete
-	_phase_seen = true
-
 	if changed:
 		phase_changed.emit(phase)
-
 	_emit_new_unlocks()
 
+## "Vis opplæring" (the test seam GameplayPrefs.force_tutorial included). A
+## change re-applies the gate (the rail listens to phase_changed).
+func _read_guide_pref() -> void:
+	_guide_check_s = GUIDE_PREF_INTERVAL_S
+	var on := GameplayPrefs.tutorial_enabled()
+	if on != _guide_on:
+		_guide_on = on
+		phase_changed.emit(phase)
+
+## The tabs each step opens, from the bridge's step list.
+func _load_unlocks() -> void:
+	_unlock_step.clear()
+	if _sim == null or not _sim.has_method("get_tutorial_steps"):
+		return
+	for step in _sim.get_tutorial_steps():
+		for tab in step.get("unlocks", []):
+			_unlock_step[str(tab)] = int(step.get("number", 0))
+
 func _emit_new_unlocks() -> void:
-	for panel_id: String in ADVANCED_PANELS.keys():
+	for panel_id: String in _unlock_step.keys():
 		var unlocked: bool = is_panel_unlocked(panel_id)
 		if unlocked and not bool(_emitted_unlocks.get(panel_id, false)):
 			_emitted_unlocks[panel_id] = true
 			panel_unlocked.emit(panel_id)
+		elif not unlocked:
+			_emitted_unlocks.erase(panel_id)
 
-## Read a value from SimBridge, tolerating a missing node/property/method.
-## SimBridge exposes the tutorial state as properties. (A PascalCase getter
-## fallback asked the GDScript facade for C# names it never has.)
-func _read_sim_value(property_name: String, fallback: Variant) -> Variant:
+## A SimBridge property, tolerating a missing node or property.
+func _read(property_name: String, fallback: Variant) -> Variant:
 	if _sim == null:
 		return fallback
-	# Object.get() returns null when the property is absent.
 	var value: Variant = _sim.get(property_name)
 	return value if value != null else fallback

@@ -236,6 +236,12 @@ var tutorial_hint: String:
 var tutorial_is_complete: bool:
 	get(): return _state.tutorial_is_complete
 	set(v): _state.tutorial_is_complete = v
+var tutorial_active: bool:
+	get(): return _state.tutorial_active
+	set(v): _state.tutorial_active = v
+var tutorial_skipped: bool:
+	get(): return _state.tutorial_skipped
+	set(v): _state.tutorial_skipped = v
 var tutorial_completed_count: int:
 	get(): return _state.tutorial_completed_count
 	set(v): _state.tutorial_completed_count = v
@@ -400,6 +406,11 @@ func register_pacing_deadline(key: String, deadline_day: int, headline: String =
 func resolve_pacing_deadline(key: String) -> bool: return _actions.resolve_pacing_deadline(key)
 func get_pacing_deadlines() -> Array[Dictionary]: return _actions.get_pacing_deadlines()
 func skip_tutorial() -> void: _actions.skip_tutorial()
+func tutorial_mark(mark: String) -> bool: return _actions.tutorial_mark(mark)
+func tutorial_check() -> bool: return _actions.tutorial_check()
+func get_tutorial_status() -> Dictionary: return _proxies.get_tutorial_status()
+func get_tutorial_steps() -> Array: return _proxies.get_tutorial_steps()
+func is_tutorial_tab_unlocked(tab_id: String) -> bool: return _proxies.is_tutorial_tab_unlocked(tab_id)
 func get_game_state_json() -> String: return _actions.get_game_state_json()
 func place_pen(zone_id: String, pen_name: String = "New Pen") -> bool: return _actions.place_pen(zone_id, pen_name)
 func set_feed_plan(site_id: String, ration_pct: float, recipe: String, window_days: int) -> Dictionary: return _actions.set_feed_plan(site_id, ration_pct, recipe, window_days)
@@ -680,15 +691,94 @@ func get_next_planned(unit_id: String) -> Dictionary: return _proxies.get_next_p
 func get_notification_meter() -> Array[Dictionary]: return _proxies.get_notification_meter()
 func get_notification_budget() -> Dictionary: return _proxies.get_notification_budget()
 
+# ── F2-31: the family-first build flow (ui·farm) ─────────────────────────────
+func preview_farm_build(variant_id: String, plot_id: String, option: String, contract: String, equity_share: float, mitigations: Array) -> Dictionary: return _proxies.preview_farm_build(variant_id, plot_id, option, contract, equity_share, mitigations)
+func get_build_diagnosis() -> Dictionary: return _proxies.get_build_diagnosis()
+func get_build_plots(family_id: String) -> Array[Dictionary]: return _proxies.get_build_plots(family_id)
+func get_farm_type_starts() -> Dictionary: return _proxies.get_farm_type_starts()
+func qa_state_digest() -> String: return _proxies.qa_state_digest()
+func qa_open_farm_family(research_node_id: String, post_smolt_plot_id: String, first_harvest: bool) -> bool: return _proxies.qa_open_farm_family(research_node_id, post_smolt_plot_id, first_harvest)
+
 # ── F2-03: farm types (land sites, offshore units, their plots) ───────────────
 # Each lane forwards only inside its own block (FARM_TYPES_SPEC §7.6).
 
 # ═══ BEGIN sim·land lane block (F2-03 list verbs; F2-12 … F2-16 append below) ═══
 func get_land_sites() -> Array[Dictionary]: return _proxies.get_land_sites()
 func get_land_plots() -> Array[Dictionary]: return _proxies.get_land_plots()
+func get_land_site_detail(site_id: String) -> Dictionary: return _proxies.get_land_site_detail(site_id)
+func preview_land_build(plot_id: String, template: String, contract: String, mitigations: Array) -> Dictionary: return _proxies.preview_land_build(plot_id, template, contract, mitigations)
+func preview_land_expansion(site_id: String, contract: String) -> Dictionary: return _proxies.preview_land_expansion(site_id, contract)
+func apply_land_permits(plot_id: String, template: String, lots: int, mitigations: Array) -> Dictionary: return _proxies.apply_land_permits(plot_id, template, lots, mitigations)
+func apply_for_zoning(plot_id: String, mitigations: Array) -> Dictionary: return _proxies.apply_for_zoning(plot_id, mitigations)
+func appeal_land_permit(case_id: String) -> Dictionary: return _proxies.appeal_land_permit(case_id)
+func reapply_land_permit(case_id: String, mitigations: Array) -> Dictionary: return _proxies.reapply_land_permit(case_id, mitigations)
+func start_grid_project(plot_id: String, kind: String) -> Dictionary: return _proxies.start_grid_project(plot_id, kind)
+func build_land_site(plot_id: String, template: String, contract: String, site_name: String) -> Dictionary: return _proxies.build_land_site(plot_id, template, contract, site_name)
+func expand_land_site(site_id: String, contract: String) -> Dictionary: return _proxies.expand_land_site(site_id, contract)
+func accelerate_land_construction(project_id: String) -> Dictionary: return _proxies.accelerate_land_construction(project_id)
+func cancel_land_construction(project_id: String) -> Dictionary: return _proxies.cancel_land_construction(project_id)
+func get_land_construction() -> Array[Dictionary]: return _proxies.get_land_construction()
+func get_land_permit_cases(plot_id: String) -> Array[Dictionary]: return _proxies.get_land_permit_cases(plot_id)
+func preview_land_stocking(site_id: String, tank_id: String, count: int, strain_id: String) -> Dictionary: return _proxies.preview_land_stocking(site_id, tank_id, count, strain_id)
+func stock_land_tank(site_id: String, tank_id: String, count: int, strain_id: String) -> Dictionary: return _proxies.stock_land_tank(site_id, tank_id, count, strain_id)
+func grade_tank(site_id: String, from_tank_id: String, to_tank_id: String, share: float) -> Dictionary: return _proxies.grade_tank(site_id, from_tank_id, to_tank_id, share)
+func harvest_land_tank(site_id: String, tank_id: String) -> Dictionary: return _proxies.harvest_land_tank(site_id, tank_id)
+func set_vannstrategi(site_id: String, reuse: float, deep_intake_share: float, setpoint_c: float, blend: bool) -> Dictionary: return _proxies.set_vannstrategi(site_id, reuse, deep_intake_share, setpoint_c, blend)
+func install_heat_recovery(lot_id: String) -> Dictionary: return _proxies.install_heat_recovery(lot_id)
+func get_land_board(site_id: String) -> Dictionary: return _proxies.get_land_board(site_id)
+func get_vannstrategi_presets(site_id: String) -> Array[Dictionary]: return _proxies.get_vannstrategi_presets(site_id)
+func apply_vannstrategi_preset(site_id: String, preset_id: String) -> Dictionary: return _proxies.apply_vannstrategi_preset(site_id, preset_id)
+func get_land_competence(site_id: String) -> Dictionary: return _proxies.get_land_competence(site_id)
+func hire_driftsleder(site_id: String) -> Dictionary: return _proxies.hire_driftsleder(site_id)
+func start_training_programme(site_id: String) -> Dictionary: return _proxies.start_training_programme(site_id)
+func hire_consultancy(site_id: String) -> Dictionary: return _proxies.hire_consultancy(site_id)
+func hire_land_staff_early(site_id: String) -> Dictionary: return _proxies.hire_land_staff_early(site_id)
+func set_land_feed_plan(site_id: String, ration_pct: float) -> Dictionary: return _proxies.set_land_feed_plan(site_id, ration_pct)
+func get_land_harvest_planner(site_id: String) -> Dictionary: return _proxies.get_land_harvest_planner(site_id)
+func quote_land_harvest_plan(site_id: String, tank_ids: Array, week_start_day: int) -> Dictionary: return _proxies.quote_land_harvest_plan(site_id, tank_ids, week_start_day)
+func plan_land_harvest(site_id: String, tank_ids: Array, week_start_day: int) -> Dictionary: return _proxies.plan_land_harvest(site_id, tank_ids, week_start_day)
+func cancel_land_harvest_plan(site_id: String, plan_id: String) -> Dictionary: return _proxies.cancel_land_harvest_plan(site_id, plan_id)
+func get_post_smolt_planner(site_id: String) -> Dictionary: return _proxies.get_post_smolt_planner(site_id)
+func preview_transfer_tank_to_sea(site_id: String, tank_id: String, sea_site_id: String, count: int) -> Dictionary: return _proxies.preview_transfer_tank_to_sea(site_id, tank_id, sea_site_id, count)
+func transfer_tank_to_sea(site_id: String, tank_id: String, sea_site_id: String, count: int) -> Dictionary: return _proxies.transfer_tank_to_sea(site_id, tank_id, sea_site_id, count)
+func sell_post_smolt(site_id: String, tank_id: String, count: int) -> Dictionary: return _proxies.sell_post_smolt(site_id, tank_id, count)
+func set_salinity(site_id: String, salinity_ppt: float) -> Dictionary: return _proxies.set_salinity(site_id, salinity_ppt)
+func get_land_account(site_id: String) -> Dictionary: return _proxies.get_land_account(site_id)
+func commission_land_site(plot_id: String, template: String, lots: int, site_name: String) -> Dictionary: return _proxies.commission_land_site(plot_id, template, lots, site_name)
 # ═══ END sim·land lane block ═══
 
 # ═══ BEGIN sim·sea lane block (F2-03 list verbs; F2-06 … F2-11 append below) ═══
 func get_offshore_units() -> Array[Dictionary]: return _proxies.get_offshore_units()
 func get_offshore_plots() -> Array[Dictionary]: return _proxies.get_offshore_plots()
+func get_sea_state_forecast(site_id: String) -> Dictionary: return _proxies.get_sea_state_forecast(site_id)
+func preview_offshore_build(plot_id: String, farm_type: String, contract: String, equity_share: float) -> Dictionary: return _proxies.preview_offshore_build(plot_id, farm_type, contract, equity_share)
+func build_offshore_unit(plot_id: String, farm_type: String, contract: String, equity_share: float) -> Dictionary: return _proxies.build_offshore_unit(plot_id, farm_type, contract, equity_share)
+func get_offshore_construction(site_id: String) -> Dictionary: return _proxies.get_offshore_construction(site_id)
+func get_offshore_unit_state(site_id: String) -> Dictionary: return _proxies.get_offshore_unit_state(site_id)
+func preview_offshore_booking(site_id: String, op: String, day: int, vessel: String) -> Dictionary: return _proxies.preview_offshore_booking(site_id, op, day, vessel)
+func book_offshore_operation(site_id: String, op: String, day: int, vessel: String, count: int = 0, detail: String = "") -> Dictionary: return _proxies.book_offshore_operation(site_id, op, day, vessel, count, detail)
+func book_offshore_first_window(site_id: String, op: String, vessel: String, count: int = 0, detail: String = "") -> Dictionary: return _proxies.book_offshore_first_window(site_id, op, vessel, count, detail)
+func cancel_offshore_booking(site_id: String, booking_id: String) -> Dictionary: return _proxies.cancel_offshore_booking(site_id, booking_id)
+func preview_offshore_tow(site_id: String) -> Dictionary: return _proxies.preview_offshore_tow(site_id)
+func start_offshore_tow(site_id: String) -> Dictionary: return _proxies.start_offshore_tow(site_id)
+func choose_offshore_shakedown(site_id: String, days: int) -> Dictionary: return _proxies.choose_offshore_shakedown(site_id, days)
+func fix_teething_defect(site_id: String, defect_id: String) -> Dictionary: return _proxies.fix_teething_defect(site_id, defect_id)
+func install_offshore_sensors(site_id: String, kind: String) -> Dictionary: return _proxies.install_offshore_sensors(site_id, kind)
+func service_offshore_sensors(site_id: String) -> Dictionary: return _proxies.service_offshore_sensors(site_id)
+func repair_offshore_unit(site_id: String, scope: String) -> Dictionary: return _proxies.repair_offshore_unit(site_id, scope)
+func buy_out_offshore_partner(site_id: String) -> Dictionary: return _proxies.buy_out_offshore_partner(site_id)
+func get_offshore_handling_state(site_id: String) -> Dictionary: return _proxies.get_offshore_handling_state(site_id)
+func get_offshore_incident_reports(site_id: String) -> Dictionary: return _proxies.get_offshore_incident_reports(site_id)
+func start_offshore_alarm_review(site_id: String) -> Dictionary: return _proxies.start_offshore_alarm_review(site_id)
+func start_offshore_procedure_upgrade(site_id: String, kind: String) -> Dictionary: return _proxies.start_offshore_procedure_upgrade(site_id, kind)
+func install_offshore_reinforcement(site_id: String) -> Dictionary: return _proxies.install_offshore_reinforcement(site_id)
+func appeal_site_withdrawal(site_id: String) -> Dictionary: return _proxies.appeal_site_withdrawal(site_id)
+func get_development_round() -> Dictionary: return _proxies.get_development_round()
+func preview_development_application(concept: String, plot_id: String) -> Dictionary: return _proxies.preview_development_application(concept, plot_id)
+func apply_development_licence(concept: String, plot_id: String) -> Dictionary: return _proxies.apply_development_licence(concept, plot_id)
+func get_offshore_licences(site_id: String) -> Dictionary: return _proxies.get_offshore_licences(site_id)
+func request_licence_conversion(site_id: String) -> Dictionary: return _proxies.request_licence_conversion(site_id)
+func appeal_licence_conversion(site_id: String) -> Dictionary: return _proxies.appeal_licence_conversion(site_id)
+func pay_licence_conversion(site_id: String) -> Dictionary: return _proxies.pay_licence_conversion(site_id)
+func place_converted_licences(holding_ids: Array, zone_id: String) -> Dictionary: return _proxies.place_converted_licences(holding_ids, zone_id)
 # ═══ END sim·sea lane block ═══

@@ -1,15 +1,15 @@
-# Handoff: total context and next steps (updated 2026-10-17)
+# Handoff: total context and next steps (updated 2026-10-20)
 
 Read this file first, and only this file, until you know your task. It is a summary
 of everything else. Then open only the sections the reading map (§8) names for your
-task. The large docs are long: ROADMAP 957 lines, FARM_TYPES_SPEC 1595, RUN_LOG 630,
-BALANCE 2619, FJORD_RENDERER 782, AGENTS 368. Do not read them whole.
+task. The large docs are long: ROADMAP 957 lines, FARM_TYPES_SPEC 1605, RUN_LOG 710,
+BALANCE 3085, FJORD_RENDERER 782, AGENTS 410. Do not read them whole.
 
 ## 0. TL;DR
 
 - **Lakskongen** is a Norwegian salmon-farming management sim. The simulation is deterministic C# .NET 10 (`src/LakskongenSim`). The frontend is Godot 4.7.2 Mono (`godot/`).
 - **Build on `main`.** PR #5 (review remediation + waves 1-3) was merged into `main` on 2026-10-20 (`1a944e2`). New work goes on a branch from `origin/main` and back through a PR, so the GitHub CI (`ci`, `verify`) runs on it.
-- **Roadmap waves 1-3 are done**: graphics, simulation core, core loop UI, and farm-type foundations. **Wave 4 is paused**: work in progress sits on `wave4/*` branches (§6).
+- **Roadmap waves 1-3 are done**: graphics, simulation core, core loop UI, and farm-type foundations. **Wave 4's headless part is integrated** on `wave4/int` (land and offshore farm types in the engine, the build dialog, the tutorial; PR to `main`); the graphics stages wait for the owner's OK to open windows (§6).
 - **Owner rules:**
   - wait for the owner's go and never autostart;
   - align with GitHub first, because other models may push;
@@ -35,7 +35,7 @@ BALANCE 2619, FJORD_RENDERER 782, AGENTS 368. Do not read them whole.
   - Tick systems are `ITickSystem`.
   - `HoldingIndex` resolves each population's holding once per step. The holding is a sea pen, a land tank or an offshore structure, through `HoldingWaterOf` and `CohortEnvironment.From`.
 - `SimRng` uses seeded streams only; `DeterminismBanTests` (Roslyn) forbids the wall clock and unseeded RNG.
-- **Calibration:** `Calibration/CalibrationRegistry.cs` plus `godot/data/calibration.json` (version 1.1.1), with farm-type include files under `godot/data/calibration/facilities_*.json`. Every constant records its value, unit, source and year. Facility leaves need `[Range]` plus `[Source]` or `[GameBalance]`.
+- **Calibration:** `Calibration/CalibrationRegistry.cs` plus `godot/data/calibration.json` (version 1.1.4), with farm-type include files under `godot/data/calibration/facilities_*.json`. Every constant records its value, unit, source and year. Facility leaves need `[Range]` plus `[Source]` or `[GameBalance]`.
 - **Domains:**
   - `Biology/`: `TgcGrowthLaw` and `MortalityHazards`;
   - `Environment/`: production-area water, weather, `OffshoreMetocean`;
@@ -43,7 +43,7 @@ BALANCE 2619, FJORD_RENDERER 782, AGENTS 368. Do not read them whole.
   - `Harvest/`: `HarvestRoute` per holding kind;
   - `Finance/`: `LicenceHolding`, `FacilityAssetRegister`, `PermitCase`;
   - `Market/`.
-- **Save:** version 10. Migrators chain sequentially, and the frozen fixture `save_v8_facilities.json` must keep loading.
+- **Save:** version 11. Migrators chain sequentially, and the frozen fixture `save_v8_facilities.json` must keep loading.
 
 **Bridge** (Godot side, one partial per feature):
 - `godot/scripts/autoload/GameBridge.*.cs`: Core, Farm, Pens, Capacity, Harvest, HarvestPlanner, FeedPlans, Expansion, EndScreen, Events, Clock, Driftsplan, FarmTypes, LandSites, Offshore, Mortality, Sky, ….
@@ -69,7 +69,7 @@ BALANCE 2619, FJORD_RENDERER 782, AGENTS 368. Do not read them whole.
 
 **Tests and tools:**
 - `tools/ci.sh` has 18 steps; `CI_REQUIRE_ALL=1` makes every step required.
-- `godot/tests/UiFlowTests.gd` drives the real game headless. MIN_CHECKS in `tools/run_ui_flow_tests.sh` must equal the exact check count (1425 now), and the suite takes about 5 minutes.
+- `godot/tests/UiFlowTests.gd` drives the real game headless. MIN_CHECKS in `tools/run_ui_flow_tests.sh` must equal the exact check count (1637 on `wave4/int`), and the suite takes about 5-6 minutes.
 - Golden traces (F2-01): `tools/record_golden_traces.sh` records 27 games × 730 days.
 - Screenshot harness: `bash tools/capture_screenshots.sh`; shots are listed in `godot/qa/shots.json`.
 - Perf harness: `tools/perf_smoke.sh` (P0-04).
@@ -130,28 +130,45 @@ BALANCE 2619, FJORD_RENDERER 782, AGENTS 368. Do not read them whole.
    - stair-stepped cloud edges in the half-resolution sky pass;
    - snow banding on the walls at 1-2 km.
 
-## 6. Wave 4 (paused 2026-10-17): branch state and next steps
+## 6. Wave 4: state (2026-10-20) and next steps
 
-Goal: land-based and offshore farms that are buildable, visible and operable end to end, plus the tutorial and polish. All branches below are built from `4f927a1` and pushed.
+Goal: land-based and offshore farms that are buildable, visible and operable end to end, plus the tutorial and polish.
 
-| Branch | Items (spec rows) | State |
-|---|---|---|
-| `wave4/sim-land-1` | F2-12 engine wiring, F2-14 land permits and phased construction | **Done** (`46a4a3f`, gates green, goldens 27/27 identical) |
-| `wave4/sim-land-2` | F2-13 post-smolt bridge, F2-15 grow-out, competence, harvest planning | WIP, unverified |
-| `wave4/sim-sea-1` | F2-06 wiring, F2-07 offshore unit build, operations, logistics | WIP, unverified |
-| `wave4/gfx-farm-1` | F2-19 carved shore pads, F2-20 facility presenter | WIP, unverified |
-| `wave4/gfx-polish-1` | Polish list in §5.3, plus idle-machine perf, chip clipping, whitecaps inside pens | WIP, unverified |
-| `wave4/ui-core-1` | U2-02 learn-by-doing tutorial | WIP, unverified |
+**The headless part is integrated on `wave4/int`** (branched from `origin/main` `e297f16`, PR to `main` "Wave 4 (headless part)"; RUN_LOG §7 has one row per merge). Merged with `--no-ff`, the gates run after each merge:
+
+| Merge | Stage branch (local head) | Items | Gates after the merge (headless) |
+|---|---|---|---|
+| 1 | `wave4/ui-farm-1` (`08770bc`; carries `wave4/sim-land-1` `46a4a3f` and `wave4/sim-sea-1` `93c79c5`) | F2-31 family-first build dialog; F2-12 land wiring, F2-14 land permits and phased construction; F2-06 open-sea wiring, F2-07 offshore unit build, operations and logistics | dotnet 1945/0, UI flow 1549/0 |
+| 2 | `wave4/sim-land-2` (`83be749`) | F2-13 post-smolt bridge, F2-15 grow-out biology, competence, harvest planning | dotnet 1973/0, UI flow 1567/0 |
+| 3 | `wave4/sim-sea-2` (`c523acb`) | F2-08 offshore incidents, handling, lice coupling; F2-09 development licences | the build dialog could not build a Hav unit any more (F2-09's award rule): fixed in `605040e`, then dotnet 2011/0, UI flow 1593/0 |
+| 4 | `wave4/ui-core-1` (`d3afa9a`) | U2-02 learn-by-doing first season | dotnet 2037/0 (3 skipped), pytest 719/0, scenes 0 failures, UI flow 1637/0 |
+
+The stage branches' finished heads above exist only in this checkout's local branches and in `wave4/int`'s history: `origin/wave4/sim-land-2`, `sim-sea-1` and `ui-core-1` still point at older WIP commits, and `wave4/ui-farm-1` and `wave4/sim-sea-2` were never pushed. Build on `main` once the PR merges, not on the stage branches.
+
+**Integration facts:** calibration registry 1.1.4 (one above every branch's), save version 11 (U2-02's migrator), MIN_CHECKS 1637. BALANCE sections: §1v F2-12/F2-14, §1w F2-06/F2-07, §1x F2-31, §1y F2-13/F2-15, §1z F2-08/F2-09, §1aa U2-02. `FarmTypeMoveTests` pins the facilities save on the combined engine and strips each step's fields back to the previous merge's pin and to sim-sea-2's own pin. Golden traces re-recorded once: 27 of 27 games identical to `origin/main` on every day, save drift only, every node explained in `docs/run/evidence/wave4_int_golden_diff.md`.
+
+**Found and fixed at integration:** F2-09 builds an offshore unit only on a development-licence award, which F2-31's dialog predated. The Hav confirm now files the application while a round is open (as Land files its permits), then contracts the unit once the award comes (RUN_LOG §7, "F2-31 meets F2-09").
+
+**Still deferred (they need windows, so they wait for the owner's OK):**
+- `wave4/gfx-farm-1` (F2-19 carved shore pads, F2-20 facility presenter): WIP, unverified, not merged.
+- `wave4/gfx-polish-1` (the §5.3 polish list, idle-machine perf, chip clipping, whitecaps inside pens): WIP, unverified, not merged.
+- `wave4/gfx-farm-2` (F2-21 camera bookmarks and offshore swell, F2-23 first-sight sequence and showcase shots): not started.
+- Deferred visual checks of the merged stages (no frame was rendered or looked at on any of them):
+  - F2-31: the build dialog in each state (family cards, catalogue bars, locked gates, Land preview with permits and runway, Hav preview with licence line and consortium, the new Hav licence step and its filed-case result), the ghost in 3D on `pad_a` and `off_1`, and the runway chart, at 1280x720 at 100 % and 125 % against the owner refs (RUN_LOG §8, "Remainder (F2-31)").
+  - U2-02: the ten `43_first_season_*` shots in `godot/qa/shots.json`, played by `qa/scenes/FirstSeasonCapture.tscn` (input season seed 7, skip seed 23).
+  - F2-07/F2-08/F2-14: none rendered; the land campus and the OF1 unit are not placed in the world until gfx-farm-1.
+- The full `CI_REQUIRE_ALL=1 tools/ci.sh` was not run locally (its shader check and perf steps open windows); GitHub CI runs the full suite on the PR.
+
+**Owner and economy decisions waiting:**
+1. **F2-07 acceptance 7, the offshore opex basis.** The bar is opex/kg HOG 1.15-1.45 × an open pen's in the same PO. Measured medians are 1.885 (ex feed, spill and smolts, the pre-registered basis), 1.557 (ex feed and spill, smolts kept, acceptance 7's own words) and 1.145 (all in). No basis lands inside the band. Choose the basis, or the band (BALANCE §1w, RUN_LOG §8 "Finding (F2-07): acceptance 7").
+2. **F2-08 acceptance 5, the warning band's lower bound.** "Handle when required" with standard vessels at `off_1` should warn in 10-30 % of winters. The measured share is 0 of 200 winters (20 seeds x 10 winters): the sea alone never keeps a requirement overdue for 21 days. The upper bounds hold. Choose between keeping the band and adding friction later (wellboat availability and lead time, a fleet shared with the fjord), or lowering the band to what the sea gives. The lower-band probe test is skipped until then (BALANCE §1z, RUN_LOG §8 "Finding (F2-08): acceptance 5").
 
 **Next, in order:**
-1. Finish the WIP stages. Review each WIP commit, finish the item to its acceptance list, and run the gates (§7).
-2. **sim-sea-2:** F2-08 offshore incidents and F2-09 development licences.
-3. **ui-farm-1:** F2-31 family-first build dialog, after merging sim-land-1 and sim-sea-1.
-4. **gfx-farm-2:** F2-21 camera bookmarks and offshore swell, then the F2-23 first-sight sequence and showcase shots.
-5. **Integrate:** merge the finished stage branches into `integration/wave4` (branched from `origin/main`) in a separate worktree, re-record the goldens once with a diff report, run the full CI, then open a PR to `main` so GitHub CI runs.
-6. **Deferred:** G3-04 underwater view, U2-08 settings that apply, Au2-01 audio floor.
-7. **Then:**
-   - the rest of the farm types: F2-08…F2-11, F2-16/17, F2-22/24, F2-27-30, F2-32-35;
+1. Merge the wave-4 PR once GitHub CI is green (the owner merges).
+2. With the owner's OK to open windows: finish and verify gfx-farm-1 and gfx-polish-1, run the deferred visual checks above, then gfx-farm-2.
+3. **Deferred:** G3-04 underwater view, U2-08 settings that apply, Au2-01 audio floor.
+4. **Then:**
+   - the rest of the farm types: F2-10/F2-11, F2-16/17, F2-22/24, F2-27-30, F2-32-35 (F2-32/F2-33 are the land and offshore boards on the bridge reads F2-13/F2-15 and F2-08/F2-09 already expose, and the development-round panel);
    - Phase 3: U3-01 world-first IA (runs alone in the UI track), U3-02 icons replacing emoji, U3-03 panel kit, G3-02 presenter, G3-03 lenses, S3-01 market, S3-02 traffic light;
    - Phases 4-5.
 

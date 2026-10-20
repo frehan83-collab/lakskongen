@@ -322,6 +322,8 @@ var _expansion: RegionExpansionSection = null
 var _auction_card: LicenceAuctionCard = null
 var _build_dialog: BuildSiteDialog = null
 var _map_legend: HBoxContainer = null
+## F2-31: "Nytt anlegg" opens the build dialog's family cards.
+var _new_farm_btn: Button = null
 
 # ─────────────────────────────────────────────────────────────────────────────
 func _ready() -> void:
@@ -440,6 +442,25 @@ func _add_expansion_section() -> void:
 	_area_picker.item_selected.connect(_on_area_picked)
 	host.add_child(_area_picker)
 	host.move_child(_area_picker, name_row.get_index() + 1 if name_row else 0)
+	# F2-31: land and offshore farms start from the family cards; the button
+	# sits in the header, in view whatever the detail column shows.
+	_new_farm_btn = Button.new()
+	_new_farm_btn.name = "NewFarmBtn"
+	_new_farm_btn.text = tr("BUILD_NEW_FARM")
+	_new_farm_btn.tooltip_text = tr("BUILD_NEW_FARM_TIP")
+	_new_farm_btn.theme_type_variation = &"SecondaryButton"
+	_new_farm_btn.custom_minimum_size = Vector2(0, 40)
+	_new_farm_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_new_farm_btn.pressed.connect(func() -> void: open_build_family(""))
+	var header := find_child("HeaderInner", true, false) as HBoxContainer
+	var close := find_child("CloseBtn", true, false) as Control
+	if header != null:
+		header.add_child(_new_farm_btn)
+		if close != null and close.get_parent() == header:
+			header.move_child(_new_farm_btn, close.get_index())
+	else:
+		host.add_child(_new_farm_btn)
+		host.move_child(_new_farm_btn, _area_picker.get_index() + 1)
 	_expansion = RegionExpansionSection.new()
 	_expansion.name = "ExpansionSection"
 	_expansion.build_requested.connect(open_build)
@@ -609,6 +630,7 @@ func _on_area_picked(index: int) -> void:
 	var area := _area_picker.get_item_id(index)
 	if area > 0:
 		select_area(area)
+		_mark_area_pick(area)
 
 
 ## Open the licence auction card for a zone (map, inbox, an "overbudt" event).
@@ -629,12 +651,45 @@ func open_build(zone_id: String) -> void:
 	_build_dialog.open_for_zone(zone_id)
 
 
+## F2-31: open the build dialog on a farm family ("land", "hav", "sjo"), or
+## on the three family cards ("").
+func open_build_family(family_id: String) -> void:
+	if _build_dialog == null:
+		return
+	_auction_card.close()
+	_build_dialog.open_for_family(family_id)
+
+
+## F2-31: the map's way into the family-first build flow.
+func new_farm_button() -> Button:
+	return _new_farm_btn
+
+
 func auction_card() -> LicenceAuctionCard:
 	return _auction_card
 
 
 func build_dialog() -> BuildSiteDialog:
 	return _build_dialog
+
+
+## U2-02: the marker of a production area (1-13), or null.
+func region_marker(area: int) -> Control:
+	return _region_nodes.get(_region_of_area(area)) as Control
+
+
+## U2-02: the area the company farms in (0 when none).
+func home_area() -> int:
+	if _overview.is_empty():
+		_refresh_expansion()
+	return _home_area()
+
+
+## The player picked an area (its marker or the picker): the first season's
+## map step waits for the company's own one.
+func _mark_area_pick(area: int) -> void:
+	if _sim != null and area > 0 and area == home_area():
+		_sim.tutorial_mark("map_area_home")
 
 
 func expansion_section() -> RegionExpansionSection:
@@ -862,6 +917,7 @@ func _on_region_input(event: InputEvent, region_id: String) -> void:
 		_show_region(region_id)
 		_refresh_markers()
 		region_selected.emit(region_id)
+		_mark_area_pick(_region_area(region_id))
 
 func _on_close_pressed() -> void:
 	hide_panel()

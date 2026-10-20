@@ -21,13 +21,17 @@ namespace LakskongenSim.Farm.Land
     public readonly record struct LandStockingPlan(double ReleaseWeightKg, double HarvestWeightKg, double TemperatureC,
         double CycleSurvival, double GrowthMultiplier = 1.0, int HorizonDays = LandStockingPlanner.DefaultHorizonDays)
     {
-        /// <summary>The default plan of a template at its setpoint.</summary>
+        /// <summary>
+        /// The default plan of a template at its setpoint, growing at the plan's
+        /// multiplier (<see cref="LandProductionCalibration.PlanGrowthMultiplier"/>,
+        /// competence 1.0, F2-15); a caller with a strain multiplies it in.
+        /// </summary>
         public static LandStockingPlan For(LandTemplateCalibration template, LandProductionCalibration production)
         {
             if (template == null) throw new ArgumentNullException(nameof(template));
             if (production == null) throw new ArgumentNullException(nameof(production));
             return new LandStockingPlan(template.PlanReleaseWeightKg, template.PlanHarvestWeightKg, template.DefaultSetpointC,
-                production.CycleSurvival);
+                production.CycleSurvival, production.PlanGrowthMultiplier);
         }
     }
 
