@@ -102,13 +102,21 @@ const MIRROR_DISTANCE_M := 450.0
 const MIRROR_PITCH_UP_DEG := 26.0
 const MIRROR_YAW_DEG := 190.0
 const MIN_MIRROR_SSIM := 0.5
-const MIN_MIRROR_SSIM_GAIN := 0.1
 const MIRROR_BAND := 0.12
+# wave4b int ruling (RUN_LOG section 7): the mirror's gain is its structure
+# (mirror_scores) over the same frame with the mirror off and nothing else
+# changed. The SSIM gain over the Low tier (0.1, wave 3) passed on High's
+# depth of field alone and failed a working mirror: SSIM scores a flat,
+# bright sky reflection above a darker mirror image in the band's flat
+# windows. A window whose upper half varies by less than
+# MIRROR_STRUCTURE_MIN_SIGMA (luminance) has no structure to mirror.
+const MIRROR_STRUCTURE_MIN_SIGMA := 0.01
+const MIN_MIRROR_STRUCTURE_GAIN := 0.2
 # Merge-captain ruling (wave 3, RUN_LOG §7): a water mirror cannot keep
 # detail finer than its ripples, so 18 judges the mirror at the ripple scale.
-# Both frames (the tier's and the Low tier's sky-only twin) are blurred by a
-# Gaussian of sigma = the ripple wavelength as the camera sees it at the
-# waterline (ripple_sigma_px); the bars above stay. The ripple wavelength is
+# Every frame (the tier's and its twins) is blurred by a Gaussian of
+# sigma = the ripple wavelength as the camera sees it at the waterline
+# (ripple_sigma_px); the bars above stay. The ripple wavelength is
 # the coarser of the wind sea's peak (the director's sea state) and the drawn
 # ripple field's dominant wavelength: the water shader's long ripple map tiles
 # every MIRROR_RIPPLE_TILE_M (water_shader.gdshader `q / 31.0`) and its
@@ -176,6 +184,24 @@ func _ready() -> void:
 const ONLY_GROUPS := ["menu", "fjord_day", "fjord_farm", "feeding", "night_lights", "storm",
 	"mirror", "shore_foam", "moods", "aurora"]
 const ONLY_LIVE_SETTLE_S := 15.0
+
+
+## Why an `--only=` argument cannot run ("" when it can, or when there is
+## none): a name that is no group (a typo, or a shell that passed two
+## arguments as one: "--only=mirror --quality=high"). The harness stops on
+## it before it boots anything; it would otherwise run the full windowed
+## sequence (wave4b int review).
+static func only_arg_error(args: PackedStringArray) -> String:
+	for arg in args:
+		if not arg.begins_with("--only="):
+			continue
+		var names := arg.trim_prefix("--only=").split(",", false)
+		if names.is_empty():
+			return "--only= names no group (known: %s)" % ", ".join(ONLY_GROUPS)
+		for name in names:
+			if not name.strip_edges() in ONLY_GROUPS:
+				return "unknown --only group '%s' (known: %s)" % [name.strip_edges(), ", ".join(ONLY_GROUPS)]
+	return ""
 
 
 ## The groups `--only=` names (unknown names are reported and skipped), or
@@ -265,6 +291,11 @@ func _run_only(groups: PackedStringArray) -> void:
 
 
 func _run_sequence() -> void:
+	var only_error := only_arg_error(OS.get_cmdline_user_args())
+	if only_error != "":
+		push_error("[ScreenshotHarness] %s: nothing captured" % only_error)
+		get_tree().quit(2)
+		return
 	await _wait(0.4)
 	var only := only_groups(OS.get_cmdline_user_args())
 	if not only.is_empty():
@@ -999,6 +1030,20 @@ func _horizon_pixel_row(cam) -> int:
 	return clampi(int(row / size.y * tex_h), 0, int(tex_h))
 
 
+## A twin of the frame on screen after a quality change: settled for
+## `settle_s`, without a toast that arrived since the shot.
+func _grab_twin(settle_s: float) -> Image:
+	await _wait(settle_s)
+	var toasts := get_node_or_null("/root/ToastNotification") as CanvasLayer
+	var toasts_were_visible := toasts != null and toasts.visible
+	if toasts != null:
+		toasts.visible = false
+	var frame := await _grab_frame()
+	if toasts != null:
+		toasts.visible = toasts_were_visible
+	return frame
+
+
 ## The current frame without saving it.
 func _grab_frame() -> Image:
 	var frame_done := [false]
@@ -1089,37 +1134,53 @@ func _capture_fjord_calm_dusk() -> void:
 		var sigma := float(ripple["sigma_px"])
 		var ssim := mirror_ssim(img, row, sigma)
 		var ssim_sharp := mirror_ssim(img, row)
-		# The same frame with the sky's radiance alone (the Low tier's water):
-		# the mirror must be what makes the band match.
+		var scores := mirror_scores(img, row, sigma)
+		# The gain's twin: the same frame with the planar mirror off and
+		# nothing else changed (the tier, its depth of field, scale and
+		# detail, and the run's --quality overrides): the water then reflects
+		# the sky's radiance alone, so the mirror must be what makes the band
+		# match. wave4b int review: the Low tier's twin also dropped High's
+		# depth of field, which blurs the far head and its reflection alike
+		# and carried most of the gain (0.045 without it). The Low twin is
+		# still shot and saved, as information.
 		var tier := String(director.call("get_quality_name")) if director != null else ""
+		var overrides: Dictionary = quality_arg(OS.get_cmdline_user_args()).get("overrides", {})
+		var mirror_on := bool(director.call("get_quality_knobs").get("mirror", false)) if director != null else false
+		var ssim_off := 0.0
+		var ssim_off_sharp := 0.0
+		var scores_off := {"structure": 0.0, "structured": 0}
 		var ssim_sky := 0.0
 		var ssim_sky_sharp := 0.0
 		if director != null:
+			var no_mirror := overrides.duplicate()
+			no_mirror["mirror"] = false
+			director.call("set_quality", tier, no_mirror)
+			var off_frame := await _grab_twin(1.2)
+			if off_frame != null:
+				off_frame.save_png(_project_dir_abs.path_join("18_fjord_calm_dusk_no_mirror.png"))
+			ssim_off = mirror_ssim(off_frame, row, sigma)
+			ssim_off_sharp = mirror_ssim(off_frame, row)
+			scores_off = mirror_scores(off_frame, row, sigma)
 			director.call("set_quality", "low")
-			await _wait(1.2)
-			# A toast that arrived since the shot is no part of the twin.
-			var toasts := get_node_or_null("/root/ToastNotification") as CanvasLayer
-			var toasts_were_visible := toasts != null and toasts.visible
-			if toasts != null:
-				toasts.visible = false
-			var sky_frame := await _grab_frame()
-			if toasts != null:
-				toasts.visible = toasts_were_visible
-			# The twin next to the frame (what the gain is measured against).
+			var sky_frame := await _grab_twin(1.2)
 			if sky_frame != null:
 				sky_frame.save_png(_project_dir_abs.path_join("18_fjord_calm_dusk_low.png"))
 			ssim_sky = mirror_ssim(sky_frame, row, sigma)
 			ssim_sky_sharp = mirror_ssim(sky_frame, row)
-			director.call("set_quality", tier)
+			director.call("set_quality", tier, overrides)
 			await _wait(1.0)
-		print("[ScreenshotHarness] 18_fjord_calm_dusk: waterline row %d of %d at %.0f m; ripple %.2f m (sea peak %.2f m, drawn ripples %.2f m), f %.0f px -> sigma %.1f px; mirror SSIM %.3f (%s), sky reflection alone %.3f; unblurred (information) %.3f vs %.3f" % [
+		var structure := float(scores["structure"])
+		var structure_off := float(scores_off["structure"])
+		print("[ScreenshotHarness] 18_fjord_calm_dusk: waterline row %d of %d at %.0f m; ripple %.2f m (sea peak %.2f m, drawn ripples %.2f m), f %.0f px -> sigma %.1f px; mirror SSIM %.3f (%s %s); structure %.3f over %d of %d windows, the same frame without the mirror %.3f over %d (gain %.3f); information: SSIM without the mirror %.3f (gain %.3f), the Low tier %.3f, unblurred %.3f, %.3f, %.3f" % [
 			row, img.get_height(), float(ripple["distance_m"]), float(ripple["wavelength_m"]), float(ripple["sea_peak_m"]),
-			float(ripple["drawn_ripple_m"]), float(ripple["focal_px"]), sigma, ssim, tier, ssim_sky, ssim_sharp, ssim_sky_sharp])
+			float(ripple["drawn_ripple_m"]), float(ripple["focal_px"]), sigma, ssim, tier, str(overrides),
+			structure, int(scores["structured"]), int(scores["windows"]), structure_off, int(scores_off["structured"]), structure - structure_off,
+			ssim_off, ssim - ssim_off, ssim_sky, ssim_sharp, ssim_off_sharp, ssim_sky_sharp])
 		if ssim < MIN_MIRROR_SSIM:
 			_content_failures.append("18_fjord_calm_dusk: the reflection band matches the flipped skyline at SSIM %.3f (min %.2f)" % [ssim, MIN_MIRROR_SSIM])
-		if tier != "low" and ssim - ssim_sky < MIN_MIRROR_SSIM_GAIN:
-			_content_failures.append("18_fjord_calm_dusk: the mirror lifts the band's SSIM by %.3f over the sky's reflection alone (min %.2f)" % [
-				ssim - ssim_sky, MIN_MIRROR_SSIM_GAIN])
+		if mirror_on and structure - structure_off < MIN_MIRROR_STRUCTURE_GAIN:
+			_content_failures.append("18_fjord_calm_dusk: the mirror lifts the band's structure by %.3f over the same frame without it (min %.2f)" % [
+				structure - structure_off, MIN_MIRROR_STRUCTURE_GAIN])
 	cam.call("set_pitch_offset", 0.0)
 	cam.set("_user_rotated", false)
 
@@ -1172,6 +1233,22 @@ func _sea_peak_wavelength_m(director: Object) -> float:
 ## pixels) the luminance is first blurred by a Gaussian of that sigma (half
 ## of it on the half-size copy): the ripple scale of ripple_sigma_px.
 static func mirror_ssim(img: Image, row: int, sigma_px: float = 0.0) -> float:
+	return float(mirror_scores(img, row, sigma_px)["ssim"])
+
+
+## The mirror's scores over mirror_ssim's windows: "ssim" (their mean SSIM)
+## and "structure", the mean correlation (Pearson, the windows' means taken
+## out) between a window over the waterline and its flipped twin under it,
+## over the windows whose upper half has structure (luminance standard
+## deviation >= MIRROR_STRUCTURE_MIN_SIGMA; "structured" of "windows"). The
+## structure ignores how much darker and flatter the reflection is (Fresnel
+## and the water's colour make it so) and a flat window scores nothing, where
+## SSIM rewards a flat, bright sky reflection for matching a flat, blurred
+## band's luminance (wave4b int ruling, RUN_LOG section 7).
+static func mirror_scores(img: Image, row: int, sigma_px: float = 0.0) -> Dictionary:
+	var out := {"ssim": 0.0, "structure": 0.0, "structured": 0, "windows": 0}
+	if img == null:
+		return out
 	var small := img.duplicate() as Image
 	small.resize(img.get_width() / 2, img.get_height() / 2, Image.INTERPOLATE_BILINEAR)
 	var w := small.get_width()
@@ -1179,7 +1256,7 @@ static func mirror_ssim(img: Image, row: int, sigma_px: float = 0.0) -> float:
 	var r := row / 2
 	var band := mini(int(h * MIRROR_BAND), mini(r, h - r - 1))
 	if band < 8:
-		return 0.0
+		return out
 	# The luminance of the compared region (both bands, the central half of
 	# the columns) with a margin for the blur, blurred if asked.
 	var sigma := 0.5 * maxf(sigma_px, 0.0)
@@ -1194,8 +1271,11 @@ static func mirror_ssim(img: Image, row: int, sigma_px: float = 0.0) -> float:
 	var rw := x1 - x0
 	var c1 := 0.01 * 0.01
 	var c2 := 0.03 * 0.03
+	var min_var := MIRROR_STRUCTURE_MIN_SIGMA * MIRROR_STRUCTURE_MIN_SIGMA
 	var total := 0.0
 	var count := 0
+	var structure := 0.0
+	var structured := 0
 	for by in range(0, band - 7, 4):
 		for bx in range(w / 4, w * 3 / 4 - 7, 4):
 			var sa := 0.0
@@ -1219,7 +1299,14 @@ static func mirror_ssim(img: Image, row: int, sigma_px: float = 0.0) -> float:
 			var cov := sab / 64.0 - ma * mb
 			total += ((2.0 * ma * mb + c1) * (2.0 * cov + c2)) / ((ma * ma + mb * mb + c1) * (va + vb + c2))
 			count += 1
-	return total / maxf(float(count), 1.0)
+			if va >= min_var:
+				structure += cov / (sqrt(va) * sqrt(maxf(vb, 0.0)) + 1e-6)
+				structured += 1
+	out["ssim"] = total / maxf(float(count), 1.0)
+	out["structure"] = structure / maxf(float(structured), 1.0)
+	out["structured"] = structured
+	out["windows"] = count
+	return out
 
 
 ## Luminance of img over the rectangle [x0, x1) x [y0, y1), row by row.

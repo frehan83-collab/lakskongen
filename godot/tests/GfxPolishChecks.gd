@@ -1,15 +1,16 @@
 class_name GfxPolishChecks
 extends RefCounted
 ## gfx-polish-1 UI flow checks (run from UiFlowTests, headless): the menu's
-## hero view draws its clouds one pass finer; a Beaufort-0 calm is a mirror
-## (no wind ripples); the pens damp the sea (the water draws no whitecap
-## inside a collar: the director hands it every pen's collar while caps
-## break, none in a calm); vessel chips keep their whole pill on screen and
-## hide when their boat leaves it; the terrain chunks carry the slope and
-## cavity with the wall ledges averaged out (UV2); the shoal's fish use the
-## light salmon beyond 30 m; and the screenshot harness's single-shot and
-## quality arguments parse. Pixel results (the clouds' steps, the walls'
-## stripes, the moods, 18's mirror) are the screenshot harness's.
+## clouds keep the tier's pass, and a hero view asking for it gets one pass
+## finer; a Beaufort-0 calm is a mirror (no wind ripples); the pens damp the
+## sea (the water draws no whitecap inside a collar: the director hands it
+## every pen's collar while caps break, none in a calm); vessel chips keep
+## their whole pill on screen and hide when their boat leaves it; the
+## terrain chunks carry, in CUSTOM0, the slope and cavity of the ground
+## without the wall ledges' terraces and the ledges' strength; the shoal's
+## fish use the light salmon beyond 30 m; and the screenshot harness's
+## single-shot and quality arguments parse. Pixel results (the clouds' steps,
+## the walls' stripes, the moods, 18's mirror) are the screenshot harness's.
 
 ## The UiFlowTests node (untyped: its helpers are script methods).
 var t
@@ -21,6 +22,7 @@ const BARGE_SCENE := "res://assets/models/feed_barge/feed_barge.tscn"
 func run(tests: Node) -> void:
 	t = tests
 	_check_harness_arguments()
+	_check_mirror_scores()
 	_check_ripples_by_beaufort()
 	await _check_menu_hero_sky()
 	t._check(t._sim.start_qa_scenario("po3_red_sone", 91), "gfx polish: seeded scenario starts")
@@ -48,6 +50,7 @@ func run(tests: Node) -> void:
 		await t.get_tree().process_frame
 	director.set_quality("high")
 	_check_terrain_macro(terrain)
+	_check_prewarm_matches_the_chunks(terrain)
 	await _check_pen_calm(env, director, cam, pens)
 	await _check_shoal_lod(cam, pens)
 	await _check_vessel_chips(env, cam, pens)
@@ -68,6 +71,48 @@ func _check_harness_arguments() -> void:
 	t._check(String(q.get("tier", "")) == "high" and q.get("overrides", {}) == {"cloud_pass": 0, "mirror": false, "mirror_scale": 0.5}
 		and (harness.quality_arg(PackedStringArray(["--only=menu"])) as Dictionary).is_empty(),
 		"harness: --quality gives a tier and typed knob overrides (%s)" % str(q))
+	# wave4b int review: a shell that passed two arguments as one ran the full
+	# windowed sequence (its --only named no group). Now the run stops.
+	var glued: String = harness.only_arg_error(PackedStringArray(["--only=mirror --quality=high,dof=false"]))
+	var typo: String = harness.only_arg_error(PackedStringArray(["--only=mirorr,moods"]))
+	var empty: String = harness.only_arg_error(PackedStringArray(["--only="]))
+	var fine: String = harness.only_arg_error(PackedStringArray(["--only=menu,storm", "--quality=high,dof=false"]))
+	var full: String = harness.only_arg_error(PackedStringArray(["--quality=high"]))
+	t._check(glued != "" and typo != "" and empty != "" and fine == "" and full == "",
+		"harness: an --only naming no group stops the run before it boots (%s; %s)" % [glued, typo])
+
+
+## 18's mirror scores on made frames (wave4b int ruling): a reflection that
+## is the scene flipped scores a structure of 1 however much darker it is
+## (SSIM marks the darker one down), a flat or an unrelated one scores none.
+func _check_mirror_scores() -> void:
+	var harness: GDScript = load(HARNESS_SCRIPT)
+	var exact: Dictionary = harness.mirror_scores(_mirror_frame(1.0, false), 150)
+	var dark: Dictionary = harness.mirror_scores(_mirror_frame(0.4, false), 150)
+	var flat: Dictionary = harness.mirror_scores(_mirror_frame(0.0, false), 150)
+	var other: Dictionary = harness.mirror_scores(_mirror_frame(1.0, true), 150)
+	var structured := int(exact["structured"])
+	t._check(float(exact["structure"]) > 0.99 and float(exact["ssim"]) > 0.99 and float(dark["structure"]) > 0.95
+		and float(dark["ssim"]) < float(exact["ssim"]) - 0.2 and absf(float(flat["structure"])) < 0.05
+		and absf(float(other["structure"])) < 0.3 and structured > 40 and structured * 10 >= int(exact["windows"]) * 9,
+		"harness: the mirror's structure is 1 for the flipped scene at any brightness (dark %.3f, its SSIM %.3f against %.3f), none for a flat (%.3f) or an unrelated (%.3f) reflection; %d of %d windows" % [
+			float(dark["structure"]), float(dark["ssim"]), float(exact["ssim"]), float(flat["structure"]), float(other["structure"]),
+			structured, int(exact["windows"])])
+
+
+## A 400 x 300 frame whose rows under 150 mirror the textured rows over it,
+## at `gain` of their brightness about 0.1 (0: flat), or a texture of their
+## own (`unrelated`).
+static func _mirror_frame(gain: float, unrelated: bool) -> Image:
+	var img := Image.create(400, 300, false, Image.FORMAT_RGBF)
+	for y in 150:
+		for x in 400:
+			var v := 0.45 + 0.2 * sin(x * 0.37) * cos(y * 0.23) + 0.1 * sin((x + 2 * y) * 0.11)
+			img.set_pixel(x, y, Color(v, v, v))
+			var w := 0.45 + 0.2 * sin(x * 0.29 + 1.7) * cos(y * 0.41 + 0.6) + 0.1 * sin((2 * x - y) * 0.13) if unrelated else v
+			var r := 0.1 + gain * (w - 0.1)
+			img.set_pixel(x, 299 - y, Color(r, r, r))
+	return img
 
 
 ## Beaufort 0 (under 0.5 m/s, "sea like a mirror"): no wind ripples, only
@@ -91,29 +136,34 @@ func _check_ripples_by_beaufort() -> void:
 			glass, force1, breeze])
 
 
-## The menu's hero view looks along the horizon: its clouds one pass finer
-## than the tier's (High per pixel, Medium and Low in the half pass); the
-## game keeps the tier's pass.
+## The menu's clouds keep the tier's pass, as the game's do (wave4b int:
+## one pass finer cost the first screen +2.3 ms a frame at 1080p, +3.7-4.1
+## ms at 1440p on High, and drew contours inside the per-pixel clouds). A
+## hero view that asks for it still gets one pass finer than the tier's
+## (High per pixel, Medium and Low in the half pass), on the sky too;
+## underwater the sky is per pixel.
 func _check_menu_hero_sky() -> void:
 	var menu: Control = await t._spawn_main_menu()
 	var backdrop: MenuBackdrop = menu.backdrop
 	var director: EnvironmentDirector = backdrop.environment.director
 	for i in 3:
 		await t.get_tree().process_frame
+	var menu_hero := director.hero_sky
+	var sky := (backdrop.environment.get_node("WorldEnvironment") as WorldEnvironment).environment.sky.sky_material as ShaderMaterial
 	var passes := []
+	var hero_passes := []
 	for tier in ["low", "medium", "high", "ultra"]:
 		director.set_quality(tier)
-		var sky := (backdrop.environment.get_node("WorldEnvironment") as WorldEnvironment).environment.sky.sky_material as ShaderMaterial
 		passes.append([director.cloud_pass_now(false), int(sky.get_shader_parameter("cloud_pass"))])
+		director.set_hero_sky(true)
+		director.compose(0.0, true)
+		hero_passes.append([director.cloud_pass_now(false), int(sky.get_shader_parameter("cloud_pass"))])
+		director.set_hero_sky(false)
 	director.set_quality("high")
-	var game_like := EnvironmentDirector.new()
-	game_like.quality.set_tier(RenderQuality.Tier.HIGH)
-	var game_pass := game_like.cloud_pass_now(false)
 	var under := director.cloud_pass_now(true)
-	game_like.free()
-	t._check(director.hero_sky and passes == [[1, 1], [1, 1], [0, 0], [0, 0]] and game_pass == 1 and under == 0,
-		"menu: the hero view's clouds one pass finer than the tier's (low/medium/high/ultra %s), the game's High keeps the half pass (%d)" % [
-			str(passes), game_pass])
+	t._check(not menu_hero and passes == [[2, 2], [2, 2], [1, 1], [0, 0]] and hero_passes == [[1, 1], [1, 1], [0, 0], [0, 0]] and under == 0,
+		"menu: the clouds keep the tier's pass (low/medium/high/ultra %s); a hero view asking for it gets one finer (%s); underwater %d" % [
+			str(passes), str(hero_passes), under])
 	menu.queue_free()
 	await t.get_tree().process_frame
 
@@ -165,6 +215,19 @@ func _check_terrain_macro(terrain: FjordTerrain) -> void:
 	t._check(not chunks.is_empty() and with_macro == chunks.size() and sane and differs > 0 and strong > 0 and far_ok,
 		"terrain: every chunk (%d) and the far field carry the ground without its ledges in CUSTOM0, the walls' slope taken out of its terraces (%d samples differ) and the ledges' strength (%d samples over 0.2)" % [
 			chunks.size(), differs, strong])
+
+
+## The terrain's warm-up triangle (ShaderPrewarm, compiled on the first
+## frames so the first chunk draws without a hitch) carries the chunks'
+## CUSTOM0 in the same format (RGBA float): a pipeline is compiled per
+## vertex format, and UiFlowTests' layout check leaves CUSTOM0 out.
+func _check_prewarm_matches_the_chunks(terrain: FjordTerrain) -> void:
+	var mask := Mesh.ARRAY_FORMAT_CUSTOM0 | (Mesh.ARRAY_FORMAT_CUSTOM_MASK << Mesh.ARRAY_FORMAT_CUSTOM0_SHIFT)
+	var warm := ShaderPrewarm.triangle_mesh(ShaderPrewarm.TERRAIN_FORMAT).surface_get_format(0) & mask
+	var chunks := terrain.get_chunk_meshes()
+	var chunk := (chunks[0].mesh as ArrayMesh).surface_get_format(0) & mask if not chunks.is_empty() else -1
+	t._check(warm == chunk and warm == (Mesh.ARRAY_FORMAT_CUSTOM0 | FjordTerrain.MACRO_FORMAT_FLAGS),
+		"terrain: the warm-up triangle carries the chunks' CUSTOM0 as RGBA float (%d vs %d)" % [warm, chunk])
 
 
 ## In a storm the water breaks no whitecap inside a pen: the director hands
@@ -321,6 +384,10 @@ func _check_vessel_chips(env: FjordEnvironment, cam: FjordCamera, pens: FishPenM
 ## colour, sRGB-encoded as Light3D colours are, sets only the hue. A
 ## peak-normalised linear tint read as sRGB left a 3-degree midnight sun
 ## 0.60 of its light and a 10-degree autumn sun 0.74 (the mutation run).
+## The light's luminance is computed here, not by the director's helper
+## (wave4b int review: through EnvironmentDirector.sun_color_luminance the
+## check could only catch a missing division): the IEC 61966-2-1 decode of
+## each channel and the Rec. 709 weights.
 func _check_sun_keeps_its_light(env: FjordEnvironment, director: EnvironmentDirector) -> void:
 	var sun := env.get_node("Sun") as DirectionalLight3D
 	var rows := []
@@ -332,8 +399,14 @@ func _check_sun_keeps_its_light(env: FjordEnvironment, director: EnvironmentDire
 		director.compose(0.0, true)
 		var composed := director.get_composed()
 		var energy := float(composed.get("sun_energy", 0.0))
-		var lum := EnvironmentDirector.sun_color_luminance(sun.light_color)
+		var c := sun.light_color
+		var lum := 0.2126 * _srgb_decode(c.r) + 0.7152 * _srgb_decode(c.g) + 0.0722 * _srgb_decode(c.b)
 		var light := lum * sun.light_energy
 		kept = kept and energy > 0.0 and absf(light - energy) <= 0.002 * maxf(energy, 1.0)
 		rows.append("%.1f deg: energy %.3f, light %.3f" % [float(composed.get("sun_elevation", 0.0)), energy, light])
 	t._check(kept, "sun: the light keeps the luminance its energy gives at every elevation (%s)" % ", ".join(rows))
+
+
+## An sRGB-encoded channel to linear light (IEC 61966-2-1).
+static func _srgb_decode(v: float) -> float:
+	return v / 12.92 if v <= 0.04045 else pow((v + 0.055) / 1.055, 2.4)

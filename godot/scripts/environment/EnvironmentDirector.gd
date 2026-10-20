@@ -335,7 +335,8 @@ var wave_field := WaveField.new()
 ## Quality tier (P0-04, G5-01 groundwork): the knobs this director composes
 ## with, and the global render settings it applies through RenderQuality.
 var quality := RenderQuality.new()
-## The menu's hero view draws its clouds one pass finer (set_hero_sky).
+## A hero view draws its clouds one pass finer (set_hero_sky; no view asks
+## for it since wave4b int: the main menu keeps the tier's pass).
 var hero_sky := false
 ## Sky uniform writes made so far (tests read it: none while the world is
 ## hidden, so the sky's radiance map is not re-rendered behind a panel).
@@ -419,10 +420,12 @@ func set_render_scale_cap(cap: float) -> void:
 		quality.apply_scale(get_viewport())
 
 
-## The main menu's hero view (MenuBackdrop): its low camera looks along the
-## horizon, where the clouds' half-resolution pass shows its texels most, so
-## the clouds are drawn one pass finer than the tier's (High per pixel,
-## Medium and Low in the half pass). Holds across tier changes.
+## A hero view (a low camera along the horizon, where the clouds' reduced
+## pass shows its texels most) can draw the clouds one pass finer than the
+## tier's (High per pixel, Medium and Low in the half pass). Holds across
+## tier changes. gfx-polish-1 gave it to the main menu; wave4b int took it
+## back (+2.3 ms a frame at 1080p, +3.7-4.1 ms at 1440p on High, contours
+## inside the per-pixel clouds; the band-limited half pass is clean).
 func set_hero_sky(on: bool) -> void:
 	hero_sky = on
 

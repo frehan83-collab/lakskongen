@@ -3,11 +3,13 @@ wave-3 merges (docs/RUN_LOG.md section 8), fixed at their source.
 
 - Clouds: the low layer is band-limited to the pass's own pixel (no octave
   finer than two footprints, edges spread over a pixel), so the half- and
-  quarter-resolution passes have nothing to stair-step or slice; the menu's
-  hero view draws them one pass finer.
-- Walls: the terrain's masks read the slope and cavity with the wall ledges
-  averaged out (UV2) where a ledge is small on screen, and the cliff bands
-  fade by their size on screen (the venetian blinds of harness 18).
+  quarter-resolution passes have nothing to stair-step or slice; a hero view
+  can ask for one pass finer (the main menu no longer does, wave4b int).
+- Walls: where a ledge is small on screen the terrain's masks read the slope
+  and cavity of the ground without the wall ledges' terraces (CUSTOM0, with
+  the ledges' strength spreading the snow over their flats and risers), and
+  the cliff bands fade by their size on screen (the venetian blinds of
+  harness 18).
 - Water: a Beaufort-0 calm is a mirror; the water draws no whitecap inside a
   pen's collar.
 - The moods were tuned toward the owner brief, not the goldens: the specs
@@ -168,10 +170,14 @@ def test_the_cloud_level_of_detail_is_continuous_and_follows_the_pixel():
 
 
 def test_the_menu_hero_view_draws_its_clouds_one_pass_finer():
+    # A hero view can ask for clouds one pass finer; wave4b int took it back
+    # from the main menu (+2.3 ms a frame at 1080p, +3.7-4.1 ms at 1440p on
+    # High, contours inside the per-pixel clouds): the menu keeps the tier's
+    # pass (RUN_LOG section 7; GfxPolishChecks checks both live).
     director = _code(DIRECTOR)
     assert "return maxi(tier_pass - 1, 0) if hero_sky else tier_pass" in director
     assert 'mat.set_shader_parameter("cloud_pass", cloud_pass_now(underwater))' in director
-    assert "environment.director.set_hero_sky(true)" in _code(MENU)
+    assert "set_hero_sky(" not in _code(MENU)
 
 
 # ── Walls ──────────────────────────────────────────────────────────────────────
@@ -268,7 +274,10 @@ def test_the_calm_dusk_is_staged_as_a_beaufort_0_mirror_calm():
     assert float(m.group(1)) <= 0.5, "owner reference 2: wind <= 0.5 m/s"
     assert "ws.call(\"apply_sky_context\", MIRROR_SKY)" in harness
     assert re.search(r"const MIN_MIRROR_SSIM := 0\.5\b", harness)
-    assert re.search(r"const MIN_MIRROR_SSIM_GAIN := 0\.1\b", harness)
+    # wave4b int ruling (RUN_LOG section 7): the gain is the mirror's structure
+    # over the same frame without it (the SSIM gain over the Low tier passed on
+    # High's depth of field alone); test_water_v2 pins the twin and the gate.
+    assert re.search(r"const MIN_MIRROR_STRUCTURE_GAIN := 0\.2\b", harness)
 
 
 # ── Moods ──────────────────────────────────────────────────────────────────────

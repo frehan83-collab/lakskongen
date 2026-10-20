@@ -65,7 +65,7 @@ static func triangle_mesh(arrays_format: Array) -> ArrayMesh:
 				arrays[slot] = PackedVector3Array([Vector3.BACK, Vector3.BACK, Vector3.BACK])
 			Mesh.ARRAY_TANGENT:
 				arrays[slot] = PackedFloat32Array([1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0])
-			Mesh.ARRAY_TEX_UV, Mesh.ARRAY_TEX_UV2:
+			Mesh.ARRAY_TEX_UV:
 				arrays[slot] = PackedVector2Array([Vector2.ZERO, Vector2.RIGHT, Vector2.DOWN])
 			Mesh.ARRAY_CUSTOM0:
 				var custom := PackedFloat32Array()

@@ -238,13 +238,17 @@ HARNESS = GODOT / "scripts/tools/ScreenshotHarness.gd"
 def test_the_calm_dusk_mirror_is_judged_at_the_ripple_scale_with_the_bars_unchanged():
     # Merge-captain ruling (wave-3 integration, RUN_LOG §7): a water mirror
     # cannot keep detail finer than its ripples, so 18_fjord_calm_dusk blurs
-    # both frames (the tier's and the Low tier's sky-only twin) by the ripple
-    # wavelength as the camera sees it at the waterline, sigma = lambda * f / d
-    # with lambda the coarser of the sea state's peak and the drawn ripples,
-    # and keeps G2-03's bars: SSIM >= 0.5 and a gain >= 0.1 over the sky alone.
+    # every frame (the tier's and its twins) by the ripple wavelength as the
+    # camera sees it at the waterline, sigma = lambda * f / d with lambda the
+    # coarser of the sea state's peak and the drawn ripples, and keeps G2-03's
+    # SSIM >= 0.5. wave4b int ruling (RUN_LOG §7, replacing the SSIM gain >= 0.1
+    # over the Low tier's twin, which passed on High's depth of field alone):
+    # the gain is the mirror's structure over the same tier with only the
+    # mirror off, >= 0.2.
     harness = _code(HARNESS)
     assert re.search(r"const MIN_MIRROR_SSIM := 0\.5\b", harness), "the SSIM bar stays 0.5"
-    assert re.search(r"const MIN_MIRROR_SSIM_GAIN := 0\.1\b", harness), "the gain bar stays 0.1"
+    assert re.search(r"const MIN_MIRROR_STRUCTURE_GAIN := 0\.2\b", harness), "the structure gain bar is 0.2"
+    assert re.search(r"const MIRROR_STRUCTURE_MIN_SIGMA := 0\.01\b", harness)
     assert 'out["sigma_px"] = wavelength * focal / distance_m' in harness
     assert "var focal := 0.5 * float(frame_h) / tan(deg_to_rad(cam.fov) * 0.5)" in harness
     assert "var wavelength := maxf(sea_peak_m, drawn)" in harness
@@ -264,4 +268,15 @@ def test_the_calm_dusk_mirror_is_judged_at_the_ripple_scale_with_the_bars_unchan
     assert "ssim_sky = mirror_ssim(sky_frame, row, sigma)" in harness
     assert "var ssim_sharp := mirror_ssim(img, row)" in harness
     assert "if ssim < MIN_MIRROR_SSIM:" in harness
-    assert "ssim - ssim_sky < MIN_MIRROR_SSIM_GAIN" in harness
+    # The gain's twin: the same tier and the run's overrides with only the
+    # mirror off, scored with the same sigma; the run's overrides come back.
+    assert 'no_mirror["mirror"] = false' in harness
+    assert 'director.call("set_quality", tier, no_mirror)' in harness
+    assert "var scores := mirror_scores(img, row, sigma)" in harness
+    assert "scores_off = mirror_scores(off_frame, row, sigma)" in harness
+    assert "if mirror_on and structure - structure_off < MIN_MIRROR_STRUCTURE_GAIN:" in harness
+    assert 'director.call("set_quality", tier, overrides)' in harness
+    # The structure: the windows' correlation where the band over the
+    # waterline has structure, whatever the reflection's brightness.
+    assert "if va >= min_var:" in harness
+    assert "structure += cov / (sqrt(va) * sqrt(maxf(vb, 0.0)) + 1e-6)" in harness
