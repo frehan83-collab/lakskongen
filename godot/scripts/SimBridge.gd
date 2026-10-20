@@ -782,3 +782,14 @@ func appeal_licence_conversion(site_id: String) -> Dictionary: return _proxies.a
 func pay_licence_conversion(site_id: String) -> Dictionary: return _proxies.pay_licence_conversion(site_id)
 func place_converted_licences(holding_ids: Array, zone_id: String) -> Dictionary: return _proxies.place_converted_licences(holding_ids, zone_id)
 # ═══ END sim·sea lane block ═══
+
+# ═══ BEGIN sim·geo lane block (TRACK-A STUB from geo/sea-candidates: get_geo_plot_binding only; at the merge keep track A's block and drop this one) ═══
+func get_geo_plot_binding(plot_id: String) -> Dictionary: return _proxies.get_geo_plot_binding(plot_id)
+# ═══ END sim·geo lane block (TRACK-A STUB) ═══
+
+# ═══ BEGIN sim·candidates lane block (geo stages 2-3 track B: open-pen candidates, the build at a candidate, the company's site locations) ═══
+func get_sea_candidates(area: int) -> Array[Dictionary]: return _proxies.get_sea_candidates(area)
+func plan_site_build_at(zone_id: String, candidate_id: String) -> Dictionary: return _proxies.plan_site_build_at(zone_id, candidate_id)
+func build_expansion_site_at(zone_id: String, candidate_id: String) -> Dictionary: return _actions.build_expansion_site_at(zone_id, candidate_id)
+func get_player_site_locations() -> Array[Dictionary]: return _proxies.get_player_site_locations()
+# ═══ END sim·candidates lane block ═══
