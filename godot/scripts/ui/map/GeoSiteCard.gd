@@ -24,8 +24,7 @@ signal hav_requested
 signal back_requested
 
 const ZOOM := 4.0
-const FARM_RING_M := 2500.0
-const RIVER_RING_M := 5000.0
+## The rings come from suitability_rules.json, the rules the scores used.
 const CARD_WIDTH := 380.0
 const CARD_MARGIN := 12.0
 const LICENCE_REASON := "growth_licence_required"
@@ -323,6 +322,21 @@ func _build_card() -> void:
 	buttons.add_child(_action_btn)
 
 
+## The farm-distance ring, m: the rules' hard minimum between farms
+## (hard_constraints.farm_too_close.min_km); 0 when the rules lack it.
+static func farm_ring_m() -> float:
+	var hard: Variant = GeoData.rules().get("hard_constraints", {})
+	var farm: Variant = hard.get("farm_too_close", {}) if hard is Dictionary else {}
+	return float(farm.get("min_km", 0.0)) * 1000.0 if farm is Dictionary else 0.0
+
+
+## The river rings, m: the radius over which a river mouth lowers the score
+## (river_factor.radius_m); 0 when the rules lack it.
+static func river_ring_m() -> float:
+	var river: Variant = GeoData.rules().get("river_factor", {})
+	return float(river.get("radius_m", 0.0)) if river is Dictionary else 0.0
+
+
 ## A score term's value as the card shows it: the component (0-1) and, when
 ## it costs the score anything, what it costs ("0,90 (−0,014)").
 static func term_text(value: float, cost: float) -> String:
@@ -504,15 +518,18 @@ class _CropMap extends Control:
 	func _draw_rings(po: int, t: Dictionary, src: Rect2, s: float) -> void:
 		var res: float = t["map_res"]
 		if card.kind() != "rival":
-			draw_arc(to_crop(centre), FARM_RING_M / res * s, 0.0, TAU, 96, Color(GeoRegionView.SNOW, 0.85), 1.5, true)
+			var farm_m := GeoSiteCard.farm_ring_m()
+			if farm_m > 0.0:
+				draw_arc(to_crop(centre), farm_m / res * s, 0.0, TAU, 96, Color(GeoRegionView.SNOW, 0.85), 1.5, true)
 		var data := GeoRegionData.area(po)
 		if data.is_empty():
 			return
 		for p: Dictionary in data["layers"]["constraint_points"]:
-			if String(p["kind"]) == "coral_reef" or not src.grow(RIVER_RING_M / res).has_point(p["px"]):
+			var river_m := GeoSiteCard.river_ring_m()
+			if String(p["kind"]) == "coral_reef" or river_m <= 0.0 or not src.grow(river_m / res).has_point(p["px"]):
 				continue
 			var c := to_crop(p["px"])
-			var r := RIVER_RING_M / res * s
+			var r := river_m / res * s
 			var col: Color = GeoRegionOverlay.STYLE[String(p["kind"])]["line"]
 			for i in 48:
 				var a := TAU * i / 48.0
