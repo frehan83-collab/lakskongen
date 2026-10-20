@@ -12,7 +12,8 @@ class_name RASPanel
 @onready var _facility_section_title: Label = %FacilityHeader
 @onready var facility_list_container: VBoxContainer = %FacilityList
 @onready var water_chemistry_label: Label = %WaterChemistryLabel
-@onready var build_new_button: Button = %BtnBuildRas
+## F2-31: opens the family-first build flow on Land (the legacy build button is gone).
+@onready var plan_land_button: Button = %BtnPlanLand
 @onready var maintenance_button: Button = %BtnMaintenance
 
 # ── Autoloads ─────────────────────────────────────────────────────────────────
@@ -30,7 +31,7 @@ func _ready():
 
 	_apply_localization()
 	_apply_theme_fonts()
-	build_new_button.pressed.connect(_on_build_new_pressed)
+	plan_land_button.pressed.connect(_on_plan_land_pressed)
 	maintenance_button.pressed.connect(_on_maintenance_pressed)
 
 	refresh()
@@ -40,7 +41,8 @@ func _ready():
 func _apply_localization() -> void:
 	ras_header_label.text = tr("UI_RAS_TITLE")
 	_facility_section_title.text = tr("UI_RAS_FACILITIES")
-	build_new_button.text = tr("UI_RAS_BUILD")
+	plan_land_button.text = tr("BUILD_PLAN_LAND")
+	plan_land_button.tooltip_text = tr("BUILD_PLAN_LAND_TIP")
 	maintenance_button.text = tr("UI_RAS_MAINTENANCE")
 
 func _apply_theme_fonts() -> void:
@@ -54,9 +56,6 @@ func refresh():
 	_update_facility_list()
 	_update_water_chemistry()
 	_update_maintenance_button()
-	if build_new_button != null and _sim != null:
-		UIPolish.set_available(build_new_button,
-			UIPolish.funds_blocker(UIPolish.build_cost(_sim, "ras"), float(_sim.balance)))
 
 ## U1-08: maintenance only does something when a facility needs it.
 func _update_maintenance_button() -> void:
@@ -172,10 +171,9 @@ func _report(result: Dictionary) -> void:
 func _fmt_count(n: int) -> String:
 	return SimFormatters.integer(n)
 
-func _on_build_new_pressed():
-	if _sim != null and _sim.has_method("build_ras_facility"):
-		_sim.build_ras_facility(tr("UI_RAS_NEW_FACILITY_NAME"), "medium")
-	refresh()
+## F2-31: land farms are applied for and built through the build dialog's Land family.
+func _on_plan_land_pressed():
+	BuildFlowLink.open(self, "land")
 
 func _on_maintenance_pressed():
 	if _sim != null and _sim.has_method("ras_maintenance"):

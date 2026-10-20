@@ -503,6 +503,7 @@ namespace LakskongenSim.Core
             _inDayPhases = new ITickSystem[]
             {
                 new WeatherAndEnvironmentTickSystem(),
+                new OffshoreSeaTickSystem(),          // F2-06: the open sea, right after the weather it reads
                 new HealthPrepTickSystem(),
                 new BiologyTickSystem(),
                 new FarmOpexTickSystem(),

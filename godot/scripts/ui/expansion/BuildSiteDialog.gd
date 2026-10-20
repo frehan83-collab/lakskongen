@@ -1,43 +1,56 @@
 class_name BuildSiteDialog
 extends Control
 
-## "Bygg lokalitet" (roadmap U2-01): what a new locality costs, holds and adds
-## before the player commits, from the engine's build plan
-## (SimBridge.plan_site_build): the cost against the cash, the running cost
-## it adds per month, the locality's own MTB, the 0 t of licence MTB a build
-## brings, and the pens of the standard mooring frame, drawn. Confirming
-## builds through SimBridge.build_expansion_site; a refusal is shown as text.
+## "Bygg nytt anlegg": the family-first build flow (roadmap F2-31,
+## docs/FARM_TYPES_SPEC.md §6.1-6.2; U2-01 built its Sjø step).
 ##
-## The dialog is the future home of the family-first build flow
-## (docs/FARM_TYPES_SPEC.md §6.1-6.2, F2-31): its first step is "Anleggstype".
-## Sjø is the working family; Land and Hav say where those builds live today
-## (the RAS and Offshore tabs) and nothing else: no figures until the engine's
-## farm-type catalogue (F2-04) supplies them.
+## 1. Anleggstype: three family cards (Sjø, Land, Hav) with what each pays
+##    for capacity with and what limits it, and how many variants are open.
+## 2. Variant: the family's variants side by side on the catalogue's aligned
+##    bars and pips (median and bad case), each locked card listing every
+##    gate, money included, with a progress bar.
+## 3. Tomt (Land, Hav): the site lens; choosing a plot ghosts the build onto
+##    it (presentation only, the engine is untouched).
+## 4. Forhåndsvisning: capex and payments with the p50/p90 overrun band, a
+##    36-month cash runway, payback year, NOK/kg HOG, capacity cost with the
+##    licence, first harvest; the permit timeline on land; the licence value
+##    and the consortium at sea. Confirm files the permit cases (land), starts
+##    construction (sea, or land once permitted) or builds the locality (Sjø).
+## The diagnosis strip on top names the binding constraint from engine data.
+## Every number is the engine's (SimBridge.get_farm_type_catalog,
+## preview_farm_build, get_build_plots, get_build_diagnosis, plan_site_build).
 
 signal built(site_id: String, zone_id: String)
 signal view_site_requested(site_id: String)
 signal tab_requested(tab_id: String)
 signal closed
 
-const FAMILIES := [
-	{"id": "sea", "title": "EXPANSION_FAMILY_SEA", "body": "EXPANSION_FAMILY_SEA_BODY", "tab": ""},
-	{"id": "land", "title": "EXPANSION_FAMILY_LAND", "body": "EXPANSION_FAMILY_LAND_BODY", "tab": "ras", "button": "EXPANSION_FAMILY_LAND_BUTTON"},
-	{"id": "offshore", "title": "EXPANSION_FAMILY_OFFSHORE", "body": "EXPANSION_FAMILY_OFFSHORE_BODY", "tab": "offshore", "button": "EXPANSION_FAMILY_OFFSHORE_BUTTON"},
-]
+## Catalogue family id -> the card's node suffix (U2-01's names).
+const CARD_IDS := {"sjo": "sea", "land": "land", "hav": "offshore"}
+## The fjord variant this dialog builds (the closed pen is an upgrade on the pen card).
+const SEA_BUILD := "open_pen"
 
 @onready var _dialog: PanelContainer = %Dialog
 @onready var _overline: Label = %Overline
 @onready var _title: Label = %TitleLabel
 @onready var _subtitle: Label = %SubtitleLabel
 @onready var _close_btn: Button = %CloseBtn
+@onready var _diagnosis_host: VBoxContainer = %DiagnosisHost
 @onready var _family_header: Label = %FamilyHeader
 @onready var _family_row: HBoxContainer = %FamilyRow
+@onready var _scroll: ScrollContainer = %StepScroll
+@onready var _variant_header: Label = %VariantHeader
+@onready var _comparison_host: VBoxContainer = %ComparisonHost
+@onready var _option_row: HBoxContainer = %OptionRow
+@onready var _plot_header: Label = %PlotHeader
+@onready var _plot_host: VBoxContainer = %PlotHost
 @onready var _preview_header: Label = %PreviewHeader
 @onready var _preview_row: HBoxContainer = %PreviewRow
 @onready var _grid_slot: PanelContainer = %GridSlot
 @onready var _ledger: GridContainer = %Ledger
 @onready var _explain_callout: PanelContainer = %ExplainCallout
 @onready var _explain: Label = %ExplainLabel
+@onready var _facility_host: VBoxContainer = %FacilityHost
 @onready var _verdict: Label = %VerdictLabel
 @onready var _result_box: VBoxContainer = %ResultBox
 @onready var _result_title: Label = %ResultTitle
@@ -45,6 +58,8 @@ const FAMILIES := [
 @onready var _hint: Label = %HintLabel
 @onready var _cancel_btn: Button = %CancelBtn
 @onready var _confirm_btn: Button = %ConfirmBtn
+
+const FamilyCardScene := preload("res://scenes/ui/FarmFamilyCard.tscn")
 
 var _sim: Node = null
 var _zone_id := ""
@@ -54,12 +69,36 @@ var _pen_grid: PenGridPreview = null
 ## Answers whether a tab may be opened (GameUI's tutorial gate); set by the host.
 var _tab_probe: Callable = func(_tab: String) -> bool: return true
 
+# ── The flow's state (choices only; every figure is re-read) ─────────────────
+var _family := "sjo"
+var _variant := SEA_BUILD
+var _option := "hfs_pilot_lot"
+var _plot := ""
+var _contract := "managed"
+var _consortium := false
+var _mitigations: Array = []
+## True while the family cards are the first step (opened without a zone).
+var _choosing_family := false
+## Land permits filed or a unit contracted by the last confirm ("" none).
+var _done_kind := ""
+
+var _catalog: Dictionary = {}
+var _starts: Dictionary = {}
+var _farm_preview: Dictionary = {}
+var _diagnosis: DiagnosisStrip = null
+var _comparison: ComparisonBars = null
+var _plot_lens: PlotLens = null
+var _facility: FacilityBuildPreview = null
+var _research_names: Dictionary = {}
+
 
 func _ready() -> void:
 	hide()
 	_sim = get_node_or_null("/root/SimBridge")
 	_overline.text = tr("EXPANSION_BUILD_OVERLINE")
 	_family_header.text = tr("EXPANSION_FAMILY_HEADER")
+	_variant_header.text = tr("BUILD_VARIANT_HEADER")
+	_plot_header.text = tr("BUILD_PLOT_HEADER")
 	_preview_header.text = tr("EXPANSION_PREVIEW_HEADER")
 	_close_btn.tooltip_text = tr("UI_CLOSE")
 	_close_btn.pressed.connect(close)
@@ -69,30 +108,66 @@ func _ready() -> void:
 	_pen_grid.name = "PenGrid"
 	_pen_grid.custom_minimum_size = Vector2(260, 180)
 	_grid_slot.add_child(_pen_grid)
+	_diagnosis = DiagnosisStrip.new()
+	_diagnosis.name = "DiagnosisStrip"
+	_diagnosis_host.add_child(_diagnosis)
+	_comparison = ComparisonBars.new()
+	_comparison.name = "Comparison"
+	_comparison_host.add_child(_comparison)
+	_plot_lens = PlotLens.new()
+	_plot_lens.name = "PlotLens"
+	_plot_host.add_child(_plot_lens)
+	_plot_lens.plot_chosen.connect(choose_plot)
+	_facility = FacilityBuildPreview.new()
+	_facility.name = "FacilityPreview"
+	_facility_host.add_child(_facility)
+	_facility.contract_changed.connect(func(c: String) -> void:
+		_contract = c
+		_refresh())
+	_facility.consortium_toggled.connect(func(on: bool) -> void:
+		_consortium = on
+		_refresh())
+	_facility.mitigation_toggled.connect(_on_mitigation)
+	get_viewport().size_changed.connect(_fit)
+	resized.connect(_fit)
 
 
-## The host's tutorial gate for the Land and Hav cards' tab links.
+## The host's tutorial gate for tab links.
 func set_tab_probe(probe: Callable) -> void:
 	_tab_probe = probe
 
 
-## Open the dialog for a zone (the plan is re-read from the engine).
+## Open the dialog for a fjord zone: Sjø chosen, the zone's build plan below.
 func open_for_zone(zone_id: String) -> void:
 	_zone_id = zone_id
+	_reset_choices("sjo")
+	_choosing_family = false
+	_open()
+
+
+## Open the dialog on the family cards (RAS and Offshore tabs, "Nytt anlegg"):
+## `family_id` ("land", "hav", "sjo") chosen, or "" to start at the cards.
+func open_for_family(family_id: String, zone_id: String = "") -> void:
+	_zone_id = zone_id
+	_reset_choices(family_id if family_id != "" else "")
+	_choosing_family = family_id == ""
+	_open()
+
+
+func _open() -> void:
 	_built_site_id = ""
+	_done_kind = ""
 	show()
 	_refresh()
 	JuiceEffects.panel_enter(_dialog)
-	if _confirm_btn.disabled:
-		_cancel_btn.grab_focus.call_deferred()
-	else:
-		_confirm_btn.grab_focus.call_deferred()
+	_focus_after_open.call_deferred()
 
 
 func close() -> void:
 	if not visible:
 		return
 	hide()
+	_clear_ghost()
 	closed.emit()
 
 
@@ -100,9 +175,58 @@ func zone_id() -> String:
 	return _zone_id
 
 
-## The plan the dialog shows (the bridge's dictionary).
+## The fjord zone's build plan the dialog shows (the bridge's dictionary).
 func plan() -> Dictionary:
 	return _plan
+
+
+## The chosen family ("sjo", "land", "hav"), variant and plot.
+func family() -> String:
+	return _family
+
+
+func variant() -> String:
+	return _variant
+
+
+func plot_id() -> String:
+	return _plot
+
+
+## The farm build preview shown (SimBridge.preview_farm_build), {} on Sjø.
+func farm_preview() -> Dictionary:
+	return _farm_preview
+
+
+## The family card of a catalogue family id, or null.
+func family_card(family_id: String) -> FarmFamilyCard:
+	return _family_row.get_node_or_null("Family_" + str(CARD_IDS.get(family_id, family_id))) as FarmFamilyCard
+
+
+func comparison() -> ComparisonBars:
+	return _comparison
+
+
+func plot_lens() -> PlotLens:
+	return _plot_lens
+
+
+func facility_preview() -> FacilityBuildPreview:
+	return _facility
+
+
+func diagnosis_strip() -> DiagnosisStrip:
+	return _diagnosis
+
+
+## The select button of a variant's column, or null.
+func variant_button(variant_id: String) -> Button:
+	return _comparison.find_child("Choose_" + variant_id, true, false) as Button if _comparison != null else null
+
+
+## The gate list of a variant's column, or null.
+func gate_list(variant_id: String) -> GateList:
+	return _comparison.find_child("Gates_" + variant_id, true, false) as GateList if _comparison != null else null
 
 
 func _input(event: InputEvent) -> void:
@@ -111,34 +235,316 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
+# ── Choices ─────────────────────────────────────────────────────────────────
+
+func _reset_choices(family_id: String) -> void:
+	_family = family_id
+	_variant = SEA_BUILD if family_id == "sjo" else ""
+	_option = "hfs_pilot_lot"
+	_plot = ""
+	_contract = "managed"
+	_consortium = false
+	_mitigations = []
+	_farm_preview = {}
+
+
+## Choose a family (a card's click or its button).
+func choose_family(family_id: String) -> void:
+	if _built_site_id != "" or _done_kind != "":
+		return
+	_choosing_family = false
+	if family_id == _family and _variant != "":
+		_focus_variant.call_deferred()
+		return
+	_reset_choices(family_id)
+	if family_id == "sjo":
+		_variant = SEA_BUILD
+	else:
+		_variant = _first_startable(family_id)
+	_clear_ghost()
+	_refresh()
+	_focus_variant.call_deferred()
+
+
+## Choose a variant (its column's button).
+func choose_variant(variant_id: String) -> void:
+	_variant = variant_id
+	_plot = ""
+	_farm_preview = {}
+	_clear_ghost()
+	_refresh()
+	_focus_plot.call_deferred()
+
+
+## Choose a plot: the ghost stands on it and the preview is read.
+func choose_plot(plot_id: String) -> void:
+	_plot = plot_id
+	_refresh()
+	_place_ghost()
+	_confirm_btn.grab_focus.call_deferred()
+
+
+func _on_mitigation(m: String, on: bool) -> void:
+	if on and not _mitigations.has(m):
+		_mitigations.append(m)
+	elif not on:
+		_mitigations.erase(m)
+	_refresh()
+
+
+func _first_startable(family_id: String) -> String:
+	for f in _catalog.get("families", []):
+		if str(f.get("id", "")) != family_id:
+			continue
+		for v in f.get("variants", []):
+			if bool((_starts.get(str(v.get("id", "")), {}) as Dictionary).get("startable", false)):
+				return str(v.get("id", ""))
+	return ""
+
+
+# ── Refresh ─────────────────────────────────────────────────────────────────
+
 func _refresh() -> void:
 	if _sim == null:
 		return
-	_plan = _sim.plan_site_build(_zone_id)
-	var area := int(_plan.get("production_area", 0))
-	_title.text = tr("EXPANSION_BUILD_TITLE") % SimLabels.zone(_zone_id)
-	var where := tr("EXPANSION_BUILD_FIRST_SITE")
-	if bool(_plan.get("new_zone", false)):
-		where = tr("EXPANSION_BUILD_NEW_ZONE")
-	elif int(_plan.get("player_sites_in_zone", 0)) > 0:
-		where = tr("EXPANSION_BUILD_YOUR_ZONE")
-	_subtitle.text = tr("EXPANSION_BUILD_SUBTITLE") % [area, where]
+	_catalog = _sim.get_farm_type_catalog()
+	_starts = _sim.get_farm_type_starts()
+	_research_names = {}
+	for node in _sim.get_research_nodes():
+		# The sim names nodes in English; the player reads the tree's translation.
+		var key := "RESEARCH_" + SimLabels.upper_snake(str(node.get("id", ""))) + "_NAME"
+		_research_names[str(node.get("id", ""))] = tr(key) if tr(key) != key else str(node.get("name", ""))
+	_diagnosis.show_diagnosis(_sim.get_build_diagnosis())
+	var done := _built_site_id != "" or _done_kind != ""
+	_result_box.visible = done
+	_family_header.visible = not done
+	_family_row.visible = not done
+	_scroll.visible = not done
 	_build_families()
-	_build_ledger()
-	_pen_grid.pens = int(_plan.get("pens", 0))
-	_pen_grid.queue_redraw()
-	_explain.text = tr("EXPANSION_BUILD_EXPLAIN") % [SimFormatters.num(float(_plan.get("area_licence_mtb_t", 0.0))), area]
+	_build_comparison()
+	_build_options()
+	if _family == "sjo":
+		_refresh_sea()
+	else:
+		_refresh_farm()
+	_fit.call_deferred()
+
+
+func _family_dict(family_id: String) -> Dictionary:
+	for f in _catalog.get("families", []):
+		if str(f.get("id", "")) == family_id:
+			return f
+	return {}
+
+
+func _variant_dict(variant_id: String) -> Dictionary:
+	for f in _catalog.get("families", []):
+		for v in f.get("variants", []):
+			if str(v.get("id", "")) == variant_id:
+				return v
+	return {}
+
+
+func _all_variants() -> Array:
+	var out: Array = []
+	for f in _catalog.get("families", []):
+		out.append_array(f.get("variants", []))
+	return out
+
+
+# ── Step 1: the family cards ────────────────────────────────────────────────
+
+func _build_families() -> void:
+	for child in _family_row.get_children():
+		_family_row.remove_child(child)
+		child.queue_free()
+	for f in _catalog.get("families", []):
+		var id := str(f.get("id", ""))
+		var card := FamilyCardScene.instantiate() as FarmFamilyCard
+		card.name = "Family_" + str(CARD_IDS.get(id, id))
+		_family_row.add_child(card)
+		card.configure(f, _starts, id == _family and not _choosing_family, not _choosing_family)
+		card.chosen.connect(choose_family)
+	var buttons: Array = []
+	for card in _family_row.get_children():
+		buttons.append((card as FarmFamilyCard).choose_button())
+	for i in buttons.size():
+		var b := buttons[i] as Button
+		b.focus_neighbor_left = b.get_path_to(buttons[maxi(0, i - 1)])
+		b.focus_neighbor_right = b.get_path_to(buttons[mini(buttons.size() - 1, i + 1)])
+
+
+# ── Step 2: the variants on the aligned bars ────────────────────────────────
+
+func _build_comparison() -> void:
+	var fam := _family_dict(_family)
+	var show := not _choosing_family and not fam.is_empty()
+	_variant_header.visible = show
+	_comparison_host.visible = show
+	if not show:
+		return
+	var variants: Array = (fam.get("variants", []) as Array).duplicate()
+	var reference := ""
+	if _family != "sjo":
+		variants.push_front(_variant_dict(SEA_BUILD))
+		reference = SEA_BUILD
+	_comparison.setup(_catalog.get("axes", []), variants, _all_variants(), reference,
+		_variant_head, _variant_gates)
+	var buttons: Array = []
+	for v in variants:
+		var b := variant_button(str(v.get("id", "")))
+		if b != null:
+			buttons.append(b)
+	for i in buttons.size():
+		var b := buttons[i] as Button
+		b.focus_neighbor_left = b.get_path_to(buttons[maxi(0, i - 1)])
+		b.focus_neighbor_right = b.get_path_to(buttons[mini(buttons.size() - 1, i + 1)])
+	var note := _comparison_host.get_node_or_null("SourceNote") as Label
+	if note == null:
+		note = Label.new()
+		note.name = "SourceNote"
+		note.theme_type_variation = &"SmallMuted"
+		note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		note.custom_minimum_size = Vector2(400, 0)
+		_comparison_host.add_child(note)
+	note.text = tr("BUILD_COMPARE_NOTE")
+
+
+func _variant_head(v: Dictionary) -> Control:
+	var id := str(v.get("id", ""))
+	var selected := id == _variant
+	var start: Dictionary = _starts.get(id, {})
+	var startable := bool(start.get("startable", false))
+	var panel := PanelContainer.new()
+	panel.name = "Head_" + id
+	panel.theme_type_variation = &"KpiCardAccent" if selected else &"Tile"
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 4)
+	panel.add_child(col)
+	var name_label := Label.new()
+	name_label.text = tr(str(v.get("name_key", "")))
+	name_label.theme_type_variation = &"BodyStrong" if selected else &"BodySmallStrong"
+	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	name_label.custom_minimum_size = Vector2(112, 0)
+	col.add_child(name_label)
+	var tag := Label.new()
+	tag.name = "State"
+	if not startable:
+		tag.text = tr("BUILD_VARIANT_LOCKED")
+		tag.theme_type_variation = &"TagMuted"
+	elif int(v.get("stage", 1)) > 1:
+		tag.text = tr("BUILD_VARIANT_STAGE3")
+		tag.theme_type_variation = &"TagInfo"
+	elif not bool(v.get("affordable", false)):
+		tag.text = tr("BUILD_VARIANT_NEEDS_FUNDS")
+		tag.theme_type_variation = &"TagWarn"
+	else:
+		tag.text = tr("BUILD_VARIANT_OPEN")
+		tag.theme_type_variation = &"TagOk"
+	tag.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	col.add_child(tag)
+	var b := Button.new()
+	b.name = "Choose_" + id
+	b.toggle_mode = true
+	b.set_pressed_no_signal(selected)
+	b.text = tr("BUILD_VARIANT_CHOSEN") if selected else tr("BUILD_VARIANT_CHOOSE")
+	b.theme_type_variation = &"SmallButton" if selected else &"SmallGhostButton"
+	b.custom_minimum_size = Vector2(0, 32)
+	var reason := ""
+	if id == "closed_pen":
+		reason = tr("BUILD_VARIANT_UPGRADE_ON_PEN")
+	elif not startable:
+		reason = tr("BUILD_VARIANT_LOCKED_TIP")
+	UIPolish.set_available(b, reason)
+	b.pressed.connect(func() -> void: choose_variant(id))
+	col.add_child(b)
+	return panel
+
+
+func _variant_gates(v: Dictionary) -> Control:
+	var id := str(v.get("id", ""))
+	var list := GateList.new()
+	list.name = "Gates_" + id
+	list.research_names = _research_names
+	var names := {}
+	for other in _all_variants():
+		names[str(other.get("id", ""))] = str(other.get("name_key", ""))
+	list.variant_names = names
+	var start: Dictionary = _starts.get(id, {})
+	list.show_gates(v, start.get("waived", []), str(v.get("family", "")))
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	return list
+
+
+## The HFS size (pilot lot or full lot): the land lane's two templates.
+func _build_options() -> void:
+	for child in _option_row.get_children():
+		_option_row.remove_child(child)
+		child.queue_free()
+	_option_row.visible = _variant == "hfs" and not _choosing_family
+	if not _option_row.visible:
+		return
+	var label := Label.new()
+	label.text = tr("BUILD_OPTION_SIZE")
+	label.theme_type_variation = &"SmallMuted"
+	label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_option_row.add_child(label)
+	var group := ButtonGroup.new()
+	for opt in ["hfs_pilot_lot", "hfs_lot"]:
+		var b := Button.new()
+		b.name = "Option_" + opt
+		b.toggle_mode = true
+		b.button_group = group
+		b.set_pressed_no_signal(opt == _option)
+		b.text = tr("BUILD_OPTION_" + opt.to_upper())
+		b.theme_type_variation = &"SmallButton" if opt == _option else &"SmallGhostButton"
+		b.pressed.connect(func() -> void:
+			_option = opt
+			_refresh()
+			_place_ghost())
+		_option_row.add_child(b)
+
+
+# ── Sjø: the fjord zone's locality (U2-01) ──────────────────────────────────
+
+func _refresh_sea() -> void:
+	_plot_header.visible = false
+	_plot_host.visible = false
+	_facility_host.visible = false
+	var has_zone := _zone_id != ""
+	_preview_header.visible = has_zone and _variant == SEA_BUILD
+	_preview_row.visible = has_zone and _variant == SEA_BUILD
+	_explain_callout.visible = has_zone and _variant == SEA_BUILD
+	_plan = _sim.plan_site_build(_zone_id) if has_zone else {}
+	var area := int(_plan.get("production_area", 0))
+	if has_zone:
+		_title.text = tr("EXPANSION_BUILD_TITLE") % SimLabels.zone(_zone_id)
+		var where := tr("EXPANSION_BUILD_FIRST_SITE")
+		if bool(_plan.get("new_zone", false)):
+			where = tr("EXPANSION_BUILD_NEW_ZONE")
+		elif int(_plan.get("player_sites_in_zone", 0)) > 0:
+			where = tr("EXPANSION_BUILD_YOUR_ZONE")
+		_subtitle.text = tr("EXPANSION_BUILD_SUBTITLE") % [area, where]
+		_build_ledger()
+		_pen_grid.pens = int(_plan.get("pens", 0))
+		_pen_grid.queue_redraw()
+		_explain.text = tr("EXPANSION_BUILD_EXPLAIN") % [SimFormatters.num(float(_plan.get("area_licence_mtb_t", 0.0))), area]
+	else:
+		_title.text = tr("BUILD_TITLE")
+		_subtitle.text = tr("BUILD_SUBTITLE_SEA_PICK_ZONE")
 	var built_now := _built_site_id != ""
-	_result_box.visible = built_now
-	_family_header.visible = not built_now
-	_family_row.visible = not built_now
-	var allowed := bool(_plan.get("allowed", false))
-	var reason := "" if allowed else tr(str(_plan.get("label_key", "")))
-	if str(_plan.get("reason_key", "")) == "insufficient_funds":
-		# "Ikke nok penger: dette koster 6,00 MNOK, og du har 4,00 MNOK."
-		reason = UIPolish.funds_blocker(float(_plan.get("cost_nok", 0.0)), float(_plan.get("balance_nok", 0.0)))
+	var allowed := has_zone and bool(_plan.get("allowed", false))
+	var reason := ""
+	if not has_zone:
+		reason = tr("BUILD_SEA_PICK_ZONE")
+	elif not allowed:
+		reason = tr(str(_plan.get("label_key", "")))
+		if str(_plan.get("reason_key", "")) == "insufficient_funds":
+			# "Ikke nok penger: dette koster 6,00 MNOK, og du har 4,00 MNOK."
+			reason = UIPolish.funds_blocker(float(_plan.get("cost_nok", 0.0)), float(_plan.get("balance_nok", 0.0)))
 	_verdict.text = reason
-	_verdict.visible = reason != "" and not built_now
+	_verdict.visible = reason != "" and not built_now and not _choosing_family
 	if built_now:
 		_confirm_btn.text = tr("EXPANSION_BUILD_VIEW_BUTTON")
 		_cancel_btn.text = tr("UI_CLOSE")
@@ -150,69 +556,6 @@ func _refresh() -> void:
 	UIPolish.set_available(_confirm_btn, reason)
 	_hint.text = tr("EXPANSION_BUILD_HINT")
 
-
-# ── Step 1: the farm family ───────────────────────────────────────────────────
-
-func _build_families() -> void:
-	for child in _family_row.get_children():
-		_family_row.remove_child(child)
-		child.queue_free()
-	for family in FAMILIES:
-		_family_row.add_child(_family_card(family))
-
-
-func _family_card(family: Dictionary) -> Control:
-	var selected := str(family["id"]) == "sea"
-	var card := PanelContainer.new()
-	card.name = "Family_" + str(family["id"])
-	card.theme_type_variation = &"KpiCardAccent" if selected else &"Tile"
-	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	card.custom_minimum_size = Vector2(0, 118)
-	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 6)
-	card.add_child(col)
-	var head := HBoxContainer.new()
-	head.add_theme_constant_override("separation", 8)
-	var title := Label.new()
-	title.text = tr(str(family["title"]))
-	title.theme_type_variation = &"Subheading" if selected else &"SubheadingMuted"
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	head.add_child(title)
-	if selected:
-		var chip := Label.new()
-		chip.text = tr("EXPANSION_FAMILY_SELECTED")
-		chip.theme_type_variation = &"TagInfo"
-		head.add_child(chip)
-	col.add_child(head)
-	var body := Label.new()
-	body.text = tr(str(family["body"]))
-	body.theme_type_variation = &"BodySmall" if selected else &"BodySmallMuted"
-	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	body.custom_minimum_size = Vector2(200, 0)
-	col.add_child(body)
-	var tab := str(family.get("tab", ""))
-	if tab != "":
-		var btn := Button.new()
-		btn.name = "OpenTab"
-		btn.text = tr(str(family["button"]))
-		btn.theme_type_variation = &"SmallGhostButton"
-		btn.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-		btn.pressed.connect(func() -> void:
-			close()
-			tab_requested.emit(tab))
-		var open := bool(_tab_probe.call(tab))
-		UIPolish.set_available(btn, "" if open else tr("EXPANSION_FAMILY_TAB_LOCKED"))
-		col.add_child(btn)
-		if not open:
-			var locked := Label.new()
-			locked.name = "Locked"
-			locked.text = tr("EXPANSION_FAMILY_TAB_LOCKED")
-			locked.theme_type_variation = &"SmallMuted"
-			col.add_child(locked)
-	return card
-
-
-# ── Step 2: the preview ───────────────────────────────────────────────────────
 
 func _build_ledger() -> void:
 	for child in _ledger.get_children():
@@ -255,7 +598,161 @@ func _row(id: String, key: String, value: String, variation: StringName, area: i
 	_ledger.add_child(v)
 
 
-# ── Confirm ───────────────────────────────────────────────────────────────────
+# ── Land and Hav: the site lens and the preview ─────────────────────────────
+
+func _refresh_farm() -> void:
+	_preview_header.visible = false
+	_preview_row.visible = false
+	_explain_callout.visible = false
+	var fam_name := tr(str(_family_dict(_family).get("name_key", "")))
+	_title.text = tr("BUILD_TITLE_FAMILY") % fam_name if not _choosing_family else tr("BUILD_TITLE")
+	_subtitle.text = tr("BUILD_SUBTITLE_" + _family.to_upper()) if not _choosing_family else tr("BUILD_SUBTITLE_PICK_FAMILY")
+	var startable := _variant != "" and bool((_starts.get(_variant, {}) as Dictionary).get("startable", false))
+	var show_plots := not _choosing_family and startable
+	_plot_header.visible = show_plots
+	_plot_host.visible = show_plots
+	if show_plots:
+		_plot_lens.show_plots(_sim.get_build_plots(_family), _plot, _variant, _option)
+	_farm_preview = {}
+	if show_plots and _plot != "":
+		_farm_preview = _sim.preview_farm_build(_variant, _plot, _option, _contract, 1.0, _mitigations)
+		if _family == "hav" and _consortium:
+			# The consortium's share is the sea lane's (the preview's own figure).
+			var share := float((_farm_preview.get("offshore", {}) as Dictionary).get("consortium_equity_share", 1.0))
+			_farm_preview = _sim.preview_farm_build(_variant, _plot, _option, _contract, share, _mitigations)
+	_facility_host.visible = bool(_farm_preview.get("ok", false))
+	if _facility_host.visible:
+		_facility.show_preview(_farm_preview, _contract, _consortium, _mitigations)
+	_update_farm_footer(startable)
+
+
+func _update_farm_footer(startable: bool) -> void:
+	_cancel_btn.text = tr("EXPANSION_CANCEL") if _done_kind == "" else tr("UI_CLOSE")
+	if _done_kind != "":
+		_confirm_btn.text = tr("BUILD_DONE_VIEW_" + _family.to_upper())
+		UIPolish.set_available(_confirm_btn, "")
+		_verdict.visible = false
+		_hint.text = ""
+		return
+	var reason := ""
+	if _choosing_family:
+		reason = tr("BUILD_PICK_FAMILY")
+	elif _variant == "" or not startable:
+		reason = tr("BUILD_PICK_VARIANT")
+	elif _plot == "":
+		reason = tr("BUILD_PICK_PLOT")
+	elif not bool(_farm_preview.get("ok", false)):
+		reason = tr("LAND_REASON_ENGINE_NOT_READY")
+	var action := _farm_action()
+	if reason == "":
+		reason = str(action.get("blocker", ""))
+	_confirm_btn.text = str(action.get("text", tr("BUILD_CONFIRM_GENERIC")))
+	UIPolish.set_available(_confirm_btn, reason)
+	_verdict.text = reason
+	_verdict.visible = reason != "" and _plot != ""
+	_hint.text = tr("BUILD_HINT_" + _family.to_upper())
+
+
+## What the confirm does now: {"verb": "apply_permits" | "build_land" |
+## "build_offshore", "text", "blocker" (why it cannot, "" when it can)}.
+func _farm_action() -> Dictionary:
+	if _family == "land":
+		var land: Dictionary = _farm_preview.get("land", {})
+		var permits: Array = land.get("permits", [])
+		var pending := permits.filter(func(p: Dictionary) -> bool: return str(p.get("status", "")) == "pending").size()
+		var needed := permits.filter(func(p: Dictionary) -> bool: return str(p.get("status", "")) in ["needed", "refused"]).size()
+		if needed > 0 and pending == 0:
+			return {"verb": "apply_permits", "text": tr("BUILD_CONFIRM_APPLY") % needed, "blocker": ""}
+		if pending > 0:
+			return {"verb": "apply_permits", "text": tr("BUILD_CONFIRM_APPLY") % maxi(needed, 1), "blocker": tr("LAND_REASON_ALREADY_PENDING")}
+		var verdict := str(land.get("reason_key", ""))
+		var blocker := "" if verdict == "" else tr(str(land.get("label_key", "")))
+		return {"verb": "build_land", "text": tr("BUILD_CONFIRM_BUILD_LAND") % SimFormatters.format_nok(float(land.get("budget_nok", 0.0))), "blocker": blocker}
+	var sea: Dictionary = _farm_preview.get("offshore", {})
+	var refusal := str(sea.get("refusal_key", ""))
+	var blocker := ""
+	if refusal == "insufficient_funds":
+		blocker = UIPolish.funds_blocker(float(sea.get("first_payment_nok", 0.0)), float(_sim.balance))
+	elif refusal != "":
+		blocker = tr("BUILD_SEA_REASON_" + refusal.to_upper())
+	return {"verb": "build_offshore", "text": tr("BUILD_CONFIRM_BUILD_SEA") % SimFormatters.format_nok(float(sea.get("first_payment_nok", 0.0))), "blocker": blocker}
+
+
+func _place_ghost() -> void:
+	var ghost := FarmGhost.ensure(get_tree())
+	if ghost == null:
+		return
+	if _plot == "":
+		ghost.clear_ghost()
+		return
+	ghost.show_ghost(_plot_lens.plot_by_id(_plot), _variant, _option)
+
+
+func _clear_ghost() -> void:
+	var ghost := get_tree().get_first_node_in_group(FarmGhost.GROUP) as FarmGhost if is_inside_tree() else null
+	if ghost != null:
+		ghost.clear_ghost()
+
+
+# ── Focus (the keyboard path) and fit ────────────────────────────────────────
+
+func _focus_after_open() -> void:
+	if _choosing_family or _family == "":
+		var first := _family_row.get_child(0) as FarmFamilyCard if _family_row.get_child_count() > 0 else null
+		if first != null:
+			first.choose_button().grab_focus()
+		return
+	if _family == "sjo":
+		if _confirm_btn.disabled:
+			_cancel_btn.grab_focus()
+		else:
+			_confirm_btn.grab_focus()
+		return
+	var card := family_card(_family)
+	if card != null:
+		card.choose_button().grab_focus()
+
+
+func _focus_variant() -> void:
+	var b := variant_button(_variant) if _variant != "" else null
+	if b == null or b.disabled:
+		for v in _family_dict(_family).get("variants", []):
+			var other := variant_button(str(v.get("id", "")))
+			if other != null and not other.disabled:
+				b = other
+				break
+	if b != null:
+		b.grab_focus()
+
+
+func _focus_plot() -> void:
+	if not _plot_host.visible:
+		_focus_variant()
+		return
+	for p in _plot_lens.plots:
+		var b := _plot_lens.plot_button(str(p.get("id", "")))
+		if b != null and not b.disabled:
+			b.grab_focus()
+			return
+	_confirm_btn.grab_focus()
+
+
+## Keep the dialog inside the window at any size and UI scale: the steps
+## scroll, the header, the family cards and the footer stay.
+func _fit() -> void:
+	if not visible or _scroll == null:
+		return
+	# The dialog covers its host (the map tab), not the whole window.
+	var view := size if size.y > 0.0 else get_viewport_rect().size
+	var body := _scroll.get_child(0) as Control
+	var content := body.get_combined_minimum_size().y if body != null else 0.0
+	_scroll.custom_minimum_size.y = 0.0
+	var chrome := _dialog.get_combined_minimum_size().y - _scroll.get_combined_minimum_size().y
+	var room := view.y - chrome - 32.0
+	_scroll.custom_minimum_size.y = clampf(content, 0.0, maxf(120.0, room))
+
+
+# ── Confirm ─────────────────────────────────────────────────────────────────
 
 func _on_confirm() -> void:
 	if _sim == null:
@@ -265,6 +762,17 @@ func _on_confirm() -> void:
 		close()
 		view_site_requested.emit(site)
 		return
+	if _done_kind != "":
+		close()
+		tab_requested.emit("ras" if _family == "land" else "offshore")
+		return
+	if _family == "sjo":
+		_confirm_sea()
+	else:
+		_confirm_farm()
+
+
+func _confirm_sea() -> void:
 	var result: Dictionary = _sim.build_expansion_site(_zone_id)
 	if not bool(result.get("success", false)):
 		_refresh()
@@ -277,6 +785,50 @@ func _on_confirm() -> void:
 	_refresh()
 	JuiceEffects.panel_enter(_dialog)
 	built.emit(_built_site_id, _zone_id)
+
+
+func _confirm_farm() -> void:
+	var action := _farm_action()
+	var template := str(_farm_preview.get("template", ""))
+	var result: Dictionary = {}
+	match str(action.get("verb", "")):
+		"apply_permits":
+			result = _sim.apply_land_permits(_plot, template, 1, _mitigations)
+		"build_land":
+			result = _sim.build_land_site(_plot, template, _contract, "")
+		"build_offshore":
+			var equity := float((_farm_preview.get("economics", {}) as Dictionary).get("equity_share", 1.0))
+			result = _sim.build_offshore_unit(_plot, str(_farm_preview.get("offshore_type", "")), _contract, equity)
+	if not bool(result.get("success", false)):
+		_refresh()
+		var key := str(result.get("label_key", ""))
+		if key == "":
+			var err := str(result.get("error", ""))
+			key = "BUILD_SEA_REASON_" + err.to_upper() if err != "" else "LAND_REASON_ENGINE_NOT_READY"
+		_verdict.text = tr(key)
+		_verdict.visible = true
+		return
+	_done_kind = str(action.get("verb", ""))
+	var plot_name := str(_plot_lens.plot_by_id(_plot).get("name", _plot))
+	match _done_kind:
+		"apply_permits":
+			var cases: Array = _sim.get_land_permit_cases(_plot)
+			var last := 0
+			for c in cases:
+				last = maxi(last, int(c.get("decision_day", 0)))
+			_result_title.text = tr("BUILD_DONE_PERMITS_TITLE") % plot_name
+			_result_body.text = tr("BUILD_DONE_PERMITS_BODY") % [int(result.get("value2", cases.size())),
+				SimFormatters.percent(float(result.get("value", 0.0)), 1), SimFormatters.format_day(last)]
+		"build_land":
+			_result_title.text = tr("BUILD_DONE_LAND_TITLE") % plot_name
+			_result_body.text = tr("BUILD_DONE_LAND_BODY") % SimFormatters.format_day(int(result.get("value2", 0)))
+		"build_offshore":
+			_result_title.text = tr("BUILD_DONE_SEA_TITLE") % plot_name
+			_result_body.text = tr("BUILD_DONE_SEA_BODY") % SimFormatters.format_day(int(
+				(_farm_preview.get("offshore", {}) as Dictionary).get("first_stocking_day", 0)))
+	_refresh()
+	JuiceEffects.panel_enter(_dialog)
+	built.emit(str(result.get("id", "")), _plot)
 
 
 ## The standard mooring frame seen from above: the pens in two rows inside the

@@ -2388,6 +2388,256 @@ fee (D16: medals, never cash). The win the UI tests play:
 ressursrente seed 5 harvesting at 4.5 kg, won after 308 days with bronze (16.3 %
 mortality and 7 kNOK of fines missed the other two).
 
+## 1v. F2-12 wiring and F2-14: land sites in the engine, permits, grid and phased construction (2026-10-17, branch `wave4/sim-land-1`)
+
+_The standalone land physics of §1p now run in the engine (`LandSiteTickSystem` → `TickLandSiteDay`,
+`LandHooks`), and a land site is applied for, permitted and built through the engine's verbs.
+Calibration `facilities.land` (registry 1.1.2): `facilities_land.json` gains `build`, `permits` and
+`operations`. Decisions: RUN_LOG §7 (2026-10-17 F2-12/F2-14 rows); findings: §8._
+
+### The engine reproduces the standalone anchors
+
+`LandSiteEngineTests.TheEngineLot_HoldsTheStandaloneEnergyAndOxygenAnchors`: one full HFS lot on
+pad_a in PO5 water, Salmon Evolution's strategy (r 0.65, the intakes blended toward 12 °C, heat
+recovery), every tank stocked for its 80 kg/m³ plan peak in rotation (one tank every 26 days) and
+harvested at 5.2 kg, measured over the second year:
+
+| Measure | Engine (seed 54) | Standalone (§1p) | Band |
+|---|---|---|---|
+| Live-weight growth | 6,617 t | 6,640 t | — |
+| Electricity | 40.8 GWh, **6.16 kWh/kg** | 6.40 kWh/kg | 6.0-7.5 [L:R2] |
+| Liquid oxygen | **0.494 kg O2/kg** | 0.479 | 0.45-0.65 [L:R2] |
+
+Two wiring choices close the gap between the two paths (before them the engine read 5.54 kWh/kg and
+0.684 kg O2/kg): land tanks feed at the land plan's biological FCR (1.0 at 2 kg × the law's size
+factor, [L:A3]/[L:R2]) instead of the sea's FCR model, and the land tick runs on the feed eaten (the
+oxygen coefficient was back-calculated on it); land-stocked cohorts carry no sea-phase smolt-tier
+growth bonus (the 400 g fish's tier prices it through the F2-13 hook). A pre-F2 land site keeps the
+sea FCR and the pre-F2 tick (FarmTypeMoveTests).
+
+### Opex lines of a land site
+
+| Line | Daily amount | Source |
+|---|---|---|
+| `land_energy` | metered kWh × 0.80 NOK/kWh | [L:E1] midpoint (`energy.powerPriceNokPerKWh`) |
+| `land_oxygen` | LOX bought × 4.0 NOK/kg | [L:S6] (`oxygen.loxPriceNokPerKg`) |
+| `land_staff` | template FTE (HFS lot 33, pilot 15, module 6, RAS hall 35) × 650 k NOK/yr | [L:R2] staff; [code] salary |
+
+Each line is attributed to the site and stays out of the resource-rent base (F2-04). Scope 2 =
+metered kWh at the grid factor; the purchased LOX's upstream energy (0.75 kWh/kg) is booked as
+`Scope3_Oxygen`. Maintenance, insurance, smolt and feed purchase, and the farming-cost band
+(60-75 NOK/kg HOG) are F2-15's.
+
+### Permits: refusal odds per pad (the quoted probability is the decided one)
+
+Refusal = (base + per-sensitivity × the pad's nature sensitivity) × (production / 7,900 t)^0.5 for
+zoning, the land permit and discharge, × 0.7 with an environmental survey (zoning, discharge, sea
+works), × 0.5 with a denitrification commitment (discharge). Bases: zoning 0.01 + 0.35 s, land
+0.005 + 0.10 s, discharge 0.01 + 0.35 s, sea works 0.005 + 0.10 s, biosecurity 0.01. Probability
+that at least one case of the package is refused:
+
+| Pad (sensitivity) | Full lot | Pilot lot | Post-smolt module | Full lot, survey + denitrification |
+|---|---|---|---|---|
+| a plot of 0.1 | 0.124 | 0.083 | 0.048 | 0.080 |
+| pad_a Storholmen (0.2) | 0.203 | 0.134 | 0.074 | 0.130 |
+| pad_delta Elveøyra (0.4, pre-zoned: no zoning case) | 0.233 | 0.158 | 0.096 | 0.132 |
+| pad_b Skjærvika (0.6) | 0.473 | 0.320 | 0.176 | 0.310 |
+
+Sensitivity 0.6 refuses 3.8× as often as 0.1 (package), 4.9× per zoning or discharge case; over 400
+engine cases (200 zoning + 200 discharge per plot) the drawn refusal rates keep the ≥ 3× ratio
+(`LandPermitTests.NatureSensitivity06_RefusesAtLeastThreeTimesAsOftenAs01`). Windows: zoning
+365-730 d, land 135-225 d, discharge 180-300 d, sea works 90-150 d, biosecurity 68-113 d (± 25 %
+around 180/240/120/90); appeals 180 d at half the refused case's odds; grid projects 365-1,095 d,
+never refused, NOK 40 M per 10 MW connected (a second feed connects the pad's whole capacity on a
+new line: 160 M NOK at pad_a).
+
+### Construction: budgets, schedule and risk
+
+| Unit | Budget | Phases (planned days) | First tanks | Complete |
+|---|---|---|---|---|
+| HFS lot | 2.07 bn + pad blasting (pad_a 120 M) | site works 180, tank rings 240, treatment hall 150, sea works 60, first tanks 40, completion 243 | 670 d (22 months) | 913 d (30 months) |
+| HFS pilot (4 + 1 tanks) | 0.90 bn + blasting | 180, 150, 120, 60, 40 | 550 d (every tank) | 550 d |
+| Pilot → full lot | 1.25 bn (pilot + expansion 2.15 bn) | tank rings 210, hall 90, first tanks 40, completion 60 | — | 400 d |
+| Post-smolt module | 110 M + blasting | 90, 270, 90, 60, 38 | 548 d [code] | 548 d |
+| RAS hall | 1.376 bn | 180, 270, 270, 60, 133 | 913 d | 913 d |
+
+A full lot's first commissioning hands over half its grow-out tanks (6 of 14, [L:R1]). Started on
+1 June (Salmon Evolution's phase-2 decision month) the planned lot reaches 22 and 30 whole months
+exactly. The sea works neither start nor run in April-June ([L:R12]); a phase overtaken by the
+season stands still in it (2,639 closed days stood still over 159 sampled starts × slips, never a
+sea-works day worked in the season).
+
+Over the engine's own draws (`facility_construction/cp_1/<phase>`, seeds 1-200, a June start):
+
+| Measure | p50 | p90 | Acceptance |
+|---|---|---|---|
+| Managed overrun (budget share) | **+9.7 %** | **+17.5 %** | median 5-10 %, p90 ≤ 30 % (F2-14 #4) |
+| Turnkey | +12 % up front | no overrun | +12 %, zero overrun |
+| First tanks | 26 months | 29 months | plan 22 (finding §8) |
+| Complete | 35 months | 39 months | plan 30 (finding §8) |
+
+The preview's p50/p90 come from the same inverse CDFs on a 4,096-point Halton grid: overrun p50
+within ±1 pp and p90 within ±3 pp of the 200-seed draws; first tanks and completion within a month.
+
+One engine build (seed 82, pad_a, managed, started day 321): planned first tanks day 991, built
+1,035 (+44 d); planned completion 1,234, built 1,336 (+102 d); paid 2.41 bn of a 2.19 bn budget
+(preview p50 overrun 201 M, p90 392 M).
+
+### Grid
+
+Design load of a lot (heat pumps at full input + the intake pumps at the design new-water flow +
+loop pumping, treatment and UV at the design loop flow + base load): HFS lot **10.76 MW**. pad_a's
+40 MW carries 3 full lots; the 4th needs a 10 MW capacity project (`LandCommissioningTests.TheGrid_...`).
+
+## 1w. F2-06 wired, F2-07: the offshore unit (2026-10-17, branch `wave4/sim-sea-1`)
+
+F2-06's standalone sea (§1q) now runs in the engine: `GameState.Metocean`
+appears with the first offshore unit and ticks as the in-day phase
+`OffshoreSeaTickSystem` right after the weather, 8 uniforms a day from
+`offshore_metocean`; each unit stands in its plot's fitted scale. A game with
+no offshore unit never creates it, so the 27 golden traces are identical (save
+drift only). F2-07 builds the unit the player buys (`Core/SimulationEngine.Offshore.cs`,
+`Core/SimulationEngine.OffshoreOps.cs`, `Farm/Offshore/*`), calibration section
+`facilities.offshore` (`Calibration/OffshoreUnitCalibration.cs`,
+`godot/data/calibration/facilities_offshore.json`).
+
+### What a unit costs (OF1 class)
+
+| knob | value | source |
+|---|---|---|
+| contract price | 720 M NOK (the company pays 20/50/20/10 % at contract, hull, delivery, mooring; turnkey adds the construction premium; a managed contract carries the overrun) | [O:R4], [O:R26] |
+| teething budget | 157 M NOK (a fix: the budget over the first unit's mean deck of 3.5 defects, at the company's equity) | [O:R4], [O:R26] |
+| planned build | yard 92 + hull 456 + voyage 77 + tow (the player's call; 3 days at Hs ≤ 2.5 m) + mooring 28 + commissioning 14 = 670 days | GB on OF1's 18 yard months ([O:R1], [O:R33]), its 11-week voyage and about 45 days of mooring and certificate (spec §2A) |
+| silo, silage | 700 t feed, 120 t ensilage | GB: a 700 t feed barge (iLaks); Havfarm class 1,500 t (spec §3.9) |
+| crew | 12 in rotation ([O:R13]) × 900,000 NOK a year | spec §3.3; [O:R37] offshore wages about 10 % above the coast |
+| energy | diesel, 1,100 L a day + 0.1 L per standing tonne a day, at 7.5 NOK/L | GB: twice a diesel fjord site's 200,000 L a year (iLaks 2017) for about twice its MTB; the 2017 price |
+| maintenance, insurance | 2.5 % and 0.8 % of the contract price a year | GB (spec §3.3) |
+| service vessel / DP vessel | 143,000 / 290,000 NOK a day | a platform supply vessel's 2024 average spot rate (£10,462) at 13.7 NOK/GBP; DP between that and a wind farm's walk-to-work vessel (~£30,000 a day) |
+| crew boat | 50,000 NOK a day | GB between a wind farm's crew transfer vessel (~£2,000 a day) and small offshore vessels at €4,000-8,000 a day (2023) |
+| ROV net inspection | 75,000 NOK, from the unit's crane (no vessel day) | GB (the pre-F2 code's figure) |
+| wellboat | 150,000 NOK a day; offshore class × 1.5 | the pre-F2 code; spec §3.3 |
+| helicopter | 150,000 NOK a crew change (wind < 25 m/s, visibility ≥ 1.5 km) | spec §3.3 |
+| tow | 3 anchor-handling tugs × 480,000 NOK a day; a failed window shelters 5-15 days (uniform, the unit's day uniform u0), tugs paid, no damage | [FFE 2017] tug count; spec §3.3 |
+| structure | fatigue 0.0005 × (Hs / design Hs)³ a day; nets −0.04 points a day, −0.2 more per metre of Hs above 3.0 m; a full structure repair 50 M NOK (the pre-F2 code's), nets 250,000 NOK a point (a 25 M NOK net set of ~250,000 m³, [O:R6], pro rata) | spec §3.3; GB |
+| sensors | MRU 1.5 M (service 0.1 M), subsea cameras 3 M (0.2 M), echo sounders 2 M (0.15 M), AIS + broadband 1 M (0.05 M); service every 180 days | GB |
+| alarm load | 0.15 base + 0.15 per known unfixed defect + 0.10 per sensor past service + 0.02 per crew day overdue (cap 10) | GB (spec §3.3) |
+| teething deck | first unit of a class 3-4 defects, later 1-2; shakedown 0/60/90/120 days reveals each hidden defect at 0.5 per 30 days; otherwise on its drawn day in cycle 1 (1-365 days after the first stocking); a fix takes 30 days; harvest-zone crush +3 pp mortality ([O:R3]), winter ulcers +4-8 pp, cable-chain wear ×2 fatigue, net-system change ×2 net wear, ballast-pipe leak ×3 tilt hazard (F2-08) | spec §3.3; [O:R3], [O:R4], [O:R10] |
+| consortium | the company's share 0.35 of every line; buy-out at the partner's book value × 1.2 | spec §6.1 |
+
+### The unit's day (eight uniforms from `offshore_farm/<unit>`, always)
+
+u0 the tow's shelter days; on the commissioning day u1 the deck's size, u2 its
+order (one of the 5! orderings), u3-u6 each slot's reveal day, u7 the ulcers'
+severity; on other days u1-u4 the shakedown's reveal of each slot; u5-u7 are
+reserved for F2-08's incidents. Then: storm lockdown above the wellboat's
+alongside limit (5.0 m), the crew clock, the bookings (charter from the booked
+day, every slipped day paid; a fish-handling vessel pauses above 2.0 m and
+leaves to shelter above 5.0 m), feeding from the silo (appetite 1.0 to 4 m,
+falling linearly to 0.7 at 6 m and holding there; nothing when the silo is
+empty: a counted silo-empty day), silage from the dead fish, structure and net wear, teething reveals and
+fires, the alarm load, and the unit's own ledger lines at its equity.
+
+### Acceptance, measured
+
+| # | reading | bar | measured |
+|---|---|---|---|
+| 1 | a 6 m day: the appetite hook | 0.7 | 0.70 exactly; the kilos eaten 0.91 of the same fish's calm day (the growth law's FCR penalty takes part of the lost appetite), nothing once the silo is empty |
+| 2 | booking preview vs the engine, 200 seeds, resupply booked 1-3 days ahead in January | ±0.05 on P(done by day + i), ±5 % on the charter | P within 0.017 for i = 0-9 (0.824 / 0.835 on the booked day); charter 210,241 NOK previewed, 203,060 charged (1.035) |
+| 3 | fish handling on a forced series (3.0, 5.5, 4.0, 1.8 m) | never above its limit | paused, sheltering, paused, done; 4 charter days; a harvest order waits out 3.5 m days |
+| 4 | the tow | only on `StartTow`; a failed window shelters 5-15 days with the tugs paid, no damage | as required (`OffshoreUnitBuildTests`) |
+| 5 | a 90-day shakedown reveals ≥ 1 defect | ≥ 70 % of seeds | 40 of 40 seeds; a defect fixed before stocking never fires |
+| 6 | consortium | 35 % of every line and capex; buy-out book × 1.2 | as required (`AConsortiumUnit_…`) |
+| 7 | no fjord storm wear on a unit; opex/kg HOG ex feed and depreciation against an open pen in the same PO | no fjord wear; 1.15-1.45 | 240 days at off_1, storm days included: every day's net and structure loss is exactly the unit's own wear for its sea; the ratio: median 1.885 (1.58-2.37), held back: RUN_LOG §8 (F2-07); as information, smolts kept 1.557 (1.31-2.06), all in 1.145 (0.96-1.56) |
+| 8 | a policy-only unit, 2 years, events on | ≥ 18 of 20 seeds without a silo-empty day | 20 of 20; 10-19 resupplies, 97-102 crew changes |
+| 9 | save and twin mid-tow and mid-booking; goldens | identical | identical; 27 of 27 golden traces identical |
+
+### Acceptance 7 in lines (NOK/kg HOG, 10 seeds; a typical seed, ranges where they spread)
+
+| line | open pen (PO 4) | offshore unit (off_1) |
+|---|---|---|
+| harvest | 5.00 | 5.77 |
+| maintenance | (in operations) | 5.16 |
+| crew | (in operations) | 3.18 |
+| operations | 3.10 | - |
+| insurance | - | 1.65 |
+| charter | - | 1.55 |
+| energy | - | 1.05 |
+| storm repairs, events, fines | 1.4-3.3 | 0.04-0.25 |
+| **total ex feed, smolts, tax** | **9.0-12.1** | **18.2-25.4** |
+
+The unit's three dearest seeds (3, 4, 5: 23.4-25.4) lost fish to the
+storyteller's ISA cull, so fewer kilos carried the same fixed lines.
+
+The same ten seeds on three bases (re-measured 2026-10-20, `OffshoreCycleTests`
+prints them; medians, range in brackets):
+
+| basis | open pen (PO 4) | offshore unit | ratio |
+|---|---|---|---|
+| ex feed, spill and smolts (pre-registered, the skipped band test) | 9.0-12.1 | 18.2-25.4 | 1.885 (1.58-2.37) |
+| ex feed and spill, smolts kept (acceptance 7's words) | 12.6-17.3 | 21.5-30.7 | 1.557 (1.31-2.06) |
+| all in, feed and smolts kept ([O:R37]'s basis, 56 against ~43 = 1.30) | 45.3-57.7 | 54.7-76.5 | 1.145 (0.96-1.56) |
+
+Feed a kilo of HOG: open pen 32.7-41.0 NOK, unit 33.1-33.6 in the seven
+seeds the ISA cull spared and 41.6-45.8 in the three it hit. No basis puts the
+median inside 1.15-1.45;
+the owner's choice is RUN_LOG §8 (F2-07).
+
+## 1x. F2-31: what the build preview says about the money (2026-10-20, branch `wave4/ui-farm-1`)
+
+_The family-first build dialog (spec §6.2 step 4) shows the lanes' own build
+previews (F2-07 `PreviewOffshoreBuild`, F2-14 `PreviewLandBuild`) and, around
+them, the money: `SimulationEngine.PreviewFarmBuild`
+(`Core/SimulationEngine.BuildFlow.cs`), a pure read. No new calibration: every
+input is an existing figure. Decisions: RUN_LOG §7 (2026-10-20 F2-31 rows)._
+
+### The figures and where they come from
+
+| Figure | How | Inputs |
+|---|---|---|
+| Capex (your share) | the sum of the lane preview's planned payments (turnkey premium and the pad's blasting included) | F2-14 / F2-07 payments |
+| Overrun p50 / p90 | the lane preview's totals | `facilities.common.construction` |
+| Permit wait (land) | the slowest needed or refused case's mid-window ((min + max) / 2), a pending case's days to its decision; 0 at sea | F2-14 permit quotes |
+| First harvest | land: the preview's first harvest (first tanks + the land plan's cycle) + the permit wait; sea: first stocking + a standard smolt's days to the plan's harvest weight in the home area's normal sea (S2-03 law) | F2-14, F2-07, `biology.targetHarvestWeightKg` |
+| Capacity cost per t HOG/yr | (capex + median overrun + start-up + licence) / equity / yearly capacity | land: + permit fees, capacity = the site's nameplate after the build; sea: + teething budget + conversion fees (licences × 13.8 M), capacity = the catalogue's (8 × 780 t × 1.2) |
+| Farming cost | the catalogue's median (NOK/kg HOG) | `facilities.common.catalog` |
+| Payback | first harvest + ⌈(capex + median overrun + start-up + licence) / yearly margin × 365⌉; margin = capacity × (weekly mean price − farming cost) × equity; never when the margin is not positive (a post-smolt module sells no HOG) | the market's `WeeklyAvgPrice` |
+| Runway (36 months) | cash + months × the company's average operating cash so far (revenue − COGS − opex − interest − tax over the days played) − payments as they start − overrun as phases end + the new unit's margin from its first harvest | engine ledger |
+| Pre-filled loan | min(the bank's room = `LoanCapacityNok` − loans, the median line's lowest shortfall); drawn today, paid in equal slices over the unit's depreciation life (land 20, sea 25 years) with interest on what is left at the bank's rate | `finance.loanInterestRate`, `facilities.common.depreciation` |
+
+### Measured (`BuildFlowTests`, printed)
+
+| Case | Capex | Overrun p50 / p90 | Wait | Capacity cost | Price / cost | Payback |
+|---|---|---|---|---|---|---|
+| HFS pilot lot on pad_a (seed 33, day 40, bare game) | 1,020,000,000 (0.90 bn + 120 M blasting) | 93.7 M / 182.6 M | 547 d (zoning) | 428,369 NOK/t/yr (2,600 t) | 88.0 / 70.7 | 2055 |
+| OF1-class on off_1, alone (seed 36) | 720 M (company payments) | catalogue band | 0 | (720 + 50.4 + 157 + 110.4 M) / 7,488 t ≈ 138.6 k | 88.0 / 101.31 | never: margin −99.6 M/yr |
+| OF1-class, 200 MNOK company (seed 37) | | | | | | shortfall 570.4 M, bank room 700 M → loan 570.4 M at 5.5 % over 300 months |
+
+The OF1 unit's capacity cost lies between the catalogue's median (131.8 k, no
+overrun) and its bad case. At the game's opening price (88 NOK/kg HOG) the
+catalogue's farming costs make the pilot lot a 25-year payback and the
+offshore unit a loss before its licences: honest to the reference figures
+(open pen 64.68 NOK/kg round ≈ 77.9 HOG [O:R57], OF1 × 1.3 [O:R37], HFS 70.7
+[L:R1]); the game's own costs are lower (45.6-57.5 NOK/kg HOG on the farm
+cycle, RUN_LOG §8 S2-04 finding), so F2-17's measured medians will move these. RUN_LOG §8.
+
+### The diagnosis strip (`GetBuildDiagnosis`, `Core/SimulationEngine.BuildDiagnosis.cs`)
+
+Scores 0-1 over the areas of the company's fjord sites (the home area when it
+has none); the highest binds:
+
+| Key | Score | Removed by |
+|---|---|---|
+| lice | red 1.0, yellow 0.6, green 0.15 (worst farmed area's light) | Land, Hav |
+| capacity | standing / licence MTB in the fullest licensed area | Land, Hav |
+| temperature | (warmest monthly normal − 13 °C optimum) / (22 °C upper limit − optimum), clamped | Land |
+| oxygen | deaths from low oxygen, algae and jellyfish / all deaths (S2-05 ledger) | Land |
+| capital | 1 − cash / the cheapest stage-1 Land or Hav money gate (post-smolt module 110 M), 0 when the cash is there | (the Hav consortium and the module lower the entry) |
+
+po3_red_sone (seed 17, day 0, zones green): capital 0.891 (12 M of 110 M),
+temperature 0.278 (15.5 °C), lice 0.150, capacity 0.039; po3_nord red → lice
+1.0 binds. In the UI flow (seed 95) capital binds; with 110 M granted the
+next constraint, lice (yellow, 0.6), binds and the strip follows.
+
 ## 2. Key economic knobs
 
 | Knob | Current | Real reference | Source | Recommended playtest band |

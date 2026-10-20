@@ -9,7 +9,7 @@ namespace LakskongenSim.Core
     /// <summary>
     /// Serializable snapshot of the game's state. Designed to be JSON-friendly.
     /// </summary>
-    public class GameState
+    public partial class GameState
     {
         /// <summary>Current simulation date (day index).</summary>
         public int Day { get; set; }

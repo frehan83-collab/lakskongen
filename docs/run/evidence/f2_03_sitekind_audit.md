@@ -34,7 +34,7 @@ Every unit on a plot sits in its plot's own water area: its `ZoneId` is the plot
 
 **Completeness.** `TheAudit_ListsEveryConsumer_WithADecision` scans `src/LakskongenSim` and `godot/scripts/autoload` (C#) and every GDScript file under `godot/scripts` (comments stripped) for `SeaSites` and `GetSeaSiteDetails`, keyed by file and enclosing member with its number of uses, and fails when a consumer appears, disappears or changes its number of uses without this table following; `TheAudit_ListsEveryFjordViewConsumer` does the same for the fjord view (`FjordSites`), the consumers F2-03 moved off the list. `TheScan_FindsTheKnownConsumers` guards the scanner itself.
 
-**Totals.** 146 consumers (220 uses) of the list (F2-04 added `EscapeFreeDays`, F2-05 four Driftsplan readers, the wave-3 integration U2-04's feeding plans, ui-a's daily snapshot and U2-01's expansion verdicts, which took over `ApplyForGrowthLicence`'s and `CanBuildSeaSite`'s reads): 92 include, 42 exclude, 12 hook; 13 readers of the fjord view (11 exclude, the 2 views themselves include). The spec's estimate was about 99 in the sim and 58 in the bridge counted by use; a member that reads the list several times is one row here with its number of uses.
+**Totals.** 150 consumers (227 uses) of the list (F2-04 added `EscapeFreeDays`, F2-05 four Driftsplan readers, the wave-3 integration U2-04's feeding plans, ui-a's daily snapshot and U2-01's expansion verdicts, which took over `ApplyForGrowthLicence`'s and `CanBuildSeaSite`'s reads; F2-06/F2-07 added the open sea, the unit build, the legacy commissioning and the harvest-order sea gate): 95 include, 42 exclude, 13 hook; 14 readers of the fjord view (12 exclude, the 2 views themselves include; F2-31 added the build diagnosis's farmed areas). The spec's estimate was about 99 in the sim and 58 in the bridge counted by use; a member that reads the list several times is one row here with its number of uses.
 
 ## Consumers
 
@@ -94,7 +94,7 @@ Every unit on a plot sits in its plot's own water area: its `ZoneId` is the plot
 | `src/LakskongenSim/Core/GameStateRelinker.cs` | `RelinkIds` | 2 | units-and-lists | include | Relinks every sea site's pen populations to the game's list (a unit's zones too) |
 | `src/LakskongenSim/Core/InDayTickSystems.cs` | `Tick` | 2 | reports | include | Hot file (F2-02 only): the rivals' quarterly inputs approximate the player's assets and licences by sea-site count; a unit counts as a site (it will hold development licences, F2-09) |
 | `src/LakskongenSim/Core/OffshoreTickSystem.cs` | `AccountCarbon` | 1 | fjord-economics | include | Offshore units only (`site.Offshore`): their fuel, power, crew helicopter and supply vessel on the site's tracker |
-| `src/LakskongenSim/Core/OffshoreTickSystem.cs` | `Tick` | 1 | units-and-lists | include | Offshore units only (`Kind == Offshore`): construction, storm lockdown, structure, crew rotation, opex |
+| `src/LakskongenSim/Core/OffshoreTickSystem.cs` | `Tick` | 1 | units-and-lists | include | Offshore units only (`Kind == Offshore`): each unit's F2-07 day (construction and tow, bookings, silo, crew, structure and nets, teething, its own lines) |
 | `src/LakskongenSim/Core/SaveLoadManager.cs` | `Deserialize` | 1 | units-and-lists | include | Null default of the list |
 | `src/LakskongenSim/Core/ScenarioSystem.cs` | `ApplyDiseaseMarker` | 1 | events | include | By id from scenarios.json (scenario sites are fjord sites) |
 | `src/LakskongenSim/Core/ScenarioSystem.cs` | `ApplyMitigations` | 1 | fjord-hardware | include | By id from scenarios.json: scenario mitigations name fjord sites |
@@ -134,6 +134,10 @@ Every unit on a plot sits in its plot's own water area: its `ZoneId` is the plot
 | `src/LakskongenSim/Core/SimulationEngine.Licence.cs` | `AcquireDistressedAsset` | 1 | units-and-lists | include | Adds the acquired fjord site (a rival's locality) |
 | `src/LakskongenSim/Core/SimulationEngine.Licence.cs` | `BuildSeaSite` | 3 | units-and-lists | include | The fjord build: null guard, the next fjord name (`SiteNames.NextFor` skips names in use) and the add |
 | `src/LakskongenSim/Core/SimulationEngine.Licence.cs` | `MaybeOpenRivalAuction` | 1 | fjord-zone | exclude | By zone: a fjord zone is "player-operated" only through a fjord site |
+| `src/LakskongenSim/Core/SimulationEngine.Offshore.cs` | `BuildOffshoreUnit` | 3 | units-and-lists | include | F2-07: the next offshore id among the offshore units (and a load-only farm's), the add, and its undo should the project refuse |
+| `src/LakskongenSim/Core/SimulationEngine.OffshoreOps.cs` | `CommissionReadyLegacyUnits` | 1 | units-and-lists | include | F2-07: offshore units only (`Kind == Offshore`): a legacy or migrated unit fills its silo before its fish eat |
+| `src/LakskongenSim/Core/SimulationEngine.OffshoreOps.cs` | `SeaAllowsHarvestToday` | 1 | harvest-wellboat | hook | F2-07: an S2-04 harvest order's site through `OperationPossible` (a fjord site always; a unit by its sea) |
+| `src/LakskongenSim/Core/SimulationEngine.OffshoreSea.cs` | `AdvanceOffshoreSea` | 2 | units-and-lists | include | F2-06: the open sea starts with the first offshore unit (`Kind == Offshore`) and each unit takes its plot's Hs; fjord sites are skipped |
 | `src/LakskongenSim/Core/SimulationEngine.Pens.cs` | `DelousePens` | 2 | harvest-wellboat | include | By id and pen: a unit's zones are pens |
 | `src/LakskongenSim/Core/SimulationEngine.Pens.cs` | `MigratePensAfterLoad` | 2 | units-and-lists | include | A v7 site gets its layout; a unit already has its zones (`PhysicalPens`), so it is skipped |
 | `src/LakskongenSim/Core/SimulationEngine.Pens.cs` | `PenViewsOf` | 1 | units-and-lists | include | A unit's zones are listed as pens (`GetOffshoreUnits` `pens`) |
@@ -193,6 +197,7 @@ The consumers that read the list before F2-03 and now read the fjord view instea
 
 | File | Member | Uses | Category | Decision | How |
 |---|---|---|---|---|---|
+| `src/LakskongenSim/Core/SimulationEngine.BuildDiagnosis.cs` | `FarmedAreas` | 1 | fjord-zone | exclude | F2-31: the build dialog's diagnosis reads the production areas of the company's fjord sites (their traffic light, licence MTB and warmest month); an offshore unit is free of those limits, which is the diagnosis's point |
 | `src/LakskongenSim/Core/SimulationEngine.Expansion.cs` | `BuildGateKey` | 1 | site-limits | exclude | U2-01 (moved here from `CanBuildSeaSite`, wave-3 integration): the free first locality (the development right) is for a company with no fjord site; an offshore unit does not use it up |
 | `src/LakskongenSim/Core/SimulationEngine.Expansion.cs` | `PlanSiteBuild` | 1 | site-limits | exclude | U2-01 (wave-3 integration): the build plan's "new zone" follows the same development right as `BuildGateKey` |
 | `src/LakskongenSim/Core/SimulationEngine.Licence.cs` | `BuildSeaSite` | 1 | units-and-lists | exclude | A fjord build without a name is numbered among the fjord sites (`site_N`); offshore units are numbered apart (`offshore_N`) |

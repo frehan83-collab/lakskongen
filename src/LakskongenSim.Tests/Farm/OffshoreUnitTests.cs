@@ -194,29 +194,57 @@ public class OffshoreUnitTests
     }
 
     /// <summary>
-    /// The unit's day (the pre-F2 offshore farm's, F2-07 replaces it): its crew
-    /// changes every 7 days at 150,000 NOK, its opex is the crew, energy,
-    /// maintenance by MTB and supply runs, and its carbon goes on its own
-    /// tracker; the fjord-site emissions, crew wages and upkeep leave it out.
+    /// The unit's day (F2-07; replaces TheUnitsDay_BooksItsCrewEnergyAndCarbon_OnTheUnit,
+    /// docs/run/evidence/f2_07_replaced_tests.md, with everything it asserted and more):
+    /// every day the unit books its own lines in their own ledger categories:
+    /// crew in rotation, energy, maintenance and insurance on its contract price;
+    /// its crew changes on the Driftsplan rota by a chartered vessel, each
+    /// change paid its vessel's day rate for every day it was chartered; its
+    /// carbon goes on its own tracker, one fuel entry a day; a day above the
+    /// wellboat-alongside limit locks it down and fatigues its structure by the
+    /// coefficient × (Hs / design Hs)³ (the pre-F2 12 m damage rule is gone).
     /// </summary>
     [Fact]
-    public void TheUnitsDay_BooksItsCrewEnergyAndCarbon_OnTheUnit()
+    public void TheUnitsDay_BooksItsLinesCrewChangesAndCarbon_OnTheUnit()
     {
         var engine = RichEngine(59);
         var unit = BuildOperational(engine);
         Assert.True(engine.StockOffshoreFarm(unit.Id, 40_000).Ok);
         var structure = unit.Offshore!;
-        structure.DaysSinceCrewRotation = 0;
+        var costs = LakskongenSim.Calibration.OffshoreCalibration.Default.Costs;
+        var lines = new System.Collections.Generic.Dictionary<string, decimal>();
+        engine.PnlBooked += (day, category, amount, income) =>
+        {
+            if (!income) lines[category] = (lines.TryGetValue(category, out var v) ? v : 0m) - amount;
+        };
+        engine.Advance(1);
+        decimal perDay = 1m / SimCalendar.DaysPerYear;
+        Assert.Equal(12 * costs.CrewSalaryNokPerYear * perDay, lines["offshore_crew"]);
+        Assert.Equal((decimal)engine.OffshoreFuelLitresToday(unit) * costs.DieselNokPerLitre, lines["offshore_energy"]);
+        Assert.Equal(structure.CAPEX * (decimal)costs.MaintenanceShareOfCapexPerYear * perDay, lines["offshore_maintenance"]);
+        Assert.Equal(structure.CAPEX * (decimal)costs.InsuranceShareOfCapexPerYear * perDay, lines["offshore_insurance"]);
+        // The unit's lines are its own: none go into the fjord's "operations" line.
+        // (this company has no fjord site, so the day's "operations" line is empty).
+        Assert.False(lines.TryGetValue("operations", out var operations) && operations > 0m, "the unit's lines left the operations line");
 
-        var day = structure.TickDay(engine.State.Day, 1.0, isStorm: false, mtbTonnes: unit.MABTonnes);
-        decimal expected = 12 * OffshoreUnit.CrewSalaryNokPerYear / SimCalendar.DaysPerYear
-            + OffshoreUnit.DailyEnergyCostNok + (decimal)unit.MABTonnes * OffshoreUnit.DailyMaintenanceNokPerTonne
-            + OffshoreUnit.DailyLogisticsCostNok;
-        Assert.Equal(expected, day.TotalDailyOPEX);
-        int rotations = 0;
-        for (int d = 0; d < 28; d++)
-            if (structure.TickDay(engine.State.Day + d, 1.0, false, unit.MABTonnes).CrewRotationCost > 0m) rotations++;
-        Assert.Equal(4, rotations);
+        // 120 days of the default crew rota: a change about every 7 days, each by a chartered vessel.
+        int maxSince = 0;
+        for (int d = 0; d < 120; d++)
+        {
+            engine.Advance(1);
+            maxSince = Math.Max(maxSince, structure.DaysSinceCrewRotation);
+        }
+        var changes = structure.Bookings.Where(b => b.Op == OffshoreOp.CrewChange && b.Status == OffshoreBookingStatus.Done).ToList();
+        Assert.InRange(changes.Count, 12, 18);
+        foreach (var change in changes)
+        {
+            decimal expected = change.Vessel == VesselClass.Helicopter
+                ? costs.HelicopterNokPerChange
+                : change.DaysCharged * OffshoreCharter.DayRateNok(OffshoreOp.CrewChange, change.Vessel, costs);
+            Assert.Equal(expected, change.ChargedNok);
+        }
+        Assert.True(maxSince <= structure.CrewRotationDays + 14, $"a crew stayed {maxSince} days");
+        Assert.True(lines["offshore_charter"] >= changes.Sum(b => b.ChargedNok));
 
         int fuelBefore = unit.CarbonTracker.Emissions.Count(e => e.Source == unit.Id && e.Category == "Scope1_Fuel");
         engine.Advance(10);
@@ -226,11 +254,17 @@ public class OffshoreUnitTests
         Assert.Contains(unit.CarbonTracker.Emissions, e => e.Source == unit.Id && e.Category == "Scope1_Fuel");
         Assert.Contains(unit.CarbonTracker.Emissions, e => e.Source == unit.Id + "_vessel");
         Assert.Equal(fuelBefore + 10, unit.CarbonTracker.Emissions.Count(e => e.Source == unit.Id && e.Category == "Scope1_Fuel"));
-        // A storm (Hs over 6 m) locks the crew in; over 12 m it damages the structure.
-        var storm = structure.TickDay(engine.State.Day, 13.0, isStorm: true, mtbTonnes: unit.MABTonnes);
-        Assert.True(storm.StormLockdown);
+
+        // A 13 m day (forced): no vessel stays alongside, the structure fatigues by the cube of Hs over its design.
+        double integrity = structure.StructuralIntegrity;
+        int forcedDay = engine.State.Day + 1;
+        engine.SeaOverrideForTests = (site, day) => day == forcedDay ? 13.0 : null;
+        engine.Advance(1);
         Assert.True(structure.IsStormLockdown);
-        Assert.Equal(0.05, storm.StructuralDamage, 12);
+        var s = LakskongenSim.Calibration.OffshoreCalibration.Default.Structure;
+        Assert.Equal(integrity - s.FatigueCoeff * Math.Pow(13.0 / structure.DesignHsM, 3.0), structure.StructuralIntegrity, 12);
+        engine.Advance(1);
+        Assert.False(structure.IsStormLockdown && structure.CurrentWaveHeight <= 5.0);
     }
 
     /// <summary>An escape at the unit is a sea site's escape: it counts in the rolling year the sustainability score reads.</summary>

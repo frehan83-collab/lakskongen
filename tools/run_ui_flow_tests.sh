@@ -25,7 +25,7 @@ TIMEOUT_SECS=600
 # running (an early return, a call dropped from _run()). Raise it with every
 # check you add; lowering it weakens the gate and needs a dispute entry in
 # docs/RUN_LOG.md §8.
-MIN_CHECKS=1425  # wave-3 integration: wave 2's 1167 + sim-core-4's 37 + ui-a-2's 72 + ui-b-2's 148 (1065 -> 1213) + 1 (the end screen gives back the toasts and the clock); sim-lanes-2 adds none
+MIN_CHECKS=1549  # wave4/ui-farm-1: F2-31 + 87 (tests/BuildFlowChecks.gd 86, U2-01 expansion test +1: its two placeholder checks replaced by three stronger ones). Merge of sim-land-1 (+10, the land lane's bridge verbs) and sim-sea-1 (+27, tests/OffshoreBridgeChecks.gd) on wave 3's 1425. wave-3 integration: wave 2's 1167 + sim-core-4's 37 + ui-a-2's 72 + ui-b-2's 148 (1065 -> 1213) + 1 (the end screen gives back the toasts and the clock); sim-lanes-2 adds none
 
 find_godot() {
     if [[ -n "${GODOT_BIN:-}" && -x "$GODOT_BIN" ]]; then

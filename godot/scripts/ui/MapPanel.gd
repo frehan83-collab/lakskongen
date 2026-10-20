@@ -322,6 +322,8 @@ var _expansion: RegionExpansionSection = null
 var _auction_card: LicenceAuctionCard = null
 var _build_dialog: BuildSiteDialog = null
 var _map_legend: HBoxContainer = null
+## F2-31: "Nytt anlegg" opens the build dialog's family cards.
+var _new_farm_btn: Button = null
 
 # ─────────────────────────────────────────────────────────────────────────────
 func _ready() -> void:
@@ -440,6 +442,25 @@ func _add_expansion_section() -> void:
 	_area_picker.item_selected.connect(_on_area_picked)
 	host.add_child(_area_picker)
 	host.move_child(_area_picker, name_row.get_index() + 1 if name_row else 0)
+	# F2-31: land and offshore farms start from the family cards; the button
+	# sits in the header, in view whatever the detail column shows.
+	_new_farm_btn = Button.new()
+	_new_farm_btn.name = "NewFarmBtn"
+	_new_farm_btn.text = tr("BUILD_NEW_FARM")
+	_new_farm_btn.tooltip_text = tr("BUILD_NEW_FARM_TIP")
+	_new_farm_btn.theme_type_variation = &"SecondaryButton"
+	_new_farm_btn.custom_minimum_size = Vector2(0, 40)
+	_new_farm_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_new_farm_btn.pressed.connect(func() -> void: open_build_family(""))
+	var header := find_child("HeaderInner", true, false) as HBoxContainer
+	var close := find_child("CloseBtn", true, false) as Control
+	if header != null:
+		header.add_child(_new_farm_btn)
+		if close != null and close.get_parent() == header:
+			header.move_child(_new_farm_btn, close.get_index())
+	else:
+		host.add_child(_new_farm_btn)
+		host.move_child(_new_farm_btn, _area_picker.get_index() + 1)
 	_expansion = RegionExpansionSection.new()
 	_expansion.name = "ExpansionSection"
 	_expansion.build_requested.connect(open_build)
@@ -627,6 +648,20 @@ func open_build(zone_id: String) -> void:
 	_select_area_of_zone(zone_id)
 	_auction_card.close()
 	_build_dialog.open_for_zone(zone_id)
+
+
+## F2-31: open the build dialog on a farm family ("land", "hav", "sjo"), or
+## on the three family cards ("").
+func open_build_family(family_id: String) -> void:
+	if _build_dialog == null:
+		return
+	_auction_card.close()
+	_build_dialog.open_for_family(family_id)
+
+
+## F2-31: the map's way into the family-first build flow.
+func new_farm_button() -> Button:
+	return _new_farm_btn
 
 
 func auction_card() -> LicenceAuctionCard:

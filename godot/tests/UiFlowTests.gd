@@ -157,14 +157,20 @@ func _run() -> void:
 	_test_offshore_unit_and_fleet()
 	# F2-03: an offshore unit leaves the fjord's pen layout alone.
 	await _test_offshore_unit_leaves_fjord_pens_in_place()
+	# F2-06 wiring and F2-07: the sea lane's bridge verbs in the running game.
+	await _test_offshore_bridge_verbs()
 	# F2-04: the farm-type catalogue and the research gates reach the UI.
 	await _test_farm_type_catalog_reaches_the_ui()
 	# F2-05: the Driftsplan card sets, changes and ends standing orders.
 	await _test_driftsplan_card_sets_and_runs_standing_orders()
+	# F2-12/F2-14: the land lane's bridge verbs (previews, permits, construction).
+	await _test_land_bridge_previews_and_applies()
 	# U2-01: the expansion flow (map, build dialog, licence auction, inbox).
 	await _test_expansion_builds_the_tutorials_second_site()
 	await _test_auction_card_wins_a_green_zone_licence()
 	await _test_every_build_refusal_reads_as_text()
+	# F2-31: the family-first build flow (tests/BuildFlowChecks.gd).
+	await preload("res://tests/BuildFlowChecks.gd").new().run(self)
 	# U2-03: end screens, the liquidity ladder, the rescue loan, campaign progress.
 	await preload("res://tests/EndScreenFlowChecks.gd").new().run(self)
 
@@ -6881,22 +6887,41 @@ func _test_expansion_builds_the_tutorials_second_site() -> void:
 			and (ledger.get_node("ValueRunning") as Label).text.contains(SimFormatters.format_nok(float(plan["running_cost_per_month_nok"]))),
 		"expansion: the running cost per month is previewed (%s)" % (ledger.get_node("ValueRunning") as Label).text)
 	var families: Node = dialog.get_node("%FamilyRow")
-	var land: Node = families.get_node_or_null("Family_land")
-	var offshore: Node = families.get_node_or_null("Family_offshore")
+	var land: FarmFamilyCard = families.get_node_or_null("Family_land") as FarmFamilyCard
+	var offshore: FarmFamilyCard = families.get_node_or_null("Family_offshore") as FarmFamilyCard
+	# F2-31 (stronger than U2-01's "Land and Hav point to their tabs and show no
+	# numbers", RUN_LOG §7): the three family cards come first with Sjø chosen;
+	# Land and Hav are real families whose cards open their variants, and every
+	# number they show is the engine's catalogue's.
+	var catalog: Dictionary = _sim.get_farm_type_catalog()
+	var starts: Dictionary = _sim.get_farm_type_starts()
+	var open_count := func(fid: String) -> int:
+		var n := 0
+		for f in catalog.get("families", []):
+			if str(f.get("id", "")) == fid:
+				for v in f.get("variants", []):
+					if bool((starts.get(str(v.get("id", "")), {}) as Dictionary).get("startable", false)):
+						n += 1
+		return n
 	_check(families.get_child_count() == 3 and families.get_child(0).name == "Family_sea"
-			and land != null and land.find_child("OpenTab", true, false) != null
-			and offshore != null and offshore.find_child("OpenTab", true, false) != null,
-		"expansion: the farm type comes first: Sjø chosen, Land and Hav point to their tabs")
-	# Land and Hav say where those builds live today and invent no figures.
-	var digits := RegEx.create_from_string("[0-9]")
-	var figures := []
-	for card in [land, offshore]:
-		if card == null:
-			continue
-		for l in card.find_children("*", "Label", true, false):
-			if digits.search((l as Label).text) != null:
-				figures.append((l as Label).text)
-	_check(figures.is_empty(), "expansion: the Land and Hav cards show no numbers %s" % str(figures))
+			and (families.get_child(0) as FarmFamilyCard).is_selected()
+			and land != null and not land.is_selected() and land.choose_button() != null
+			and offshore != null and not offshore.is_selected() and offshore.choose_button() != null,
+		"expansion: the farm type comes first: Sjø chosen, Land and Hav are families of their own")
+	var status_ok := land != null and offshore != null \
+		and (land.get_node("%Status") as Label).text == (tr("BUILD_FAMILY_LOCKED_ALL") if open_count.call("land") == 0 else tr("BUILD_FAMILY_OPEN_SOME") % [open_count.call("land"), 3]) \
+		and (offshore.get_node("%Status") as Label).text == (tr("BUILD_FAMILY_LOCKED_ALL") if open_count.call("hav") == 0 else tr("BUILD_FAMILY_OPEN_SOME") % [open_count.call("hav"), 2])
+	_check(status_ok, "expansion: the Land and Hav cards count their open variants from the engine (land %d, hav %d)" % [open_count.call("land"), open_count.call("hav")])
+	var bars := dialog.comparison()
+	var open_pen: Dictionary = {}
+	for f in catalog.get("families", []):
+		for v in f.get("variants", []):
+			if str(v.get("id", "")) == "open_pen":
+				open_pen = v
+	var cap: Dictionary = (open_pen.get("axes", {}) as Dictionary).get("capex_nok_per_t_year", {})
+	_check(bars != null and bars.is_visible_in_tree() and bars.value_label("open_pen", "capex_nok_per_t_year") != null
+			and bars.value_label("open_pen", "capex_nok_per_t_year").text == ComparisonBars.format_axis(cap),
+		"expansion: the Sjø variants' bars show the catalogue's numbers (%s)" % ComparisonBars.format_axis(cap))
 	await _lint_screen("build dialog")
 	var confirm: Button = dialog.get_node("%ConfirmBtn")
 	_check(not confirm.disabled, "expansion: the confirm is enabled")
@@ -7413,3 +7438,63 @@ func _test_driftsplan_card_sets_and_runs_standing_orders() -> void:
 		"driftsplan: a farm-type event names its unit, and a failed order has its verb and title")
 	panel.queue_free()
 	await get_tree().process_frame
+
+
+## F2-12 / F2-14 (wave4/sim-land-1): the land lane's bridge verbs marshal from
+## GDScript and read as text: a build preview with its payment schedule and
+## permit timeline (refusal odds and drivers, each with a Norwegian label), a
+## refusal as a reason key with its label, a zoning application that files a
+## case the pad's case list shows, and an empty construction list.
+func _test_land_bridge_previews_and_applies() -> void:
+	_check(_sim.start_qa_scenario("po3_red_sone", 94), "land bridge: seeded scenario starts")
+	_sim.set_paused(true)
+	var locked: Dictionary = _sim.preview_land_build("pad_a", "hfs_lot", "managed", [])
+	_check(not bool(locked.get("allowed", true)) and str(locked.get("reason_key", "")) == "not_unlocked"
+			and tr(str(locked.get("label_key", ""))) != str(locked.get("label_key", "")),
+		"land bridge: a locked build reads as text (%s)" % tr(str(locked.get("label_key", ""))))
+	var module: Dictionary = _sim.preview_land_build("pad_delta", "post_smolt_module", "turnkey", ["environmental_survey"])
+	var payments: Array = module.get("payments", [])
+	var paid := 0.0
+	for p in payments:
+		paid += float(p.get("payment_nok", 0.0))
+	var budget := float(module.get("budget_nok", 0.0))
+	_check(payments.size() == 5 and budget > 0.0 and absf(paid - budget - float(module.get("premium_nok", 0.0))) < 1.0,
+		"land bridge: the module's payments add up to its budget and the turnkey premium (%d phases, %.0f of %.0f)" % [payments.size(), paid, budget])
+	var phase_labels: Array = payments.filter(func(p: Dictionary) -> bool: return tr(str(p.get("label_key", ""))) == str(p.get("label_key", "")))
+	_check(phase_labels.is_empty(), "land bridge: every phase has a Norwegian name (%s)" % str(phase_labels))
+	var permits: Array = module.get("permits", [])
+	var statuses: Array = permits.map(func(p: Dictionary) -> String: return str(p.get("status", "")))
+	_check(permits.size() == 5 and statuses[0] == "pre_zoned" and statuses.slice(1).all(func(s: String) -> bool: return s == "needed"),
+		"land bridge: the module's permit timeline (%s)" % str(statuses))
+	var untranslated: Array = []
+	for p in permits:
+		var odds := 0.0
+		for d in p.get("drivers", []):
+			odds += float(d.get("effect", 0.0))
+			if tr(str(d.get("label_key", ""))) == str(d.get("label_key", "")):
+				untranslated.append(d.get("label_key"))
+		if absf(odds - float(p.get("refusal_probability", -1.0))) > 1e-9:
+			untranslated.append("%s odds" % str(p.get("kind")))
+		if tr(str(p.get("label_key", ""))) == str(p.get("label_key", "")) or tr(str(p.get("status_label_key", ""))) == str(p.get("status_label_key", "")):
+			untranslated.append(p.get("label_key"))
+	_check(untranslated.is_empty(), "land bridge: each permit's drivers add up to its odds and read as text (%s)" % str(untranslated))
+	_check(int(module.get("first_harvest_day", 0)) > int(module.get("first_tanks_day", 0)) and int(module.get("first_tanks_day", 0)) > int(module.get("start_day", 0)),
+		"land bridge: the first harvest follows the first tanks (%d, %d)" % [int(module.get("first_tanks_day", 0)), int(module.get("first_harvest_day", 0))])
+	var zoning: Dictionary = _sim.apply_for_zoning("pad_a", ["environmental_survey"])
+	var cases: Array = _sim.get_land_permit_cases("pad_a")
+	_check(bool(zoning.get("success", false)) and cases.size() == 1 and str(cases[0].get("kind", "")) == "Zoning"
+			and tr(str(cases[0].get("label_key", ""))) == "Reguleringsplan",
+		"land bridge: a zoning application files a case on the pad (%s)" % str(cases))
+	var again: Dictionary = _sim.apply_for_zoning("pad_a", [])
+	_check(str(again.get("reason_key", "")) == "already_pending" and tr(str(again.get("label_key", ""))) != str(again.get("label_key", "")),
+		"land bridge: a second application is refused as text (%s)" % tr(str(again.get("label_key", ""))))
+	_check(_sim.get_land_construction().is_empty() and str(_sim.get_land_site_detail("ras_9").get("reason_key", "")) == "not_found",
+		"land bridge: no construction yet, and an unknown site is not found")
+
+
+## F2-06 wiring and F2-07: the build preview, the sea-state forecast, the
+## unit's gauges and construction, the booking preview and the refusals reach
+## GDScript through SimBridge (tests/OffshoreBridgeChecks.gd).
+func _test_offshore_bridge_verbs() -> void:
+	var checks: RefCounted = (load("res://tests/OffshoreBridgeChecks.gd") as GDScript).new()
+	await checks.run(self)

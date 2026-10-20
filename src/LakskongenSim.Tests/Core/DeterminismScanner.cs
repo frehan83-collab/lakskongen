@@ -40,6 +40,8 @@ public static class DeterminismScanner
         "godot/scripts/autoload/GameBridge.Offshore.cs",
         "godot/scripts/autoload/GameBridge.FarmTypes.cs",
         "godot/scripts/autoload/GameBridge.Driftsplan.cs",
+        // F2-31: the build flow's previews, plots and diagnosis (reads the build dialog and its ghost call).
+        "godot/scripts/autoload/GameBridge.BuildFlow.cs",
     };
 
     /// <summary>

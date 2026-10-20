@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using LakskongenSim.Biology;
 using LakskongenSim.Core;
@@ -56,9 +57,38 @@ internal static class OffshoreHooks
     internal static bool SkipsFjordStormWear(SimulationEngine engine, SeaSite site)
         => site.Kind == SiteKind.Offshore;
 
-    /// <summary>Whether a vessel operation can run at a sea site today: always before F2-06.</summary>
+    /// <summary>
+    /// Whether a vessel operation can run at a sea site today (F2-06): always at
+    /// a fjord site; at an offshore unit when its plot's sea today is within the
+    /// operation's limit (<see cref="OperabilityWindows"/>, spec §3.3 table).
+    /// A wellboat job is fish handling ("delouse", "freshwater", "harvest": 2.0 m
+    /// from a standard wellboat) or net work ("rov": the 3.0 m ROV limit); an
+    /// S2-04 harvest order at an offshore unit sails the offshore wellboat its
+    /// route prices (2.5 m). <paramref name="day"/> is the engine's day, whose
+    /// sea every unit took in the Metocean phase.
+    /// </summary>
     internal static bool OperationPossible(SimulationEngine engine, SeaSite? site, string jobKind, int day)
-        => true;
+    {
+        if (site == null || site.Kind != SiteKind.Offshore || site.Offshore == null) return true;
+        var (op, vessel) = OperationOfJob(jobKind);
+        return engine.OffshoreOperationPossibleToday(site, op, vessel);
+    }
+
+    /// <summary>Wellboat-job kinds that are net work, not fish handling.</summary>
+    internal const string RovJobKind = "rov";
+
+    /// <summary>The job kind an S2-04 harvest order asks <see cref="OperationPossible"/> with (the offshore wellboat).</summary>
+    internal const string HarvestOrderJobKind = "harvest_order";
+
+    /// <summary>The operation and vessel a wellboat job kind stands for at an offshore unit.</summary>
+    internal static (OffshoreOp Op, VesselClass Vessel) OperationOfJob(string? jobKind) => jobKind switch
+    {
+        RovJobKind => (OffshoreOp.NetInspection, VesselClass.Standard),
+        "harvest" => (OffshoreOp.Harvest, VesselClass.Standard),
+        HarvestOrderJobKind => (OffshoreOp.Harvest, VesselClass.OffshoreWellboat),
+        "delouse" or "freshwater" => (OffshoreOp.Delousing, VesselClass.Standard),
+        _ => (OffshoreOp.Crowding, VesselClass.Standard), // any other job handles fish
+    };
 
     /// <summary>
     /// Whether a sea site counts toward the site limits (the per-zone site
@@ -89,17 +119,49 @@ internal static class OffshoreHooks
         in HoldingWater sea)
         => sea with { OxygenMgPerL = sea.OxygenMgPerL + (holding.Site?.Offshore?.OxygenBoost ?? holding.OffshoreFarm!.OxygenBoost) };
 
-    /// <summary>Whether an offshore unit can feed today: always before F2-07 (silo).</summary>
+    /// <summary>
+    /// Whether an offshore unit can feed today (F2-07, spec §3.3 "Silo and
+    /// feed"): while its silo holds feed. Feeding needs no sea-state window
+    /// (OF1 lost no feeding days to weather [O:R7]); a unit whose logistics
+    /// never started (a pre-F2 farm before its first sea phase) feeds as before.
+    /// </summary>
     internal static bool FeedAvailableFor(SimulationEngine engine, in PopulationHolding holding, FishPopulation population)
-        => true;
+    {
+        var unit = holding.Site?.Offshore;
+        return unit == null || !unit.IsCommissioned || unit.SiloTonnes > 0.0;
+    }
 
-    /// <summary>Appetite an offshore unit's sea state leaves: 1.0 before F2-07 (Hs).</summary>
+    /// <summary>
+    /// Appetite an offshore unit's sea state leaves (F2-07, spec §3.3): 1.0 up to
+    /// Hs 4 m, falling linearly to 0.7 at 6 m and staying there
+    /// (<see cref="OperabilityWindows.AppetiteFactor"/> on its plot's Hs today).
+    /// </summary>
     internal static double AppetiteFactorFor(SimulationEngine engine, in PopulationHolding holding, FishPopulation population)
-        => 1.0;
+    {
+        var unit = holding.Site?.Offshore;
+        return unit == null ? 1.0 : OperabilityWindows.AppetiteFactor(unit.CurrentWaveHeight, engine.OffshoreCal.Operability);
+    }
 
-    /// <summary>An offshore unit's own mortality terms: the anchor × 1 and no extra cause before F2-08.</summary>
+    /// <summary>
+    /// An offshore unit's own mortality terms: the anchor × 1, and each firing
+    /// teething defect that kills fish (F2-07: the harvest zone's crush as
+    /// handling deaths, winter ulcers as disease, each its extra points over a
+    /// cycle as a daily hazard). F2-08 adds the incidents' causes.
+    /// </summary>
     internal static MortalityTerms MortalityTermsFor(SimulationEngine engine, in PopulationHolding holding, FishPopulation population)
-        => MortalityTerms.None;
+    {
+        var unit = holding.Site?.Offshore;
+        if (unit == null || unit.TeethingDefects.Count == 0) return MortalityTerms.None;
+        int day = engine.Weather.SimulationDay;
+        List<UnitHazard>? hazards = null;
+        foreach (var defect in unit.TeethingDefects)
+        {
+            if (defect.MortalityPp <= 0.0 || !defect.IsRevealed || defect.RevealedDay > day || defect.IsFixedBy(day)) continue;
+            var cause = defect.Kind == TeethingDefectKind.HarvestZoneCrush ? MortalityCause.Handling : MortalityCause.Disease;
+            (hazards ??= new List<UnitHazard>()).Add(new UnitHazard(cause, TeethingDeck.DailyMortalityFraction(defect)));
+        }
+        return hazards == null ? MortalityTerms.None : new MortalityTerms(1.0, hazards);
+    }
 
     /// <summary>
     /// Whether a sea pen's or an offshore farm's harvest counts toward the

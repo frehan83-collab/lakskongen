@@ -22,6 +22,11 @@ public enum ConstructionStatus
     Building,
     /// <summary>Every phase is done; the unit is commissioned and on the asset register.</summary>
     Complete,
+    /// <summary>
+    /// Cancelled by the company (F2-14): no later phase starts or is paid, the
+    /// money paid stays spent (sunk) and no asset is registered.
+    /// </summary>
+    Cancelled,
 }
 
 /// <summary>
@@ -48,6 +53,13 @@ public sealed class ConstructionPhase
 
     /// <summary>True when the player starts the phase (e.g. "tow"); otherwise it starts when the previous one ends.</summary>
     public bool PlayerStarted { get; init; }
+
+    /// <summary>
+    /// True when the phase's work stops in its <see cref="ClosedMonths"/> as
+    /// well as not starting in them (F2-14: sea works never run in April-June,
+    /// [L:R12]): each closed day while it is under way moves its end a day on.
+    /// </summary>
+    public bool SuspendedInClosedMonths { get; init; }
 }
 
 /// <summary>
@@ -117,8 +129,11 @@ public sealed class ConstructionProject
     /// <summary>The phase under way or waiting, or null once complete.</summary>
     public ConstructionPhase? Current => CurrentPhase >= 0 && CurrentPhase < Phases.Count ? Phases[CurrentPhase] : null;
 
-    /// <summary>Day the current phase ends (meaningful while building).</summary>
-    public int PhaseEndDay => PhaseStartDay + PhaseDays;
+    /// <summary>Closed-season days the current phase stood still (<see cref="ConstructionPhase.SuspendedInClosedMonths"/>).</summary>
+    public int SuspendedDays { get; set; }
+
+    /// <summary>Day the current phase ends (meaningful while building): its days of work plus the days it stood still.</summary>
+    public int PhaseEndDay => PhaseStartDay + PhaseDays + SuspendedDays;
 }
 
 /// <summary>

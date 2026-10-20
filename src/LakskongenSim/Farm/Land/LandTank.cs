@@ -82,10 +82,10 @@ namespace LakskongenSim.Farm.Land
         public double AppetiteFactor { get; set; } = 1.0;
 
         /// <summary>Water volume (m³): the pen's.</summary>
-        public double VolumeM3 => Pen.VolumeM3;
+        [System.Text.Json.Serialization.JsonIgnore] public double VolumeM3 => Pen.VolumeM3;
 
         /// <summary>Tank id: the pen's.</summary>
-        public string Id => Pen.Id;
+        [System.Text.Json.Serialization.JsonIgnore] public string Id => Pen.Id;
 
         /// <summary>The id of tank <paramref name="number"/> at <paramref name="siteId"/>: "ras_1/t07".</summary>
         public static string ComposeId(string siteId, int number) => $"{siteId}/t{number:D2}";

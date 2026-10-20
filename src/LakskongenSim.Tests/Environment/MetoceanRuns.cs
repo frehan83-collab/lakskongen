@@ -181,7 +181,7 @@ internal static class OffshoreMetoceanFit
                 mu[m] += (target - mean) / (slope / n);
             }
         }
-        var final = cal with { BaseMuMonth = MonthlyValues.Of(mu) };
+        var final = cal with { BaseMuMonth = MonthlyValues.Of<BaseMuMonthValues>(mu) };
         // Recompute every day's reference Hs at the fitted levels.
         foreach (var run in runs)
             for (int d = 0; d < run.Days; d++)
@@ -195,10 +195,10 @@ internal static class OffshoreMetoceanFit
         return new Result(mu, level, plots.Off1.Hs100M / level, plots.Off2.Hs100M / level, plots.Hav1.Hs100M / level, means);
     }
 
-    private static MonthlyValues WithMonth(MonthlyValues v, int month, double value)
+    private static BaseMuMonthValues WithMonth(MonthlyValues v, int month, double value)
     {
         var a = v.ToArray();
         a[month] = value;
-        return MonthlyValues.Of(a);
+        return MonthlyValues.Of<BaseMuMonthValues>(a);
     }
 }

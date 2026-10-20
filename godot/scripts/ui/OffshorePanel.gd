@@ -13,7 +13,8 @@ class_name OffshorePanel
 @onready var farm_list_container: VBoxContainer = %FarmList
 @onready var weather_waves_label: Label = %WeatherWavesLabel
 @onready var crew_rotation_label: Label = %CrewRotationLabel
-@onready var build_new_offshore_button: Button = %BtnBuildOffshore
+## F2-31: opens the family-first build flow on Hav (the legacy build button is gone).
+@onready var plan_offshore_button: Button = %BtnPlanOffshore
 @onready var contain_list: VBoxContainer = %ContainList
 @onready var contain_title: Label = %ContainTitle
 # Phase 5.3: Sludge & Transfers
@@ -46,7 +47,7 @@ func _ready():
 
 	_apply_localization()
 	_apply_theme_fonts()
-	build_new_offshore_button.pressed.connect(_on_build_new_offshore_pressed)
+	plan_offshore_button.pressed.connect(_on_plan_offshore_pressed)
 	transfer_plan_btn.pressed.connect(_on_transfer_plan)
 	transfer_execute_btn.pressed.connect(_on_transfer_execute)
 	transfer_source_select.item_selected.connect(_on_transfer_source_changed)
@@ -58,7 +59,8 @@ func _ready():
 func _apply_localization() -> void:
 	offshore_header_label.text = tr("UI_OFFSHORE_TITLE")
 	_farm_section_title.text = tr("UI_OFFSHORE_FARMS")
-	build_new_offshore_button.text = tr("UI_OFFSHORE_BUILD")
+	plan_offshore_button.text = tr("BUILD_PLAN_HAV")
+	plan_offshore_button.tooltip_text = tr("BUILD_PLAN_HAV_TIP")
 	contain_title.text = tr("UI_CONTAINMENT_LADDER")
 	sludge_title.text = tr("UI_SLUDGE_VALORIZATION")
 	transfer_title.text = tr("UI_COHORT_TRANSFERS")
@@ -86,9 +88,6 @@ func refresh():
 	var audio := get_node_or_null("/root/AudioController")
 	if audio and audio.has_method("attach_ui_sounds"):
 		audio.attach_ui_sounds(self)
-	if build_new_offshore_button != null and _sim != null:
-		UIPolish.set_available(build_new_offshore_button,
-			UIPolish.funds_blocker(UIPolish.build_cost(_sim, "offshore"), float(_sim.balance)))
 
 func on_panel_shown() -> void:
 	refresh()
@@ -206,10 +205,9 @@ func _update_crew_rotation():
 		max_days = maxi(max_days, int(farm.get("crew_days_since_rotation", 0)))
 	crew_rotation_label.text = tr("UI_OFFSHORE_ROTATION") % (tr("UI_OFFSHORE_LONGEST_SHIFT") % max_days)
 
-func _on_build_new_offshore_pressed():
-	if _sim != null and _sim.has_method("build_offshore_farm"):
-		_sim.build_offshore_farm(tr("UI_OFFSHORE_NEW_FARM_NAME"), "semi_submersible")
-	refresh()
+## F2-31: offshore units are contracted through the build dialog's Hav family.
+func _on_plan_offshore_pressed():
+	BuildFlowLink.open(self, "hav")
 
 ## Containment ladder per sea site (Phase 4.1): current rung + next-rung button.
 const CONTAIN_ORDER := ["OpenNet", "Skirt", "SemiClosed", "ClosedFloat", "Submersible", "OffshoreClosed"]

@@ -634,6 +634,28 @@ func get_notification_meter() -> Array[Dictionary]:
 func get_notification_budget() -> Dictionary:
 	return game_bridge.GetNotificationBudget() if game_bridge else {}
 
+# ── F2-31: the family-first build flow (ui·farm) ─────────────────────────────
+## The build preview of a farm-type variant on a plot: the lane's own preview
+## plus the money (capex, capacity cost with the licence, first harvest,
+## payback year, 36-month cash runway, the bank's loan). A read.
+func preview_farm_build(variant_id: String, plot_id: String, option: String, contract: String, equity_share: float, mitigations: Array) -> Dictionary:
+	return game_bridge.PreviewFarmBuild(variant_id, plot_id, option, contract, equity_share, mitigations) if game_bridge else {"ok": false, "reason_key": "engine_not_ready"}
+## The diagnosis strip: the binding constraint and every other one.
+func get_build_diagnosis() -> Dictionary:
+	return game_bridge.GetBuildDiagnosis() if game_bridge else {"binding": {}, "constraints": []}
+## The site lens's plots of a family ("land" pads, "hav" slots).
+func get_build_plots(family_id: String) -> Array[Dictionary]:
+	return _arr(game_bridge.GetBuildPlots(family_id)) if game_bridge else []
+## Which variants the player may start now (variant id → startable, waived gates).
+func get_farm_type_starts() -> Dictionary:
+	return game_bridge.GetFarmTypeStarts() if game_bridge else {}
+## QA-only: a digest of the whole engine state (equal digests: nothing changed).
+func qa_state_digest() -> String:
+	return game_bridge.QaStateDigest() if game_bridge else ""
+## QA-only: research a node at once, commission a post-smolt module on a pad, count a first harvest.
+func qa_open_farm_family(research_node_id: String, post_smolt_plot_id: String, first_harvest: bool) -> bool:
+	return game_bridge.QaOpenFarmFamily(research_node_id, post_smolt_plot_id, first_harvest) if game_bridge else false
+
 # ── F2-03: farm types (land sites, offshore units, their plots) ───────────────
 # Two lane blocks (FARM_TYPES_SPEC §7.6): the land lane (F2-12 … F2-16) appends
 # only inside the land block, the sea lane (F2-06 … F2-11) only inside the sea
@@ -646,6 +668,67 @@ func get_land_sites() -> Array[Dictionary]:
 ## The land pads, free or held.
 func get_land_plots() -> Array[Dictionary]:
 	return _arr(game_bridge.GetLandPlots()) if game_bridge else []
+# F2-12 / F2-14: lots and tanks, the build preview, permits, grid, construction.
+## One land site in full: its Vannstrategi, lots, tanks and their water.
+func get_land_site_detail(site_id: String) -> Dictionary:
+	return game_bridge.GetLandSiteDetail(site_id) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## The preview of a new land site on a pad (budget, payments with p50/p90, schedule, first harvest, permit timeline).
+func preview_land_build(plot_id: String, template: String, contract: String, mitigations: Array) -> Dictionary:
+	return game_bridge.PreviewLandBuild(plot_id, template, contract, mitigations) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## The preview of expanding a land site (pilot to full lot, or the next lot or module).
+func preview_land_expansion(site_id: String, contract: String) -> Dictionary:
+	return game_bridge.PreviewLandExpansion(site_id, contract) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## Apply for every permit a land plan on a pad still needs.
+func apply_land_permits(plot_id: String, template: String, lots: int, mitigations: Array) -> Dictionary:
+	return game_bridge.ApplyLandPermits(plot_id, template, lots, mitigations) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## Apply for the zoning of a pad alone.
+func apply_for_zoning(plot_id: String, mitigations: Array) -> Dictionary:
+	return game_bridge.ApplyForZoning(plot_id, mitigations) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## Appeal a refused land permit case.
+func appeal_land_permit(case_id: String) -> Dictionary:
+	return game_bridge.AppealLandPermit(case_id) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## Apply again for a refused land permit with more mitigations.
+func reapply_land_permit(case_id: String, mitigations: Array) -> Dictionary:
+	return game_bridge.ReapplyLandPermit(case_id, mitigations) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## Queue a grid project at a pad ("capacity" or "second_feed").
+func start_grid_project(plot_id: String, kind: String) -> Dictionary:
+	return game_bridge.StartGridProject(plot_id, kind) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## Start building a land site on a pad.
+func build_land_site(plot_id: String, template: String, contract: String, site_name: String) -> Dictionary:
+	return game_bridge.BuildLandSite(plot_id, template, contract, site_name) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## Expand a land site.
+func expand_land_site(site_id: String, contract: String) -> Dictionary:
+	return game_bridge.ExpandLandSite(site_id, contract) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## Accelerate a land construction project's current phase.
+func accelerate_land_construction(project_id: String) -> Dictionary:
+	return game_bridge.AccelerateLandConstruction(project_id) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## Cancel a land construction project.
+func cancel_land_construction(project_id: String) -> Dictionary:
+	return game_bridge.CancelLandConstruction(project_id) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## Every land construction project with its phase and progress (0-1).
+func get_land_construction() -> Array[Dictionary]:
+	return _arr(game_bridge.GetLandConstruction()) if game_bridge else []
+## The permit cases filed on a pad ("" = every pad).
+func get_land_permit_cases(plot_id: String) -> Array[Dictionary]:
+	return _arr(game_bridge.GetLandPermitCases(plot_id)) if game_bridge else []
+## What stocking a land tank would do.
+func preview_land_stocking(site_id: String, tank_id: String, count: int, strain_id: String) -> Dictionary:
+	return game_bridge.PreviewLandStocking(site_id, tank_id, count, strain_id) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## Stock a land tank.
+func stock_land_tank(site_id: String, tank_id: String, count: int, strain_id: String) -> Dictionary:
+	return game_bridge.StockLandTank(site_id, tank_id, count, strain_id) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## Grade a share of one land tank's fish into an empty, ready tank.
+func grade_tank(site_id: String, from_tank_id: String, to_tank_id: String, share: float) -> Dictionary:
+	return game_bridge.GradeTank(site_id, from_tank_id, to_tank_id, share) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## Harvest a land tank now.
+func harvest_land_tank(site_id: String, tank_id: String) -> Dictionary:
+	return game_bridge.HarvestLandTank(site_id, tank_id) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## Set a land site's Vannstrategi.
+func set_vannstrategi(site_id: String, reuse: float, deep_intake_share: float, setpoint_c: float, blend: bool) -> Dictionary:
+	return game_bridge.SetVannstrategi(site_id, reuse, deep_intake_share, setpoint_c, blend) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
+## Fit heat recovery to a lot.
+func install_heat_recovery(lot_id: String) -> Dictionary:
+	return game_bridge.InstallHeatRecovery(lot_id) if game_bridge else {"success": false, "reason_key": "engine_not_ready"}
 # ═══ END sim·land lane block ═══
 
 # ═══ BEGIN sim·sea lane block (F2-03 list verbs; F2-06 … F2-11 append below) ═══
@@ -655,4 +738,55 @@ func get_offshore_units() -> Array[Dictionary]:
 ## The offshore slots, free or held.
 func get_offshore_plots() -> Array[Dictionary]:
 	return _arr(game_bridge.GetOffshorePlots()) if game_bridge else []
+## F2-06: today's sea at an offshore unit and its 10-day forecast (the window board).
+func get_sea_state_forecast(site_id: String) -> Dictionary:
+	return game_bridge.GetSeaStateForecast(site_id) if game_bridge else {"ok": false}
+## F2-07: what building an offshore unit costs before committing (capex, licence value, consortium, payments, first stocking).
+func preview_offshore_build(plot_id: String, farm_type: String, contract: String, equity_share: float) -> Dictionary:
+	return game_bridge.PreviewOffshoreBuild(plot_id, farm_type, contract, equity_share) if game_bridge else {"ok": false, "refusal_key": "engine_not_ready"}
+## F2-07: start building an offshore unit: {success, error, message, value, value2, id}.
+func build_offshore_unit(plot_id: String, farm_type: String, contract: String, equity_share: float) -> Dictionary:
+	return game_bridge.BuildOffshoreUnit(plot_id, farm_type, contract, equity_share) if game_bridge else {"success": false, "error": "engine_not_ready", "message": "Not initialized"}
+## F2-07: an offshore unit's construction phases and progress.
+func get_offshore_construction(site_id: String) -> Dictionary:
+	return game_bridge.GetOffshoreConstruction(site_id) if game_bridge else {"ok": false}
+## F2-07: an offshore unit's gauges (sea, silo, crew clock, alarm load, next windows, bookings, defects, sensors).
+func get_offshore_unit_state(site_id: String) -> Dictionary:
+	return game_bridge.GetOffshoreUnitState(site_id) if game_bridge else {"ok": false}
+## F2-07: a booking's P(done by day) and expected charter, from the unit's own forecast model.
+func preview_offshore_booking(site_id: String, op: String, day: int, vessel: String) -> Dictionary:
+	return game_bridge.PreviewOffshoreBooking(site_id, op, day, vessel) if game_bridge else {"ok": false}
+## F2-07: book a vessel operation for a day.
+func book_offshore_operation(site_id: String, op: String, day: int, vessel: String, count: int = 0, detail: String = "") -> Dictionary:
+	return game_bridge.BookOffshoreOperation(site_id, op, day, vessel, count, detail) if game_bridge else {"success": false, "error": "engine_not_ready", "message": "Not initialized"}
+## F2-07: book an operation into its first green window.
+func book_offshore_first_window(site_id: String, op: String, vessel: String, count: int = 0, detail: String = "") -> Dictionary:
+	return game_bridge.BookOffshoreFirstWindow(site_id, op, vessel, count, detail) if game_bridge else {"success": false, "error": "engine_not_ready", "message": "Not initialized"}
+## F2-07: cancel an open booking.
+func cancel_offshore_booking(site_id: String, booking_id: String) -> Dictionary:
+	return game_bridge.CancelOffshoreBooking(site_id, booking_id) if game_bridge else {"success": false, "error": "engine_not_ready", "message": "Not initialized"}
+## F2-07: the tow's odds and cost before it starts.
+func preview_offshore_tow(site_id: String) -> Dictionary:
+	return game_bridge.PreviewOffshoreTow(site_id) if game_bridge else {"ok": false}
+## F2-07: start the tow to the plot.
+func start_offshore_tow(site_id: String) -> Dictionary:
+	return game_bridge.StartOffshoreTow(site_id) if game_bridge else {"success": false, "error": "engine_not_ready", "message": "Not initialized"}
+## F2-07: choose the shakedown (0, 60, 90 or 120 days).
+func choose_offshore_shakedown(site_id: String, days: int) -> Dictionary:
+	return game_bridge.ChooseOffshoreShakedown(site_id, days) if game_bridge else {"success": false, "error": "engine_not_ready", "message": "Not initialized"}
+## F2-07: fix a revealed teething defect.
+func fix_teething_defect(site_id: String, defect_id: String) -> Dictionary:
+	return game_bridge.FixTeethingDefect(site_id, defect_id) if game_bridge else {"success": false, "error": "engine_not_ready", "message": "Not initialized"}
+## F2-07: install a sensor package (mru, subsea_cam, echo, ais_broadband).
+func install_offshore_sensors(site_id: String, kind: String) -> Dictionary:
+	return game_bridge.InstallOffshoreSensors(site_id, kind) if game_bridge else {"success": false, "error": "engine_not_ready", "message": "Not initialized"}
+## F2-07: service the sensor packages that are due.
+func service_offshore_sensors(site_id: String) -> Dictionary:
+	return game_bridge.ServiceOffshoreSensors(site_id) if game_bridge else {"success": false, "error": "engine_not_ready", "message": "Not initialized"}
+## F2-07: repair the unit's net, structure or all.
+func repair_offshore_unit(site_id: String, scope: String) -> Dictionary:
+	return game_bridge.RepairOffshoreUnit(site_id, scope) if game_bridge else {"success": false, "error": "engine_not_ready", "message": "Not initialized"}
+## F2-07: buy the consortium partner out.
+func buy_out_offshore_partner(site_id: String) -> Dictionary:
+	return game_bridge.BuyOutOffshorePartner(site_id) if game_bridge else {"success": false, "error": "engine_not_ready", "message": "Not initialized"}
 # ═══ END sim·sea lane block ═══
