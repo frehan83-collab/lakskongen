@@ -102,6 +102,24 @@ namespace LakskongenSim.Environment.Geo
             => -Math.Clamp(ReferenceZM * distanceKm / ReferenceDistanceKm, MinZM, MaxZM);
 
         /// <summary>
+        /// Straight-line distance (km) from a home area's label point to a
+        /// candidate, measured as the binding measures it (integer squared
+        /// EPSG:25833 distance, then <see cref="Math.Sqrt"/>), so the bound
+        /// candidate gets exactly <see cref="DistanceKm"/>. Null when the game
+        /// has no home area (anything outside 1-13, such as
+        /// <see cref="ProductionAreas.NationalReference"/>): there is no point
+        /// to measure from. Display only (the bridge's offshore list).
+        /// </summary>
+        public static double? DistanceKmFrom(int homeProductionArea, GeoCandidate candidate)
+        {
+            if (candidate == null) throw new ArgumentNullException(nameof(candidate));
+            if (!ProductionAreas.IsValid(homeProductionArea)) return null;
+            var label = GeoProductionAreas.Default.Get(homeProductionArea).Label25833;
+            long dx = candidate.X - label.X, dy = candidate.Y - label.Y;
+            return Math.Sqrt(dx * dx + dy * dy) / 1000.0;
+        }
+
+        /// <summary>
         /// The candidate nearest (x, y) by squared integer distance; ties to the
         /// higher score, then the lower rank, then the ordinal id.
         /// </summary>

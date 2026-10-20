@@ -242,3 +242,46 @@ def test_the_rival_layout_and_names_never_open_a_file():
             if pattern.search(line.split("//", 1)[0]):
                 hits.append(f"{path.relative_to(REPO)}:{no}: {line.strip()}")
     assert not hits, hits
+
+
+# Keys the geo lane adds beyond plan §3 that the consumers read (tracks C and
+# D: the offshore hexagons' rank, state and distance, the zone anchors'
+# in_game; the national map's label lon/lat; the locality card's stage).
+GEO_ADDITIVE_KEYS = {
+    "GetGeoProductionAreas": ("label_lon", "label_lat"),
+    "GetGeoOffshoreCandidates": ("rank", "distance_km", "bound"),
+    "GetGeoSites": ("stage", "names", "stages"),
+    "GetRivalSummary": ("po",),
+    "GetZoneAnchors": ("in_game",),
+}
+
+
+def test_the_geo_bridge_keeps_the_additive_keys_its_consumers_read():
+    """Captain's review of track A: the offshore list's rank, distance_km and
+    bound (and the other additive keys) were not pinned anywhere."""
+    src = GEO_BRIDGE.read_text(encoding="utf-8")
+    for verb, keys in GEO_ADDITIVE_KEYS.items():
+        body = _member_body(src, verb)
+        missing = [k for k in keys if f'["{k}"]' not in body]
+        assert not missing, f"{verb} lacks keys {missing}"
+
+
+def test_the_offshore_list_never_measures_from_area_zero():
+    """Captain's review of track A, finding 1: with no home area (a game with no
+    scenario, or before any game) GetGeoOffshoreCandidates must not look up
+    area 0's label (GeoProductionAreas.Get throws outside 1-13); it measures
+    through GeoSitePlotGeometry.DistanceKmFrom, which has no distance there."""
+    body = _member_body(GEO_BRIDGE.read_text(encoding="utf-8"), "GetGeoOffshoreCandidates")
+    assert "GeoSitePlotGeometry.DistanceKmFrom(" in body
+    assert "NationalReference).Label" not in body and "GeoProductionAreas.Default.Get(" not in body
+
+
+def test_the_geo_lane_blocks_follow_the_sea_lane_with_nothing_between():
+    """Hot-file rule (plan §4): each facade file gets the sim·geo block and
+    nothing else, like the land and sea lanes: the BEGIN line follows the sea
+    lane's END after one blank line, and every line of the lane is inside it."""
+    for path in (PROXIES, FACADE):
+        lines = path.read_text(encoding="utf-8").splitlines()
+        begin = next(i for i, line in enumerate(lines) if "BEGIN sim·geo lane block" in line)
+        assert lines[begin - 1] == "" and "END sim·sea lane block" in lines[begin - 2], \
+            f"{path.relative_to(REPO)}: only a blank line between the sea lane's END and the geo lane's BEGIN"

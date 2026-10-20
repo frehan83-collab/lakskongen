@@ -234,4 +234,32 @@ public class GeoSitePlotGeometryTests
         Assert.Equal(catalogue.Plots, lenient.Plots);
         Assert.Equal(catalogue.Plots, catalogue.WithGeometry(new FixedGeometry(Array.Empty<LandPadSlot>(), new[] { Slot("HTH13-02") }), strict: false).Plots);
     }
+
+    /// <summary>
+    /// The distance GameBridge.GetGeoOffshoreCandidates lists (distance_km):
+    /// the binding's own integer squared distance from the home label, so the
+    /// bound candidate shows the binding's exact km, and none at all in a game
+    /// with no home area (0, a game with no scenario) instead of a throw
+    /// (captain's review of track A, finding 1).
+    /// </summary>
+    [Fact]
+    public void TheDistanceFromTheHomeArea_IsTheBindingsMeasure_AndNoneWithoutAHomeArea()
+    {
+        foreach (int none in new[] { ProductionAreas.NationalReference, -1, 14, int.MaxValue })
+            Assert.All(GeoCandidates.Default.Offshore, c => Assert.Null(GeoSitePlotGeometry.DistanceKmFrom(none, c)));
+        Assert.Throws<ArgumentNullException>(() => GeoSitePlotGeometry.DistanceKmFrom(3, null!));
+        for (int po = 1; po <= ProductionAreas.Count; po++)
+        {
+            var geometry = GeoPlotCatalogs.GeometryFor(po)!;
+            var label = GeoProductionAreas.Default.Get(po).Label25833;
+            Assert.Equal<double?>(geometry.DistanceKm, GeoSitePlotGeometry.DistanceKmFrom(po, geometry.Candidate));
+            foreach (var c in GeoCandidates.Default.Offshore)
+            {
+                long dx = c.X - label.X, dy = c.Y - label.Y;
+                double? km = GeoSitePlotGeometry.DistanceKmFrom(po, c);
+                Assert.Equal<double?>(Math.Sqrt(dx * dx + dy * dy) / 1000.0, km);
+                Assert.True(km >= geometry.DistanceKm, $"PO{po}: {c.Id} at {km} km is nearer than the bound {geometry.Candidate.Id}");
+            }
+        }
+    }
 }

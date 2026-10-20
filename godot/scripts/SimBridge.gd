@@ -783,9 +783,8 @@ func pay_licence_conversion(site_id: String) -> Dictionary: return _proxies.pay_
 func place_converted_licences(holding_ids: Array, zone_id: String) -> Dictionary: return _proxies.place_converted_licences(holding_ids, zone_id)
 # ═══ END sim·sea lane block ═══
 
-# ── Geo stages 2-3, track A: the real coast (docs/geo/STAGE23_PLAN.md §3) ─────
-
 # ═══ BEGIN sim·geo lane block (geo track A: production areas, hav_1's binding, rivals, anchors) ═══
+# Geo stages 2-3 (docs/geo/STAGE23_PLAN.md §3): the real coast.
 func get_geo_production_areas() -> Array[Dictionary]: return _proxies.get_geo_production_areas()
 func get_geo_plot_binding(plot_id: String) -> Dictionary: return _proxies.get_geo_plot_binding(plot_id)
 func get_geo_offshore_candidates() -> Array[Dictionary]: return _proxies.get_geo_offshore_candidates()

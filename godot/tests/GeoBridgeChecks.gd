@@ -13,6 +13,10 @@ extends RefCounted
 ## 6. The scenario's zones and the catalogue zones carry anchors in their area.
 ## 7. The 3D rival list keeps its six companies, ordered by home-area sites.
 ## 8. None of these reads changes the engine (qa_state_digest).
+## 9. A game with no scenario on the same engine (GameBridge keeps one for the
+##    session): the 33 offshore candidates are listed with no home distance
+##    and none bound, and hav_1 is back at site_plots.json's position and
+##    depth (captain's review of track A, findings 1 and 2).
 
 const SCENARIO := "po3_red_sone"
 const SEED := 91
@@ -25,6 +29,9 @@ const LOCALITIES := 1781
 const SALMONID_COUNTS := {"sea_salmonid": 1070, "land_salmonid": 309, "offshore_salmonid": 1}
 const OTHER_SPECIES := 401
 const MAJORS := 6
+## distance_km of an offshore candidate when the game has no home area (GameBridge.Geo.cs NoHomeDistanceKm).
+const NO_HOME_DISTANCE_KM := -1.0
+const SITE_PLOTS := "res://data/site_plots.json"
 
 const TextLint := preload("res://tests/TextLint.gd")
 
@@ -44,6 +51,7 @@ func run(runner: Node) -> void:
 	_zone_anchors(sim)
 	_competitor_order(sim)
 	_check(sim.qa_state_digest() == digest, "geo bridge: every geo read leaves the engine state digest unchanged")
+	_no_scenario_game_after_the_scenario(sim)
 	await t.get_tree().process_frame
 
 
@@ -166,3 +174,39 @@ func _competitor_order(sim: Node) -> void:
 		and int(farms[0].get("home_po_sites", 0)) > 0,
 		"geo bridge: the 3D rival list keeps its six companies, most PO3 sites first (%s)" % ", ".join(
 			farms.map(func(f: Dictionary) -> String: return "%s %d" % [str(f.get("id", "")), int(f.get("home_po_sites", -1))])))
+
+
+## A game with no scenario, started on the engine that just ran SCENARIO
+## (GameBridge keeps one engine for the session): its home area is 0.
+func _no_scenario_game_after_the_scenario(sim: Node) -> void:
+	_check(sim.start_qa_new_game("Player", 10_000_000, SEED), "geo bridge: a game with no scenario starts on the same engine")
+	sim.set_paused(true)
+	var candidates: Array = sim.get_geo_offshore_candidates()
+	var listed := candidates.size() == OFFSHORE_CANDIDATES
+	for c in candidates:
+		listed = listed and str(c.get("id", "")).begins_with("HTH") and int(c.get("rank", 0)) >= 1 \
+			and not bool(c.get("bound", true)) and str(c.get("bound_plot_id", "?")) == "" \
+			and float(c.get("distance_km", 0.0)) == NO_HOME_DISTANCE_KM
+	_check(listed, "geo bridge: with no home area all %d offshore candidates are listed, none bound, distance_km %.0f" % [
+		candidates.size(), NO_HOME_DISTANCE_KM])
+	var file_hav := _file_slot("hav_1")
+	var hav := {}
+	for p in sim.get_build_plots("hav"):
+		if str(p.get("id", "")) == "hav_1":
+			hav = p
+	var binding: Dictionary = sim.get_geo_plot_binding("hav_1")
+	_check(not file_hav.is_empty() and not hav.is_empty() and not bool(binding.get("bound", true))
+		and float(hav.get("z", 0.0)) == float(file_hav.get("z", 1.0))
+		and float(hav.get("water_depth_m", 0.0)) == float(file_hav.get("water_depth_m", 1.0)),
+		"geo bridge: a new game after a scenario is back on the default catalogue (hav_1 unbound at z %s, %s m deep)" % [
+			str(hav.get("z", "?")), str(hav.get("water_depth_m", "?"))])
+
+
+## An offshore slot of godot/data/site_plots.json (the default catalogue), or {}.
+func _file_slot(slot_id: String) -> Dictionary:
+	var data: Variant = JSON.parse_string(FileAccess.get_file_as_string(SITE_PLOTS))
+	if data is Dictionary:
+		for slot in data.get("offshore_slots", []):
+			if slot is Dictionary and str(slot.get("id", "")) == slot_id:
+				return slot
+	return {}

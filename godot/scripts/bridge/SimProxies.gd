@@ -906,11 +906,9 @@ func place_converted_licences(holding_ids: Array, zone_id: String) -> Dictionary
 	return game_bridge.PlaceConvertedLicences(holding_ids, zone_id) if game_bridge else {"success": false, "error": "engine_not_ready", "message": "Not initialized"}
 # ═══ END sim·sea lane block ═══
 
-# ── Geo stages 2-3, track A: the real coast (docs/geo/STAGE23_PLAN.md §3) ─────
-# Pull-only reads of GameBridge.Geo.cs; track B's sim·candidates block follows
-# this one.
-
 # ═══ BEGIN sim·geo lane block (geo track A: production areas, hav_1's binding, rivals, anchors) ═══
+# Geo stages 2-3 (docs/geo/STAGE23_PLAN.md §3): pull-only reads of
+# GameBridge.Geo.cs. Track B's sim·candidates block follows this one.
 ## The 13 production areas: code, name, the source's traffic light, tint, areas and the label point.
 func get_geo_production_areas() -> Array[Dictionary]:
 	return _arr(game_bridge.GetGeoProductionAreas()) if game_bridge else []

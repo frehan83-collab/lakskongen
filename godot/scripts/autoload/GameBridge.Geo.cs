@@ -114,23 +114,26 @@ public partial class GameBridge : Node
         };
     }
 
+    /// <summary>distance_km in <see cref="GetGeoOffshoreCandidates"/> when the game has no home area to measure from.</summary>
+    private const double NoHomeDistanceKm = -1.0;
+
     /// <summary>
     /// All 33 Havbruk til havs candidates in file order. Keys: id,
     /// candidate_id, area, stage, stage_factor, po, rank, depth_m, score,
-    /// binding, distance_km (from the home area's label point), x, y, lon,
-    /// lat, near, bound (true on the one hav_1 is bound to) and bound_plot_id
-    /// ("hav_1" there, "" elsewhere).
+    /// binding, distance_km (from the home area's label point, measured as
+    /// hav_1's binding measures it; <see cref="NoHomeDistanceKm"/> (-1) in a
+    /// game with no home area, such as a game with no scenario or before any
+    /// game), x, y, lon, lat, near, bound (true on the one hav_1 is bound to)
+    /// and bound_plot_id ("hav_1" there, "" elsewhere).
     /// </summary>
     public Godot.Collections.Array<Godot.Collections.Dictionary> GetGeoOffshoreCandidates()
     {
         var engine = SimulationEngine;
         string boundId = engine?.State != null ? engine.GeoBindingOf(GeoSitePlotGeometry.BoundPlotId)?.CandidateId ?? "" : "";
         int home = engine?.State != null ? engine.HomeProductionArea : ProductionAreas.NationalReference;
-        var label = GeoProductionAreas.Default.Get(ProductionAreas.IsValid(home) ? home : ProductionAreas.NationalReference).Label25833;
         var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
         foreach (var c in GeoCandidates.Default.Offshore)
         {
-            double dx = c.X - label.X, dy = c.Y - label.Y;
             bool bound = c.Id == boundId;
             result.Add(new Godot.Collections.Dictionary
             {
@@ -144,7 +147,7 @@ public partial class GameBridge : Node
                 ["depth_m"] = c.DepthM,
                 ["score"] = c.Score,
                 ["binding"] = c.Binding,
-                ["distance_km"] = Math.Sqrt(dx * dx + dy * dy) / 1000.0,
+                ["distance_km"] = GeoSitePlotGeometry.DistanceKmFrom(home, c) ?? NoHomeDistanceKm,
                 ["x"] = c.X,
                 ["y"] = c.Y,
                 ["lon"] = c.Lon,
