@@ -160,7 +160,7 @@ static func sea_candidates(sim: Object, po: int) -> Array:
 		row["component_costs"] = component_costs(s, weights)
 		row["taken_by_site_id"] = ""
 		row["taken_by_site_label"] = ""
-		row["suggested"] = out.is_empty() and bool(zone.get("can_build", false))
+		row["suggested"] = out.is_empty()  # B: the first candidate whose own checks pass (none is taken here)
 		row["build_zone_id"] = String(zone.get("zone_id", ""))
 		row["can_build"] = bool(zone.get("can_build", false))
 		row["build_reason_key"] = String(zone.get("build_reason_key", ""))
