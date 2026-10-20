@@ -251,13 +251,22 @@ public class SiteKindAuditTests
         without.State.NightShiftPolicy = Logistics.NightShiftPolicy.AutomatedROC;
         int logBefore = with.State.EventLog.Count, logBeforeWithout = without.State.EventLog.Count;
         decimal nightWith = with.FinanceManager.Balance, nightWithout = without.FinanceManager.Balance;
+        var unitStreamsBefore = with.Rng.CaptureStates().Where(k => IsTheUnitsOwnStream(k.Key, unit.Id))
+            .OrderBy(k => k.Key).Select(k => (k.Key, k.Value)).ToList();
         for (int night = 0; night < 60; night++)
         {
             with.ProcessNightShiftPolicy();
             without.ProcessNightShiftPolicy();
         }
+        // F2-06/F2-07 (stronger, docs/run/evidence/f2_07_replaced_tests.md): the unit's game has
+        // exactly the streams of the game without it plus the unit's own (its open sea and its
+        // day's draws), and the night shift moved neither those nor any other.
+        var withStreams = with.Rng.CaptureStates();
         Assert.Equal(without.Rng.CaptureStates().OrderBy(k => k.Key).Select(k => (k.Key, k.Value)),
-            with.Rng.CaptureStates().OrderBy(k => k.Key).Select(k => (k.Key, k.Value)));
+            withStreams.Where(k => !IsTheUnitsOwnStream(k.Key, unit.Id)).OrderBy(k => k.Key).Select(k => (k.Key, k.Value)));
+        Assert.NotEmpty(unitStreamsBefore);
+        Assert.Equal(unitStreamsBefore,
+            withStreams.Where(k => IsTheUnitsOwnStream(k.Key, unit.Id)).OrderBy(k => k.Key).Select(k => (k.Key, k.Value)).ToList());
         var nightLog = with.State.EventLog.Skip(logBefore).ToList();
         foreach (var x in nightLog) _output.WriteLine($"{x.Day} {x.Name}: {x.Description}");
         Assert.DoesNotContain(nightLog, x => x.Description.Contains(unit.Label + " ") || x.Description.Contains(unit.Id));
@@ -558,6 +567,10 @@ public class SiteKindAuditTests
         }
         return uses;
     }
+
+    /// <summary>The offshore unit's own streams (F2-06/F2-07): the open sea and the unit's day.</summary>
+    private static bool IsTheUnitsOwnStream(string key, string unitId)
+        => key == SimRngStreams.OffshoreMetocean + "\u0001" || key == SimRngStreams.OffshoreFarm + "\u0001" + unitId;
 
     private sealed record AuditRow(string File, string Member, int Uses, string Category, string Decision, string How);
 

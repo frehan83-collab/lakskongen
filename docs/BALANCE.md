@@ -2489,6 +2489,99 @@ Design load of a lot (heat pumps at full input + the intake pumps at the design 
 loop pumping, treatment and UV at the design loop flow + base load): HFS lot **10.76 MW**. pad_a's
 40 MW carries 3 full lots; the 4th needs a 10 MW capacity project (`LandCommissioningTests.TheGrid_...`).
 
+## 1w. F2-06 wired, F2-07: the offshore unit (2026-10-17, branch `wave4/sim-sea-1`)
+
+F2-06's standalone sea (§1q) now runs in the engine: `GameState.Metocean`
+appears with the first offshore unit and ticks as the in-day phase
+`OffshoreSeaTickSystem` right after the weather, 8 uniforms a day from
+`offshore_metocean`; each unit stands in its plot's fitted scale. A game with
+no offshore unit never creates it, so the 27 golden traces are identical (save
+drift only). F2-07 builds the unit the player buys (`Core/SimulationEngine.Offshore.cs`,
+`Core/SimulationEngine.OffshoreOps.cs`, `Farm/Offshore/*`), calibration section
+`facilities.offshore` (`Calibration/OffshoreUnitCalibration.cs`,
+`godot/data/calibration/facilities_offshore.json`).
+
+### What a unit costs (OF1 class)
+
+| knob | value | source |
+|---|---|---|
+| contract price | 720 M NOK (the company pays 20/50/20/10 % at contract, hull, delivery, mooring; turnkey adds the construction premium; a managed contract carries the overrun) | [O:R4], [O:R26] |
+| teething budget | 157 M NOK (a fix: the budget over the first unit's mean deck of 3.5 defects, at the company's equity) | [O:R4], [O:R26] |
+| planned build | yard 92 + hull 456 + voyage 77 + tow (the player's call; 3 days at Hs ≤ 2.5 m) + mooring 28 + commissioning 14 = 670 days | GB on OF1's 18 yard months ([O:R1], [O:R33]), its 11-week voyage and about 45 days of mooring and certificate (spec §2A) |
+| silo, silage | 700 t feed, 120 t ensilage | GB: a 700 t feed barge (iLaks); Havfarm class 1,500 t (spec §3.9) |
+| crew | 12 in rotation ([O:R13]) × 900,000 NOK a year | spec §3.3; [O:R37] offshore wages about 10 % above the coast |
+| energy | diesel, 1,100 L a day + 0.1 L per standing tonne a day, at 7.5 NOK/L | GB: twice a diesel fjord site's 200,000 L a year (iLaks 2017) for about twice its MTB; the 2017 price |
+| maintenance, insurance | 2.5 % and 0.8 % of the contract price a year | GB (spec §3.3) |
+| service vessel / DP vessel | 143,000 / 290,000 NOK a day | a platform supply vessel's 2024 average spot rate (£10,462) at 13.7 NOK/GBP; DP between that and a wind farm's walk-to-work vessel (~£30,000 a day) |
+| crew boat | 50,000 NOK a day | GB between a wind farm's crew transfer vessel (~£2,000 a day) and small offshore vessels at €4,000-8,000 a day (2023) |
+| ROV net inspection | 75,000 NOK, from the unit's crane (no vessel day) | GB (the pre-F2 code's figure) |
+| wellboat | 150,000 NOK a day; offshore class × 1.5 | the pre-F2 code; spec §3.3 |
+| helicopter | 150,000 NOK a crew change (wind < 25 m/s, visibility ≥ 1.5 km) | spec §3.3 |
+| tow | 3 anchor-handling tugs × 480,000 NOK a day; a failed window shelters 5-15 days (uniform, the unit's day uniform u0), tugs paid, no damage | [FFE 2017] tug count; spec §3.3 |
+| structure | fatigue 0.0005 × (Hs / design Hs)³ a day; nets −0.04 points a day, −0.2 more per metre of Hs above 3.0 m; a full structure repair 50 M NOK (the pre-F2 code's), nets 250,000 NOK a point (a 25 M NOK net set of ~250,000 m³, [O:R6], pro rata) | spec §3.3; GB |
+| sensors | MRU 1.5 M (service 0.1 M), subsea cameras 3 M (0.2 M), echo sounders 2 M (0.15 M), AIS + broadband 1 M (0.05 M); service every 180 days | GB |
+| alarm load | 0.15 base + 0.15 per known unfixed defect + 0.10 per sensor past service + 0.02 per crew day overdue (cap 10) | GB (spec §3.3) |
+| teething deck | first unit of a class 3-4 defects, later 1-2; shakedown 0/60/90/120 days reveals each hidden defect at 0.5 per 30 days; otherwise on its drawn day in cycle 1 (1-365 days after the first stocking); a fix takes 30 days; harvest-zone crush +3 pp mortality ([O:R3]), winter ulcers +4-8 pp, cable-chain wear ×2 fatigue, net-system change ×2 net wear, ballast-pipe leak ×3 tilt hazard (F2-08) | spec §3.3; [O:R3], [O:R4], [O:R10] |
+| consortium | the company's share 0.35 of every line; buy-out at the partner's book value × 1.2 | spec §6.1 |
+
+### The unit's day (eight uniforms from `offshore_farm/<unit>`, always)
+
+u0 the tow's shelter days; on the commissioning day u1 the deck's size, u2 its
+order (one of the 5! orderings), u3-u6 each slot's reveal day, u7 the ulcers'
+severity; on other days u1-u4 the shakedown's reveal of each slot; u5-u7 are
+reserved for F2-08's incidents. Then: storm lockdown above the wellboat's
+alongside limit (5.0 m), the crew clock, the bookings (charter from the booked
+day, every slipped day paid; a fish-handling vessel pauses above 2.0 m and
+leaves to shelter above 5.0 m), feeding from the silo (appetite 1.0 to 4 m,
+falling linearly to 0.7 at 6 m and holding there; nothing when the silo is
+empty: a counted silo-empty day), silage from the dead fish, structure and net wear, teething reveals and
+fires, the alarm load, and the unit's own ledger lines at its equity.
+
+### Acceptance, measured
+
+| # | reading | bar | measured |
+|---|---|---|---|
+| 1 | a 6 m day: the appetite hook | 0.7 | 0.70 exactly; the kilos eaten 0.91 of the same fish's calm day (the growth law's FCR penalty takes part of the lost appetite), nothing once the silo is empty |
+| 2 | booking preview vs the engine, 200 seeds, resupply booked 1-3 days ahead in January | ±0.05 on P(done by day + i), ±5 % on the charter | P within 0.017 for i = 0-9 (0.824 / 0.835 on the booked day); charter 210,241 NOK previewed, 203,060 charged (1.035) |
+| 3 | fish handling on a forced series (3.0, 5.5, 4.0, 1.8 m) | never above its limit | paused, sheltering, paused, done; 4 charter days; a harvest order waits out 3.5 m days |
+| 4 | the tow | only on `StartTow`; a failed window shelters 5-15 days with the tugs paid, no damage | as required (`OffshoreUnitBuildTests`) |
+| 5 | a 90-day shakedown reveals ≥ 1 defect | ≥ 70 % of seeds | 40 of 40 seeds; a defect fixed before stocking never fires |
+| 6 | consortium | 35 % of every line and capex; buy-out book × 1.2 | as required (`AConsortiumUnit_…`) |
+| 7 | no fjord storm wear on a unit; opex/kg HOG ex feed and depreciation against an open pen in the same PO | no fjord wear; 1.15-1.45 | 240 days at off_1, storm days included: every day's net and structure loss is exactly the unit's own wear for its sea; the ratio: median 1.885 (1.58-2.37), held back: RUN_LOG §8 (F2-07); as information, smolts kept 1.557 (1.31-2.06), all in 1.145 (0.96-1.56) |
+| 8 | a policy-only unit, 2 years, events on | ≥ 18 of 20 seeds without a silo-empty day | 20 of 20; 10-19 resupplies, 97-102 crew changes |
+| 9 | save and twin mid-tow and mid-booking; goldens | identical | identical; 27 of 27 golden traces identical |
+
+### Acceptance 7 in lines (NOK/kg HOG, 10 seeds; a typical seed, ranges where they spread)
+
+| line | open pen (PO 4) | offshore unit (off_1) |
+|---|---|---|
+| harvest | 5.00 | 5.77 |
+| maintenance | (in operations) | 5.16 |
+| crew | (in operations) | 3.18 |
+| operations | 3.10 | - |
+| insurance | - | 1.65 |
+| charter | - | 1.55 |
+| energy | - | 1.05 |
+| storm repairs, events, fines | 1.4-3.3 | 0.04-0.25 |
+| **total ex feed, smolts, tax** | **9.0-12.1** | **18.2-25.4** |
+
+The unit's three dearest seeds (3, 4, 5: 23.4-25.4) lost fish to the
+storyteller's ISA cull, so fewer kilos carried the same fixed lines.
+
+The same ten seeds on three bases (re-measured 2026-10-20, `OffshoreCycleTests`
+prints them; medians, range in brackets):
+
+| basis | open pen (PO 4) | offshore unit | ratio |
+|---|---|---|---|
+| ex feed, spill and smolts (pre-registered, the skipped band test) | 9.0-12.1 | 18.2-25.4 | 1.885 (1.58-2.37) |
+| ex feed and spill, smolts kept (acceptance 7's words) | 12.6-17.3 | 21.5-30.7 | 1.557 (1.31-2.06) |
+| all in, feed and smolts kept ([O:R37]'s basis, 56 against ~43 = 1.30) | 45.3-57.7 | 54.7-76.5 | 1.145 (0.96-1.56) |
+
+Feed a kilo of HOG: open pen 32.7-41.0 NOK, unit 33.1-33.6 in the seven
+seeds the ISA cull spared and 41.6-45.8 in the three it hit. No basis puts the
+median inside 1.15-1.45;
+the owner's choice is RUN_LOG §8 (F2-07).
+
 ## 2. Key economic knobs
 
 | Knob | Current | Real reference | Source | Recommended playtest band |

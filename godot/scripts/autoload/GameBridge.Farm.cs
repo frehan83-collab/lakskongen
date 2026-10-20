@@ -1631,13 +1631,21 @@ public partial class GameBridge : Node
     public Godot.Collections.Dictionary HarvestRASFacility(string facilityId)
         => FacilityResult(SimulationEngine?.HarvestRASFacility(facilityId));
 
-    /// <summary>Stock smolts in an offshore farm (engine verb).</summary>
+    /// <summary>
+    /// Stock smolts in an offshore farm (engine verb). F2-07: refused
+    /// (no_window) on a day the unit's sea is above the fish-handling limit.
+    /// </summary>
     public Godot.Collections.Dictionary StockOffshoreFarm(string farmId, int count, string strainId = "standard")
-        => FacilityResult(SimulationEngine?.StockOffshoreFarm(farmId, count, strainId));
+        => FacilityResult(SimulationEngine?.OffshoreFishHandlingRefusal(farmId, LakskongenSim.Environment.OffshoreOp.Stocking)
+                          ?? SimulationEngine?.StockOffshoreFarm(farmId, count, strainId));
 
-    /// <summary>Harvest and sell every pen of an offshore farm. value = kg, value2 = NOK.</summary>
+    /// <summary>
+    /// Harvest and sell every pen of an offshore farm. value = kg, value2 = NOK.
+    /// F2-07: refused (no_window) on a day the unit's sea is above the fish-handling limit.
+    /// </summary>
     public Godot.Collections.Dictionary HarvestOffshoreFarm(string farmId)
-        => FacilityResult(SimulationEngine?.HarvestOffshoreFarm(farmId));
+        => FacilityResult(SimulationEngine?.OffshoreFishHandlingRefusal(farmId, LakskongenSim.Environment.OffshoreOp.Harvest)
+                          ?? SimulationEngine?.HarvestOffshoreFarm(farmId));
 
     private Godot.Collections.Dictionary FacilityResult(LakskongenSim.Core.CommandResult? result)
     {
@@ -1844,8 +1852,10 @@ public partial class GameBridge : Node
     }
 
     /// <summary>
-    /// Repair offshore farm damage (storm damage, equipment failure).
-    /// Returns repair cost in NOK.
+    /// Repair an offshore unit's nets and structure (F2-07: the engine's
+    /// <c>RepairOffshore(site, "all")</c>, priced per point restored, in a
+    /// sea the ROV and crane can work in). Returns the price paid in NOK, 0
+    /// when refused (the refusal is printed).
     /// </summary>
     public float RepairOffshore(string farmId)
     {
@@ -1854,39 +1864,14 @@ public partial class GameBridge : Node
             GD.PrintErr("GameBridge: RepairOffshore failed - engine not initialized");
             return 0f;
         }
-
-        // F2-03: the offshore unit (an offshore sea site); F2-07 moves the
-        // repair into the engine (RepairOffshore with its scope).
-        var unit = SimulationEngine.FindOffshoreUnit(farmId);
-        if (unit == null)
+        var result = SimulationEngine.RepairOffshore(farmId, "all");
+        if (!result.Ok)
         {
-            GD.PrintErr($"GameBridge: RepairOffshore failed - farm '{farmId}' not found");
+            GD.PrintErr($"GameBridge: RepairOffshore refused - {result.ErrorKey}: {result.Message}");
             return 0f;
         }
-
-        // Repair cost: major offshore repairs are expensive
-        decimal repairCost = 50_000_000m; // 50M NOK for major repair
-
-        if (SimulationEngine.FinanceManager.Balance < repairCost)
-        {
-            GD.PrintErr($"GameBridge: RepairOffshore failed - insufficient funds (need {repairCost:N0} NOK)");
-            return 0f;
-        }
-
-        SimulationEngine.PayCost(repairCost, LakskongenSim.Core.CostBooking.Opex, "offshore_repairs");
-
-        SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
-        {
-            Day = SimulationEngine.State.Day,
-            Name = "Reparasjon av havmerd",
-            Category = LakskongenSim.Events.EventCategory.Equipment,
-            Description = $"{unit.Label} er reparert: skrog og utstyr er gjenopprettet",
-            BalanceChange = -repairCost
-        });
-
         EmitSignal(SignalName.GameStateUpdated);
-        GD.Print($"GameBridge: Offshore repair '{farmId}' completed for {repairCost:N0} NOK");
-        return (float)repairCost;
+        return (float)result.Value;
     }
 
     // ── AI Feeding System API ─────────────────────────────────────────────────

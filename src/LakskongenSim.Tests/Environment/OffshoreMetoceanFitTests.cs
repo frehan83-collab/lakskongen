@@ -27,7 +27,7 @@ public class OffshoreMetoceanFitTests
         var fit = OffshoreMetoceanFit.Fit(cal.Metocean, cal.Plots);
         string F(double v) => v.ToString("0.000", CultureInfo.InvariantCulture);
         string report =
-            $"BaseMuMonth = MonthlyValues.Of({string.Join(", ", fit.BaseMuMonth.Select(F))})\n" +
+            $"BaseMuMonth = MonthlyValues.Of<BaseMuMonthValues>({string.Join(", ", fit.BaseMuMonth.Select(F))})\n" +
             $"reference 100-year level {F(fit.ReferenceHundredYearM)} m; scales off_1 {F(fit.Off1Scale)}, " +
             $"off_2 {F(fit.Off2Scale)}, hav_1 {F(fit.Hav1Scale)}\n" +
             $"monthly means {string.Join(" ", fit.MonthlyMeanM.Select(v => v.ToString("0.0000", CultureInfo.InvariantCulture)))}";

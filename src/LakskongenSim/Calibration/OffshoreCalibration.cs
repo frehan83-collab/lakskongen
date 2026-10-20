@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using LakskongenSim.Environment;
@@ -13,10 +14,15 @@ namespace LakskongenSim.Calibration
     // chosen for the game, with the acceptance test that decides it). Monthly and
     // per-weather-state values sit in the containers MonthlyValues and
     // WeatherStateValues; the property that holds a container documents its
-    // range and provenance for all of its values. F2-04 turns these into
-    // [Range]/[Source]/[GameBalance] attributes; until then
+    // range and provenance for all of its values.
     // OffshoreCalibrationTests.EveryLeaf_DocumentsRangeAndOneProvenance reads the
-    // doc comments with Roslyn and holds the same rule.
+    // doc comments with Roslyn and holds that rule. The F2-06 wiring stage (F2-07
+    // branch) adds F2-04's machine-checked attributes on top: every leaf carries a
+    // [Range] and exactly one [Source] or [GameBalance], and every container is a
+    // record of its own (OffshoreCalibrationContainers.cs) whose twelve months or
+    // four states carry the holding property's range and provenance, so
+    // CalibrationGuardTests' reflection guard walks the whole section
+    // (facilities.offshore, FacilitiesCalibration.Offshore).
     //
     // Sources cited by name below:
     // - NORCE 2020: Ø. Johnsen, "MariCulture Smart Fishfarm, Metocean Design
@@ -39,8 +45,10 @@ namespace LakskongenSim.Calibration
     /// plots' 100-year sea states with their fitted scales. Loaded from
     /// <c>godot/data/calibration/facilities_offshore.json</c> by F2-04's include
     /// loader; until then <see cref="Parse"/> reads the draft and the code
-    /// defaults are the values the file holds. The unit, logistics, incident,
-    /// licence and cost sections of the spec's draft belong to F2-07..F2-11.
+    /// defaults are the values the file holds. F2-07 adds the unit classes,
+    /// their logistics, costs, structure, sensors, alarm load and teething deck
+    /// (their records in <c>OffshoreUnitCalibration.cs</c>); the incident,
+    /// licence and area sections of the spec's draft belong to F2-08..F2-11.
     /// </summary>
     public sealed record OffshoreCalibration
     {
@@ -52,6 +60,27 @@ namespace LakskongenSim.Calibration
 
         /// <summary>The offshore plots' 100-year sea states and fitted Hs scales.</summary>
         public OffshorePlotsCalibration Plots { get; init; } = new();
+
+        /// <summary>F2-07: the unit classes (OF1-class, Havfarm-class): contract, build phases, silo, crew.</summary>
+        public OffshoreUnitClassesCalibration Units { get; init; } = new();
+
+        /// <summary>F2-07: vessel charter, tugs, crew pay, energy, maintenance, insurance, the consortium buy-out.</summary>
+        public OffshoreCostsCalibration Costs { get; init; } = new();
+
+        /// <summary>F2-07: the logistics rhythm (crew rota, silo and silage warnings, helicopter fallback).</summary>
+        public OffshoreLogisticsCalibration Logistics { get; init; } = new();
+
+        /// <summary>F2-07: structure fatigue, net wear and their repair.</summary>
+        public OffshoreStructureCalibration Structure { get; init; } = new();
+
+        /// <summary>F2-07: the sensor packages (install, service).</summary>
+        public OffshoreSensorsCalibration Sensors { get; init; } = new();
+
+        /// <summary>F2-07: the alarm load's terms (spec §3.3; F2-08 adds the review).</summary>
+        public OffshoreAlarmLoadCalibration AlarmLoad { get; init; } = new();
+
+        /// <summary>F2-07: the teething deck and the shakedown (spec §3.3).</summary>
+        public OffshoreTeethingCalibration Teething { get; init; } = new();
 
         /// <summary>The code defaults (the values the draft JSON holds).</summary>
         public static OffshoreCalibration Default { get; } = new();
@@ -91,6 +120,8 @@ namespace LakskongenSim.Calibration
         /// weather chain and the swell queue the reference sea's lag-1
         /// autocorrelation of ln Hs is 0.80 (docs/BALANCE.md §1q).
         /// </summary>
+        [Range(0.5, 0.95)]
+        [GameBalance("spec §3.3 AR(1) persistence; lag-1 autocorrelation of ln Hs 0.80 with the weather chain and swell (docs/BALANCE.md §1q)")]
         public double ArPhi { get; init; } = 0.75;
 
         /// <summary>
@@ -98,6 +129,8 @@ namespace LakskongenSim.Calibration
         /// units, ln units up to 1 m). 0.30. Range: 0.1-0.6. Game balance:
         /// spec §3.3; F2-06 acceptance 2 (share of days above 2 m) holds with it.
         /// </summary>
+        [Range(0.1, 0.6)]
+        [GameBalance("spec §3.3 AR(1) innovation; F2-06 acceptance 2 (share of days above 2 m) holds with it")]
         public double ArSigma { get; init; } = 0.30;
 
         /// <summary>
@@ -113,6 +146,8 @@ namespace LakskongenSim.Calibration
         /// bottoms out at 0 and needed a floor that bound on 4 % of days; the
         /// lognormal lower piece needs none.
         /// </summary>
+        [Range(0.0, 1.0)]
+        [GameBalance("sea transform above 1 m: the 100-year level at about 1.3 x the median annual maximum, as NORA10 at Haltenbanken (NORCE 2020 Table 3.4); F2-06 acceptance 1 and 3")]
         public double BaseBoxCoxLambda { get; init; } = 0.4;
 
         /// <summary>
@@ -128,6 +163,8 @@ namespace LakskongenSim.Calibration
         /// mean land between 2 % and 7.2 % (4.9 %). Without it the lognormal base
         /// put 2.4 % of days below 0.19 × the mean and 19 % below 0.385 ×.
         /// </summary>
+        [Range(0.0, 0.6)]
+        [GameBalance("fitted to NORA10's calm end at Haltenbanken (NORCE 2020 Table 3.2)")]
         public double BackgroundSwellHsM { get; init; } = 0.34;
 
         /// <summary>
@@ -136,7 +173,7 @@ namespace LakskongenSim.Calibration
         /// the offshore sea to the weather chain so the two never visibly
         /// disagree. Range: -1-1.5. Game balance: spec §3.3.
         /// </summary>
-        public WeatherStateValues WeatherDelta { get; init; } = new()
+        public WeatherDeltaValues WeatherDelta { get; init; } = new()
         {
             Calm = -0.30, Moderate = 0.0, Storm = 0.55, Severe = 0.85,
         };
@@ -149,7 +186,7 @@ namespace LakskongenSim.Calibration
         /// Hs is <see cref="ReferenceAnnualMeanHsM"/> × the monthly shape of
         /// <see cref="FitMonthlyMeanHsM"/>.
         /// </summary>
-        public MonthlyValues BaseMuMonth { get; init; } = MonthlyValues.Of(
+        public BaseMuMonthValues BaseMuMonth { get; init; } = MonthlyValues.Of<BaseMuMonthValues>(
             -0.524, -0.508, -0.608, -0.804, -1.104, -1.093, -1.281, -1.223, -0.765, -0.636, -0.665, -0.492);
 
         /// <summary>
@@ -159,6 +196,8 @@ namespace LakskongenSim.Calibration
         /// 10 % above the day's mean); off_1 lands at its fitted scale × 1.0 m
         /// (F2-06 acceptance 1: 0.8-1.1 m).
         /// </summary>
+        [Range(0.5, 2.0)]
+        [GameBalance("O:R17's 0.9 m site mean raised to the day's highest 3-hour sea; F2-06 acceptance 1")]
         public double ReferenceAnnualMeanHsM { get; init; } = 1.0;
 
         /// <summary>
@@ -170,7 +209,7 @@ namespace LakskongenSim.Calibration
         /// off_1 anchors (January ≈ 1.4 m, July ≈ 0.55 m at a 0.9 m mean) follow
         /// the same shape.
         /// </summary>
-        public MonthlyValues FitMonthlyMeanHsM { get; init; } = MonthlyValues.Of(
+        public FitMonthlyMeanHsValues FitMonthlyMeanHsM { get; init; } = MonthlyValues.Of<FitMonthlyMeanHsValues>(
             3.7, 3.6, 3.2, 2.4, 1.8, 1.7, 1.5, 1.6, 2.3, 2.9, 3.2, 3.7);
 
         /// <summary>
@@ -180,7 +219,7 @@ namespace LakskongenSim.Calibration
         /// Game balance: spec §3.3; F2-06 acceptance 2 (8-14 % of days above 2 m,
         /// 20-35 % in January-March) holds with it.
         /// </summary>
-        public MonthlyValues SwellRatePerDay { get; init; } = MonthlyValues.Of(
+        public SwellRateValues SwellRatePerDay { get; init; } = MonthlyValues.Of<SwellRateValues>(
             0.10, 0.09, 0.08, 0.05, 0.03, 0.02, 0.02, 0.03, 0.05, 0.07, 0.09, 0.10);
 
         /// <summary>
@@ -189,6 +228,8 @@ namespace LakskongenSim.Calibration
         /// 2.2. Range: 1-5. Game balance: the spec's 2.2 m median, kept as the
         /// January value; F2-06 acceptance 1 (median annual maximum) holds with it.
         /// </summary>
+        [Range(1.0, 5.0)]
+        [GameBalance("spec §3.3's 2.2 m swell median, kept as January's; F2-06 acceptance 1")]
         public double SwellMedianJanuaryM { get; init; } = 2.2;
 
         /// <summary>
@@ -198,7 +239,7 @@ namespace LakskongenSim.Calibration
         /// 3.4 (monthly Weibull extremes at Haltenbanken A, 1-year return
         /// period): summer storms peak at 0.44-0.55 × January's.
         /// </summary>
-        public MonthlyValues SwellMedianShape1YearHsM { get; init; } = MonthlyValues.Of(
+        public SwellMedianShapeValues SwellMedianShape1YearHsM { get; init; } = MonthlyValues.Of<SwellMedianShapeValues>(
             10.3, 9.8, 8.7, 7.2, 6.0, 5.7, 4.5, 5.4, 7.5, 8.4, 9.9, 10.2);
 
         /// <summary>
@@ -207,6 +248,8 @@ namespace LakskongenSim.Calibration
         /// 0.30 narrowed with the seasonal medians, so the share of days above
         /// 2 m and the median annual maximum stay in F2-06 acceptance 1-2.
         /// </summary>
+        [Range(0.05, 0.6)]
+        [GameBalance("spec §3.3's 0.30 narrowed with the seasonal medians; F2-06 acceptance 1-2")]
         public double SwellSigmaLn { get; init; } = 0.20;
 
         /// <summary>
@@ -214,6 +257,8 @@ namespace LakskongenSim.Calibration
         /// balance: thins the peaks' upper tail like <see cref="BaseBoxCoxLambda"/>
         /// (F2-06 acceptance 1 and 3).
         /// </summary>
+        [Range(0.0, 1.0)]
+        [GameBalance("thins the swell peaks' upper tail like the base sea (F2-06 acceptance 1 and 3)")]
         public double SwellBoxCoxLambda { get; init; } = 0.8;
 
         /// <summary>
@@ -224,15 +269,23 @@ namespace LakskongenSim.Calibration
         /// of wave forecast verification", ECMWF Newsletter 150, 2017,
         /// doi:10.21957/t4znuhb842).
         /// </summary>
+        [Range(1, 14)]
+        [GameBalance("spec §3.3: a swell event is forecast at least 4 days ahead (F2-06 acceptance 4)")]
         public int SwellLeadDaysMin { get; init; } = 4;
 
         /// <summary>Most days between an event's creation and its onset (unit days). 7. Range: 1-14. Game balance: spec §3.3.</summary>
+        [Range(1, 14)]
+        [GameBalance("spec §3.3: onset 4-7 days after creation")]
         public int SwellLeadDaysMax { get; init; } = 7;
 
         /// <summary>Shortest plateau of an event at its peak (unit days). 1. Range: 1-10. Game balance: spec §3.3.</summary>
+        [Range(1, 10)]
+        [GameBalance("spec §3.3: plateau 1-4 days")]
         public int SwellDurationDaysMin { get; init; } = 1;
 
         /// <summary>Longest plateau of an event at its peak (unit days). 4. Range: 1-10. Game balance: spec §3.3.</summary>
+        [Range(1, 10)]
+        [GameBalance("spec §3.3: plateau 1-4 days")]
         public int SwellDurationDaysMax { get; init; } = 4;
 
         /// <summary>
@@ -240,6 +293,8 @@ namespace LakskongenSim.Calibration
         /// share of the peak (unitless). 0.5. Range: 0-1. Game balance: spec §3.3
         /// (a 1-day ramp up and a 1-day ramp down).
         /// </summary>
+        [Range(0.0, 1.0)]
+        [GameBalance("spec §3.3: a 1-day ramp up and a 1-day ramp down at half the peak")]
         public double SwellRampFraction { get; init; } = 0.5;
 
         /// <summary>
@@ -247,9 +302,13 @@ namespace LakskongenSim.Calibration
         /// Source: NORCE 2020, Table 3.7: the mean Tp of 1-2 m seas at
         /// Haltenbanken is 8.4-9.5 s, its 95th percentile 12.8-13.8 s.
         /// </summary>
+        [Range(5.0, 20.0)]
+        [Source("NORCE 2020 Table 3.7")]
         public double SwellTpMinS { get; init; } = 9.0;
 
         /// <summary>Longest peak period of a swell event (unit s). 14. Range: 5-20. Game balance: spec §3.3 (9-14 s).</summary>
+        [Range(5.0, 20.0)]
+        [GameBalance("spec §3.3: swell peak periods 9-14 s")]
         public double SwellTpMaxS { get; init; } = 14.0;
 
         /// <summary>
@@ -258,6 +317,8 @@ namespace LakskongenSim.Calibration
         /// the 5.0 of a fully developed Pierson-Moskowitz sea (derived from
         /// Pierson and Moskowitz 1964: Hs = 0.21 U²/g, ω_p = 0.877 g/U).
         /// </summary>
+        [Range(3.0, 6.0)]
+        [GameBalance("spec §3.3: a developing sea, below Pierson-Moskowitz 1964's fully developed 5.0")]
         public double WindSeaTpPerSqrtHs { get; init; } = 4.5;
 
         /// <summary>
@@ -266,9 +327,13 @@ namespace LakskongenSim.Calibration
         /// is gone at the onset. 4. Range: 1-10. Game balance: spec §3.3
         /// (σ_ln·min(1, k/4)).
         /// </summary>
+        [Range(1, 10)]
+        [GameBalance("spec §3.3: the peak estimate's error scales by min(1, lead / 4)")]
         public int ForecastFullErrorLeadDays { get; init; } = 4;
 
         /// <summary>Days ahead the forecast covers (unit days). 10. Range: 3-16. Game balance: spec §3.3.</summary>
+        [Range(3, 16)]
+        [GameBalance("spec §3.3: a 10-day forecast")]
         public int ForecastHorizonDays { get; init; } = 10;
 
         /// <summary>
@@ -280,19 +345,25 @@ namespace LakskongenSim.Calibration
         /// AMS 97th Annual Meeting 2017, https://ams.confex.com/ams/97Annual/webprogram/Paper307556.html);
         /// a low-visibility day counts any low hour in the flying window.
         /// </summary>
-        public MonthlyValues LowVisibilityDayShare { get; init; } = MonthlyValues.Of(
+        public LowVisibilityShareValues LowVisibilityDayShare { get; init; } = MonthlyValues.Of<LowVisibilityShareValues>(
             0.05, 0.05, 0.04, 0.03, 0.03, 0.05, 0.06, 0.05, 0.03, 0.03, 0.04, 0.05);
 
         /// <summary>Visibility on the worst low-visibility day (unit km). 0.2. Range: 0-1.5. Game balance: low days spread evenly up to the threshold.</summary>
+        [Range(0.0, 1.5)]
+        [GameBalance("low-visibility days spread evenly up to the threshold")]
         public double LowVisibilityMinKm { get; init; } = 0.2;
 
         /// <summary>
         /// Visibility that separates low and clear days (unit km). 1.5. Range:
         /// 0.5-5. Game balance: the spec's helicopter minimum (§3.3 operability table).
         /// </summary>
+        [Range(0.5, 5.0)]
+        [GameBalance("spec §3.3's helicopter minimum visibility")]
         public double LowVisibilityKm { get; init; } = 1.5;
 
         /// <summary>Visibility on the clearest day (unit km). 50. Range: 10-100. Game balance: clear days spread evenly from the threshold up to it.</summary>
+        [Range(10.0, 100.0)]
+        [GameBalance("clear days spread evenly from the threshold up to it")]
         public double ClearVisibilityMaxKm { get; init; } = 50.0;
 
         /// <summary>The swell median of a month (m, reference scale).</summary>
@@ -320,9 +391,13 @@ namespace LakskongenSim.Calibration
         /// standard or DP vessel (unit m Hs). 2.0. Range: 1-4. Source: [O:R37]
         /// (Menon 131/2023, citing Heskestad): crowding is advised only below Hs 2 m.
         /// </summary>
+        [Range(1.0, 4.0)]
+        [Source("O:R37")]
         public double FishHandlingHsM { get; init; } = 2.0;
 
         /// <summary>Fish handling from an offshore wellboat (unit m Hs). 2.5. Range: 1-4. Game balance: spec §3.3.</summary>
+        [Range(1.0, 4.0)]
+        [GameBalance("spec §3.3: an offshore wellboat handles fish to 2.5 m")]
         public double FishHandlingOffshoreWellboatHsM { get; init; } = 2.5;
 
         /// <summary>
@@ -330,6 +405,8 @@ namespace LakskongenSim.Calibration
         /// limit (unit m Hs). 5.0. Range: 3-8. Source: [O:R37] (Menon 131/2023):
         /// wellboats operate offshore to about Hs 5 m.
         /// </summary>
+        [Range(3.0, 8.0)]
+        [Source("O:R37")]
         public double WellboatAlongsideHsM { get; init; } = 5.0;
 
         /// <summary>
@@ -337,42 +414,66 @@ namespace LakskongenSim.Calibration
         /// Range: 1-4. Game balance: spec §3.3, fitted to [O:R17]'s barge
         /// inaccessibility (about 12 % of days, 32 % of January-March days).
         /// </summary>
+        [Range(1.0, 4.0)]
+        [GameBalance("spec §3.3, fitted to O:R17's barge inaccessibility")]
         public double BoardingHsM { get; init; } = 2.0;
 
         /// <summary>Boarding with DP and walk-to-work (unit m Hs). 3.0. Range: 1-5. Game balance: spec §3.3.</summary>
+        [Range(1.0, 5.0)]
+        [GameBalance("spec §3.3: DP and walk-to-work boarding to 3 m")]
         public double BoardingDpHsM { get; init; } = 3.0;
 
         /// <summary>Net inspection by ROV from the unit's crane (unit m Hs). 3.0. Range: 1-5. Game balance: spec §3.3.</summary>
+        [Range(1.0, 5.0)]
+        [GameBalance("spec §3.3: ROV from the unit's crane to 3 m")]
         public double NetInspectionHsM { get; init; } = 3.0;
 
         /// <summary>Resupply and silage from a standard vessel (unit m Hs). 2.5. Range: 1-5. Game balance: spec §3.3.</summary>
+        [Range(1.0, 5.0)]
+        [GameBalance("spec §3.3: resupply and silage from a standard vessel to 2.5 m")]
         public double ResupplyHsM { get; init; } = 2.5;
 
         /// <summary>Resupply and silage with DP (unit m Hs). 3.0. Range: 1-5. Game balance: spec §3.3.</summary>
+        [Range(1.0, 5.0)]
+        [GameBalance("spec §3.3: resupply and silage with DP to 3 m")]
         public double ResupplyDpHsM { get; init; } = 3.0;
 
         /// <summary>A tow, held for <see cref="TowHoldDays"/> (unit m Hs). 2.5. Range: 1-5. Game balance: spec §3.3.</summary>
+        [Range(1.0, 5.0)]
+        [GameBalance("spec §3.3: a tow needs 2.5 m held for its days")]
         public double TowHsM { get; init; } = 2.5;
 
         /// <summary>Days a tow needs the sea at or below its limit (unit days). 3. Range: 1-10. Game balance: spec §3.3.</summary>
+        [Range(1, 10)]
+        [GameBalance("spec §3.3: a tow holds its sea state for 3 days")]
         public int TowHoldDays { get; init; } = 3;
 
         /// <summary>
         /// Hs up to which the fish eat their full ration (unit m). 4.0. Range:
         /// 2-8. Game balance: spec §3.3; OF1 lost no feeding days to weather [O:R7].
         /// </summary>
+        [Range(2.0, 8.0)]
+        [GameBalance("spec §3.3; OF1 lost no feeding days to weather (O:R7)")]
         public double AppetiteFullHsM { get; init; } = 4.0;
 
         /// <summary>Hs at and above which appetite stays at <see cref="AppetiteAtFloor"/> (unit m). 6.0. Range: 3-12. Game balance: spec §3.3.</summary>
+        [Range(3.0, 12.0)]
+        [GameBalance("spec §3.3: appetite falls linearly to its floor at 6 m")]
         public double AppetiteFloorHsM { get; init; } = 6.0;
 
         /// <summary>Appetite in the heaviest seas (unitless share of the ration). 0.7. Range: 0-1. Game balance: spec §3.3.</summary>
+        [Range(0.0, 1.0)]
+        [GameBalance("spec §3.3: 0.7 of the ration in the heaviest seas")]
         public double AppetiteAtFloor { get; init; } = 0.7;
 
         /// <summary>Highest wind a crew-change helicopter flies in (unit m/s). 25. Range: 10-35. Game balance: spec §3.3.</summary>
+        [Range(10.0, 35.0)]
+        [GameBalance("spec §3.3: a crew-change helicopter flies in wind under 25 m/s")]
         public double HelicopterMaxWindMs { get; init; } = 25.0;
 
         /// <summary>Lowest visibility a crew-change helicopter flies in (unit km). 1.5. Range: 0.5-5. Game balance: spec §3.3.</summary>
+        [Range(0.5, 5.0)]
+        [GameBalance("spec §3.3: a crew-change helicopter needs 1.5 km visibility")]
         public double HelicopterMinVisibilityKm { get; init; } = 1.5;
     }
 
@@ -414,6 +515,8 @@ namespace LakskongenSim.Calibration
         /// [O:R19]; hav_1 inferred from the open-sea design's 100-year storm
         /// ([O:R12], [O:R29]), below NORA10's 16.2 m at Haltenbanken (NORCE 2020).
         /// </summary>
+        [Range(2.0, 20.0)]
+        [Source("O:R6", "O:R19", "O:R12", "O:R29", "NORCE 2020")]
         public double Hs100M { get; init; }
 
         /// <summary>
@@ -423,24 +526,32 @@ namespace LakskongenSim.Calibration
         /// 99th percentile of annual maxima, equals <see cref="Hs100M"/> (F2-06
         /// acceptance 3).
         /// </summary>
+        [Range(0.3, 5.0)]
+        [GameBalance("fitted so the plot's empirical 100-year level equals its Hs100 (F2-06 acceptance 3; OffshoreMetoceanFitTests)")]
         public double HsScale { get; init; } = 1.0;
     }
 
-    /// <summary>Twelve monthly values, January first (JSON keys m01-m12 sort in calendar order).</summary>
-    public sealed record MonthlyValues
+    /// <summary>
+    /// Twelve monthly values, January first (JSON keys m01-m12 sort in calendar
+    /// order). Abstract: each use is a record of its own
+    /// (<c>OffshoreCalibrationContainers.cs</c>) whose months carry the holding
+    /// property's [Range] and provenance, so F2-04's reflection guard checks
+    /// every month against the right range.
+    /// </summary>
+    public abstract record MonthlyValues
     {
-        public double M01 { get; init; }
-        public double M02 { get; init; }
-        public double M03 { get; init; }
-        public double M04 { get; init; }
-        public double M05 { get; init; }
-        public double M06 { get; init; }
-        public double M07 { get; init; }
-        public double M08 { get; init; }
-        public double M09 { get; init; }
-        public double M10 { get; init; }
-        public double M11 { get; init; }
-        public double M12 { get; init; }
+        public abstract double M01 { get; init; }
+        public abstract double M02 { get; init; }
+        public abstract double M03 { get; init; }
+        public abstract double M04 { get; init; }
+        public abstract double M05 { get; init; }
+        public abstract double M06 { get; init; }
+        public abstract double M07 { get; init; }
+        public abstract double M08 { get; init; }
+        public abstract double M09 { get; init; }
+        public abstract double M10 { get; init; }
+        public abstract double M11 { get; init; }
+        public abstract double M12 { get; init; }
 
         /// <summary>The value of month <paramref name="monthIndex"/> (0 = January).</summary>
         public double this[int monthIndex] => monthIndex switch
@@ -453,11 +564,11 @@ namespace LakskongenSim.Calibration
         /// <summary>The values as an array, January first.</summary>
         public double[] ToArray() => new[] { M01, M02, M03, M04, M05, M06, M07, M08, M09, M10, M11, M12 };
 
-        /// <summary>Twelve values, January first.</summary>
-        public static MonthlyValues Of(params double[] v)
+        /// <summary>Twelve values of the container <typeparamref name="T"/>, January first.</summary>
+        public static T Of<T>(params double[] v) where T : MonthlyValues, new()
         {
             if (v == null || v.Length != 12) throw new ArgumentException("Twelve monthly values are needed", nameof(v));
-            return new MonthlyValues
+            return new T
             {
                 M01 = v[0], M02 = v[1], M03 = v[2], M04 = v[3], M05 = v[4], M06 = v[5],
                 M07 = v[6], M08 = v[7], M09 = v[8], M10 = v[9], M11 = v[10], M12 = v[11],
@@ -465,13 +576,17 @@ namespace LakskongenSim.Calibration
         }
     }
 
-    /// <summary>One value per fjord weather state.</summary>
-    public sealed record WeatherStateValues
+    /// <summary>
+    /// One value per fjord weather state. Abstract like
+    /// <see cref="MonthlyValues"/>: each use is its own record whose states carry
+    /// the holding property's [Range] and provenance.
+    /// </summary>
+    public abstract record WeatherStateValues
     {
-        public double Calm { get; init; }
-        public double Moderate { get; init; }
-        public double Storm { get; init; }
-        public double Severe { get; init; }
+        public abstract double Calm { get; init; }
+        public abstract double Moderate { get; init; }
+        public abstract double Storm { get; init; }
+        public abstract double Severe { get; init; }
 
         /// <summary>The value of <paramref name="state"/>.</summary>
         public double this[WeatherState state] => state switch

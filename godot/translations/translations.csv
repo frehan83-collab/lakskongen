@@ -550,8 +550,17 @@ LEDGER_LOAN_PRINCIPAL,Loan repayment,Avdrag på lån
 LEDGER_LOAN_SERVICING,Loan servicing,Nedbetaling lån
 LEDGER_MITIGATION,Skirts and deterrents,Skjørt og skremmere
 LEDGER_NIGHT_SHIFT,Night shift,Nattskift
+LEDGER_OFFSHORE_CHARTER,Offshore vessel charter,Fartøyleie til havmerd
+LEDGER_OFFSHORE_CREW,Offshore crew,Mannskap på havmerd
+LEDGER_OFFSHORE_ENERGY,Offshore energy (diesel),Energi på havmerd (diesel)
+LEDGER_OFFSHORE_INSURANCE,Offshore insurance,Forsikring av havmerd
+LEDGER_OFFSHORE_MAINTENANCE,Offshore maintenance,Vedlikehold av havmerd
+LEDGER_OFFSHORE_REPAIRS,Offshore repairs,Reparasjon av havmerd
+LEDGER_OFFSHORE_SENSORS,Offshore sensors,Sensorer på havmerd
+LEDGER_OFFSHORE_TOW,Tow to the site,Slep til lokaliteten
 LEDGER_OPERATIONS,Operations,Drift
 LEDGER_OTHER,Other,Annet
+LEDGER_PARTNER_SETTLEMENT,Consortium partner settlement,Oppgjør med konsortiepartneren
 LEDGER_PERMIT_FEES,Permit fees,Søknadsgebyrer
 LEDGER_RESEARCH,Research,Forskning
 LEDGER_SEA_SITE,New sea site,Nytt sjøanlegg
@@ -559,6 +568,7 @@ LEDGER_SLUDGE,Sludge,Slam
 LEDGER_SMOLTS,Smolts,Smolt
 LEDGER_STORM_REPAIRS,Storm repairs,Stormreparasjoner
 LEDGER_TAX,Tax,Skatt
+LEDGER_TEETHING_FIXES,Teething fixes,Utbedring av barnesykdommer
 LEDGER_TUTORIAL_REWARDS,Tutorial rewards,Opplæringsbelønninger
 LEDGER_UNCLASSIFIED,Unclassified,Uklassifisert
 LEDGER_VACCINATION,Vaccination,Vaksinering
@@ -813,6 +823,28 @@ CMD_ERROR_ASSET_NOT_FOUND,The asset is no longer for sale.,Eiendelen er ikke len
 CMD_ERROR_ALREADY_VACCINATED,The batch is already vaccinated.,Partiet er allerede vaksinert.
 CMD_ERROR_ALREADY_OPERATING,The facility is already in operation.,Anlegget er allerede i drift.
 CMD_ERROR_ALREADY_BOOKED,A wellboat is already booked for this job.,En brønnbåt er allerede bestilt til denne jobben.
+CMD_ERROR_ALREADY_FIXING,That defect is already being fixed.,Den feilen er allerede under utbedring.
+CMD_ERROR_ALREADY_INSTALLED,That package is already installed.,Den pakken er allerede installert.
+CMD_ERROR_ALREADY_STOCKED,The unit already holds fish.,Anlegget har allerede fisk.
+CMD_ERROR_EXPOSURE_EXCEEDS_DESIGN,The waves at this site exceed what the unit is built for.,Bølgene på lokaliteten er større enn anlegget er bygd for.
+CMD_ERROR_INVALID_DAY,That day cannot be booked.,Den dagen kan ikke bestilles.
+CMD_ERROR_NOTHING_TO_REPAIR,Nothing to repair.,Ingenting å reparere.
+CMD_ERROR_NOT_AN_OFFSHORE_SLOT,That place is not an offshore site.,Det stedet er ikke en havlokalitet.
+CMD_ERROR_NOT_BOOKABLE,That operation cannot be booked.,Den operasjonen kan ikke bestilles.
+CMD_ERROR_NOT_CONSORTIUM,The unit has no partner to buy out.,Anlegget har ingen partner å kjøpe ut.
+CMD_ERROR_NOT_FOUND,Not found.,Finnes ikke.
+CMD_ERROR_NOT_OPEN,That booking is already closed.,Den bestillingen er allerede avsluttet.
+CMD_ERROR_NOT_READY,The unit is not waiting for its tow.,Anlegget venter ikke på slep.
+CMD_ERROR_NOT_REVEALED,That defect has not been found yet.,Den feilen er ikke funnet ennå.
+CMD_ERROR_NOT_UNLOCKED,Not unlocked yet.,Ikke låst opp ennå.
+CMD_ERROR_NO_FORECAST,No forecast for the unit yet.,Ingen prognose for anlegget ennå.
+CMD_ERROR_NO_VESSEL,No vessel can do that operation.,Ingen fartøy kan gjøre den operasjonen.
+CMD_ERROR_NO_WINDOW,The sea is too rough for that today.,Sjøen er for grov til det i dag.
+CMD_ERROR_OUT_OF_RANGE,That choice is not allowed.,Det valget er ikke tillatt.
+CMD_ERROR_PLOT_NOT_FOUND,No such site.,Lokaliteten finnes ikke.
+CMD_ERROR_PLOT_TAKEN,The site is already taken.,Lokaliteten er allerede tatt.
+CMD_ERROR_SHAKEDOWN_ACTIVE,The unit is still in its trial run.,Anlegget er fortsatt i prøvedrift.
+CMD_ERROR_SHELTERING,The unit shelters after a failed tow.,Anlegget ligger i ly etter et mislykket slep.
 UI_FIN_INS_MORTALITY,Mortality,Dødelighet
 UI_FIN_INS_BLOOM,Algal bloom,Oppblomstring
 UI_FIN_INS_STORM,Storm/escape,Storm/rømming
@@ -1706,9 +1738,11 @@ UI_CHART_DAY_RANGE,Days %d–%d,Dag %d–%d
 UI_CHART_INCOME,Income,Inntekter
 ALERT_GILL_CRITICAL,Gill health critical at %s,Gjellehelsen er kritisk ved %s
 ALERT_GILL_POOR,Gill health declining at %s,Gjellehelsen svekkes ved %s
+DRIFTSPLAN_CHOICE_DP_WALK_TO_WORK,DP vessel with gangway,DP-fartøy med gangvei
 DRIFTSPLAN_CHOICE_FRESHWATER,Freshwater bath,Ferskvannsbad
 DRIFTSPLAN_CHOICE_HYDROLICER,Flushing (mechanical),Spyling (mekanisk)
 DRIFTSPLAN_CHOICE_PEROXIDE,Hydrogen peroxide,Hydrogenperoksid
+DRIFTSPLAN_CHOICE_STANDARD,Standard service vessel,Vanlig servicefartøy
 DRIFTSPLAN_CHOICE_THERMOLICER,Thermal delousing,Termisk avlusing
 DRIFTSPLAN_FAIL_ALREADY_BOOKED,a boat was already booked,en båt var allerede bestilt
 DRIFTSPLAN_FAIL_CANCELLED,the treatment was called off,behandlingen ble avlyst
@@ -1723,23 +1757,57 @@ DRIFTSPLAN_NONE_FOR_UNIT,No standing orders for this kind of unit yet.,Ingen fas
 DRIFTSPLAN_OUTCOME_OK,done,utført
 DRIFTSPLAN_POLICY_DELOUSE_ON_COUNT,Delouse on the count,Avlus ved telling
 DRIFTSPLAN_POLICY_NET_CLEANING,Net care (ROV and net cleaning),Notpleie (ROV og notvask)
+DRIFTSPLAN_POLICY_OFFSHORE_CREW_ROTA,Crew rota,Mannskapsrotasjon
+DRIFTSPLAN_POLICY_OFFSHORE_NET_INSPECTION,Net inspection (ROV),Notinspeksjon (ROV)
+DRIFTSPLAN_POLICY_OFFSHORE_RESUPPLY,Feed resupply,Fôrpåfyll
+DRIFTSPLAN_POLICY_OFFSHORE_SENSOR_SERVICE,Sensor service,Sensorservice
+DRIFTSPLAN_POLICY_OFFSHORE_SILAGE,Silage collection,Henting av ensilasje
+DRIFTSPLAN_SETTING_FILL_SHARE,Tank level that calls the boat,Fyllingsgrad som henter båten
+DRIFTSPLAN_SETTING_HELICOPTER_AFTER_DAYS,Days overdue before the helicopter flies,Dager på overtid før helikopteret flyr
 DRIFTSPLAN_SETTING_INTERVAL_DAYS,Days between jobs,Dager mellom hver jobb
+DRIFTSPLAN_SETTING_LEAD_DAYS,Days ahead of the due date,Dager før forfall
 DRIFTSPLAN_SETTING_METHOD,Method,Metode
 DRIFTSPLAN_SETTING_MIN_INTERVAL_DAYS,Fewest days between treatments,Minst antall dager mellom behandlinger
+DRIFTSPLAN_SETTING_MIN_PROBABILITY,Lowest odds of a workable day,Laveste sjanse for arbeidsvær
 DRIFTSPLAN_SETTING_SHARE_OF_LIMIT,Share of the lice limit,Andel av lusegrensen
+DRIFTSPLAN_SETTING_SILO_DAYS,Days of feed left that call a resupply,Dager med fôr igjen som utløser påfyll
 DRIFTSPLAN_SETTING_TIP_DELOUSE_ON_COUNT_METHOD,Mechanical flushing works at any sea temperature.,Mekanisk spyling virker ved alle sjøtemperaturer.
 DRIFTSPLAN_SETTING_TIP_DELOUSE_ON_COUNT_MIN_INTERVAL_DAYS,Every handling stresses the fish: the order waits at least this long between two treatments.,Hver håndtering stresser fisken: oppdraget venter minst så lenge mellom to behandlinger.
 DRIFTSPLAN_SETTING_TIP_DELOUSE_ON_COUNT_SHARE_OF_LIMIT,The default treats a week before a second count over the limit would bring an order from Mattilsynet.,Standardverdien gir behandling en uke før en ny telling over grensen ville gitt pålegg fra Mattilsynet.
 DRIFTSPLAN_SETTING_TIP_NET_CLEANING_INTERVAL_DAYS,The default follows farms in Western Norway that cleaned their nets every other week from May to November 2019 (Elsheshtawy et al. 2023).,Standardverdien følger oppdrettere på Vestlandet som vasket nøtene annenhver uke fra mai til november 2019 (Elsheshtawy mfl. 2023).
+DRIFTSPLAN_SETTING_TIP_OFFSHORE_CREW_ROTA_HELICOPTER_AFTER_DAYS,"When no boat can reach the unit, the helicopter flies the crew at a fixed price per change.","Når ingen båt kommer fram, flyr helikopteret mannskapet til fast pris per bytte."
+DRIFTSPLAN_SETTING_TIP_OFFSHORE_CREW_ROTA_INTERVAL_DAYS,The default follows three shifts working nine days on and twelve off.,Standardverdien følger tre skift som jobber ni dager på og tolv av.
+DRIFTSPLAN_SETTING_TIP_OFFSHORE_CREW_ROTA_MIN_PROBABILITY,The default books only a solid green window; lower books sooner and waits more often.,Standardverdien bestiller bare et sikkert grønt vindu; lavere bestiller tidligere og venter oftere.
+DRIFTSPLAN_SETTING_TIP_OFFSHORE_CREW_ROTA_VESSEL,"A DP vessel works in rougher sea than a standard one, at about twice the day rate.","Et DP-fartøy jobber i grovere sjø enn et vanlig fartøy, til omtrent dobbel dagrate."
+DRIFTSPLAN_SETTING_TIP_OFFSHORE_NET_INSPECTION_INTERVAL_DAYS,Exposed farms inspect their nets by ROV weekly to monthly; the default is monthly.,Eksponerte anlegg inspiserer nøtene med ROV fra hver uke til hver måned; standard er hver måned.
+DRIFTSPLAN_SETTING_TIP_OFFSHORE_NET_INSPECTION_MIN_PROBABILITY,The default books only a solid green window; lower books sooner and waits more often.,Standardverdien bestiller bare et sikkert grønt vindu; lavere bestiller tidligere og venter oftere.
+DRIFTSPLAN_SETTING_TIP_OFFSHORE_RESUPPLY_MIN_PROBABILITY,The default books only a solid green window; lower books sooner and waits more often.,Standardverdien bestiller bare et sikkert grønt vindu; lavere bestiller tidligere og venter oftere.
+DRIFTSPLAN_SETTING_TIP_OFFSHORE_RESUPPLY_SILO_DAYS,The default outlasts most winter spells without a workable sea at the outer coast.,Standardverdien varer lenger enn de fleste vinterperiodene uten arbeidsvær ute ved kysten.
+DRIFTSPLAN_SETTING_TIP_OFFSHORE_RESUPPLY_VESSEL,"A DP vessel works in rougher sea than a standard one, at about twice the day rate.","Et DP-fartøy jobber i grovere sjø enn et vanlig fartøy, til omtrent dobbel dagrate."
+DRIFTSPLAN_SETTING_TIP_OFFSHORE_SENSOR_SERVICE_LEAD_DAYS,The default keeps every package inside its service interval and off the alarm load.,Standardverdien holder hver pakke innenfor serviceintervallet og ute av alarmbelastningen.
+DRIFTSPLAN_SETTING_TIP_OFFSHORE_SILAGE_FILL_SHARE,Leaves room in the tank for a bad week's dead fish after the boat is booked.,Gir plass i tanken til en dårlig ukes dødfisk etter at båten er bestilt.
+DRIFTSPLAN_SETTING_TIP_OFFSHORE_SILAGE_MIN_PROBABILITY,The default books only a solid green window; lower books sooner and waits more often.,Standardverdien bestiller bare et sikkert grønt vindu; lavere bestiller tidligere og venter oftere.
+DRIFTSPLAN_SETTING_TIP_OFFSHORE_SILAGE_VESSEL,"A DP vessel works in rougher sea than a standard one, at about twice the day rate.","Et DP-fartøy jobber i grovere sjø enn et vanlig fartøy, til omtrent dobbel dagrate."
+DRIFTSPLAN_SETTING_VESSEL,Vessel,Fartøy
 DRIFTSPLAN_SOURCE,Source: %s,Kilde: %s
 DRIFTSPLAN_STATUS_OFF,Off,Av
 DRIFTSPLAN_TIP_DELOUSE_ON_COUNT,"Delouses the site when the weekly lice count is above the chosen share of today's lice limit, at most once per count.","Avluser lokaliteten når den ukentlige lusetellingen er over valgt andel av dagens lusegrense, høyst én gang per telling."
 DRIFTSPLAN_TIP_NET_CLEANING,Books the ROV boat (net cleaning and inspection) at a fixed interval while there are fish in the pens. You pay the boat each time.,Bestiller ROV-båten (notvask og inspeksjon) med fast mellomrom så lenge det er fisk i merdene. Du betaler båten hver gang.
+DRIFTSPLAN_TIP_OFFSHORE_CREW_ROTA,Books the crew boat into the first workable day when a change is due; sends the helicopter when the change is overdue.,Bestiller mannskapsbåten til første dag med arbeidsvær når et bytte er forfalt; sender helikopteret når byttet er på overtid.
+DRIFTSPLAN_TIP_OFFSHORE_NET_INSPECTION,"Inspects the nets by ROV from the unit at a fixed interval, in a sea the crane can work in. You pay each inspection.","Inspiserer nøtene med ROV fra anlegget med fast mellomrom, i sjø kranen kan jobbe i. Du betaler hver inspeksjon."
+DRIFTSPLAN_TIP_OFFSHORE_RESUPPLY,"Books a feed boat into the first workable day when the silo runs low. The boat is paid from the booked day until it is done, waiting days included.","Bestiller fôrbåt til første dag med arbeidsvær når siloen blir lav. Båten betales fra bestilt dag til jobben er gjort, ventedager medregnet."
+DRIFTSPLAN_TIP_OFFSHORE_SENSOR_SERVICE,"Services the sensor packages before they fall due. The crew on board does it, no boat needed.","Gir sensorpakkene service før de forfaller. Mannskapet om bord gjør det, uten båt."
+DRIFTSPLAN_TIP_OFFSHORE_SILAGE,Books a boat to collect the silage when the tank fills to the chosen level.,Bestiller båt som henter ensilasjen når tanken er fylt til valgt nivå.
 DRIFTSPLAN_TITLE,Operating plan,Driftsplan
 DRIFTSPLAN_UNIT_DAYS,days,dager
 DRIFTSPLAN_WAIT,when needed,ved behov
 DRIFTSPLAN_WAIT_LICE_COUNT_ABOVE,when a lice count is above %s,når en lusetelling viser over %s
+DRIFTSPLAN_WAIT_NO_SENSORS,waits for a sensor package,venter på en sensorpakke
+DRIFTSPLAN_WAIT_SILAGE_ABOVE,waits for the silage tank to fill,venter på at ensilasjetanken fylles
+DRIFTSPLAN_WAIT_SILO_BELOW,when the silo holds less than %s days of feed,når siloen har fôr til under %s dager
 DRIFTSPLAN_WAIT_SITE_STOCKED,waits for fish in the pens,venter på fisk i merdene
+DRIFTSPLAN_WAIT_UNIT_COMMISSIONED,waits for the unit to be commissioned,venter på at anlegget settes i drift
+DRIFTSPLAN_WAIT_VESSEL_BOOKED,waits for the boat already booked,venter på båten som allerede er bestilt
 DRIFTSPLAN_WHEN,%s (in %d days),%s (om %d dager)
 DRIFTSPLAN_WHEN_TODAY,today,i dag
 GAME_EVENT_ALGAL_BLOOM,Bloom at the farm,Oppblomstring ved anlegget

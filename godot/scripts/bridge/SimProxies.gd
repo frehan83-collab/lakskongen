@@ -716,4 +716,55 @@ func get_offshore_units() -> Array[Dictionary]:
 ## The offshore slots, free or held.
 func get_offshore_plots() -> Array[Dictionary]:
 	return _arr(game_bridge.GetOffshorePlots()) if game_bridge else []
+## F2-06: today's sea at an offshore unit and its 10-day forecast (the window board).
+func get_sea_state_forecast(site_id: String) -> Dictionary:
+	return game_bridge.GetSeaStateForecast(site_id) if game_bridge else {"ok": false}
+## F2-07: what building an offshore unit costs before committing (capex, licence value, consortium, payments, first stocking).
+func preview_offshore_build(plot_id: String, farm_type: String, contract: String, equity_share: float) -> Dictionary:
+	return game_bridge.PreviewOffshoreBuild(plot_id, farm_type, contract, equity_share) if game_bridge else {"ok": false, "refusal_key": "engine_not_ready"}
+## F2-07: start building an offshore unit: {success, error, message, value, value2, id}.
+func build_offshore_unit(plot_id: String, farm_type: String, contract: String, equity_share: float) -> Dictionary:
+	return game_bridge.BuildOffshoreUnit(plot_id, farm_type, contract, equity_share) if game_bridge else {"success": false, "error": "engine_not_ready", "message": "Not initialized"}
+## F2-07: an offshore unit's construction phases and progress.
+func get_offshore_construction(site_id: String) -> Dictionary:
+	return game_bridge.GetOffshoreConstruction(site_id) if game_bridge else {"ok": false}
+## F2-07: an offshore unit's gauges (sea, silo, crew clock, alarm load, next windows, bookings, defects, sensors).
+func get_offshore_unit_state(site_id: String) -> Dictionary:
+	return game_bridge.GetOffshoreUnitState(site_id) if game_bridge else {"ok": false}
+## F2-07: a booking's P(done by day) and expected charter, from the unit's own forecast model.
+func preview_offshore_booking(site_id: String, op: String, day: int, vessel: String) -> Dictionary:
+	return game_bridge.PreviewOffshoreBooking(site_id, op, day, vessel) if game_bridge else {"ok": false}
+## F2-07: book a vessel operation for a day.
+func book_offshore_operation(site_id: String, op: String, day: int, vessel: String, count: int = 0, detail: String = "") -> Dictionary:
+	return game_bridge.BookOffshoreOperation(site_id, op, day, vessel, count, detail) if game_bridge else {"success": false, "error": "engine_not_ready", "message": "Not initialized"}
+## F2-07: book an operation into its first green window.
+func book_offshore_first_window(site_id: String, op: String, vessel: String, count: int = 0, detail: String = "") -> Dictionary:
+	return game_bridge.BookOffshoreFirstWindow(site_id, op, vessel, count, detail) if game_bridge else {"success": false, "error": "engine_not_ready", "message": "Not initialized"}
+## F2-07: cancel an open booking.
+func cancel_offshore_booking(site_id: String, booking_id: String) -> Dictionary:
+	return game_bridge.CancelOffshoreBooking(site_id, booking_id) if game_bridge else {"success": false, "error": "engine_not_ready", "message": "Not initialized"}
+## F2-07: the tow's odds and cost before it starts.
+func preview_offshore_tow(site_id: String) -> Dictionary:
+	return game_bridge.PreviewOffshoreTow(site_id) if game_bridge else {"ok": false}
+## F2-07: start the tow to the plot.
+func start_offshore_tow(site_id: String) -> Dictionary:
+	return game_bridge.StartOffshoreTow(site_id) if game_bridge else {"success": false, "error": "engine_not_ready", "message": "Not initialized"}
+## F2-07: choose the shakedown (0, 60, 90 or 120 days).
+func choose_offshore_shakedown(site_id: String, days: int) -> Dictionary:
+	return game_bridge.ChooseOffshoreShakedown(site_id, days) if game_bridge else {"success": false, "error": "engine_not_ready", "message": "Not initialized"}
+## F2-07: fix a revealed teething defect.
+func fix_teething_defect(site_id: String, defect_id: String) -> Dictionary:
+	return game_bridge.FixTeethingDefect(site_id, defect_id) if game_bridge else {"success": false, "error": "engine_not_ready", "message": "Not initialized"}
+## F2-07: install a sensor package (mru, subsea_cam, echo, ais_broadband).
+func install_offshore_sensors(site_id: String, kind: String) -> Dictionary:
+	return game_bridge.InstallOffshoreSensors(site_id, kind) if game_bridge else {"success": false, "error": "engine_not_ready", "message": "Not initialized"}
+## F2-07: service the sensor packages that are due.
+func service_offshore_sensors(site_id: String) -> Dictionary:
+	return game_bridge.ServiceOffshoreSensors(site_id) if game_bridge else {"success": false, "error": "engine_not_ready", "message": "Not initialized"}
+## F2-07: repair the unit's net, structure or all.
+func repair_offshore_unit(site_id: String, scope: String) -> Dictionary:
+	return game_bridge.RepairOffshoreUnit(site_id, scope) if game_bridge else {"success": false, "error": "engine_not_ready", "message": "Not initialized"}
+## F2-07: buy the consortium partner out.
+func buy_out_offshore_partner(site_id: String) -> Dictionary:
+	return game_bridge.BuyOutOffshorePartner(site_id) if game_bridge else {"success": false, "error": "engine_not_ready", "message": "Not initialized"}
 # ═══ END sim·sea lane block ═══

@@ -99,6 +99,8 @@ public partial class SimulationEngine
         if (!site.Offshore.IsOperational)
             return CommandResult.Fail("not_operational",
                 $"'{site.Label}' is still under construction ({site.Offshore.ConstructionProgress:P0})");
+        if (site.Offshore.ShakedownEndDay > Weather.SimulationDay) // F2-07: the shakedown delays the first stocking (the sea day: in-day bookings too)
+            return CommandResult.Fail(OffshoreReasons.ShakedownActive, $"'{site.Label}' runs its shakedown until day {site.Offshore.ShakedownEndDay}");
 
         var strain = SmoltStrainRegistry.Get(strainId);
         var refused = CheckFacilityCapacity(site.CurrentBiomassTonnes * 1000.0, count, strain, site.MABTonnes, site.Label);

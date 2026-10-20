@@ -103,6 +103,30 @@ namespace LakskongenSim.Environment
             => _calibration = calibration ?? throw new ArgumentNullException(nameof(calibration));
 
         /// <summary>
+        /// A copy of the saved state and the calibration (F2-07's booking
+        /// previews sample futures on it with their own stream; the game's sea
+        /// and its stream are never touched). The swell events are immutable
+        /// records, shared.
+        /// </summary>
+        internal OffshoreMetocean CopyForSampling()
+        {
+            var copy = new OffshoreMetocean
+            {
+                LastTickDay = LastTickDay,
+                ResidualX = ResidualX,
+                Events = new List<SwellEvent>(Events),
+                NextSerial = NextSerial,
+                WeatherToday = WeatherToday,
+                BaseHsToday = BaseHsToday,
+                SwellHsToday = SwellHsToday,
+                SwellTpToday = SwellTpToday,
+                VisibilityKmToday = VisibilityKmToday,
+            };
+            copy._calibration = _calibration;
+            return copy;
+        }
+
+        /// <summary>
         /// Today's sea at the reference scale (m): the base sea, the background
         /// swell and the storm swell added in energy.
         /// </summary>

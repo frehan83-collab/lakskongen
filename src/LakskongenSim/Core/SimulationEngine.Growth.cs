@@ -163,6 +163,8 @@ public partial class SimulationEngine
         if (husbandry.Water.Kind != HoldingKind.SeaPen) AttributePopulationCost(population, fed.CostNOK);
         // F2-12: the land tick runs on the feed the fish ate today (their oxygen, CO2 and ammonia).
         if (husbandry.Water.Kind == HoldingKind.LandTank) NoteLandFeed(population, eatenKg);
+        // F2-07: an offshore unit's fish eat from its silo.
+        if (husbandry.Water.Kind == HoldingKind.Offshore) TakeOffshoreFeed(population, fed.FeedUsedKg);
         return fed;
     }
 
