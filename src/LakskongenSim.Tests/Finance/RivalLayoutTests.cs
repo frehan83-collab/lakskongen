@@ -149,7 +149,8 @@ public class RivalLayoutTests
             int po = int.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture);
             int number = int.Parse(m.Groups[2].Value, CultureInfo.InvariantCulture);
             var sites = layout.SitesOf(o).Select(s => { Localities.TryGet(s, out var l); return l!; }).ToArray();
-            Assert.InRange(sites.Length, 1, RivalLayout.MaxSitesPerIndependent);
+            Assert.InRange(sites.Length, 1, 6);   // plan A3: at most 6 sites per independent
+            Assert.Equal(6, RivalLayout.MaxSitesPerIndependent);
             Assert.Single(sites.Select(l => (l.Po, l.Municipality)).Distinct());
             Assert.Equal(po, sites[0].Po);
             Assert.Equal(ParodyNames.Of(po, number - 1), owner.Name);
