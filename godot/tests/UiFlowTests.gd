@@ -39,6 +39,11 @@ func _run() -> void:
 	# U2-03: this checkout's own campaign file (never the player's), fresh.
 	CampaignProgress.path_override = TEST_ROOT + "campaign.json"
 	CampaignProgress.reset()
+	# U2-08: this checkout's own settings file (never the player's, which the
+	# shared user dir would otherwise hand every test), at the defaults.
+	SettingsStore.path_override = TEST_ROOT + "settings.json"
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(SettingsStore.path()))
+	get_node("/root/SettingsApplier").apply_all(SettingsStore.load_all(), false)
 	# The checks read Norwegian text (the game's default language); a
 	# language.cfg left on English in the shared user dir must not flip them.
 	TranslationServer.set_locale("no")
@@ -179,6 +184,9 @@ func _run() -> void:
 	# clock's pace, no tutorial elsewhere, a skip is no win, the season won
 	# by input alone).
 	await preload("res://tests/FirstSeasonFlowChecks.gd").new().run(self)
+	# U2-08 (settings that apply, richer save slots) and Au2-01 (the audio
+	# floor): tests/SettingsAudioChecks.gd.
+	await preload("res://tests/SettingsAudioChecks.gd").new().run(self)
 
 	_clear_test_saves()
 	CampaignProgress.reset()

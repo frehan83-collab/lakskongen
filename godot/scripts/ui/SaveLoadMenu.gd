@@ -34,6 +34,12 @@ func _ready() -> void:
 	_apply_localization()
 	_close_button.pressed.connect(_close)
 	_new_save_button.pressed.connect(_on_new_save)
+	# A save's picture is written a frame or two after the save (U2-08).
+	var thumbs := get_node_or_null("/root/SaveThumbnails")
+	if thumbs != null and thumbs.has_signal("thumbnail_saved"):
+		thumbs.thumbnail_saved.connect(func(_path: String) -> void:
+			if is_visible_in_tree():
+				_refresh_slots())
 	hide()
 
 func _apply_localization() -> void:
@@ -120,6 +126,50 @@ func _refresh_slots() -> void:
 	for save_info in saves:
 		_slots_container.add_child(_create_slot(save_info))
 
+## A slot's picture size (16:9, the SaveThumbnails PNG drawn at half size).
+const THUMB_SIZE := Vector2(160, 90)
+
+## A save time (unix seconds, UTC) as the player's local ISO 8601 date and
+## time: "2026-10-20 19:04".
+static func iso_local(unix_utc: int) -> String:
+	var bias := int(Time.get_time_zone_from_system().get("bias", 0))
+	return Time.get_datetime_string_from_unix_time(unix_utc + bias * 60, true).substr(0, 16)
+
+## The scenario's title in the player's language ("" id: free play).
+func scenario_title(scenario_id: String) -> String:
+	if scenario_id.is_empty():
+		return _tr_or("UI_SAVELOAD_NO_SCENARIO", "Fritt spill")
+	var key := "SCENARIO_%s_NAME" % scenario_id.to_upper()
+	var t := tr(key)
+	if t != key:
+		return t
+	var mgr := get_node_or_null("/root/ScenarioManager")
+	if mgr != null and mgr.has_method("get_scenario"):
+		var name := str((mgr.get_scenario(scenario_id) as Dictionary).get("name", ""))
+		if not name.is_empty():
+			return name
+	return scenario_id
+
+## The slot's picture, or an empty tile of the same size when it has none.
+func _thumbnail(path: String) -> Control:
+	var img: Image = null
+	if not path.is_empty() and FileAccess.file_exists(path):
+		img = Image.load_from_file(ProjectSettings.globalize_path(path))
+	if img == null or img.is_empty():
+		var tile := PanelContainer.new()
+		tile.name = "Thumbnail"
+		tile.theme_type_variation = &"Inset"
+		tile.custom_minimum_size = THUMB_SIZE
+		tile.set_meta(&"empty", true)
+		return tile
+	var pic := TextureRect.new()
+	pic.name = "Thumbnail"
+	pic.texture = ImageTexture.create_from_image(img)
+	pic.custom_minimum_size = THUMB_SIZE
+	pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	return pic
+
 ## Saves the game writes itself are named by file ("autosave_latest",
 ## "autosave_3", "quicksave"); the player reads them as Norwegian labels.
 func slot_display_name(slot_name: String) -> String:
@@ -150,25 +200,45 @@ func _create_slot(save_info: Dictionary) -> PanelContainer:
 	hbox.add_theme_constant_override("separation", 12)
 	slot.add_child(hbox)
 
+	# U2-08: the picture of the world when the game was saved.
+	hbox.add_child(_thumbnail(str(save_info.get("thumbnail", ""))))
+
 	var info_vbox := VBoxContainer.new()
 	info_vbox.size_flags_horizontal = SIZE_EXPAND_FILL
+	info_vbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	hbox.add_child(info_vbox)
 
 	var name_lbl := Label.new()
+	name_lbl.name = "SlotName"
 	name_lbl.text = _slot_display_name(slot_name)
 	if name_lbl.text == slot_name:
 		name_lbl.set_meta(&"player_text", true)  # a name the player chose (text lint: data)
+	name_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	LakskongenTheme.set_size(name_lbl, 16)
 	LakskongenTheme.set_tone(name_lbl, &"")
 	info_vbox.add_child(name_lbl)
 
+	# The scenario the save plays (U2-08).
+	var scenario := Label.new()
+	scenario.name = "Scenario"
+	scenario.text = scenario_title(str(save_info.get("scenario", "")))
+	LakskongenTheme.set_size(scenario, 14)
+	LakskongenTheme.set_tone(scenario, &"Info")
+	info_vbox.add_child(scenario)
+
+	# When (ISO 8601, local time), the game day and the cash.
 	var details := Label.new()
+	details.name = "Details"
 	var day_fmt := _tr_or("UI_SAVELOAD_DAY_FORMAT", "Dag %s")
-	details.text = day_fmt % str(save_info.get("day", "?"))
+	var parts: PackedStringArray = []
+	if save_info.has("time_unix"):
+		parts.append(iso_local(int(save_info["time_unix"])))
+	parts.append(day_fmt % str(save_info.get("day", "?")))
 	var sim := _sim()
 	if sim != null and save_info.has("cash"):
-		details.text += "  ·  " + sim.format_nok(float(save_info["cash"]))
-	LakskongenTheme.set_size(details, 12)
+		parts.append(sim.format_nok(float(save_info["cash"])))
+	details.text = "  ·  ".join(parts)
+	LakskongenTheme.set_size(details, 13)
 	LakskongenTheme.set_tone(details, &"Muted")
 	info_vbox.add_child(details)
 

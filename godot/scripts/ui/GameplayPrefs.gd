@@ -75,14 +75,20 @@ static func force_tutorial(value: Variant) -> void:
 	_forced_tutorial = -1 if value == null else (1 if bool(value) else 0)
 
 
+## "Varsler" (gameplay.notifications_enabled, on by default, U2-08): a
+## warning shows its toast and cue. Off, warnings go to the inbox and the
+## bell's badge only; critical events still pause on their card.
+static func notifications_enabled() -> bool:
+	return bool(_gameplay().get("notifications_enabled", true))
+
+
+## The real minutes between autosaves (gameplay.autosave_minutes: 0 off, 2,
+## 5, 10 or 30; U2-08). SaveLoadManager saves at the first day boundary after.
+static func autosave_minutes() -> int:
+	return maxi(int(_gameplay().get("autosave_minutes", 5)), 0)
+
+
+## (SettingsStore: the player's file, or a test's own through path_override.)
 static func _gameplay() -> Dictionary:
-	if not FileAccess.file_exists(SETTINGS_PATH):
-		return {}
-	var file := FileAccess.open(SETTINGS_PATH, FileAccess.READ)
-	if file == null:
-		return {}
-	var data: Variant = JSON.parse_string(file.get_as_text())
-	if not (data is Dictionary):
-		return {}
-	var gameplay: Variant = (data as Dictionary).get("gameplay", {})
+	var gameplay: Variant = SettingsStore.load_raw().get("gameplay", {})
 	return gameplay if gameplay is Dictionary else {}

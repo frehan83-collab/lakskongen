@@ -27,7 +27,6 @@ const BUS_AMBIENT := "Ambient"
 const BUS_SFX     := "SFX"
 ## The UI's clicks (sends to SFX, so the effects slider governs them).
 const BUS_UI      := "UI"
-const BUS_UNDERWATER := "Underwater"
 
 ## Base-track keys the mixer already plays (the sea's own ambience); any other
 ## key (harbour, processing plant) plays on the context player.
@@ -112,7 +111,6 @@ func _process(delta: float) -> void:
 	if _ambience != null:
 		_ambience.sense(get_tree(), _sim_bridge)
 		_ambience.step(delta)
-	_update_underwater_lowpass()
 
 func _create_players() -> void:
 	_bgm_active  = _make_player(BUS_MUSIC)
@@ -123,6 +121,13 @@ func _create_players() -> void:
 	_amb_base_pending   = _make_player(BUS_AMBIENT)
 	_amb_base_pending.volume_db = _l2db(0.0)
 
+	# The UI bus sends to SFX (the effects slider governs the clicks). The
+	# project's bus layout has it; a headless or dummy-driver boot that skips
+	# the layout gets it here (AudioManager makes Music/SFX/Ambient likewise).
+	if AudioServer.get_bus_index(BUS_UI) < 0 and AudioServer.get_bus_index(BUS_SFX) >= 0:
+		AudioServer.add_bus()
+		AudioServer.set_bus_name(AudioServer.bus_count - 1, BUS_UI)
+		AudioServer.set_bus_send(AudioServer.bus_count - 1, BUS_SFX)
 	_click_player = _make_player(BUS_UI if AudioServer.get_bus_index(BUS_UI) >= 0 else BUS_SFX)
 	_click_player.name = "UiClick"
 	_click_player.max_polyphony = 4
@@ -159,16 +164,6 @@ func _connect_if(source: Object, signal_name: String, fn: Callable) -> void:
 ## The ambience bed (tests and the debug overlay read its layers).
 func ambience() -> AmbienceMixer:
 	return _ambience
-
-func _update_underwater_lowpass() -> void:
-	var idx: int = AudioServer.get_bus_index(BUS_UNDERWATER)
-	if idx < 0 or _ambience == null:
-		return
-	var fx := AudioServer.get_bus_effect(idx, 0)
-	if fx is AudioEffectLowPassFilter:
-		var below := bool(_ambience.last_inputs.get("underwater", false))
-		if fx.enabled != below:
-			fx.enabled = below
 
 ## A looping engine (MusicLibrary.AMBIENT_BASE key, e.g. "feed_barge",
 ## "boat_engine") on `owner` as a 3D emitter: it moves with the boat and goes

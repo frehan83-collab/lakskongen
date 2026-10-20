@@ -38,14 +38,16 @@ static func _empty(margin_v: float = 0.0, margin_h: float = 0.0) -> StyleBoxEmpt
 	return sb
 
 
-## A 2 px focus ring drawn over the control's normal box (no fill).
+## A 2 px focus ring (3 px on a high-contrast surface) drawn over the
+## control's normal box (no fill).
 static func _focus_ring(c: _Ctx, radius: int) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
+	var width := FOCUS_RING_HC_PX if c.high_contrast else FOCUS_RING_PX
 	sb.draw_center = false
 	sb.border_color = c.col("focus")
-	sb.set_border_width_all(2)
-	sb.set_corner_radius_all(radius + 2)
-	sb.set_expand_margin_all(2)
+	sb.set_border_width_all(width)
+	sb.set_corner_radius_all(radius + width)
+	sb.set_expand_margin_all(width)
 	sb.anti_aliasing = true
 	return sb
 
