@@ -92,6 +92,9 @@ const float ROCK_WINTER_DAMP = 0.38;
 const float LEDGE_STEP_M = 48.0;
 const float TERRACE_FULL_PX = 64.0;
 const float TERRACE_GONE_PX = 28.0;
+// Under this ledge strength the masks read one slope (the flats' and the
+// risers' are the same to a few per cent).
+const float TERRACE_SPREAD_MIN = 0.01;
 
 uniform sampler2DArray albedo_height : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2DArray normal_rough_ao : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
@@ -130,16 +133,23 @@ uniform vec3 black_lichen_color : source_color = vec3(0.141, 0.149, 0.157); // #
 varying vec3 world_pos;
 varying vec3 world_normal;
 varying vec4 masks;
-// The slope (rise over run) and the cavity with the wall ledges averaged out
-// (UV2, TerrainMesh.Chunk.Macro: over ±4 cells of the heightfield).
-varying vec2 macro_terrain;
+// The slope (rise over run) and the cavity of the ground without the wall
+// ledges' terraces, and the ledges' strength (how far they flatten and
+// steepen the slope there) (CUSTOM0, TerrainMesh.Chunk.Macro).
+varying vec4 macro_terrain;
 
 void vertex() {
 	VERTEX = lk_mirror_vertex(VERTEX, MODEL_MATRIX, CAMERA_VISIBLE_LAYERS, CAMERA_POSITION_WORLD);
 	world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	world_normal = (MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz;
 	masks = COLOR;
-	macro_terrain = UV2;
+	macro_terrain = CUSTOM0;
+}
+
+// The slope snow and soil feel: a cliff ledge or a gully holds them as a
+// gentler slope would.
+float snow_slope(float slope_tan, float ledge, float gully) {
+	return mix(mix(slope_tan, 0.6, smoothstep(0.5, 0.9, ledge)), 0.7, gully * 0.8);
 }
 
 // ── Macro variation: noise read from the noise slices, not computed ─────────
@@ -358,14 +368,23 @@ void fragment() {
 	// flats and shed them off their risers. Seen from 1-2 km a terrace is a
 	// few tens of pixels and the walls drew as regular snow stripes
 	// (venetian blinds, harness 18). Where a terrace is small on screen the
-	// masks (bare rock, soil, snow, cliff) read the slope with the ledges
-	// averaged out, as does the cavity (soil, gullies, snow and occlusion
-	// read it); the light keeps the geometry's own normal. Near, the snowy
-	// benches stay.
+	// masks (bare rock, soil, snow, cliff) read the slope of the ground
+	// without its terraces, as does the cavity (soil, gullies, snow and
+	// occlusion read it): the snow then lies by the walls' buttresses and
+	// gullies, as sharp as before; the light keeps the geometry's own
+	// normal. Near, the snowy benches stay.
 	float terrace_near = smoothstep(TERRACE_GONE_PX, TERRACE_FULL_PX, LEDGE_STEP_M / max(footprint, 1e-3));
 	slope_tan = mix(macro_terrain.x, slope_tan, terrace_near);
 	cavity = mix(macro_terrain.y, cavity, terrace_near);
 	hollow = cavity - 0.5;
+	// A pixel that covers several terraces covers their flats and risers
+	// alike: half of a terrace's height is flat (the slope times 1 - k, k
+	// the ledges' strength), half riser (times 1 + k on average). The snow
+	// cover and the bare rock hold half of each (the cover of each, not the
+	// cover of their mean snow: snow sticks to the flats, slides off the
+	// risers), so a wall seen from afar keeps as much snow on its ledges as
+	// it shows close up.
+	float terrace_spread = macro_terrain.z * (1.0 - terrace_near);
 	vec4 n_big = noise_at(skew, 2000.0, footprint);
 	vec4 n_mid = noise_at(skew + 517.0, 520.0, footprint);
 	float macro = n_big.r;
@@ -446,14 +465,19 @@ void fragment() {
 	// Gullies cut down the walls: snow and soil gather in them too.
 	float gully = smoothstep(0.06, 0.25, hollow) * cliff;
 	// Ledges and gullies are flat or sheltered enough to hold snow and soil.
-	float slope_eff = mix(mix(slope_tan, 0.6, smoothstep(0.5, 0.9, ledge)), 0.7, gully * 0.8);
+	float slope_eff = snow_slope(slope_tan, ledge, gully);
 
 	// ── Masks ──
 	// Bare rock where it is steep (gullies and ledges hold soil a little
 	// steeper), on the high plateau's outcrops, and on the shore below the
 	// shingle's reach. Woods override it: birch clings to the wall ledges.
 	float soil_limit = soil_slope_tan + hollow * 0.9 + (mottle - 0.5) * 0.25;
-	float bare = smoothstep(soil_limit, soil_limit + (bare_slope_tan - soil_slope_tan), slope_tan);
+	float bare_span = bare_slope_tan - soil_slope_tan;
+	float bare = smoothstep(soil_limit, soil_limit + bare_span, slope_tan);
+	if (terrace_spread > TERRACE_SPREAD_MIN) {
+		bare = 0.5 * (smoothstep(soil_limit, soil_limit + bare_span, slope_tan * (1.0 - terrace_spread))
+			+ smoothstep(soil_limit, soil_limit + bare_span, slope_tan * (1.0 + terrace_spread)));
+	}
 	// Shingle only lies where the shore is gentle; a cliff drops straight in.
 	float gentle_shore = 1.0 - smoothstep(0.5, 1.0, slope_tan);
 	// Glacier-scoured outcrops: ridges and knolls of the upland stay bare.
@@ -483,7 +507,15 @@ void fragment() {
 	pick_soils(w_shingle, w_grass, w_heath, w_spruce, w_birch, soil_a, soil_wa, soil_b, soil_wb);
 
 	float north = clamp(g.x * 2.0, 0.0, 1.0);
-	float snow_amount = ground_snow(h, slope_eff, north, hollow, macro);
+	// The snow on the terraces' flats and on their risers (the same where
+	// the terraces draw themselves); the cover below holds half of each.
+	float snow_flat = ground_snow(h, slope_eff, north, hollow, macro);
+	float snow_riser = snow_flat;
+	if (terrace_spread > TERRACE_SPREAD_MIN) {
+		snow_flat = ground_snow(h, snow_slope(slope_tan * (1.0 - terrace_spread), ledge, gully), north, hollow, macro);
+		snow_riser = ground_snow(h, snow_slope(slope_tan * (1.0 + terrace_spread), ledge, gully), north, hollow, macro);
+	}
+	float snow_amount = max(snow_flat, snow_riser);
 
 	// ── Biplanar projections ──
 	int major = aw.x > aw.y && aw.x > aw.z ? 0 : (aw.y > aw.z ? 1 : 2);
@@ -577,7 +609,8 @@ void fragment() {
 	// On the walls it lies thin: a soft dusting the rock shows through, full
 	// only on the ledges and in the gullies.
 	float snow_soft = mix(0.12, 0.3, cliff);
-	float snow = snow_amount > 0.005 ? smoothstep(ground_h - snow_soft, ground_h + snow_soft, snow_amount * 1.35 - 0.2) : 0.0;
+	float snow = snow_amount > 0.005 ? 0.5 * (smoothstep(ground_h - snow_soft, ground_h + snow_soft, snow_flat * 1.35 - 0.2)
+		+ smoothstep(ground_h - snow_soft, ground_h + snow_soft, snow_riser * 1.35 - 0.2)) : 0.0;
 	snow *= mix(1.0, 0.82, cliff * (1.0 - max(ledge, gully)));
 	br *= 1.0 - snow;
 	ba *= 1.0 - snow;

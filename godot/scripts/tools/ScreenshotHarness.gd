@@ -50,6 +50,19 @@ const AURORA_SEARCH_DAYS := 45
 const AURORA_HOUR := 22.0
 const AURORA_YAW_DEG := -15.0
 const AURORA_PITCH_UP_DEG := 12.0
+## The clouds' drift (km, the sky's cloud_offset) the menu (01) and the
+## aurora (09) are shot at, pinned as the mood goldens' are (gfx-polish-1):
+## the clouds drift with the time a run has played, so an unpinned frame
+## showed other clouds each run, and 09's reflection check passed or failed
+## with where they happened to be (0.8 % at drift 0, 2.6 % at the full run's
+## drift). Each is the drift a full run reaches at that shot: the menu's
+## just after its reveal, 09's after the game's other shots.
+const MENU_CLOUD_DRIFT_KM := Vector2(0.008, 0.002)
+const AURORA_CLOUD_DRIFT_KM := Vector2(0.27, 0.14)
+## The aurora's curtains move with the sky's clock (sky_time, s): 09 is shot
+## at the clock a full run reaches there (114.9 s), so the curtains over the
+## far shore, and their reflection, are the same every run.
+const AURORA_SKY_TIME_S := 115.0
 const MIN_AURORA_FRACTION := 0.03
 
 # G3-01: the salmon schools change at least this share of the farm frame
@@ -402,6 +415,11 @@ func _capture_main_menu() -> void:
 	while not bool(menu.get("revealed")) and waited < MENU_REVEAL_TIMEOUT_S:
 		await _wait(0.1)
 		waited += 0.1
+	var backdrop = menu.get("backdrop")
+	var menu_env = backdrop.get("environment") if backdrop != null else null
+	var menu_director = menu_env.get("director") if menu_env != null else null
+	if menu_director != null:
+		menu_director.call("stage_cloud_drift", MENU_CLOUD_DRIFT_KM)
 	await _wait(1.6)
 	var first := await _shoot("01_main_menu")
 	await _wait(2.0)
@@ -911,6 +929,10 @@ func _capture_fjord_night_aurora() -> void:
 	var toasts := get_node_or_null("/root/ToastNotification")
 	if toasts != null and toasts.has_method("clear_all"):
 		toasts.call("clear_all")
+	var director = _env.get("director") if _env != null else null
+	if director != null:
+		director.call("stage_cloud_drift", AURORA_CLOUD_DRIFT_KM)
+		director.call("stage_sky_time", AURORA_SKY_TIME_S)
 	await _wait(0.6)
 	var horizon_y := _horizon_pixel_row(cam)
 	var img := await _shoot("09_fjord_night_aurora", true)
@@ -1654,15 +1676,37 @@ func _check_land_contrast(shot_name: String, img: Image) -> void:
 		variance += (l - mean) * (l - mean)
 	var rms := sqrt(variance / lums.size())
 	var director = _env.get("director")
-	var mood_name := String(director.call("get_composed").get("mood", "?")) if director != null else "?"
-	print("[ScreenshotHarness] %s: land mean %.3f, RMS contrast %.3f (%d samples; visibility %.1f km, snowfall %.2f, mood %s%s)" % [
-		shot_name, mean, rms, lums.size(), visibility / 1000.0, snowfall, mood_name, "" if applies else " — weather hides the land, not checked"])
+	var composed: Dictionary = director.call("get_composed") if director != null else {}
+	var mood_name := "%s, snow line %.0f m, wet %.2f" % [String(composed.get("mood", "?")), float(composed.get("snow_line_m", -1.0)),
+		float(composed.get("ground_wetness", -1.0))]
+	var sorted := lums.duplicate()
+	sorted.sort()
+	print("[ScreenshotHarness] %s: land mean %.3f, RMS contrast %.3f, p10/p50/p90 %.3f/%.3f/%.3f (%d samples; visibility %.1f km, snowfall %.2f, mood %s%s)" % [
+		shot_name, mean, rms, sorted[sorted.size() / 10], sorted[sorted.size() / 2], sorted[sorted.size() * 9 / 10], lums.size(),
+		visibility / 1000.0, snowfall, mood_name, "" if applies else " — weather hides the land, not checked"])
+	if OS.get_environment("LK_LAND_MASK") != "":
+		_save_land_mask(shot_name, img, cam, terrain)
 	if not applies:
 		return
 	if mean > LAND_MEAN_MAX:
 		_content_failures.append("%s: land mean luminance %.3f > %.2f (whiteout)" % [shot_name, mean, LAND_MEAN_MAX])
 	if rms < LAND_RMS_MIN:
 		_content_failures.append("%s: land RMS contrast %.3f < %.2f" % [shot_name, rms, LAND_RMS_MIN])
+
+
+## Debug (LK_LAND_MASK set): the land check's samples as a PNG next to the
+## frame, the frame's pixel where the ray hit land, black elsewhere.
+func _save_land_mask(shot_name: String, img: Image, cam, terrain) -> void:
+	var vp_size := get_viewport().get_visible_rect().size
+	var mask := Image.create(160, 90, false, Image.FORMAT_RGB8)
+	for gy in 90:
+		for gx in 160:
+			var p := Vector2((gx + 0.5) / 160.0 * vp_size.x, (gy + 0.5) / 90.0 * vp_size.y)
+			var hit: Vector3 = cam.pick_ground(p)
+			if not hit.is_finite() or terrain.get_height_at(hit.x, hit.z) <= 0.5:
+				continue
+			mask.set_pixel(gx, gy, img.get_pixelv(Vector2i(int(p.x / vp_size.x * img.get_width()), int(p.y / vp_size.y * img.get_height()))))
+	mask.save_png(_project_dir_abs.path_join("%s_land_mask.png" % shot_name))
 
 
 ## Fail the run when a captured frame is mostly pure black (sampled every 8 px).

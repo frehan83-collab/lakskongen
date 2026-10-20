@@ -40,6 +40,9 @@ signal far_field_ready
 
 const BRIDGE_PATH := "res://scripts/environment/TerrainGeneratorBridge.cs"
 const TERRAIN_SHADER := "res://shaders/terrain_shader.gdshader"
+## The chunks' CUSTOM0 array (TerrainMesh.Chunk.Macro): four floats a vertex
+## (gfx-polish-1). ShaderPrewarm warms the terrain with the same format.
+const MACRO_FORMAT_FLAGS := Mesh.ARRAY_CUSTOM_RGBA_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM0_SHIFT
 ## Main-thread time per frame for chunk uploads (a chunk costs 0.2-1 ms on an
 ## idle M1 Pro, more under load).
 const CHUNK_FRAME_BUDGET_MS := 4.0
@@ -342,14 +345,17 @@ func _chunk_instance(chunk: Dictionary, instance_name: String) -> MeshInstance3D
 	arrays[Mesh.ARRAY_NORMAL] = chunk["normals"]
 	arrays[Mesh.ARRAY_TANGENT] = chunk["tangents"]
 	arrays[Mesh.ARRAY_TEX_UV] = chunk["uvs"]
-	# The slope with the wall ledges averaged out (the terrain shader's
-	# masks at a distance, gfx-polish-1).
-	if chunk.has("uv2"):
-		arrays[Mesh.ARRAY_TEX_UV2] = chunk["uv2"]
 	arrays[Mesh.ARRAY_COLOR] = chunk["colors"]
 	arrays[Mesh.ARRAY_INDEX] = chunk["indices"]
+	# CUSTOM0: the ground's slope and cavity without the wall ledges'
+	# terraces and the ledges' strength (the terrain shader's masks where a
+	# terrace is small on screen, gfx-polish-1).
+	var flags := 0
+	if chunk.has("custom0"):
+		arrays[Mesh.ARRAY_CUSTOM0] = chunk["custom0"]
+		flags = MACRO_FORMAT_FLAGS
 	var mesh := ArrayMesh.new()
-	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays, [], {}, flags)
 	var instance := MeshInstance3D.new()
 	instance.name = instance_name
 	instance.mesh = mesh

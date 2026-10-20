@@ -506,6 +506,19 @@ func stage_cloud_drift(offset_km: Vector2) -> void:
 	_cloud_offset = offset_km
 
 
+## Staging (the harness's aurora shot): put the sky's animation clock (the
+## aurora's curtains, sky_time, s) at a fixed point, as stage_cloud_drift
+## does for the clouds (gfx-polish-1).
+func stage_sky_time(seconds: float) -> void:
+	_sky_time = seconds
+
+
+## The sky's animation clock (s) and the clouds' drift (km) now (the
+## harness logs them where it stages a shot).
+func get_sky_clock() -> Dictionary:
+	return {"sky_time": _sky_time, "cloud_drift": _cloud_offset}
+
+
 ## The values composed last frame (tests and the harness read them).
 func get_composed() -> Dictionary:
 	return _composed

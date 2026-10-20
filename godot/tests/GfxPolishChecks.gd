@@ -15,6 +15,7 @@ extends RefCounted
 var t
 
 const HARNESS_SCRIPT := "res://scripts/tools/ScreenshotHarness.gd"
+const BARGE_SCENE := "res://assets/models/feed_barge/feed_barge.tscn"
 
 
 func run(tests: Node) -> void:
@@ -116,36 +117,53 @@ func _check_menu_hero_sky() -> void:
 	await t.get_tree().process_frame
 
 
-## The terrain's chunks (heightfield and far field) carry UV2: the slope and
-## the cavity with the wall ledges averaged out, which the shader's masks
-## read where a terrace is small on screen.
+## The terrain's chunks (heightfield and far field) carry CUSTOM0 (four
+## floats a vertex): the slope and cavity of the ground without the wall
+## ledges' terraces and the ledges' strength, which the shader's masks read
+## where a terrace is small on screen. On the walls the slope differs from the
+## vertex's (the terraces taken out) and the strength is up to the
+## generator's 0.28; the far field carries no ledges.
 func _check_terrain_macro(terrain: FjordTerrain) -> void:
 	var chunks := terrain.get_chunk_meshes()
-	var with_uv2 := 0
+	var with_macro := 0
 	var sane := true
 	var differs := 0
+	var strong := 0
 	for chunk in chunks:
 		var mesh := chunk.mesh as ArrayMesh
-		if mesh == null or (mesh.surface_get_format(0) & Mesh.ARRAY_FORMAT_TEX_UV2) == 0:
+		if mesh == null or (mesh.surface_get_format(0) & Mesh.ARRAY_FORMAT_CUSTOM0) == 0:
 			continue
-		with_uv2 += 1
+		with_macro += 1
 		var arrays := mesh.surface_get_arrays(0)
-		var uv2: PackedVector2Array = arrays[Mesh.ARRAY_TEX_UV2]
+		var macro: PackedFloat32Array = arrays[Mesh.ARRAY_CUSTOM0]
 		var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
-		for i in range(0, uv2.size(), 97):
-			sane = sane and uv2[i].x >= 0.0 and uv2[i].x < 50.0 and uv2[i].y >= 0.0 and uv2[i].y <= 1.0
+		sane = sane and macro.size() == normals.size() * 4
+		for i in range(0, normals.size(), 97):
+			var slope := macro[i * 4]
+			var cavity := macro[i * 4 + 1]
+			var k := macro[i * 4 + 2]
+			sane = sane and slope >= 0.0 and slope < 50.0 and cavity >= 0.0 and cavity <= 1.0 and k >= 0.0 and k <= 0.2801
 			var n := normals[i]
 			var own := Vector2(n.x, n.z).length() / maxf(n.y, 1e-3)
-			if absf(own - uv2[i].x) > 0.05:
+			if absf(own - slope) > 0.05:
 				differs += 1
+			if k > 0.2:
+				strong += 1
 	var far_ok := true
 	if terrain.far_field != null:
 		for child in terrain.far_field.get_children():
-			if child is MeshInstance3D and ((child as MeshInstance3D).mesh as ArrayMesh).surface_get_format(0) & Mesh.ARRAY_FORMAT_TEX_UV2 == 0:
+			if not (child is MeshInstance3D):
+				continue
+			var far_mesh := (child as MeshInstance3D).mesh as ArrayMesh
+			if far_mesh.surface_get_format(0) & Mesh.ARRAY_FORMAT_CUSTOM0 == 0:
 				far_ok = false
-	t._check(not chunks.is_empty() and with_uv2 == chunks.size() and sane and differs > 0 and far_ok,
-		"terrain: every chunk (%d) and the far field carry the averaged slope and cavity in UV2, and it differs from the vertex slope on the walls (%d samples)" % [
-			chunks.size(), differs])
+				continue
+			var far_macro: PackedFloat32Array = far_mesh.surface_get_arrays(0)[Mesh.ARRAY_CUSTOM0]
+			for i in range(2, far_macro.size(), 4 * 211):
+				far_ok = far_ok and far_macro[i] == 0.0
+	t._check(not chunks.is_empty() and with_macro == chunks.size() and sane and differs > 0 and strong > 0 and far_ok,
+		"terrain: every chunk (%d) and the far field carry the ground without its ledges in CUSTOM0, the walls' slope taken out of its terraces (%d samples differ) and the ledges' strength (%d samples over 0.2)" % [
+			chunks.size(), differs, strong])
 
 
 ## In a storm the water breaks no whitecap inside a pen: the director hands
@@ -225,7 +243,7 @@ func _check_shoal_lod(cam: FjordCamera, pens: FishPenManager) -> void:
 ## its boat is on screen (08b cut a barge's chip at the left edge), and hides
 ## once the boat has left it.
 func _check_vessel_chips(env: FjordEnvironment, cam: FjordCamera, pens: FishPenManager) -> void:
-	var view := t.get_viewport().get_visible_rect().size
+	var view: Vector2 = (t.get_viewport() as Viewport).get_visible_rect().size
 	var size := Vector2(220.0, VesselChip.HEIGHT_PX)
 	var centred := VesselChip.edge_shift_for(view * 0.5, size, cam.fov, view)
 	var k := VesselChip.PIXEL_SIZE * view.y / (2.0 * tan(deg_to_rad(cam.fov) * 0.5))
@@ -267,3 +285,28 @@ func _check_vessel_chips(env: FjordEnvironment, cam: FjordCamera, pens: FishPenM
 	t._check(shown_left and hidden_off and back,
 		"chips: a barge's chip at the screen's left edge shows its whole pill (left %.1f px), hides with its boat off screen and returns centred" % pill_left)
 	chip.queue_free()
+	# A chip riding a 37 m barge (08b): while the barge's bow still shows,
+	# its centre (the anchor) a little past the left edge, the chip stays,
+	# slid in; once the whole barge has left the view, it hides.
+	var barge := (load(BARGE_SCENE) as PackedScene).instantiate() as Node3D
+	# Held where the test puts it (no heave to the water level).
+	barge.set("rides_waves", false)
+	env.add_child(barge)
+	var ride := VesselChip.new()
+	barge.add_child(ride)
+	ride.set_chip("Fôrflåte · fôrer", Color("#E8B92A"))
+	var half_px := VesselChip.boat_reach_px(cam, view, cam.project_position(view * 0.5, depth), ride.vessel_half_length_m())
+	barge.global_position = cam.project_position(Vector2(-0.5 * half_px, view.y * 0.5), depth)
+	ride.position = Vector3.ZERO
+	for i in 3:
+		await t.get_tree().process_frame
+	var bow_left := cam.unproject_position(ride.global_position).x + ride.edge_shift.x * kk - ride.get_size_px().x * kk * 0.5
+	var stays := ride.on_screen and (ride.get_node("Pill") as Node3D).visible and bow_left >= VesselChip.EDGE_MARGIN_PX - 0.6
+	barge.global_position = cam.project_position(Vector2(-1.5 * half_px - 20.0, view.y * 0.5), depth)
+	for i in 3:
+		await t.get_tree().process_frame
+	var gone := not ride.on_screen and not (ride.get_node("Pill") as Node3D).visible
+	t._check(is_equal_approx(ride.vessel_half_length_m(), 18.5) and half_px > 20.0 and stays and gone,
+		"chips: a barge whose bow still shows keeps its chip slid in (anchor %.0f px past the edge, its half length %.0f px; pill left %.1f px), and loses it once the whole barge is out" % [
+			0.5 * half_px, half_px, bow_left])
+	barge.queue_free()

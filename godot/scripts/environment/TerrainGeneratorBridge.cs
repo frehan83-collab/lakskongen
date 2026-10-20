@@ -51,7 +51,7 @@ public partial class TerrainGeneratorBridge : RefCounted
         var watch = Stopwatch.StartNew();
         var settings = _generator.Settings;
         int n = settings.Resolution;
-        float[] heights = _generator.GenerateHeightmap();
+        float[] heights = _generator.GenerateHeightmap(out WallLedges ledges);
         var water = WaterBake.Build(heights, n, settings.WorldSizeM, 0f,
             settings.PrevailingSeaDirX, settings.PrevailingSeaDirZ);
         var exposure = new float[n * n];
@@ -64,7 +64,7 @@ public partial class TerrainGeneratorBridge : RefCounted
             shoreDistance[i] = water.Rgba[i * 4 + 1];
         var props = ShorePropPlacer.Place(heights, n, settings.WorldSizeM, shoreDistance, masks.LandExposure);
         var trees = VegetationScatter.Scatter(heights, masks, vegetation, ShorePropPlacer.Clearings(props));
-        var mesh = TerrainMesh.Build(heights, n, settings.WorldSizeM, ChunkQuads, masks, _generator.FarFieldHeightAt);
+        var mesh = TerrainMesh.Build(heights, n, settings.WorldSizeM, ChunkQuads, masks, _generator.FarFieldHeightAt, ledges);
         var farWatch = Stopwatch.StartNew();
         var far = FarFieldMesh.Build(_generator, heights, masks);
 
@@ -195,19 +195,23 @@ public partial class TerrainGeneratorBridge : RefCounted
         var normals = new Godot.Vector3[count];
         var uvs = new Godot.Vector2[count];
         var colors = new Godot.Color[count];
-        var macro = new Godot.Vector2[count];
-        bool hasMacro = chunk.Macro.Length >= count * 2;
+        int stride = TerrainMesh.MacroStride;
+        bool hasMacro = chunk.Macro.Length >= count * stride;
+        // CUSTOM0 (RGBA float): the ground's slope and cavity without the wall
+        // ledges' terraces and the ledges' strength (TerrainMesh.Chunk.Macro);
+        // without them, the vertex's own slope and cavity, no ledges.
+        var macro = hasMacro ? chunk.Macro : new float[count * stride];
         for (int i = 0; i < count; i++)
         {
             vertices[i] = new Godot.Vector3(chunk.Positions[i * 3], chunk.Positions[i * 3 + 1], chunk.Positions[i * 3 + 2]);
             normals[i] = new Godot.Vector3(chunk.Normals[i * 3], chunk.Normals[i * 3 + 1], chunk.Normals[i * 3 + 2]);
             uvs[i] = new Godot.Vector2(chunk.Uvs[i * 2], chunk.Uvs[i * 2 + 1]);
             colors[i] = new Godot.Color(chunk.Colors[i * 4], chunk.Colors[i * 4 + 1], chunk.Colors[i * 4 + 2], chunk.Colors[i * 4 + 3]);
-            // UV2: the slope and the cavity with the wall ledges averaged out
-            // (TerrainMesh.Chunk.Macro); without them, the vertex's own.
-            macro[i] = hasMacro
-                ? new Godot.Vector2(chunk.Macro[i * 2], chunk.Macro[i * 2 + 1])
-                : new Godot.Vector2(normals[i].Y > 1e-6f ? new Godot.Vector2(normals[i].X, normals[i].Z).Length() / normals[i].Y : 0f, colors[i].R);
+            if (!hasMacro)
+            {
+                macro[i * stride] = normals[i].Y > 1e-6f ? new Godot.Vector2(normals[i].X, normals[i].Z).Length() / normals[i].Y : 0f;
+                macro[i * stride + 1] = colors[i].R;
+            }
         }
         return new Godot.Collections.Dictionary
         {
@@ -215,7 +219,7 @@ public partial class TerrainGeneratorBridge : RefCounted
             ["normals"] = normals,
             ["tangents"] = chunk.Tangents,
             ["uvs"] = uvs,
-            ["uv2"] = macro,
+            ["custom0"] = macro,
             ["colors"] = colors,
             ["indices"] = chunk.Indices,
             ["first_column"] = chunk.FirstColumn,

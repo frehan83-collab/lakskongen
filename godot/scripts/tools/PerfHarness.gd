@@ -378,7 +378,8 @@ func _apply_variant(v: Dictionary) -> void:
 ## Raw overrides, for profiling only: "env.ssao_enabled=false" (the
 ## Environment), "vp.msaa_3d=0" (the root viewport), "sun.shadow_enabled=false",
 ## "camattr.dof_blur_far_enabled=false", "sky.<uniform>" (the sky material),
-## "water.<uniform>" (the water material), "hide.<path under the
+## "water.<uniform>" (the water material), "shoal.<uniform>" (the schools
+## seen through the surface, one shared material), "hide.<path under the
 ## FjordEnvironment>=true" (visible = false), "mirrorenv.<property>",
 ## "mirrorcam.<property>" and "mirrorvp.<property>" (the planar mirror's
 ## environment, camera and viewport), and "hideall.<name prefix>=true" (every
@@ -481,6 +482,11 @@ func _raw_target(key: String) -> Array:
 			var grid := _env.get_node_or_null("WaterGrid")
 			if grid and grid.get("material"):
 				return [grid.get("material"), prop, true]
+		"shoal":
+			# The salmon schools seen through the surface (G3-01): one shared
+			# material, so "shoal.fish_range=0" splits the fish from the pens'
+			# water column (gfx-polish-1).
+			return [FishSchool.SHOAL_MATERIAL, prop, true]
 		"terrain":
 			var terrain := _env.get_node_or_null("Terrain")
 			var chunks: Array = terrain.call("get_chunk_meshes") if terrain else []

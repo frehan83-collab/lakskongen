@@ -165,10 +165,11 @@ float fbm(vec2 p, int octaves) {
 }
 
 // fbm with a fractional octave count (gfx-polish-1): octave i weighs
-// clamp(octaves - i, 0, 1) and a faded octave goes to the noise's mean
-// (0.5) instead of dropping out, so the field keeps its mean and its
-// normalisation while its finest detail is filtered away. A whole count
-// gives fbm() exactly.
+// clamp(octaves - i, 0, 1) in the sum and in the normalisation, so a
+// fading octave hands its share to the coarser ones as fbm() does when it
+// drops one: the field keeps its mean and spread, and the clouds their
+// cover, while the finest detail is filtered away. A whole count gives
+// fbm() exactly.
 float fbm_lod(vec2 p, float octaves) {
 	float sum = 0.0;
 	float amp = 0.5;
@@ -177,8 +178,8 @@ float fbm_lod(vec2 p, float octaves) {
 	int n = int(ceil(octaves));
 	for (int i = 0; i < n; i++) {
 		float w = clamp(octaves - float(i), 0.0, 1.0);
-		sum += amp * mix(0.5, vnoise(p), w);
-		norm += amp;
+		sum += amp * w * vnoise(p);
+		norm += amp * w;
 		p = rot * p * 2.03 + vec2(13.1, 7.7);
 		amp *= 0.5;
 	}
@@ -368,19 +369,27 @@ const float COARSE_SLOPE_PER_KM = 0.2;
 const float REFINE_SPAN = 0.34;
 const int EDGE_SEARCH = 4;
 const int INNER_STEPS = 3;
+// The march into a cloud takes INNER_STEPS steps, then goes on up to
+// INNER_MAX_STEPS until the cloud is opaque or the ray leaves it, and a ray
+// looks for CLOUD_HITS clouds at most (a thin cloud does not hide the one
+// behind it). No threshold on the light let through decides how far a ray
+// marches: one would draw contour lines where neighbouring pixels cross it.
+const int INNER_MAX_STEPS = 8;
+const int CLOUD_HITS = 2;
 const float INNER_STEP_KM = 0.4;
 const float INNER_STEP_PER_KM = 0.02;
 // cloud_lod: the stretch of the footprint along the view stops at this sine
 // of the elevation (~1.7 degrees, where HORIZON_FADE has taken broken cloud
 // away), and the edge is spread over LOD_EDGE_BLUR times the noise's mean
-// change across the footprint: the low layer's fbm changes by 0.11-0.15 per
-// km for 1-6 octaves (measured on the same value noise and octave rotation,
-// RUN_LOG gfx-polish-1), a little more with the domain warp.
+// change across the footprint: low_noise (domain warp included) changes by
+// 0.11 per km with 1 octave to 0.16 with 6 (measured on a replica of this
+// value noise, hash and octave rotation, 20,000 points; RUN_LOG
+// gfx-polish-1).
 const float LOD_MIN_SIN = 0.03;
 // A reduced pass's footprint against its own texel (sky()).
 const float REDUCED_PASS_FOOTPRINT = 1.6;
 const float LOW_GRADIENT_PER_KM = 0.14;
-const float LOD_EDGE_BLUR = 2.0;
+const float LOD_EDGE_BLUR = 1.0;
 // Broken cloud fades out over the last degrees above the horizon (sin of the
 // elevation): too far and too thin on screen to draw without stair steps,
 // and lost in the haze there anyway. A closed deck runs on to the horizon.
@@ -411,14 +420,90 @@ float slab_edge_margin(vec3 dir, float t, float octaves, float blur) {
 // a sample t km out, the octave count whose finest octave still spans two
 // footprints (an octave fades out between four and two), and the edge blur:
 // the noise's change across the footprint, so the cloud's edge is spread
-// over at least a pixel and the bilinear upsample of a reduced pass has
-// nothing sharper than its own texels to step.
+// over a pixel and the bilinear upsample of a reduced pass has nothing
+// sharper than its own texels to step. The footprint is the geometric mean
+// of a pixel's stretch along the view (t angle / sin e) and its width
+// across it (t angle): the stretch alone, 20 times the width 3 degrees up,
+// left a far cloud one octave of soft blob where a pixel still resolves
+// three across it.
 // x: octaves (fractional), y: edge blur (noise units).
 vec2 cloud_lod(float t, float sin_e, float pixel_angle, int octaves) {
-	float footprint = t * pixel_angle / max(sin_e, LOD_MIN_SIN);
+	float footprint = t * pixel_angle / sqrt(max(sin_e, LOD_MIN_SIN));
 	float n = log2(LOW_WAVELENGTH_KM / (2.0 * footprint)) / log2(2.03);
 	n = clamp(n, 1.0, float(octaves));
 	return vec2(n, LOD_EDGE_BLUR * LOW_GRADIENT_PER_KM * footprint);
+}
+
+// The edge (km along `dir`) of the first low cloud at or after `t_from` and
+// before `t1`; false when there is none. The search grid's points lie at
+// grid_origin + (k + 1/2) dc: anchored to the eye (origin 0), so
+// neighbouring rows of a grazing view test the same points of the cloud
+// field and a cloud between two points is found or missed by every row
+// alike (a grid that started at the slab's entry moved with every row and
+// flipped such a cloud on and off row by row: horizontal slices and stair
+// steps); short, steep crossings (overhead) put `steps` points over the
+// slab from its entry. A grid point stands for the interval round it: the
+// coarse test (two octaves fewer) adds COARSE_MARGIN plus how far the noise
+// can rise within half a step (COARSE_SLOPE_PER_KM), and where the cloud
+// may be, three points across the interval are tested in full, so a cloud
+// thinner than a step is still found. EDGE_SEARCH bisections and one secant
+// step on the edge margin place the edge where it crosses (the bisection
+// alone left it quantised to a sixteenth of a step, and the steps into the
+// cloud jumped with it: contour lines through far clouds) (gfx-polish-1).
+bool find_cloud_edge(vec3 dir, float t_from, float t1, float grid_origin, float dc, int max_points, vec2 lod, out float edge) {
+	edge = t1;
+	float t = grid_origin + (floor((t_from - grid_origin) / dc) + 0.5) * dc;
+	if (t < t_from) {
+		t += dc;
+	}
+	float coarse_octaves = max(lod.x - 2.0, 1.0);
+	float margin = COARSE_MARGIN + COARSE_SLOPE_PER_KM * dc * 0.5;
+	float t_empty = t_from;
+	float hn;
+	bool hit = false;
+	for (int i = 0; i < max_points; i++) {
+		if (t - dc * 0.5 > t1) {
+			break;
+		}
+		float h = OBSERVER_H + t * dir.y + t * t * (1.0 - dir.y * dir.y) / (2.0 * R_EARTH);
+		float hn_c = clamp((h - H0) / (H1 - H0), 0.0, 1.0);
+		if (low_density_blurred(low_noise(dir.xz * t, coarse_octaves) + margin, hn_c, lod.y) > 0.001) {
+			for (int j = -1; j <= 1; j++) {
+				float ts = t + float(j) * dc * REFINE_SPAN;
+				if (ts <= t_empty || ts > t1) {
+					continue;
+				}
+				if (slab_density(dir, ts, lod.x, lod.y, hn) > 0.001) {
+					t = ts;
+					hit = true;
+					break;
+				}
+				t_empty = ts;
+			}
+			if (hit) {
+				break;
+			}
+		}
+		t_empty = max(t_empty, min(t + dc * 0.5, t1));
+		t += dc;
+	}
+	if (!hit) {
+		return false;
+	}
+	float lo = t_empty;
+	float hi = t;
+	for (int k = 0; k < EDGE_SEARCH; k++) {
+		float mid = 0.5 * (lo + hi);
+		if (slab_density(dir, mid, lod.x, lod.y, hn) > 0.001) {
+			hi = mid;
+		} else {
+			lo = mid;
+		}
+	}
+	float m_lo = slab_edge_margin(dir, lo, lod.x, lod.y);
+	float m_hi = slab_edge_margin(dir, hi, lod.x, lod.y);
+	edge = m_hi > m_lo ? mix(lo, hi, clamp(-m_lo / (m_hi - m_lo), 0.0, 1.0)) : hi;
+	return true;
 }
 
 vec4 cloud_layer_low(vec3 dir, vec3 sun_dir, vec3 sky_top, vec3 moon_light, int octaves, int steps, float pixel_angle) {
@@ -457,124 +542,81 @@ vec4 cloud_layer_low(vec3 dir, vec3 sun_dir, vec3 sky_top, vec3 moon_light, int 
 	// pixel, and every pixel takes the same number of them, so the edges and
 	// the shading stay continuous. The noise is band-limited to the pixel at
 	// the slab's entry for the search and at the cloud's edge for the rest
-	// (cloud_lod), with no whole-octave steps along the screen.
-	// The search grid is anchored to the eye, not to the slab's entry
-	// (gfx-polish-1): its points lie at fixed distances (multiples of dc), so
-	// neighbouring rows of a grazing view test the same points of the cloud
-	// field and a cloud between two points is found or missed by every row
-	// alike. A grid that started at t0 moved with every row and flipped such
-	// a cloud on and off row by row: horizontal slices and stair steps.
-	// Short, steep crossings (overhead) keep `steps` points over the slab.
+	// (cloud_lod), with no whole-octave steps along the screen. The search
+	// grid is anchored to the eye (find_cloud_edge).
 	float dc = max(COARSE_STEP_KM, SLAB_MARCH_KM / float(steps * cloud_search));
 	int coarse = int(ceil((t1 - t0) / dc)) + 1;
-	float t = (floor(t0 / dc) + 0.5) * dc;
-	if (t < t0) {
-		t += dc;
-	}
+	float grid_origin = 0.0;
 	if (coarse < steps + 1) {
 		coarse = steps;
 		dc = (t1 - t0) / float(steps);
-		t = t0 + 0.5 * dc;
+		grid_origin = t0;
 	}
 	vec2 lod = cloud_lod(t0, dir.y, pixel_angle, octaves);
-	float coarse_octaves = max(lod.x - 2.0, 1.0);
-	float t_empty = t0;
-	float hn = 0.0;
-	float d = 0.0;
-	bool hit = false;
-	// A grid point stands for the interval of a step round it: the coarse
-	// test's margin also covers how far the noise can rise within half a
-	// step (COARSE_SLOPE_PER_KM), and where the cloud may be, three points
-	// across the interval are tested in full, so a cloud thinner than a step
-	// along the ray is still found (gfx-polish-1: the misses drew rows of
-	// slices and steps under grazing views).
-	float margin = COARSE_MARGIN + COARSE_SLOPE_PER_KM * dc * 0.5;
-	for (int i = 0; i < coarse; i++) {
-		if (t - dc * 0.5 > t1) {
-			break;
-		}
-		float h = OBSERVER_H + t * dir.y + t * t * (1.0 - dir.y * dir.y) / (2.0 * R_EARTH);
-		float hn_c = clamp((h - H0) / (H1 - H0), 0.0, 1.0);
-		if (low_density_blurred(low_noise(dir.xz * t, coarse_octaves) + margin, hn_c, lod.y) > 0.001) {
-			for (int j = -1; j <= 1; j++) {
-				float ts = t + float(j) * dc * REFINE_SPAN;
-				if (ts <= t_empty || ts > t1) {
-					continue;
-				}
-				d = slab_density(dir, ts, lod.x, lod.y, hn);
-				if (d > 0.001) {
-					t = ts;
-					hit = true;
-					break;
-				}
-				t_empty = ts;
-			}
-			if (hit) {
-				break;
-			}
-		}
-		t_empty = max(t_empty, min(t + dc * 0.5, t1));
-		t += dc;
-	}
-	if (!hit) {
-		return vec4(0.0);
-	}
-	float lo = t_empty;
-	float hi = t;
-	for (int k = 0; k < EDGE_SEARCH; k++) {
-		float mid = 0.5 * (lo + hi);
-		float hm;
-		if (slab_density(dir, mid, lod.x, lod.y, hm) > 0.001) {
-			hi = mid;
-		} else {
-			lo = mid;
-		}
-	}
-	// The bisection leaves the edge somewhere in a sixteenth of a step, and
-	// the steps into the cloud started from that quantised point: as the edge
-	// moved across the screen they jumped, drawing contour lines through far
-	// clouds. One secant step on the edge margin puts the edge where it
-	// crosses, so the steps move smoothly from pixel to pixel (gfx-polish-1).
-	float m_lo = slab_edge_margin(dir, lo, lod.x, lod.y);
-	float m_hi = slab_edge_margin(dir, hi, lod.x, lod.y);
-	float edge = m_hi > m_lo ? mix(lo, hi, clamp(-m_lo / (m_hi - m_lo), 0.0, 1.0)) : hi;
-	// The steps into the cloud read the noise at the edge's level of detail:
-	// the edge moves smoothly, the grid point that found it does not (its
-	// detail changed by a step where the hit moved to the next point).
-	lod = cloud_lod(edge, dir.y, pixel_angle, octaves);
 	// Far off a pixel spans kilometres of cloud: the steps into it lengthen
 	// with the distance, so a far cloud is its mean, not a sliver of it.
 	float ds_in = min(ds, max(INNER_STEP_KM, t0 * INNER_STEP_PER_KM));
-	t = edge + 0.5 * ds_in;
-	float h_edge = OBSERVER_H + t * dir.y + t * t * (1.0 - dir.y * dir.y) / (2.0 * R_EARTH);
-	float hn_edge = clamp((h_edge - H0) / (H1 - H0), 0.0, 1.0);
-	vec3 p_edge = dir * t;
-	float d_sun = low_density_at(low_noise(p_edge.xz + toward, max(lod.x - 3.0, 1.0)), min(hn_edge + 0.15, 1.0));
-	for (int i = 0; i < INNER_STEPS; i++) {
-		d = slab_density(dir, t, lod.x, lod.y, hn);
-		vec3 p = dir * t;
-		t += ds_in;
-		if (d <= 0.001) {
-			continue;
+	// A cloud's thin fringe (its edge spread over the pixel by cloud_lod) is
+	// marched on into the cloud until it is opaque, and a cloud that lets
+	// light through does not hide the next one along the ray (gfx-polish-1:
+	// three steps into the first cloud only, and a thin wisp in front of a
+	// thick cloud cut a sharp, bright hole into it).
+	float t_from = t0;
+	for (int hit_i = 0; hit_i < CLOUD_HITS; hit_i++) {
+		float edge;
+		if (!find_cloud_edge(dir, t_from, t1, grid_origin, dc, coarse, lod, edge)) {
+			break;
 		}
-		float tau_step = d * sigma * ds_in;
-		// The column above this sample, and relief toward the sun.
-		float tau_column = d * tau_max;
-		float t_d = 1.0 / (1.0 + 0.75 * tau_column * 0.15);
-		float shade = exp(-d_sun * tau_max * 0.08) * mix(0.75, 1.0, hn);
-		vec3 c = sun_in * sun_up * t_d * (0.45 + 0.55 * shade) * mix(0.8, 1.2, hn);
-		// The sunlit sides face the low sun: seen from anywhere, a little
-		// brighter toward it (the silver lining adds the forward peak).
-		c += sun_in * low_sun * (0.6 + 0.4 * mu) * 0.9 * shade;
-		c += sun_in * silver * exp(-tau_column * 0.5) * shade;
-		c += ambient * (1.0 - 0.3 * d) * (0.8 + 0.4 * hn);
-		c += moon_light * (0.25 + 0.6 * shade);
-		float absorbed = 1.0 - exp(-tau_step);
-		light += transmittance * absorbed * c;
-		transmittance *= 1.0 - absorbed;
+		// The steps into the cloud read the noise at the edge's level of
+		// detail: the edge moves smoothly, the grid point that found it does
+		// not (its detail changed by a step where the hit moved to the next
+		// point).
+		vec2 lod_in = cloud_lod(edge, dir.y, pixel_angle, octaves);
+		float t = edge + 0.5 * ds_in;
+		float h_edge = OBSERVER_H + t * dir.y + t * t * (1.0 - dir.y * dir.y) / (2.0 * R_EARTH);
+		float hn_edge = clamp((h_edge - H0) / (H1 - H0), 0.0, 1.0);
+		vec3 p_edge = dir * t;
+		float d_sun = low_density_at(low_noise(p_edge.xz + toward, max(lod_in.x - 3.0, 1.0)), min(hn_edge + 0.15, 1.0));
+		float hn;
+		int empty_run = 0;
+		for (int i = 0; i < INNER_MAX_STEPS; i++) {
+			if (t > t1) {
+				break;
+			}
+			float d = slab_density(dir, t, lod_in.x, lod_in.y, hn);
+			t += ds_in;
+			if (d <= 0.001) {
+				empty_run += 1;
+				// Out the far side: the next cloud, if any, is searched for.
+				if (i >= INNER_STEPS && empty_run >= 2) {
+					break;
+				}
+				continue;
+			}
+			empty_run = 0;
+			float tau_step = d * sigma * ds_in;
+			// The column above this sample, and relief toward the sun.
+			float tau_column = d * tau_max;
+			float t_d = 1.0 / (1.0 + 0.75 * tau_column * 0.15);
+			float shade = exp(-d_sun * tau_max * 0.08) * mix(0.75, 1.0, hn);
+			vec3 c = sun_in * sun_up * t_d * (0.45 + 0.55 * shade) * mix(0.8, 1.2, hn);
+			// The sunlit sides face the low sun: seen from anywhere, a little
+			// brighter toward it (the silver lining adds the forward peak).
+			c += sun_in * low_sun * (0.6 + 0.4 * mu) * 0.9 * shade;
+			c += sun_in * silver * exp(-tau_column * 0.5) * shade;
+			c += ambient * (1.0 - 0.3 * d) * (0.8 + 0.4 * hn);
+			c += moon_light * (0.25 + 0.6 * shade);
+			float absorbed = 1.0 - exp(-tau_step);
+			light += transmittance * absorbed * c;
+			transmittance *= 1.0 - absorbed;
+			if (transmittance < 0.02) {
+				break;
+			}
+		}
 		if (transmittance < 0.02) {
 			break;
 		}
+		t_from = t;
 	}
 	float alpha = 1.0 - transmittance;
 	if (alpha <= 0.001) {

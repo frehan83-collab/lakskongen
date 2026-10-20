@@ -23,11 +23,12 @@ const DOT_GAP_PX := 8.0
 const LIFT_PX := 38.0
 const CHIP_SHADER := preload("res://shaders/world_chip.gdshader")
 
-## Screen edges (gfx-polish-1): a chip whose boat is on screen slides inward
-## so its whole pill stays at least EDGE_MARGIN_PX inside the view (08b cut a
-## barge's chip in half at the left edge); once the boat itself is more than
-## OFFSCREEN_PX outside the view the chip hides, so no chip points at
-## nothing. Shifts under SHIFT_STEP_PX are not re-applied.
+## Screen edges (gfx-polish-1): a chip whose boat shows on screen slides
+## inward so its whole pill stays at least EDGE_MARGIN_PX inside the view (08b
+## cut a barge's chip in half at the left edge); once the whole boat is out
+## of the view (its anchor more than half the boat's length, plus
+## OFFSCREEN_PX, beyond an edge) the chip hides, so no chip points at nothing.
+## Shifts under SHIFT_STEP_PX are not re-applied.
 const EDGE_MARGIN_PX := 8.0
 const OFFSCREEN_PX := 4.0
 const SHIFT_STEP_PX := 0.5
@@ -135,15 +136,16 @@ func _process(_delta: float) -> void:
 
 ## Slide the pill and its text inward to keep the whole chip EDGE_MARGIN_PX
 ## inside a view of `view_size` (viewport px) seen through `cam`; hide it
-## while its boat (the anchor) is off screen or behind the camera.
+## while its boat is out of the view or behind the camera.
 func keep_on_screen(cam: Camera3D, view_size: Vector2) -> void:
 	var anchor := global_position
 	var visible_now := not cam.is_position_behind(anchor)
 	var shift := Vector2.ZERO
 	if visible_now:
 		var at := cam.unproject_position(anchor)
-		visible_now = at.x >= -OFFSCREEN_PX and at.x <= view_size.x + OFFSCREEN_PX \
-			and at.y >= -OFFSCREEN_PX and at.y <= view_size.y + OFFSCREEN_PX
+		var reach := OFFSCREEN_PX + boat_reach_px(cam, view_size, anchor, vessel_half_length_m())
+		visible_now = at.x >= -reach and at.x <= view_size.x + reach \
+			and at.y >= -reach and at.y <= view_size.y + reach
 		if visible_now:
 			shift = edge_shift_for(at, get_size_px(), cam.fov, view_size)
 	if visible_now != on_screen:
@@ -154,6 +156,26 @@ func keep_on_screen(cam: Camera3D, view_size: Vector2) -> void:
 		edge_shift = shift
 		_material.set_shader_parameter("offset_px", Vector2(0.0, LIFT_PX) + edge_shift)
 		_place_text()
+
+
+## Half the length (m) of the boat this chip rides (its VesselModel's
+## length_m), 0 when the parent has none.
+func vessel_half_length_m() -> float:
+	var boat := get_parent()
+	if boat == null:
+		return 0.0
+	var length: Variant = boat.get("length_m")
+	return float(length) * 0.5 if length != null else 0.0
+
+
+## How far (viewport px) `half_length_m` of boat round `anchor` reaches on a
+## view of `view_size` through `cam` (perspective: f / depth px a metre).
+static func boat_reach_px(cam: Camera3D, view_size: Vector2, anchor: Vector3, half_length_m: float) -> float:
+	var depth := -(cam.global_transform.affine_inverse() * anchor).z
+	if depth <= 0.0 or half_length_m <= 0.0:
+		return 0.0
+	var focal_px := view_size.y / (2.0 * tan(deg_to_rad(cam.fov) * 0.5))
+	return half_length_m * focal_px / depth
 
 
 ## The slide (chip px, up = +y) that keeps a pill of `size_px` lifted
