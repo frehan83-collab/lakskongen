@@ -131,6 +131,7 @@ var _health_ring: MeshInstance3D
 var _click_area: Area3D
 var _band_color: Color = Color(0, 0, 0, 0)
 var _net_opacity: float = 1.0
+var _net_fouling: float = 0.0
 var _lice_skirt: bool = false
 var _bird_net: int = BirdNet.TENT
 ## True once a FarmSite draws this pen's LOD1 and LOD2 (set_site_drawn).
@@ -307,6 +308,16 @@ func get_net_opacity() -> float:
 func _apply_net_opacity() -> void:
 	for net in get_net_nodes():
 		net.set_instance_shader_parameter("net_opacity", _net_opacity)
+
+## The net's fouling, 0 clean .. 1 heavily grown (G3-04, pen_net_shader
+## net_fouling): FarmSite hands every pen of a site the site's.
+func set_net_fouling(value: float) -> void:
+	_net_fouling = clampf(value, 0.0, 1.0)
+	for net in get_net_nodes():
+		net.set_instance_shader_parameter("net_fouling", _net_fouling)
+
+func get_net_fouling() -> float:
+	return _net_fouling
 
 ## Every mesh drawn with the net shader (pen net and bird net, all LODs).
 func get_net_nodes() -> Array[MeshInstance3D]:

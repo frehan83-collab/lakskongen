@@ -85,6 +85,9 @@ var water_now := {"visibility_m": UnderwaterOptics.FALLBACK_VISIBILITY_M, "chlor
 ## The light shafts and the marine snow (made at _ready; tests read them).
 var shafts: MultiMeshInstance3D = null
 var snow: GPUParticles3D = null
+## Staging (the harness's caustics measurement): the shafts and the snow held
+## off (stage_effects).
+var effects_staged_off := false
 
 
 func _ready() -> void:
@@ -209,12 +212,18 @@ func _update_lens(under: bool) -> void:
 		mat.set_shader_parameter("veil_color", fog)
 
 
+## Staging (UnderwaterShots, G3-04): hold the shafts and the snow off (or
+## give them back) while the net's caustics are measured.
+func stage_effects(on: bool) -> void:
+	effects_staged_off = not on
+
+
 ## The shafts and the snow follow the director's composition of the water
 ## at the camera (EnvironmentDirector c["uw"]): shown only under the surface.
 func _update_effects(under: bool, delta: float) -> void:
 	var composed: Dictionary = director.get_composed() if director != null else {}
 	var uw: Dictionary = composed.get("uw", {})
-	var shown := under and not uw.is_empty()
+	var shown := under and not uw.is_empty() and not effects_staged_off
 	if shafts != null:
 		_shaft_time += delta
 		var strength := shaft_strength(float(composed.get("sun_elevation", 0.0)), float(composed.get("cloud_cover", 1.0)))

@@ -71,7 +71,10 @@ float uw_caustic(vec3 world) {
 }
 
 // The light the caustics move onto a surface of `albedo` facing `normal_world`
-// at `world` (added to EMISSION; the scene's sun lights the mean).
+// at `world` (added to EMISSION; the scene's sun lights the mean). Godot
+// folds the diffuse BRDF's 1/pi into a light's energy (a light of energy E
+// lights a white Lambert surface facing it to E: measured, RUN_LOG
+// section 7), so the caustics add the sunlight times (i - 1), no 1/pi.
 vec3 uw_caustic_light(vec3 world, vec3 normal_world, vec3 albedo) {
 	// (Uniform branches only: the caustic lookup takes screen derivatives.)
 	if (lk_uw.x < 0.5 || lk_uw.z <= 0.001) {
@@ -79,5 +82,5 @@ vec3 uw_caustic_light(vec3 world, vec3 normal_world, vec3 albedo) {
 	}
 	float i = uw_caustic(world);
 	float facing = max(dot(normal_world, lk_uw_sun), 0.0);
-	return albedo * lk_uw_light * uw_depth_light(world.y) * (facing * lk_uw.z * (i - 1.0) * 0.31831);
+	return albedo * lk_uw_light * uw_depth_light(world.y) * (facing * lk_uw.z * (i - 1.0));
 }

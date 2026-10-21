@@ -342,6 +342,8 @@ var _uw_chlorophyll := 0.0
 ## read it).
 var _caustic_time := 0.0
 var uw_globals_on := false
+## Staging (the harness's caustics twin): the caustics held off.
+var caustics_staged_off := false
 ## The ground (G2-02): fresh snow and wet ground, eased toward the weather.
 var _fresh_snow := 0.0
 var _wetness := 0.0
@@ -575,6 +577,12 @@ func set_underwater_water(visibility_m: float, chlorophyll_ug_l: float) -> void:
 ## not depend on how long the run has played.
 func stage_cloud_drift(offset_km: Vector2) -> void:
 	_cloud_offset = offset_km
+
+
+## Staging (the harness's caustics twin, G3-04): hold the caustics off (or
+## give them back) while everything else runs.
+func stage_caustics(on: bool) -> void:
+	caustics_staged_off = not on
 
 
 ## Staging (the harness's aurora shot): put the sky's animation clock (the
@@ -925,6 +933,8 @@ func _apply_underwater_globals(delta: float, sun_elev: float, cloud: float, unde
 	var strength := smoothstep(CAUSTIC_SUN_DEG.x, CAUSTIC_SUN_DEG.y, sun_elev) \
 		* (1.0 - smoothstep(CAUSTIC_CLOUD.x, CAUSTIC_CLOUD.y, cloud)) \
 		* smoothstep(CAUSTIC_RIPPLE.x, CAUSTIC_RIPPLE.y, ripple_strength_for(wind))
+	if caustics_staged_off:
+		strength = 0.0
 	RenderingServer.global_shader_parameter_set(UW_GLOBALS[0], Vector4(1.0, float(uw["depth_m"]), strength, _caustic_time))
 	RenderingServer.global_shader_parameter_set(UW_GLOBALS[1], uw["sun_dir"])
 	RenderingServer.global_shader_parameter_set(UW_GLOBALS[2], uw["sun_at_depth"])
