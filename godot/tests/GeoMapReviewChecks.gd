@@ -85,8 +85,8 @@ func _stars_read_the_bridge(chart: GeoMapView) -> void:
 
 
 ## A farm of the company's on PO3's best place, through the map's own
-## refresh: the star moves to the next free place and says one is the
-## company's; the same state again records nothing; all twelve held, the
+## refresh, even after a relayout took the farm in first: the star moves to
+## the next free place and says one is the company's; the same state again records nothing; all twelve held, the
 ## area has no star (nothing to offer, and it would hide under a farm).
 func _stars_follow_the_companys_places(chart: GeoMapView) -> void:
 	var real := chart.bridge
@@ -99,6 +99,10 @@ func _stars_follow_the_companys_places(chart: GeoMapView) -> void:
 	fake.extra = [{"site_id": "geo_review_site", "site_label": "Prøvelokalitet", "label": str(first["label"]), "po": 3,
 		"candidate_id": str(first["id"]), "x": float(first["x"]), "y": float(first["y"]), "source": "candidate"}]
 	chart.bridge = GeoBridgeAdapter.new(fake)
+	# A relayout first (a window resize while the tab is hidden) takes the new
+	# farms in: the refresh after it must still move the star.
+	chart.relayout(true)
+	await t.get_tree().process_frame
 	var before := chart.candidate_layer().redraw_count
 	var changed := chart.live_update(true)
 	await t.get_tree().process_frame

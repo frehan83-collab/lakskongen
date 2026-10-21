@@ -88,8 +88,10 @@ var _selected_area := 0
 var _sites_signature := ""
 var _player_rows: Array = []
 var _offshore_rows: Array = []
-## Which open-pen candidates the company holds (the stars move off them).
+## Which open-pen candidates the company holds (the stars move off them),
+## and the company's farms the stars were last read for.
 var _open_pens_key := ""
+var _pens_for_farms: Array = []
 var _laid_out_for := Vector2(-1.0, -1.0)
 var _laid_out_symbol := -1.0
 var _relayout_queued := false
@@ -144,6 +146,7 @@ func setup(sim: Node) -> void:
 	_candidates.set_offshore_candidates(_offshore_rows)
 	var pens := bridge.open_pen_candidates()
 	_open_pens_key = _held_key(pens)
+	_pens_for_farms = bridge.player_site_locations()
 	_candidates.set_open_pens(pens)
 	_players = GeoSiteLayer.PlayerMarks.new()
 	_players.name = "PlayerSites"
@@ -363,7 +366,11 @@ func live_update(overview_changed: bool) -> PackedStringArray:
 		changed.append("sites")
 	if overview_changed and _update_players():
 		changed.append("players")
-		# A farm built on (or gone from) a candidate moves its area's star.
+	# A farm built on (or gone from) a candidate moves its area's star: read
+	# the stars again whenever the farms differ from those they were read for
+	# (a relayout may have taken the new farms in first, while hidden).
+	if overview_changed and _player_rows != _pens_for_farms:
+		_pens_for_farms = _player_rows
 		var pens := bridge.open_pen_candidates()
 		var key := _held_key(pens)
 		if key != _open_pens_key:
