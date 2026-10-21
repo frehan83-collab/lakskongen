@@ -308,10 +308,13 @@ SHADER = REPO / "godot" / "shaders" / "map_suitability.gdshader"
 REGION_MATH = MAP_SCRIPTS / "GeoRegionMath.gd"
 REGION_DATA = MAP_SCRIPTS / "GeoRegionData.gd"
 REGION_CHECKS = REPO / "godot" / "tests" / "GeoRegionChecks.gd"
+## The captain's D merge deleted GeoRegionBridge.gd (the stub adapter): the
+## region and site levels read through GeoBridgeAdapter, Track C's one door.
 TRACK_D_SCRIPTS = [MAP_SCRIPTS / f"{n}.gd" for n in (
-    "GeoRegionMath", "GeoRegionData", "GeoRegionBridge", "GeoRegionOverlay", "GeoRegionView",
+    "GeoRegionMath", "GeoRegionData", "GeoRegionOverlay", "GeoRegionView",
     "GeoSiteCard", "MapBreadcrumbs", "RivalPresenceList", "GeoRegionDetail", "GeoDrillStack",
     "GeoRegionIcons", "GeoRegionRivals")]
+REGION_REVIEW_CHECKS = REPO / "godot" / "tests" / "GeoRegionReviewChecks.gd"
 ## Keys built at run time (a prefix plus an id), listed so each one is pinned.
 DYNAMIC_KEYS = (
     [f"MAP_REGION_REASON_{c}" for c in [*range(0, 14), *range(16, 25)]]
@@ -345,7 +348,7 @@ def test_map_region_and_site_keys_exist_in_en_and_no():
     header, table = _translation_rows()
     en, no = header.index("en"), header.index("no")
     used: set[str] = set(DYNAMIC_KEYS)
-    for path in [*TRACK_D_SCRIPTS, MAP_PANEL, REGION_CHECKS]:
+    for path in [*TRACK_D_SCRIPTS, MAP_PANEL, REGION_CHECKS, REGION_REVIEW_CHECKS]:
         used |= set(re.findall(r'"(MAP_(?:REGION|SITE)_[A-Z0-9_]+)"', path.read_text(encoding="utf-8")))
     # A prefix completed at run time ("MAP_SITE_TERM_") is not a key itself.
     used = {k for k in used if not k.endswith("_")}
@@ -501,3 +504,57 @@ def test_the_pinned_overlay_counts_equal_the_reference_projection():
     assert sorted(pinned) == [3, 6]
     for po, want in pinned.items():
         assert _overlay_counts(po) == want, po
+
+
+# ── The captain's D merge (add-only) ──────────────────────────────────────────
+
+def _region_keys_used() -> set[str]:
+    used: set[str] = set(DYNAMIC_KEYS)
+    for path in [*TRACK_D_SCRIPTS, MAP_PANEL, REGION_CHECKS, REGION_REVIEW_CHECKS]:
+        used |= set(re.findall(r'"(MAP_(?:REGION|SITE)_[A-Z0-9_]+)"', path.read_text(encoding="utf-8")))
+    return {k for k in used if not k.endswith("_")}
+
+
+def test_every_map_region_and_site_row_is_used():
+    """No MAP_REGION_* or MAP_SITE_* row is left behind (C2's rule for its
+    MAP_GEO_* rows): the locality-name row the rival card no longer shows
+    (D17) went with it."""
+    _, table = _translation_rows()
+    used = _region_keys_used()
+    dead = sorted(k for k in table if k.startswith(("MAP_REGION_", "MAP_SITE_")) and k not in used)
+    assert not dead, dead
+
+
+def test_all_pinned_overlay_counts_equal_the_reference_projection():
+    """Every area's layer counts, a fairway's buffer and a point's radius
+    counted as its extent (the review's PO10: six river mouths 3-5 km off the
+    map whose 5 km rings reach onto it)."""
+    pinned = _gd_const_in(REGION_REVIEW_CHECKS, "ALL_OVERLAY_COUNTS")
+    assert sorted(pinned) == list(range(1, 14))
+    for po, want in pinned.items():
+        assert _overlay_counts(po) == want, po
+    # PO3 and PO6 agree with GeoRegionChecks' own pins.
+    region = _gd_const_in(REGION_CHECKS, "OVERLAY_COUNTS")
+    assert all(pinned[po] == region[po] for po in region)
+
+
+def test_a_double_click_opens_the_cards_the_site_level_has():
+    """GeoMapView's CARD_KINDS (a double-click asks for the feature's card)
+    are the kinds GeoDrillStack.open_feature answers, and MapPanel wires the
+    chart's feature_drill_requested to it."""
+    def kinds(path: Path, name: str) -> list[str]:
+        m = re.search(rf"^const {name}: Array\[String\] = (\[[^\]]*\])", path.read_text(encoding="utf-8"), flags=re.M)
+        assert m, f"{path.name} has no {name}"
+        return ast.literal_eval(m.group(1))
+    assert kinds(MAP_SCRIPTS / "GeoMapView.gd", "CARD_KINDS") == kinds(MAP_SCRIPTS / "GeoDrillStack.gd", "FEATURE_KINDS")
+    panel = MAP_PANEL.read_text(encoding="utf-8")
+    assert "_chart.feature_drill_requested.connect(_on_feature_drill_requested)" in panel
+
+
+def test_no_map_script_shows_the_registry_locality_names():
+    """D17: get_geo_sites carries the registry's locality names, and some
+    localities are named after the company that holds them; no map script
+    reads them (the rival card names a locality by its number)."""
+    for path in sorted(MAP_SCRIPTS.glob("*.gd")) + [MAP_PANEL]:
+        code = _code(path)
+        assert '"names"' not in code and ".names" not in code, path.name

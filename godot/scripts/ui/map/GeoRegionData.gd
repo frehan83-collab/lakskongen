@@ -15,15 +15,21 @@ extends RefCounted
 ## - constraint_points: river mouths and coral reefs (kind, name) with the
 ##   radius and hardness of their kind (constraint_points meta.kinds).
 ## Polygons are projected once (GeoProjection.utm33, 64-bit) and
-## pre-triangulated (Geometry2D.triangulate_polygon). A ring that does not
-## triangulate keeps its outline and no fill: no engine error is logged.
+## pre-triangulated (Geometry2D.triangulate_polygon). A polygon with holes
+## (islands in a salmon fjord, enclaves in a protected area) is cut into
+## pieces that leave the holes open (GeoOverlayLayer.cut_holes, Track C's)
+## before it is triangulated, so its fill never covers a hole. A ring that
+## does not triangulate keeps its outline and no fill: no engine error is
+## logged.
 ##
 ## A feature belongs to the area when its projected extent meets the base
 ## map's bounds, the area's bbox_25833 padded by about 15 km: what the view
-## shows (deviation from the plan's bbox_25833, RUN_LOG §7). The five files
-## are parsed once per process by GeoData; a cheap lon/lat prefilter (the
-## base map's bounds taken back to lon/lat, padded) keeps the projection to
-## the features that can reach the map.
+## shows (deviation from the plan's bbox_25833, RUN_LOG §7); a fairway's
+## exclusion buffer and a point's radius count as part of its extent. The
+## five files are parsed once per process by GeoData; a cheap lon/lat
+## prefilter (the base map's bounds taken back to lon/lat, padded; each
+## feature's box grown by its buffer or radius at its own latitude) keeps
+## the projection to the features that can reach the map.
 ##
 ## Main thread only, like GeoData. Display only: nothing feeds the sim.
 
@@ -38,6 +44,11 @@ const LAYER_ORDER: Array[String] = ["exclusions", "locality_areas", "mooring_are
 ## The lon/lat prefilter's padding, degrees (the inverse projection is exact
 ## to well under a metre; this only absorbs edge sampling).
 const PREFILTER_PAD_DEG := 0.05
+## Metres per degree of latitude (the smallest, at the equator) and of
+## longitude on the equator: a feature's reach in degrees is taken on the
+## generous side.
+const M_PER_DEG_LAT := 110574.0
+const M_PER_DEG_LON_EQUATOR := 111320.0
 ## Samples per edge when the base map's bounds are taken back to lon/lat.
 const EDGE_SAMPLES := 12
 
@@ -53,9 +64,10 @@ static var _ll_boxes: Dictionary = {}    # layer -> PackedFloat64Array, 4 per fe
 ## The area's layers: {po, map_size, res, bounds, layers {name: Array},
 ## counts {name: int}, fallbacks, build_ms}. {} for an area outside 1..13.
 ## A polygon feature: {id, kind, name, parts: Array[{ring: PackedVector2Array,
-## holes: Array[PackedVector2Array], tris: PackedInt32Array}]}; tris is empty
-## for an outline-only part. A fairway: {kind, name, buffer_px, line}. A point:
-## {kind, name, px, radius_px, hard}.
+## holes: Array[PackedVector2Array], fill_points: PackedVector2Array, tris:
+## PackedInt32Array}]}: tris index fill_points (the ring itself, or the pieces
+## of a ring with holes); tris is empty for an outline-only part. A fairway:
+## {kind, name, buffer_px, line}. A point: {kind, name, px, radius_px, hard}.
 static func area(po: int) -> Dictionary:
 	if _areas.has(po):
 		return _areas[po]
@@ -110,6 +122,27 @@ static func fill_indices(ring: PackedVector2Array) -> PackedInt32Array:
 	if ring.size() < 3:
 		return PackedInt32Array()
 	return Geometry2D.triangulate_polygon(ring)
+
+
+## The fill of a ring less its holes: {points, tris}, tris indexing points.
+## Without holes the points are the ring; with holes, the pieces
+## GeoOverlayLayer.cut_holes cuts it into, each triangulated; a piece that
+## does not triangulate is left unfilled (its outline is the ring's and the
+## hole's). tris is empty (the outline fallback) when nothing triangulates.
+static func fill_of(ring: PackedVector2Array, holes: Array) -> Dictionary:
+	if holes.is_empty():
+		return {"points": ring, "tris": fill_indices(ring)}
+	var points := PackedVector2Array()
+	var tris := PackedInt32Array()
+	for piece: PackedVector2Array in GeoOverlayLayer.cut_holes(ring, holes):
+		var piece_tris := fill_indices(piece)
+		if piece_tris.is_empty():
+			continue
+		var base := points.size()
+		points.append_array(piece)
+		for i in piece_tris:
+			tris.append(base + i)
+	return {"points": points, "tris": tris}
 
 
 ## EPSG:25833 metres -> [lon, lat] degrees: the Krüger series' inverse to n^4
@@ -170,15 +203,18 @@ static func _kinds_meta() -> Dictionary:
 	return kinds if kinds is Dictionary else {}
 
 
-## Each feature's lon/lat box [min lon, min lat, max lon, max lat], once per
-## process per layer.
+## Each feature's lon/lat box [min lon, min lat, max lon, max lat], grown by
+## its reach (a fairway's buffer, a point's radius), once per process per
+## layer.
 static func _boxes(layer: String, features: Array) -> PackedFloat64Array:
 	if _ll_boxes.has(layer):
 		return _ll_boxes[layer]
 	var out := PackedFloat64Array()
 	out.resize(features.size() * 4)
+	var kinds := _kinds_meta() if layer == "constraint_points" else {}
 	for i in features.size():
-		var geometry: Variant = (features[i] as Dictionary).get("geometry")
+		var feature: Dictionary = features[i]
+		var geometry: Variant = feature.get("geometry")
 		var rings := _outer_rings(geometry if geometry is Dictionary else {})
 		var x0 := INF
 		var y0 := INF
@@ -192,12 +228,37 @@ static func _boxes(layer: String, features: Array) -> PackedFloat64Array:
 				y0 = minf(y0, lat)
 				x1 = maxf(x1, lon)
 				y1 = maxf(y1, lat)
+		var reach := _reach_m(layer, feature, kinds)
+		if reach > 0.0 and y1 >= y0:
+			var dlat := reach / M_PER_DEG_LAT
+			var dlon := reach / (M_PER_DEG_LON_EQUATOR * cos(deg_to_rad(minf(maxf(absf(y0), absf(y1)) + dlat, 89.0))))
+			x0 -= dlon
+			x1 += dlon
+			y0 -= dlat
+			y1 += dlat
 		out[i * 4] = x0
 		out[i * 4 + 1] = y0
 		out[i * 4 + 2] = x1
 		out[i * 4 + 3] = y1
 	_ll_boxes[layer] = out
 	return out
+
+
+## How far a feature reaches beyond its geometry, m: a fairway's exclusion
+## buffer, a point's radius (kinds: constraint_points meta.kinds); 0
+## otherwise.
+static func _reach_m(layer: String, feature: Dictionary, kinds: Dictionary) -> float:
+	var props: Variant = feature.get("properties")
+	if not props is Dictionary:
+		return 0.0
+	match layer:
+		"fairways":
+			var buffer: Variant = (props as Dictionary).get("buffer_m")
+			return float(buffer) if buffer != null else 0.0
+		"constraint_points":
+			var meta: Variant = kinds.get(_text((props as Dictionary).get("kind")), {})
+			return float((meta as Dictionary).get("radius_m", 0.0)) if meta is Dictionary else 0.0
+	return 0.0
 
 
 ## The point lists that bound a geometry: a polygon's outer ring (its holes
@@ -284,13 +345,15 @@ static func _project(layer: String, feature: Dictionary, bounds: Array, res: flo
 					continue
 				var holes: Array[PackedVector2Array] = []
 				for h in range(1, (poly as Array).size()):
-					holes.append(_open_ring(_ring(poly[h], bounds, res)))
+					var hole := _open_ring(_ring(poly[h], bounds, res))
+					if hole.size() >= 3:
+						holes.append(hole)
 				var r := _rect_of(ring)
 				extent = r if parts.is_empty() else extent.merge(r)
-				var tris := fill_indices(ring)
-				if tris.is_empty():
+				var fill := fill_of(ring, holes)
+				if (fill["tris"] as PackedInt32Array).is_empty():
 					fallback_count += 1
-				parts.append({"ring": ring, "holes": holes, "tris": tris})
+				parts.append({"ring": ring, "holes": holes, "fill_points": fill["points"], "tris": fill["tris"]})
 			if parts.is_empty() or not extent.intersects(view):
 				return {}
 			return {"id": int(props.get("id", 0)), "kind": _text(props.get("kind", props.get("areatype", ""))),

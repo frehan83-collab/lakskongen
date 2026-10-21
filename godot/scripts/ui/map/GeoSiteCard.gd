@@ -12,11 +12,14 @@ extends Control
 ##   needs a growth licence (the subtitle names the zone), 'Vis i 3D' once it
 ##   is yours; any other refusal is a disabled button saying why.
 ## - A company site: where it lies, and 'Vis i 3D'.
-## - A rival locality: owner, kind, stage and MTB, no action.
+## - A rival locality: owner, kind, stage and MTB, no action. Its subtitle is
+##   the locality's number, never the registry's name for it (D17: some
+##   localities are named after the company that holds them).
 ## - A Havbruk til havs hexagon: the hav_1 one offers 'Bygg her (Hav)'; any
 ##   other says it is not offered from your area.
-## Every number comes from the row the region level read (GeoRegionBridge);
-## the rings' radii from suitability_rules.json, the rules the scores used.
+## Every number comes from the row the region level read through the map's
+## adapter (GeoBridgeAdapter); the rings' radii from suitability_rules.json,
+## the rules the scores used.
 
 signal build_requested(zone_id: String, candidate_id: String)
 signal licence_requested(zone_id: String)
@@ -43,6 +46,7 @@ var _subtitle: Label
 var _scroll: ScrollContainer
 var _facts: VBoxContainer
 var _note: Label
+var _rings: Label
 var _back_btn: Button
 var _action_btn: Button
 
@@ -110,7 +114,7 @@ func crop() -> Control:
 	return _crop
 
 
-## Show a candidate row (GeoRegionBridge.sea_candidates) of the view's area.
+## Show a candidate row (GeoBridgeAdapter.sea_candidates) of the view's area.
 func show_candidate(row: Dictionary, view: GeoRegionView) -> void:
 	_begin("candidate", row, view)
 	var state := view.state_of(row)
@@ -155,7 +159,7 @@ func show_candidate(row: Dictionary, view: GeoRegionView) -> void:
 	_end()
 
 
-## Show one of the company's sites (GeoRegionBridge.player_site_locations).
+## Show one of the company's sites (GeoBridgeAdapter.player_site_locations).
 func show_player_site(row: Dictionary, view: GeoRegionView) -> void:
 	_begin("site", row, view)
 	_overline.text = tr("MAP_SITE_OVERLINE_YOURS")
@@ -175,9 +179,7 @@ func show_rival(icon: Dictionary, view: GeoRegionView) -> void:
 	_begin("rival", icon, view)
 	_overline.text = tr("MAP_SITE_OVERLINE_RIVAL")
 	_title.text = String(icon.get("owner_name", ""))
-	var place := String(icon.get("name", ""))
-	_subtitle.text = (tr("MAP_SITE_LOCALITY_NAMED") % [place, int(icon.get("id", 0))]) if place != "" \
-		else tr("MAP_SITE_LOCALITY_NUMBER") % int(icon.get("id", 0))
+	_subtitle.text = tr("MAP_SITE_LOCALITY_NUMBER") % int(icon.get("id", 0))
 	_fact("owner", "MAP_SITE_FACT_OWNER", String(icon.get("owner_name", "")))
 	_fact("kind", "MAP_SITE_FACT_KIND", tr(GeoRegionView.kind_key(String(icon.get("kind", "")))))
 	if icon.has("stage"):
@@ -213,6 +215,9 @@ func _begin(kind: String, row: Dictionary, view: GeoRegionView) -> void:
 	_kind = kind
 	_row = row
 	_view = view
+	# A rival's crop has no farm ring (the distance is to its own site): the
+	# key names only the river rings it draws.
+	_rings.text = tr("MAP_SITE_RINGS_LEGEND_RIVERS") if kind == "rival" else tr("MAP_SITE_RINGS_LEGEND")
 	for c in _facts.get_children():
 		_facts.remove_child(c)
 		c.queue_free()
@@ -299,10 +304,10 @@ func _build_card() -> void:
 	_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	callout.add_child(_note)
 	inner.add_child(callout)
-	var rings := _label("RingsLegend", &"SmallMuted")
-	rings.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	rings.text = tr("MAP_SITE_RINGS_LEGEND")
-	inner.add_child(rings)
+	_rings = _label("RingsLegend", &"SmallMuted")
+	_rings.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_rings.text = tr("MAP_SITE_RINGS_LEGEND")
+	inner.add_child(_rings)
 	var buttons := HBoxContainer.new()
 	buttons.name = "Buttons"
 	buttons.add_theme_constant_override("separation", LakskongenTheme.SPACE_SM)
@@ -398,7 +403,7 @@ func _fit() -> void:
 	_card.offset_top = CARD_MARGIN
 	_card.offset_bottom = -CARD_MARGIN
 	_crop.free_width = maxf(size.x - w - CARD_MARGIN * 2.0, 0.0)
-	_crop.queue_redraw()
+	_crop.sync()
 
 
 ## A 0..1 bar in the ramp's colour.
@@ -412,18 +417,73 @@ class _Bar extends Control:
 		draw_rect(r, LakskongenTheme.palette(self, &"hairline"), false, 1.0)
 
 
-## The 4x crop of the area's base map around the place.
+## The 4x crop of the area's base map around the place, in three layers:
+## this node draws the open sea and the base map; CropHeat is the heat, one
+## rect for the whole base map through map_suitability.gdshader (the region
+## view's shader and raw grid, nearest), clipped to the crop, so a redraw
+## records no cell; CropMarks draws the site and mooring polygons, the
+## rings, the rivals and the place.
 class _CropMap extends Control:
+	## The heat's opacity in the crop, over the region view's: scored cells
+	## and the hatch read a little quieter under the card's marks.
+	const HEAT_OPACITY := 0.75
+	const HATCH_OPACITY := 0.5
+
 	var card: GeoSiteCard = null
 	var view: GeoRegionView = null
 	var centre := Vector2.ZERO
 	var free_width := 0.0
 	var redraw_count := 0
+	var heat: TextureRect = null
+	var marks: _CropMarks = null
+	var _heat_po := 0
+
+	func _ready() -> void:
+		clip_contents = true
+		heat = TextureRect.new()
+		heat.name = "CropHeat"
+		heat.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		heat.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		heat.stretch_mode = TextureRect.STRETCH_SCALE
+		var mat := ShaderMaterial.new()
+		mat.shader = GeoRegionView.SuitabilityShader
+		mat.set_shader_parameter("show_heat", HEAT_OPACITY)
+		mat.set_shader_parameter("show_hatch", HATCH_OPACITY)
+		heat.material = mat
+		add_child(heat)
+		marks = _CropMarks.new()
+		marks.name = "CropMarks"
+		marks.crop = self
+		marks.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(marks)
+		marks.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		resized.connect(sync)
 
 	func show_at(region: GeoRegionView, at: Vector2) -> void:
 		view = region
 		centre = at
+		sync()
+
+	## Lay the heat rect over the base map's place in the crop, and redraw.
+	func sync() -> void:
+		if heat == null:
+			return
+		var po := view.area() if view != null else 0
+		heat.visible = po > 0
+		if po > 0:
+			if po != _heat_po:
+				_heat_po = po
+				heat.texture = GeoData.basemap_texture(GeoRegionMath.basemap_key(po))
+				var mat := heat.material as ShaderMaterial
+				var uniforms := GeoRegionMath.shader_uniforms(po)
+				for k: String in uniforms:
+					mat.set_shader_parameter(k, uniforms[k])
+				mat.set_shader_parameter("suit_tex", GeoRegionView.heat_texture(po))
+			var map_size: Vector2 = GeoRegionMath.transform(po)["map_size"]
+			heat.position = to_crop(Vector2.ZERO)
+			heat.size = map_size * scale_px()
 		queue_redraw()
+		marks.queue_redraw()
 
 	## Screen pixels per base-map pixel: 4x the region view's.
 	func scale_px() -> float:
@@ -438,29 +498,47 @@ class _CropMap extends Control:
 		var w := free_width if free_width > 0.0 else size.x
 		return Vector2(w * 0.5, size.y * 0.5) + (px - centre) * scale_px()
 
+	## The part of the base map the crop shows, in base-map pixels.
+	func source_rect() -> Rect2:
+		var t := GeoRegionMath.transform(view.area())
+		var s := scale_px()
+		var tl := centre - to_crop(centre) / s
+		return Rect2(tl, size / s).intersection(Rect2(Vector2.ZERO, t["map_size"]))
+
 	func _draw() -> void:
 		redraw_count += 1
 		# Beyond the area's base map lies open sea (an offshore site often does).
 		draw_rect(Rect2(Vector2.ZERO, size), GeoRegionIcons.OPEN_SEA)
 		if view == null or view.area() == 0:
 			return
+		var src := source_rect()
+		var tex := GeoData.basemap_texture(GeoRegionMath.basemap_key(view.area()))
+		if tex != null and src.has_area():
+			draw_texture_rect_region(tex, Rect2(to_crop(src.position), src.size * scale_px()), src)
+
+
+## The crop's marks over its heat: the registered site and mooring polygons,
+## the farm ring, the river mouths' rings, the rivals and the place itself.
+class _CropMarks extends Control:
+	var crop: _CropMap = null
+
+	func _draw() -> void:
+		var view := crop.view
+		var card := crop.card
+		if view == null or view.area() == 0:
+			return
 		var po := view.area()
 		var t := GeoRegionMath.transform(po)
-		var s := scale_px()
-		var tex := GeoData.basemap_texture(GeoRegionMath.basemap_key(po))
-		var tl := centre - to_crop(centre) / s
-		var src := Rect2(tl, size / s).intersection(Rect2(Vector2.ZERO, t["map_size"]))
-		if tex != null and src.has_area():
-			draw_texture_rect_region(tex, Rect2(to_crop(src.position), src.size * s), src)
-		_draw_heat(po, t, src, s)
+		var s := crop.scale_px()
+		var src := crop.source_rect()
 		_draw_polygons(po, src)
 		_draw_rings(po, t, src, s)
 		for icon: Dictionary in (view.rival_layer() as Object).get("icons"):
-			var at := to_crop(icon["px"])
+			var at := crop.to_crop(icon["px"])
 			if Rect2(Vector2.ZERO, size).has_point(at):
 				draw_circle(at, 7.0, GeoRegionIcons.HALO)
 				draw_arc(at, 5.0, 0.0, TAU, 20, icon["color"], 2.5, true)
-		var c := to_crop(centre)
+		var c := crop.to_crop(crop.centre)
 		match card.kind():
 			"candidate":
 				GeoRegionIcons.draw_star(self, c, 15.0, view.state_of(card.row()))
@@ -474,25 +552,6 @@ class _CropMap extends Control:
 				draw_circle(c, 11.0, GeoRegionIcons.HALO)
 				draw_arc(c, 8.0, 0.0, TAU, 32, card.row().get("color", GeoRegionIcons.INDEPENDENT), 3.0, true)
 
-	func _draw_heat(po: int, t: Dictionary, src: Rect2, s: float) -> void:
-		var grid := GeoData.suitability_grid(po)
-		if grid.is_empty():
-			return
-		var image: Image = grid["image"]
-		var cell_px := float(t["grid_res"]) / float(t["map_res"])
-		var c0 := GeoRegionMath.cell_of_uv(po, GeoRegionMath.suit_uv(po, src.position))
-		var c1 := GeoRegionMath.cell_of_uv(po, GeoRegionMath.suit_uv(po, src.end))
-		var origin_px := GeoRegionMath.map_px(po, float(t["grid_origin"][0]), float(t["grid_origin"][1]))
-		for row in range(maxi(c0.y, 0), mini(c1.y + 1, image.get_height())):
-			for col in range(maxi(c0.x, 0), mini(c1.x + 1, image.get_width())):
-				var px := image.get_pixel(col, row)
-				var colour := GeoRegionMath.heat_color(px.r8, px.g8)
-				if colour.a <= 0.0:
-					continue
-				colour.a *= 0.75 if px.r8 > 0 else 0.5
-				var at := to_crop(origin_px + Vector2(col, row) * cell_px)
-				draw_rect(Rect2(at, Vector2(cell_px, cell_px) * s), colour)
-
 	func _draw_polygons(po: int, src: Rect2) -> void:
 		var data := GeoRegionData.area(po)
 		if data.is_empty():
@@ -504,33 +563,37 @@ class _CropMap extends Control:
 					var ring: PackedVector2Array = part["ring"]
 					if not src.grow(4.0).has_point(ring[0]):
 						continue
+					var tris: PackedInt32Array = part["tris"]
+					if not tris.is_empty() and (st["fill"] as Color).a > 0.0:
+						var fill := PackedVector2Array()
+						for p: Vector2 in part.get("fill_points", ring):
+							fill.append(crop.to_crop(p))
+						var cols := PackedColorArray()
+						cols.resize(fill.size())
+						cols.fill(st["fill"])
+						RenderingServer.canvas_item_add_triangle_array(get_canvas_item(), tris, fill, cols)
 					var pts := PackedVector2Array()
 					for p in ring:
-						pts.append(to_crop(p))
-					if not (part["tris"] as PackedInt32Array).is_empty() and (st["fill"] as Color).a > 0.0:
-						var cols := PackedColorArray()
-						cols.resize(pts.size())
-						cols.fill(st["fill"])
-						RenderingServer.canvas_item_add_triangle_array(get_canvas_item(), part["tris"], pts, cols)
+						pts.append(crop.to_crop(p))
 					pts.append(pts[0])
 					draw_polyline(pts, st["line"], 1.5, true)
 
 	func _draw_rings(po: int, t: Dictionary, src: Rect2, s: float) -> void:
 		var res: float = t["map_res"]
-		if card.kind() != "rival":
+		if crop.card.kind() != "rival":
 			var farm_m := GeoSiteCard.farm_ring_m()
 			if farm_m > 0.0:
-				draw_arc(to_crop(centre), farm_m / res * s, 0.0, TAU, 96, Color(GeoRegionIcons.SNOW, 0.85), 1.5, true)
+				draw_arc(crop.to_crop(crop.centre), farm_m / res * s, 0.0, TAU, 96, Color(GeoRegionIcons.SNOW, 0.85), 1.5, true)
 		var data := GeoRegionData.area(po)
 		if data.is_empty():
 			return
+		var river_m := GeoSiteCard.river_ring_m()
 		for p: Dictionary in data["layers"]["constraint_points"]:
-			var river_m := GeoSiteCard.river_ring_m()
 			if String(p["kind"]) == "coral_reef" or river_m <= 0.0 or not src.grow(river_m / res).has_point(p["px"]):
 				continue
-			var c := to_crop(p["px"])
+			var c := crop.to_crop(p["px"])
 			var r := river_m / res * s
-			var col: Color = GeoRegionOverlay.STYLE[String(p["kind"])]["line"]
+			var col: Color = GeoRegionOverlay.STYLE.get(String(p["kind"]), GeoRegionOverlay.STYLE["anadromous_river"])["line"]
 			for i in 48:
 				var a := TAU * i / 48.0
 				draw_arc(c, r, a, a + TAU / 48.0 * 0.55, 3, col, 1.5, true)

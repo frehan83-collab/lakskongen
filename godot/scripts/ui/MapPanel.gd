@@ -12,7 +12,8 @@ extends Control
 ## "Søk vekstlisens" the LicenceAuctionCard. Every refusal is rendered as text.
 ##
 ## Track D adds the region and site levels through the marked hooks:
-## drill_into(), _on_feature_clicked() and the marked branch of Esc.
+## drill_into(), _on_feature_clicked(), _on_feature_drill_requested() and the
+## marked branch of Esc (the geo-drill hook block at the end of this file).
 
 signal close_requested
 signal region_selected(region_id: String)
@@ -75,6 +76,7 @@ func _ready() -> void:
 	_chart.area_clicked.connect(_on_chart_area_clicked)
 	_chart.area_drill_requested.connect(func(area: int) -> void: drill_into(area))
 	_chart.feature_clicked.connect(_on_feature_clicked)
+	_chart.feature_drill_requested.connect(_on_feature_drill_requested)
 	for area: int in _chart.plates():
 		_region_nodes[_region_of_area(area)] = _chart.plate(area)
 	# Temperature bar visualisation (custom drawing, added to its slot).
@@ -101,6 +103,8 @@ func _ready() -> void:
 				_auction_card.close()
 			if _build_dialog != null:
 				_build_dialog.close())
+	# Track D: the region and site levels' buttons and signals.
+	_geo_hooks_ready()
 
 	var audio := get_node_or_null("/root/AudioController")
 	if audio and audio.has_method("attach_ui_sounds"):
@@ -588,20 +592,20 @@ func _unhandled_key_input(event: InputEvent) -> void:
 
 
 # ═══ BEGIN geo-drill hook (Track D: the region and site levels, docs/geo/STAGE23_PLAN.md §2 D) ═══
-# MapPanel reaches the levels below national only through this block and the
-# Esc branch in _input (marked "geo-drill hook", word for word Track C2's).
-# The levels live in godot/scripts/ui/map/GeoDrillStack.gd.
-# Merge note (C2 = geo/map-national-2): C2's MapPanel v2 declares the stubs
-# drill_into(), _on_feature_clicked() and _step_up_level(); this block holds
-# their bodies, so at the merge delete C2's three stubs and keep this block.
-# C2's GeoMapView already wires area_drill_requested (a plate's double-click
-# or Enter) and feature_clicked to them; the marker double-click below then
-# stands down by itself (has_method("chart")). The block reads _region_nodes,
-# _region_area, _selected_region_id, _home_area, _area_picker, _map_container,
-# _overview, _build_dialog, _auction_card and region_selected, all in C2's v2.
+# MapPanel reaches the levels below national through this block, the marked
+# Esc branch in _input and the chart signals _ready wires to it; the levels
+# live in godot/scripts/ui/map/GeoDrillStack.gd. National clicks (the
+# captain's ruling at D's merge, RUN_LOG §7): a click selects the area and
+# names the feature it hit in the detail column, a button away from its
+# card; a double-click on a feature opens its card; a double-click elsewhere
+# on an area or on its plate, Enter on a plate or 'Utforsk området' drill
+# into the area.
 
 var _geo_drill: GeoDrillStack = null
 var _geo_explore_btn: Button = null
+var _geo_feature_btn: Button = null
+## The feature the last chart click hit: {kind, id, frame}; {} for none.
+var _geo_pick: Dictionary = {}
 
 
 ## Drill into a production area (1-13): the region level, the area also
@@ -620,12 +624,12 @@ func map_level() -> String:
 
 
 ## Open the build dialog at an open-pen candidate (track B's
-## BuildSiteDialog.open_for_candidate, through GeoRegionBridge).
+## BuildSiteDialog.open_for_candidate).
 func open_build_at(zone_id: String, candidate_id: String) -> void:
 	if _build_dialog == null:
 		return
 	_auction_card.close()
-	GeoRegionBridge.open_build_at(_build_dialog, zone_id, candidate_id)
+	_build_dialog.open_for_candidate(zone_id, candidate_id)
 
 
 ## The region and site levels (null until the first drill).
@@ -638,15 +642,19 @@ func explore_button() -> Button:
 	return _geo_explore_btn
 
 
+## The detail column's way to the card of the feature a click named.
+func feature_button() -> Button:
+	return _geo_feature_btn
+
+
 func _geo_stack() -> GeoDrillStack:
-	if _geo_drill != null:
-		return _geo_drill
-	_geo_drill = GeoDrillStack.new()
-	_map_container.add_child(_geo_drill)
-	_geo_drill.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var host := find_child("DetailInner", true, false) as Control
-	_geo_drill.setup(self, _sim, func() -> Dictionary: return _overview, host, _geo_explore_btn)
-	_geo_drill.level_changed.connect(func(_level: String) -> void: _geo_update_explore())
+	if _geo_drill == null:
+		_geo_drill = GeoDrillStack.new()
+		_map_container.add_child(_geo_drill)
+		_geo_drill.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		_geo_drill.setup(self, _chart.bridge, func() -> Dictionary: return _overview,
+			find_child("DetailInner", true, false) as Control, _geo_feature_btn)
+		_geo_drill.level_changed.connect(func(_level: String) -> void: _geo_update_explore())
 	return _geo_drill
 
 
@@ -657,64 +665,66 @@ func _step_up_level() -> bool:
 
 
 ## Track D's site hook: a click on a feature of the national chart (C2's
-## GeoMapView.feature_clicked: "candidates", "hexagon", "player", "site")
-## drills into its area and opens its card; any other kind keeps the
-## national level (the click selects the area as before).
+## feature_clicked) names it in the detail column, a button away from its
+## card; the same click selects the area (area_clicked) as before.
 func _on_feature_clicked(kind: String, id: String) -> void:
-	if kind in GeoDrillStack.FEATURE_KINDS:  # geo-site hook
-		_geo_stack().open_feature(kind, id)
+	_geo_pick = {"kind": kind, "id": id, "frame": Engine.get_process_frames()}  # geo-site hook
+	_geo_update_explore()
 
 
-## A national-level start for Track D's hooks (no edit to _ready): wired the
-## frame after the panel is ready, when the markers exist.
-func _notification(what: int) -> void:
-	if what == NOTIFICATION_READY:
-		_geo_hooks_ready.call_deferred()
+## A double-click on a feature of the national chart: its card.
+func _on_feature_drill_requested(kind: String, id: String) -> void:
+	_geo_stack().open_feature(kind, id)
 
 
+## Track D's buttons and signals, wired at the end of _ready.
 func _geo_hooks_ready() -> void:
-	# A double-click on an area's marker drills into it (C2's plates and chart
-	# emit area_drill_requested themselves).
-	if not has_method("chart"):
-		for rid: String in _region_nodes:
-			var marker: Control = _region_nodes[rid]
-			marker.gui_input.connect(func(event: InputEvent) -> void:
-				var mb := event as InputEventMouseButton
-				if mb != null and mb.pressed and mb.double_click and mb.button_index == MOUSE_BUTTON_LEFT:
-					drill_into(_region_area(rid)))
 	var host := find_child("DetailInner", true, false) as VBoxContainer
 	if host != null and _area_picker != null:
-		_geo_explore_btn = Button.new()
-		_geo_explore_btn.name = "ExploreAreaBtn"
-		_geo_explore_btn.text = tr("MAP_REGION_EXPLORE")
-		_geo_explore_btn.theme_type_variation = &"SecondaryButton"
-		_geo_explore_btn.custom_minimum_size = Vector2(0, 40)
-		_geo_explore_btn.pressed.connect(func() -> void:
+		_geo_explore_btn = _geo_button("ExploreAreaBtn", func() -> void:
 			var area := _region_area(_selected_region_id)
 			drill_into(area if area > 0 else home_area()))
-		host.add_child(_geo_explore_btn)
-		host.move_child(_geo_explore_btn, _area_picker.get_index() + 1)
+		_geo_feature_btn = _geo_button("OpenFeatureBtn", func() -> void:
+			if not _geo_pick.is_empty():
+				_geo_stack().open_feature(str(_geo_pick["kind"]), str(_geo_pick["id"])))
+		_geo_feature_btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		for b: Button in [_geo_feature_btn, _geo_explore_btn]:
+			host.add_child(b)
+			host.move_child(b, _area_picker.get_index() + 1)
 		# The picker follows into the region level once drilled in.
 		_area_picker.item_selected.connect(func(index: int) -> void:
 			var area := _area_picker.get_item_id(index)
 			if area > 0 and map_level() != "national":
 				drill_into(area)
 			_geo_update_explore())
-	region_selected.connect(func(_rid: String) -> void: _geo_update_explore())
+	region_selected.connect(func(_rid: String) -> void:
+		# Another pick of an area forgets the feature, unless this click named it.
+		if int(_geo_pick.get("frame", -1)) != Engine.get_process_frames():
+			_geo_pick = {}
+		_geo_update_explore())
 	# Leaving the tab returns to national: the map always opens there (OD11).
 	visibility_changed.connect(func() -> void:
-		if not visible and _geo_drill != null:
-			_geo_drill.go_national()
+		if not visible:
+			_geo_pick = {}
+			if _geo_drill != null:
+				_geo_drill.go_national()
 		_geo_update_explore())
 	if _sim != null:
 		_sim.state_updated.connect(_geo_on_sim_changed)
 		_sim.day_advanced.connect(func(_d: int, _s: String) -> void: _geo_on_sim_changed())
-	if _build_dialog != null:
-		_build_dialog.built.connect(func(_site: String, _zone: String) -> void: _geo_on_sim_changed(true))
-		_build_dialog.closed.connect(func() -> void: _geo_on_sim_changed(true))
-	if _auction_card != null:
-		_auction_card.closed.connect(func() -> void: _geo_on_sim_changed(true))
+	_build_dialog.built.connect(func(_site: String, _zone: String) -> void: _geo_on_sim_changed(true))
+	_build_dialog.closed.connect(func() -> void: _geo_on_sim_changed(true))
+	_auction_card.closed.connect(func() -> void: _geo_on_sim_changed(true))
 	_geo_update_explore()
+
+
+func _geo_button(node_name: String, on_press: Callable) -> Button:
+	var b := Button.new()
+	b.name = node_name
+	b.theme_type_variation = &"SecondaryButton"
+	b.custom_minimum_size = Vector2(0, 40)
+	b.pressed.connect(on_press)
+	return b
 
 
 ## Day signals and closed dialogs: the region level re-reads what moved,
@@ -724,13 +734,22 @@ func _geo_on_sim_changed(force: bool = false) -> void:
 		_geo_drill.on_sim_changed(force)
 
 
+## The national level's two buttons: 'Utforsk området' for the picked (or
+## home) area, and the card of the feature a click named, when it has one.
 func _geo_update_explore() -> void:
 	if _geo_explore_btn == null:
 		return
+	var national := map_level() == "national"
 	var area := _region_area(_selected_region_id)
 	if area <= 0:
 		area = _home_area()
+	_geo_explore_btn.text = tr("MAP_REGION_EXPLORE")
 	_geo_explore_btn.disabled = area <= 0
 	_geo_explore_btn.tooltip_text = tr("MAP_REGION_EXPLORE_TIP") if area > 0 else tr("MAP_REGION_EXPLORE_NONE_TIP")
-	_geo_explore_btn.visible = map_level() == "national"
+	_geo_explore_btn.visible = national
+	var label := GeoDrillStack.feature_label(_chart.bridge, str(_geo_pick["kind"]), str(_geo_pick["id"])) \
+		if national and not _geo_pick.is_empty() else ""
+	_geo_feature_btn.text = tr("MAP_REGION_PICK_OPEN") % label if label != "" else ""
+	_geo_feature_btn.tooltip_text = tr("MAP_REGION_PICK_OPEN_TIP")
+	_geo_feature_btn.visible = label != ""
 # ═══ END geo-drill hook ═══

@@ -666,6 +666,14 @@ func _reopen(ui: Control, map: Control) -> void:
 		and GeoData.parses_of("basemap.json") == 1
 	_check(closed and again == map and again.is_visible_in_tree() and GeoData.parse_count == parses and once,
 		"geo map: Esc closes the map and Cmd+2 reopens it with no file parsed again (each national file at most once, parse_count %d)" % GeoData.parse_count)
-	_check(int(map.expansion_section().area().get("production_area", 0)) == 3 and map.chart().is_visible_in_tree()
-			and not map.drill_into(3),
-		"geo map: the map reopens on the national chart with the area still picked (drill_into is Track D's hook)")
+	# The captain's D merge: drill_into is Track D's real hook now, so the old
+	# 'not map.drill_into(3)' (C2's stub) gives way to the level itself
+	# (RUN_LOG §7): national on reopening, the region on a drill, national
+	# again on Esc.
+	var national: bool = map.map_level() == "national" and map.chart().is_visible_in_tree() \
+		and int(map.expansion_section().area().get("production_area", 0)) == 3
+	var drilled: bool = map.drill_into(3) and map.map_level() == "region"
+	await t._press_key(KEY_ESCAPE)
+	await _frames(2)
+	_check(national and drilled and map.map_level() == "national" and map.chart().is_visible_in_tree() and map.is_visible_in_tree(),
+		"geo map: the map reopens on the national chart with the area still picked; drill_into(3) shows the region and Esc returns to national")

@@ -25,6 +25,9 @@ extends Control
 signal area_clicked(area: int)
 signal area_drill_requested(area: int)
 signal feature_clicked(kind: String, id: String)
+## A double-click on a feature that has a card at the site level (Track D's
+## GeoSiteCard): one of CARD_KINDS. It stands in for area_drill_requested.
+signal feature_drill_requested(kind: String, id: String)
 signal area_hovered(area: int)
 
 const TINT_SHADER := preload("res://shaders/map_po_tint.gdshader")
@@ -59,6 +62,11 @@ const MIN_SCREEN_PX := Vector2i(320, 240)
 ## their common place, so each keeps a disc of its own (two scenario farms
 ## anchored at one locality would otherwise draw, and answer, as one).
 const PLAYER_SPREAD_PX := 13.0
+## The features a double-click opens a card for (Track D's site level): the
+## candidate stars, the Havbruk til havs hexagons, the company's farms and a
+## single locality. Any other double-click (a cluster, a fjord, an offshore
+## area, open water) drills into the area.
+const CARD_KINDS: Array[String] = ["candidates", "hexagon", "player", "site"]
 
 ## Times the layout ran (one per size).
 var layout_count: int = 0
@@ -518,10 +526,12 @@ func _city_anchors() -> Array:
 	return out
 
 
-## Marks closer than PLAYER_SPREAD_PX pushed apart along the line between
-## them (a fixed, index-based direction for marks on one point), a few rounds,
-## pair by pair in index order: deterministic, and a group keeps its centre.
-static func spread_marks(points: PackedVector2Array) -> PackedVector2Array:
+## Marks closer than gap_px (PLAYER_SPREAD_PX by default; the region level
+## spreads its larger site marks by their own size) pushed apart along the
+## line between them (a fixed, index-based direction for marks on one
+## point), a few rounds, pair by pair in index order: deterministic, and a
+## group keeps its centre.
+static func spread_marks(points: PackedVector2Array, gap_px: float = PLAYER_SPREAD_PX) -> PackedVector2Array:
 	var out := points.duplicate()
 	for _round in 12:
 		var moved := false
@@ -529,10 +539,10 @@ static func spread_marks(points: PackedVector2Array) -> PackedVector2Array:
 			for j in range(i + 1, out.size()):
 				var d := out[j] - out[i]
 				var gap := d.length()
-				if gap >= PLAYER_SPREAD_PX - 0.01:
+				if gap >= gap_px - 0.01:
 					continue
 				var dir := d / gap if gap > 0.01 else Vector2.RIGHT.rotated(TAU * float(i + 2 * j) / 7.0)
-				var push := dir * (PLAYER_SPREAD_PX - gap) * 0.5
+				var push := dir * (gap_px - gap) * 0.5
 				out[i] -= push
 				out[j] += push
 				moved = true
@@ -563,9 +573,12 @@ func _gui_input(event: InputEvent) -> void:
 	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		var area := area_at_local(event.position)
 		var item := feature_at(event.position)
+		var kind := str(item.get("kind", ""))
 		if not item.is_empty():
-			feature_clicked.emit(str(item["kind"]), feature_id(item))
-		if area > 0:
+			feature_clicked.emit(kind, feature_id(item))
+		if event.double_click and kind in CARD_KINDS:
+			feature_drill_requested.emit(kind, feature_id(item))
+		elif area > 0:
 			if event.double_click:
 				area_drill_requested.emit(area)
 			else:

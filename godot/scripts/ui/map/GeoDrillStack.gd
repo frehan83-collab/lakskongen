@@ -3,36 +3,43 @@ extends Control
 ## The map's levels below national (geo stages 2-3 plan Track D): the level
 ## stack national -> region -> site, laid over the national chart, which stays
 ## alive underneath. MapPanel reaches it only through its geo-drill hooks
-## (drill_into, map_level, open_build_at, the Esc branch).
+## (drill_into, map_level, open_build_at, the Esc branch, the chart's
+## feature signals).
 ##
 ## - drill_into(area) shows the area's region view, its breadcrumbs and the
 ##   detail column's region section; a repeat drill reads from cache.
-## - A star, a candidate button, a hexagon, a company site or a rival icon
-##   opens the site card; its actions go back to MapPanel (open_build_at,
-##   open_auction, the 3D jump, the Hav family with hav_1).
-## - step_up() is Esc: site -> region -> national; at national it returns
-##   false and Esc closes the tab as before.
-## - The level is set synchronously; the 160 ms crossfade is cosmetic only
-##   (and skipped under reduced motion).
+## - A star, a candidate button, a hexagon, a company site (on the map or its
+##   row) or a rival icon opens the site card; its actions go back to
+##   MapPanel (open_build_at, open_auction, the 3D jump, the Hav family with
+##   hav_1).
+## - step_up() is Esc: site -> region -> national, the focus back on the row
+##   or button the card came from; at national it returns false and Esc
+##   closes the tab as before.
+## - The level is set synchronously; the 160 ms crossfade is cosmetic only:
+##   each faded node has its own tween, so a fade that starts on one node
+##   never stops another's half way (skipped under reduced motion).
 ## - On day signals, only while visible: the candidates' states and the
 ##   company's sites are read again, and only when the expansion overview or
 ##   the rival layout's signature changed (on_sim_changed).
+## Every sim read goes through the map's one adapter (GeoBridgeAdapter).
 
 signal level_changed(level: String)
 
 const FADE_S := 0.16
-## The national chart's feature kinds open_feature answers (C2's feature_clicked).
+## The national chart's feature kinds open_feature answers: C2's
+## feature_clicked kinds, the same list as GeoMapView.CARD_KINDS.
 const FEATURE_KINDS: Array[String] = ["candidates", "hexagon", "player", "site"]
 
 var _panel: Control = null
-var _sim: Object = null
+var _bridge: GeoBridgeAdapter = null
 var _level := "national"
 var _po := 0
 var _region: GeoRegionView
 var _site: GeoSiteCard
 var _crumbs: MapBreadcrumbs
 var _detail: GeoRegionDetail = null
-var _fade: Tween = null
+## The running crossfade of each node (its own tween).
+var _fades: Dictionary = {}
 var _last_overview_sig := ""
 var _last_signature := ""
 ## Returns the expansion overview MapPanel last read ({} when none).
@@ -71,11 +78,12 @@ func _ready() -> void:
 	_crumbs.level_requested.connect(_go_to)
 
 
-## Wire the stack to its MapPanel (overview_of returns the expansion overview
-## the panel last read) and the detail column it adds a section to.
-func setup(panel: Control, sim: Object, overview_of: Callable, detail_host: Control, after: Control) -> void:
+## Wire the stack to its MapPanel, the map's adapter (the chart's), the
+## expansion overview the panel last read, and the detail column it adds a
+## section to (after the given control).
+func setup(panel: Control, bridge: GeoBridgeAdapter, overview_of: Callable, detail_host: Control, after: Control) -> void:
 	_panel = panel
-	_sim = sim
+	_bridge = bridge
 	_overview_of = overview_of
 	if detail_host != null:
 		_detail = GeoRegionDetail.new()
@@ -84,6 +92,8 @@ func setup(panel: Control, sim: Object, overview_of: Callable, detail_host: Cont
 		if after != null and after.get_parent() == detail_host:
 			detail_host.move_child(_detail, after.get_index() + 1)
 		_detail.candidate_chosen.connect(open_candidate)
+		_detail.player_site_chosen.connect(open_player_site)
+		_detail.offshore_chosen.connect(open_offshore)
 
 
 ## "national", "region" or "site".
@@ -112,6 +122,10 @@ func detail() -> GeoRegionDetail:
 	return _detail
 
 
+func bridge() -> GeoBridgeAdapter:
+	return _bridge
+
+
 ## Drill into a production area (1-13): the region level. False for an area
 ## that does not exist (the level does not change).
 func drill_into(po: int) -> bool:
@@ -119,14 +133,12 @@ func drill_into(po: int) -> bool:
 		return false
 	drill_count += 1
 	_po = po
-	_region.show_area(po, _sim, _home_area())
+	_region.show_area(po, _bridge)
 	_site.visible = false
 	_region.visible = true
 	_set_level("region")
 	_crumbs.show_path(_area_label(po), "")
-	if _detail != null:
-		_detail.show_area(GeoRegionBridge.rival_summary(_sim, po), _region.candidates(), _region)
-		_detail.visible = true
+	_show_detail()
 	_remember_overview()
 	visible = true
 	_crossfade(self)
@@ -143,19 +155,17 @@ func _first_candidate_id() -> String:
 	return String(rows[0].get("id", "")) if not rows.is_empty() else ""
 
 
-## Open the card of a feature clicked on the national chart (Track C2's
-## GeoMapView.feature_clicked): drill into its area, then open its card.
-## "candidates" (a cluster's best candidate id), "hexagon" (a Havbruk til havs
-## id), "player" (a company site id), "site" (a locality id; its card when
-## the locality has a rival owner). False when the feature is not found (the
-## level does not change).
+## Open the card of a national chart feature (Track C2's GeoMapView: a
+## double-click on it, or the detail column's button naming it): drill into
+## its area, then open its card. "candidates" (a star's best candidate id),
+## "hexagon" (a Havbruk til havs id), "player" (a company site id), "site" (a
+## locality id; its card when the locality has a rival owner, else the
+## region level). False when the feature is not found (the level does not
+## change).
 func open_feature(kind: String, id: String) -> bool:
 	match kind:
 		"candidates":
-			var po := 0
-			for s: Dictionary in GeoData.candidates():
-				if String(s.get("id", "")) == id and s.get("type", "") == "open_pen":
-					po = int(s.get("po", 0))
+			var po := candidate_area(id)
 			if not _drill_from_panel(po):
 				return false
 			var row := _row_with(_region.candidates(), "id", id)
@@ -163,7 +173,7 @@ func open_feature(kind: String, id: String) -> bool:
 				open_candidate(row)
 			return true
 		"hexagon":
-			var row := _row_with(GeoRegionBridge.offshore_candidates(_sim, _home_area()), "id", id)
+			var row := _row_with(_bridge.offshore_candidates() if _bridge != null else [], "id", id)
 			if row.is_empty() or not _drill_from_panel(int(row.get("po", 0))):
 				return false
 			var shown := _row_with(_region.offshore(), "id", id)
@@ -171,7 +181,7 @@ func open_feature(kind: String, id: String) -> bool:
 				open_offshore(shown)
 			return true
 		"player":
-			var row := _row_with(GeoRegionBridge.player_site_locations(_sim), "site_id", id)
+			var row := _row_with(_bridge.player_site_locations() if _bridge != null else [], "site_id", id)
 			if row.is_empty() or not _drill_from_panel(int(row.get("po", 0))):
 				return false
 			var shown := _row_with(_region.player_sites(), "site_id", id)
@@ -179,17 +189,53 @@ func open_feature(kind: String, id: String) -> bool:
 				open_player_site(shown)
 			return true
 		"site":
-			var sites := GeoRegionBridge.geo_sites(_sim)
-			var ids: PackedInt32Array = sites.get("ids", PackedInt32Array())
-			var at := ids.find(int(id)) if id.is_valid_int() else -1
-			var pos: PackedByteArray = sites.get("po", PackedByteArray())
-			if at < 0 or at >= pos.size() or not _drill_from_panel(int(pos[at])):
+			var at := _site_index(_bridge.sites() if _bridge != null else {}, id)
+			if at.is_empty() or not _drill_from_panel(int(at["po"])):
 				return false
 			for icon: Dictionary in (_region.rival_layer() as Object).get("icons"):
 				if int(icon.get("id", -1)) == int(id):
 					open_rival(icon)
 			return true
 	return false
+
+
+## What a national feature's card is about, for the detail column's button
+## ("" when the feature has no card): the candidate's rank and place, the
+## offshore area, the company site, or the rival locality and its owner. A
+## locality in no production area (inland, or the offshore unit) has none:
+## the region level shows an area's own localities only.
+static func feature_label(bridge: GeoBridgeAdapter, kind: String, id: String) -> String:
+	if bridge == null:
+		return ""
+	match kind:
+		"candidates":
+			var row := _row_with(bridge.sea_candidates(candidate_area(id)), "id", id)
+			return "" if row.is_empty() else TranslationServer.translate("MAP_REGION_PICK_CANDIDATE") % [
+				int(row.get("rank", 0)), String(row.get("label", ""))]
+		"hexagon":
+			var row := _row_with(bridge.offshore_candidates(), "id", id)
+			return "" if row.is_empty() else TranslationServer.translate("MAP_REGION_PICK_OFFSHORE") % String(row.get("area", ""))
+		"player":
+			var row := _row_with(bridge.player_site_locations(), "site_id", id)
+			return "" if row.is_empty() else TranslationServer.translate("MAP_REGION_PICK_SITE") % String(row.get("site_label", ""))
+		"site":
+			var sites := bridge.sites()
+			var at := _site_index(sites, id)
+			if at.is_empty() or int(at["owner"]) < 0 or int(at["po"]) < 1:
+				return ""
+			var owners: Array = sites.get("owners", [])
+			var owner := int(at["owner"])
+			var who := String((owners[owner] as Dictionary).get("name", "")) if owner < owners.size() else ""
+			return TranslationServer.translate("MAP_REGION_PICK_RIVAL") % [int(id), who]
+	return ""
+
+
+## An open-pen candidate's production area (candidates.json), 0 when unknown.
+static func candidate_area(id: String) -> int:
+	for s: Dictionary in GeoData.candidates():
+		if String(s.get("id", "")) == id and s.get("type", "") == "open_pen":
+			return int(s.get("po", 0))
+	return 0
 
 
 ## Open a candidate's card (a star or its button).
@@ -217,14 +263,17 @@ func open_rival(icon: Dictionary) -> void:
 func step_up() -> bool:
 	match _level:
 		"site":
+			var kind := _site.kind()
+			var row := _site.row()
 			_site.visible = false
 			_set_level("region")
 			_crumbs.show_path(_area_label(_po), "")
 			_crossfade(_region)
-			_focus_candidate.call_deferred(String(_site.row().get("id", "")))
+			_focus_origin.call_deferred(kind, row)
 			return true
 		"region":
 			go_national()
+			_focus_explore.call_deferred()
 			return true
 	return false
 
@@ -251,8 +300,7 @@ func on_sim_changed(force: bool = false) -> void:
 		return
 	_last_overview_sig = sig
 	_region.refresh_live(force)
-	if _detail != null:
-		_detail.show_area(GeoRegionBridge.rival_summary(_sim, _po), _region.candidates(), _region)
+	_show_detail()
 	if _level == "site" and _site.kind() == "candidate":
 		var id := String(_site.row().get("id", ""))
 		for row: Dictionary in _region.candidates():
@@ -261,6 +309,13 @@ func on_sim_changed(force: bool = false) -> void:
 
 
 # ── Internals ─────────────────────────────────────────────────────────────────
+
+func _show_detail() -> void:
+	if _detail == null:
+		return
+	_detail.show_area(_bridge.rival_summary(_po) if _bridge != null else {}, _region.candidates(), _region)
+	_detail.visible = true
+
 
 func _enter_site(place: String) -> void:
 	_site.visible = true
@@ -294,9 +349,23 @@ static func _row_with(rows: Array, key: String, value: String) -> Dictionary:
 	return {}
 
 
+## A locality's {index, po, owner} in get_geo_sites' arrays, {} when unknown.
+static func _site_index(sites: Dictionary, id: String) -> Dictionary:
+	if not id.is_valid_int():
+		return {}
+	var ids: PackedInt32Array = sites.get("ids", PackedInt32Array())
+	var at := ids.find(int(id))
+	var pos: PackedByteArray = sites.get("po", PackedByteArray())
+	var owner: PackedInt32Array = sites.get("owner", PackedInt32Array())
+	if at < 0 or at >= pos.size():
+		return {}
+	return {"index": at, "po": int(pos[at]), "owner": owner[at] if at < owner.size() else -1}
+
+
 func _go_to(level: String) -> void:
 	if level == "national":
 		go_national()
+		_focus_explore.call_deferred()
 	elif level == "region" and _level == "site":
 		step_up()
 
@@ -316,15 +385,51 @@ func _focus_candidate(candidate_id: String) -> void:
 		b.grab_focus()
 
 
+## Back from a card: the row or button it came from (a candidate's button, a
+## company site's row, hav_1's row), else the suggested candidate's button,
+## else the crumbs' back button. Nothing when the level moved on meanwhile.
+func _focus_origin(kind: String, row: Dictionary) -> void:
+	if _level != "region" or _detail == null:
+		return
+	var target: Control = null
+	match kind:
+		"candidate":
+			target = _detail.candidate_button(String(row.get("id", "")))
+		"site":
+			target = _detail.site_button(String(row.get("site_id", "")))
+		"offshore":
+			target = _detail.hav_button() if String(row.get("bound_plot_id", "")) != "" else null
+	if target == null or not target.is_visible_in_tree():
+		target = _detail.candidate_button(_first_candidate_id())
+	if target == null or not target.is_visible_in_tree():
+		target = _crumbs.back_button()
+	target.grab_focus()
+
+
+## Back at national: 'Utforsk området', when the panel is still shown.
+func _focus_explore() -> void:
+	if _level != "national" or _panel == null or not _panel.is_visible_in_tree() or not _panel.has_method("explore_button"):
+		return
+	var b: Button = _panel.call("explore_button")
+	if b != null and b.is_visible_in_tree() and not b.disabled:
+		b.grab_focus()
+
+
+## A cosmetic fade-in of one node. Each node keeps its own tween: a fade that
+## starts on another node (a card opened while the region still fades in)
+## leaves this one running to the end, so no level is left see-through.
 func _crossfade(node: CanvasItem) -> void:
-	if _fade != null and _fade.is_valid():
-		_fade.kill()
-	if MotionPrefs.reduced_motion() or not is_inside_tree():
+	var running: Tween = _fades.get(node)
+	if running != null and running.is_valid():
+		running.kill()
+	_fades.erase(node)
+	if MotionPrefs.reduced_motion() or not node.is_inside_tree():
 		node.modulate.a = 1.0
 		return
 	node.modulate.a = 0.0
-	_fade = create_tween()
-	_fade.tween_property(node, "modulate:a", 1.0, FADE_S)
+	var fade := node.create_tween()
+	fade.tween_property(node, "modulate:a", 1.0, FADE_S)
+	_fades[node] = fade
 
 
 func _open_hav() -> void:
@@ -366,12 +471,12 @@ func _overview_signature() -> String:
 
 func _remember_overview() -> void:
 	_last_overview_sig = _overview_signature()
-	_last_signature = GeoRegionBridge.geo_sites_signature(_sim)
+	_last_signature = _bridge.sites_signature() if _bridge != null else ""
 
 
 ## True once when the rival layout's signature moved since the last look.
 func _rivals_moved() -> bool:
-	var signature := GeoRegionBridge.geo_sites_signature(_sim)
+	var signature := _bridge.sites_signature() if _bridge != null else ""
 	if signature == _last_signature:
 		return false
 	_last_signature = signature

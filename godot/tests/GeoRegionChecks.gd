@@ -27,15 +27,17 @@ extends RefCounted
 ##    fjord tab with that site selected; the hav_1 hexagon -> the Hav family
 ##    with hav_1 chosen.
 ## 8. Live data: a quiet day re-reads no candidate; with the map closed no
-##    geo read happens on day signals. The national chart's site hook
-##    (MapPanel._on_feature_clicked, C2's feature_clicked) opens a
-##    candidate's, a hexagon's, a company site's and a rival's card.
+##    geo read happens on day signals. The national chart's features, by
+##    real double-clicks (the captain's ruling at the merge: a click names
+##    the feature, a double-click opens its card): a candidate's, a
+##    hexagon's, a company site's and a rival's card; a fjord or an offshore
+##    area keeps the national level.
 ## 9. Lints: the region view and the site card at 1280x720, 100 % and 125 %:
 ##    layout, theme, contrast and Norwegian text; every button answers.
+## 10. The captain's review checks (GeoRegionReviewChecks.gd).
 ##
-## Tracks A and B: where their bridge reads have not landed, GeoRegionBridge
-## stands in (its stubbed() list is printed); each check says which source
-## it compared against, and the counts of checks never depend on it.
+## Tracks A and B are merged: every read goes through the map's one adapter
+## (GeoBridgeAdapter), and the checks compare with the same adapter's reads.
 
 const DialogLayoutLint := preload("res://tests/DialogLayoutLint.gd")
 const AREA := 3
@@ -55,16 +57,18 @@ const OVERLAY_COUNTS := {
 
 var t: Node = null
 var sim: Node = null
+var bridge: GeoBridgeAdapter = null
 var _log: _ErrorLog = null
 
 
 func run(runner: Node) -> void:
 	t = runner
 	sim = t._sim
+	bridge = GeoBridgeAdapter.new(sim)
 	var started := Time.get_ticks_msec()
 	_log = _ErrorLog.new()
 	OS.add_logger(_log)
-	print("  geo D: stubbed bridge reads: %s" % ", ".join(GeoRegionBridge.stubbed(sim)))
+	_check(bridge.missing().is_empty(), "geo region: the map's adapter has every read the region and site levels use %s" % str(bridge.missing()))
 	_math()
 	_heat_colours()
 	await _outline_fallback()
@@ -171,13 +175,13 @@ func _outline_fallback() -> void:
 
 func _lazy_until_opened() -> Node:
 	GeoRegionData.reset_cache()
-	var calls := GeoRegionBridge.calls
+	var calls := GeoBridgeAdapter.calls
 	var scene: Node = await t._spawn_po3_scene(SEED)
 	sim.advance_days(10)
 	await t.get_tree().process_frame
-	_check(GeoRegionData.build_count == 0 and GeoRegionBridge.calls == calls,
+	_check(GeoRegionData.build_count == 0 and GeoBridgeAdapter.calls == calls,
 		"geo region: ten days with the map never opened build no area and make no geo read (%d builds, %d reads)" % [
-			GeoRegionData.build_count, GeoRegionBridge.calls - calls])
+			GeoRegionData.build_count, GeoBridgeAdapter.calls - calls])
 	return scene
 
 
@@ -199,6 +203,7 @@ func _flows(scene: Node) -> void:
 	await _lints(map)
 	await _national_features(map)
 	await _actions(ui, map)
+	await preload("res://tests/GeoRegionReviewChecks.gd").new().run(t, self, ui, map)
 	await _hidden_map(ui, map)
 
 
@@ -285,7 +290,7 @@ func _layers(map: Control) -> void:
 
 func _rivals(map: Control) -> void:
 	var view := (map.geo_drill() as GeoDrillStack).region_view()
-	var sites := GeoRegionBridge.geo_sites(sim)
+	var sites := bridge.sites()
 	var expected := {}
 	var ids: PackedInt32Array = sites["ids"]
 	var owners: Array = sites["owners"]
@@ -296,21 +301,21 @@ func _rivals(map: Control) -> void:
 	var drawn := {}
 	for icon: Dictionary in (view.rival_layer() as Object).get("icons"):
 		drawn[icon["id"]] = icon["color"]
-	var source := "stub" if GeoRegionBridge.live(sim, "get_geo_sites") == false else "live"
-	_check(drawn == expected, "geo region: the drawn rival icons are get_geo_sites' owned PO3 localities in their owner bands (%s: %d)" % [source, drawn.size()])
-	var summary := GeoRegionBridge.rival_summary(sim, AREA)
+	_check(drawn == expected and not drawn.is_empty(),
+		"geo region: the drawn rival icons are get_geo_sites' owned PO3 localities in their owner bands (%d)" % drawn.size())
+	var summary := bridge.rival_summary(AREA)
 	var want := PackedStringArray()
 	for o: Dictionary in summary.get("top_owners", []):
 		want.append(String(o.get("id", "")))
 	var list := (map.geo_drill() as GeoDrillStack).detail().rivals()
-	_check(list.owner_ids() == want and list.is_visible_in_tree(),
-		"geo region: RivalPresenceList shows get_rival_summary(3)'s owners in its order (%s: %s)" % [source, ", ".join(want)])
+	_check(list.owner_ids() == want and not want.is_empty() and list.is_visible_in_tree(),
+		"geo region: RivalPresenceList shows get_rival_summary(3)'s owners in its order (%s)" % ", ".join(want))
 
 
 func _stars_and_cards(map: Control) -> void:
 	var drill: GeoDrillStack = map.geo_drill()
 	var view := drill.region_view()
-	var rows := GeoRegionBridge.sea_candidates(sim, AREA)
+	var rows := bridge.sea_candidates(AREA)
 	var order := PackedStringArray()
 	for row: Dictionary in rows:
 		order.append(String(row["id"]))
@@ -322,7 +327,7 @@ func _stars_and_cards(map: Control) -> void:
 		if view.star(id) != null and view.star(id).is_visible_in_tree():
 			stars += 1
 	_check(rows.size() == 12 and shown == order and stars == 12,
-		"geo region: 12 stars and 12 buttons, in get_sea_candidates' rank order (%s)" % ("stub" if rows[0].get("stub", false) else "live"))
+		"geo region: 12 stars and 12 buttons, in get_sea_candidates' rank order (%s)" % ", ".join(order))
 	var star_bad := PackedStringArray()
 	var button_bad := PackedStringArray()
 	for row: Dictionary in rows:
@@ -376,12 +381,12 @@ func _card_matches(card: GeoSiteCard, row: Dictionary) -> bool:
 
 
 func _live_data(map: Control) -> void:
-	var reads := int(GeoRegionBridge.reads.get("sea_candidates", 0))
+	var reads := int(GeoBridgeAdapter.reads.get("get_sea_candidates", 0))
 	t.get_viewport().gui_release_focus()
 	for i in 3:
 		await t._run_one_day_by_key()
-	_check(map.map_level() == "region" and int(GeoRegionBridge.reads.get("sea_candidates", 0)) == reads,
-		"geo region: three quiet days with the region shown re-read no candidate (%d reads)" % (int(GeoRegionBridge.reads.get("sea_candidates", 0)) - reads))
+	_check(map.map_level() == "region" and int(GeoBridgeAdapter.reads.get("get_sea_candidates", 0)) == reads,
+		"geo region: three quiet days with the region shown re-read no candidate (%d reads)" % (int(GeoBridgeAdapter.reads.get("get_sea_candidates", 0)) - reads))
 
 
 func _lints(map: Control) -> void:
@@ -444,63 +449,137 @@ func _lints(map: Control) -> void:
 		drill.step_up()
 
 
-## Track D's site hook on the national chart (C2's feature_clicked reaches
-## MapPanel._on_feature_clicked): a candidate, a hexagon, a company site and a
-## rival locality each open their card in their own area; a salmon fjord or
-## an offshore area keeps the national level.
+## The national chart's features open their cards by a real double-click
+## (C2's GeoMapView: feature_drill_requested -> MapPanel, the captain's
+## ruling at the merge): a candidate star, hav_1's hexagon, a company farm
+## and a single rival locality each open their card in their own area; a
+## click on a salmon fjord or an offshore area keeps the national level and
+## names no card. Replaces D's direct _on_feature_clicked calls (a click
+## opened the card) with real input, RUN_LOG §7.
 func _national_features(map: Control) -> void:
 	var drill: GeoDrillStack = map.geo_drill()
-	drill.go_national()
-	map._on_feature_clicked("candidates", "PO04-02")
-	await t.get_tree().process_frame
+	var chart: GeoMapView = map.chart()
 	var card := drill.site_card()
-	_check(map.map_level() == "site" and drill.area() == 4 and card.kind() == "candidate"
-			and String(card.row().get("id", "")) == "PO04-02" and int(map.expansion_section().area().get("production_area", 0)) == 4,
-		"geo region: a click on a national candidate opens its card in its own area, the area picked (%s)" % map.map_level())
 	drill.go_national()
-	var bound := ""
-	for r: Dictionary in GeoRegionBridge.offshore_candidates(sim, AREA):
-		if String(r.get("bound_plot_id", "")) != "":
-			bound = String(r["id"])
-	map._on_feature_clicked("hexagon", bound)
 	await t.get_tree().process_frame
-	_check(map.map_level() == "site" and card.kind() == "offshore" and String(card.row().get("id", "")) == bound
+	var star := _feature_point(chart, "candidates", func(item: Dictionary) -> bool: return int(item["po"]) == LICENCE_AREA)
+	var star_id := String((star.get("item", {}) as Dictionary).get("best", {}).get("id", ""))
+	await _double_click_point(star.get("at", Vector2.INF))
+	_check(map.map_level() == "site" and drill.area() == LICENCE_AREA and card.kind() == "candidate" and star_id != ""
+			and String(card.row().get("id", "")) == star_id and int(map.expansion_section().area().get("production_area", 0)) == LICENCE_AREA,
+		"geo region: a double-click on PO4's national star opens its candidate's card in PO4, the area picked (%s, %s)" % [star_id, map.map_level()])
+	drill.go_national()
+	await t.get_tree().process_frame
+	var hex := _feature_point(chart, "hexagon", func(item: Dictionary) -> bool: return bool(item.get("bound", false)))
+	var hex_id := String((hex.get("item", {}) as Dictionary).get("row", {}).get("id", ""))
+	await _double_click_point(hex.get("at", Vector2.INF))
+	_check(map.map_level() == "site" and card.kind() == "offshore" and hex_id != "" and String(card.row().get("id", "")) == hex_id
 			and card.action() == "hav",
-		"geo region: a click on hav_1's national hexagon opens its card with 'Bygg her (hav)' (%s)" % bound)
+		"geo region: a double-click on hav_1's national hexagon opens its card with 'Bygg her (hav)' (%s)" % hex_id)
 	drill.go_national()
-	var sites := GeoRegionBridge.player_site_locations(sim)
-	var site_id := String(sites[0].get("site_id", "")) if not sites.is_empty() else ""
-	map._on_feature_clicked("player", site_id)
 	await t.get_tree().process_frame
-	_check(map.map_level() == "site" and card.kind() == "site" and String(card.row().get("site_id", "")) == site_id
+	var farm := _feature_point(chart, "player", func(_item: Dictionary) -> bool: return true)
+	var site_id := String((farm.get("item", {}) as Dictionary).get("row", {}).get("site_id", ""))
+	await _double_click_point(farm.get("at", Vector2.INF))
+	_check(map.map_level() == "site" and card.kind() == "site" and site_id != "" and String(card.row().get("site_id", "")) == site_id
 			and card.action() == "view_3d",
-		"geo region: a click on a company site opens its card with 'Vis i 3D' (%s)" % site_id)
+		"geo region: a double-click on a company farm on the national map opens its card with 'Vis i 3D' (%s)" % site_id)
 	drill.go_national()
-	var geo := GeoRegionBridge.geo_sites(sim)
-	var owned := -1
-	var ids: PackedInt32Array = geo["ids"]
-	for i in ids.size():
-		if int(geo["po"][i]) == AREA and int(geo["owner"][i]) >= 0:
-			owned = ids[i]
-			break
-	if owned >= 0:
-		map._on_feature_clicked("site", str(owned))
-		await t.get_tree().process_frame
-		_check(map.map_level() == "site" and card.kind() == "rival" and int(card.row().get("id", -1)) == owned,
-			"geo region: a click on a rival's national site opens its card (live: locality %d)" % owned)
-	else:
-		map._on_feature_clicked("site", "10029")
-		await t.get_tree().process_frame
-		_check(map.map_level() == "national",
-			"geo region: a national site click without track A's rival lane keeps the national level (stub)")
-	drill.go_national()
-	map._on_feature_clicked("fjord", "Hardangerfjorden")
-	map._on_feature_clicked("offshore_area", "Utsira nord")
 	await t.get_tree().process_frame
-	_check(map.map_level() == "national" and not drill.visible,
-		"geo region: a click on a salmon fjord or an offshore area keeps the national level")
+	# A rival's locality in a production area (21 owned localities lie in none, inland or offshore: no region shows them).
+	var owned := _feature_point(chart, "site", func(item: Dictionary) -> bool:
+		var i := int(item["index"])
+		return chart.site_layer().owner_of(i) >= 0 and int((chart.site_layer().sites()["po"] as PackedByteArray)[i]) > 0)
+	var locality := int(chart.feature_id(owned.get("item", {}))) if not owned.is_empty() else -1
+	await _double_click_point(owned.get("at", Vector2.INF))
+	_check(map.map_level() == "site" and card.kind() == "rival" and locality > 0 and int(card.row().get("id", -1)) == locality,
+		"geo region: a double-click on a rival's single locality on the national map opens its card (locality %d)" % locality)
+	drill.go_national()
+	await t.get_tree().process_frame
+	var fjord := _feature_point(chart, "fjord", func(_item: Dictionary) -> bool: return true)
+	var sea := _feature_point(chart, "offshore_area", func(_item: Dictionary) -> bool: return true)
+	await t._click_at(fjord.get("at", Vector2.INF))
+	var after_fjord: bool = map.map_level() == "national" and not map.feature_button().visible
+	await t._click_at(sea.get("at", Vector2.INF))
+	_check(not fjord.is_empty() and not sea.is_empty() and after_fjord and map.map_level() == "national" and not drill.visible
+			and not map.feature_button().visible,
+		"geo region: a click on a salmon fjord or an offshore area keeps the national level and names no card")
 	map.drill_into(AREA)
 	await t.get_tree().process_frame
+
+
+## A chart point where the pointer finds a feature of the kind that passes
+## the test, clear of the plates, chips and key: {item, at (viewport)}, or
+## {} when none does. Deterministic: features in the chart's own order.
+func _feature_point(chart: GeoMapView, kind: String, wanted: Callable) -> Dictionary:
+	var points: Array = []
+	match kind:
+		"candidates":
+			for s: Dictionary in chart.candidate_layer().star_groups():
+				points.append(s["pos"])
+		"hexagon":
+			for h: Dictionary in chart.candidate_layer().hexagons():
+				points.append(h["pos"])
+		"player":
+			for q in chart.player_marks().points():
+				points.append(q)
+		"site":
+			for c: Dictionary in chart.site_layer().clusters():
+				if int(c["count"]) == 1:
+					points.append(c["pos"])
+		"fjord":
+			for f: Dictionary in chart.overlay_layer().fjords():
+				points.append(_inside_point(f["ring"]))
+		"offshore_area":
+			for o: Dictionary in chart.overlay_layer().get("_offshore_local"):
+				points.append(_inside_point(o["ring"]))
+	var origin := chart.get_global_rect().position
+	for q: Vector2 in points:
+		if not q.is_finite() or not Rect2(Vector2.ZERO, chart.size).has_point(q) or _covered(chart, q):
+			continue
+		var item := chart.feature_at(q)
+		if str(item.get("kind", "")) == kind and wanted.call(item):
+			return {"item": item, "at": origin + q}
+	return {}
+
+
+## A point inside a ring: the middle of the longest horizontal run through
+## the ring's centre row of its bounds.
+static func _inside_point(ring: PackedVector2Array) -> Vector2:
+	var box := Rect2(ring[0], Vector2.ZERO)
+	for q in ring:
+		box = box.expand(q)
+	for f in [0.5, 0.4, 0.6, 0.3, 0.7]:
+		var y: float = box.position.y + box.size.y * float(f)
+		var xs: Array[float] = []
+		for i in ring.size():
+			var a := ring[i]
+			var b := ring[(i + 1) % ring.size()]
+			if (a.y <= y) != (b.y <= y):
+				xs.append(a.x + (y - a.y) / (b.y - a.y) * (b.x - a.x))
+		xs.sort()
+		var best := Vector2.INF
+		var best_w := 0.0
+		for i in range(0, xs.size() - 1, 2):
+			if xs[i + 1] - xs[i] > best_w:
+				best_w = xs[i + 1] - xs[i]
+				best = Vector2((xs[i] + xs[i + 1]) * 0.5, y)
+		if best_w >= 4.0:
+			return best
+	return Vector2.INF
+
+
+## A chart point under a plate, a layer chip or the key (they take the click).
+static func _covered(chart: GeoMapView, q: Vector2) -> bool:
+	for plate: MapMarker in chart.plates().values():
+		if plate.get_rect().grow(4.0).has_point(q):
+			return true
+	var at := chart.get_global_rect().position + q
+	for chip in chart.chips():
+		if chip.is_visible_in_tree() and chip.get_global_rect().grow(4.0).has_point(at):
+			return true
+	var key := chart.legend()
+	return key != null and key.is_visible_in_tree() and key.get_global_rect().grow(4.0).has_point(at)
 
 
 ## The region view's own overlays (crumbs, chips, legend, readout) stay inside
@@ -535,7 +614,6 @@ func _actions(ui: Control, map: Control) -> void:
 		if bool(r.get("suggested", false)):
 			row = r
 	var sites_before: int = sim.get_all_pens().size()
-	var live_build := (map.build_dialog() as Object).has_method("open_for_candidate")
 	if row.is_empty():
 		_check(false, "geo region: PO3 has a suggested candidate to build at")
 		_check(false, "geo region: (no build)")
@@ -547,10 +625,9 @@ func _actions(ui: Control, map: Control) -> void:
 		var action_ok := card.action() == "build" and not card.action_button().disabled
 		await t._click_control(card.action_button())
 		var dialog: BuildSiteDialog = map.build_dialog()
-		var preselected: bool = String(dialog.call("selected_candidate")) == String(row["id"]) if live_build else true
-		_check(action_ok and dialog.visible and dialog.zone_id() == String(row["build_zone_id"]) and preselected,
-			"geo region: 'Bygg her' opens the build dialog in zone %s %s" % [dialog.zone_id(),
-				"with the candidate preselected" if live_build else "(stub: track B's open_for_candidate not merged)"])
+		_check(action_ok and dialog.visible and dialog.zone_id() == String(row["build_zone_id"])
+				and dialog.selected_candidate() == String(row["id"]),
+			"geo region: 'Bygg her' opens the build dialog in zone %s with the candidate %s preselected" % [dialog.zone_id(), String(row["id"])])
 		await t._click_control(dialog.get_node("%ConfirmBtn"))
 		var built: bool = sim.get_all_pens().size() == sites_before + 1
 		await t._click_control(dialog.get_node("%CancelBtn"))
@@ -559,21 +636,21 @@ func _actions(ui: Control, map: Control) -> void:
 			"geo region: confirming builds the site and closing the dialog returns to the card (%d sites)" % sim.get_all_pens().size())
 		drill.step_up()
 		await t.get_tree().process_frame
-		var locations := GeoRegionBridge.player_site_locations(sim)
-		var newest: Dictionary = locations[locations.size() - 1] if not locations.is_empty() else {}
+		var locations := bridge.player_site_locations()
+		var newest: Dictionary = {}
+		for r: Dictionary in locations:
+			if String(r.get("candidate_id", "")) == String(row["id"]):
+				newest = r
 		var marker := view.site_marker(String(newest.get("site_id", "")))
 		var want_at := view.to_view(GeoRegionMath.map_px(AREA, float(newest.get("x", 0)), float(newest.get("y", 0))))
 		var at_xy: bool = marker != null and (marker.get_meta(&"anchor", Vector2.INF) as Vector2).distance_to(want_at) < 0.5
-		if live_build:
-			var fresh: Dictionary = {}
-			for r: Dictionary in view.candidates():
-				if r["id"] == row["id"]:
-					fresh = r
-			_check(view.state_of(fresh) == "yours" and String(newest.get("candidate_id", "")) == String(row["id"]) and at_xy,
-				"geo region: back at region level the candidate is yours and the new site is drawn at its x/y")
-		else:
-			_check(at_xy and String(newest.get("source", "")) == "area",
-				"geo region: back at region level the new site is drawn (stub: at the area's label point, approximate)")
+		var fresh: Dictionary = {}
+		for r: Dictionary in view.candidates():
+			if r["id"] == row["id"]:
+				fresh = r
+		_check(view.state_of(fresh) == "yours" and String(newest.get("source", "")) == "candidate" and at_xy
+				and int(newest.get("x", 0)) == int(row["x"]) and int(newest.get("y", 0)) == int(row["y"]),
+			"geo region: back at region level the candidate is yours and the new site is drawn at its x/y (%s)" % String(newest.get("site_id", "")))
 	# 'Søk vekstlisens' on a PO4 candidate in this PO3 game.
 	map.drill_into(LICENCE_AREA)
 	await t.get_tree().process_frame
@@ -590,7 +667,7 @@ func _actions(ui: Control, map: Control) -> void:
 	await t.get_tree().process_frame
 	# 'Bygg her (hav)' on the hexagon hav_1 is bound to.
 	var bound: Dictionary = {}
-	for r: Dictionary in GeoRegionBridge.offshore_candidates(sim, AREA):
+	for r: Dictionary in bridge.offshore_candidates():
 		if String(r.get("bound_plot_id", "")) != "":
 			bound = r
 	map.drill_into(int(bound.get("po", AREA)))
@@ -616,8 +693,9 @@ func _actions(ui: Control, map: Control) -> void:
 	map.drill_into(AREA)
 	await t.get_tree().process_frame
 	var sites := drill.region_view().player_sites()
-	# The last site drawn is on top where sites share a point (the stub's area label).
-	var site_id := String(sites[sites.size() - 1].get("site_id", "")) if not sites.is_empty() else ""
+	# Every company site has a mark of its own (spread apart where sites
+	# share a spot); the first is clicked.
+	var site_id := String(sites[0].get("site_id", "")) if not sites.is_empty() else ""
 	await t._click_control(drill.region_view().site_marker(site_id))
 	var view_3d := drill.site_card().action() == "view_3d"
 	await t._click_control(drill.site_card().action_button())
@@ -631,10 +709,10 @@ func _actions(ui: Control, map: Control) -> void:
 func _hidden_map(ui: Control, map: Control) -> void:
 	_check(not map.visible and map.map_level() == "national",
 		"geo region: leaving the map returns it to national (%s)" % map.map_level())
-	var calls := GeoRegionBridge.calls
+	var calls := GeoBridgeAdapter.calls
 	sim.advance_days(5)
 	await t.get_tree().process_frame
-	_check(GeoRegionBridge.calls == calls, "geo region: five days with the map closed make no geo read (%d)" % (GeoRegionBridge.calls - calls))
+	_check(GeoBridgeAdapter.calls == calls, "geo region: five days with the map closed make no geo read (%d)" % (GeoBridgeAdapter.calls - calls))
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -651,7 +729,13 @@ func _suggested_id(rows: Array) -> String:
 func _double_click(control: Control) -> void:
 	if control == null:
 		return
-	var pos := control.get_global_rect().get_center()
+	await _double_click_point(control.get_global_rect().get_center())
+
+
+## A real double-click at a viewport position (nothing for Vector2.INF).
+func _double_click_point(pos: Vector2) -> void:
+	if not pos.is_finite():
+		return
 	var vp := t.get_viewport()
 	vp.notification(Node.NOTIFICATION_VP_MOUSE_ENTER)
 	for step in [[true, false], [false, false], [true, true], [false, false]]:

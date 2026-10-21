@@ -11,10 +11,12 @@ extends Control
 ##   suggested, taken or yours) and the Havbruk til havs hexagons;
 ## - layer chips, a legend and a hover readout of the cell under the pointer
 ##   (score, why, depth) read from the CPU copy of the grid.
-## Every sim read goes through GeoRegionBridge (the Track A/B adapter).
-## Stars, hexagons and sites are small Controls (click, tooltip); the rival
-## icons are one _draw in _SiteLayer, re-recorded only on a resize, a new
-## area, a toggle or new rival data (redraw_count), never on a tick.
+## Every sim read goes through the map's one adapter (GeoBridgeAdapter).
+## Stars, hexagons and sites are small Controls (click, tooltip); company
+## sites on one spot are spread apart, each drawing a hairline back to where
+## it lies. The rival icons are one _draw in GeoRegionRivals, re-recorded
+## only on a resize, a new area, a toggle or new rival data (redraw_count),
+## never on a tick.
 
 signal candidate_chosen(row: Dictionary)
 signal offshore_chosen(row: Dictionary)
@@ -35,8 +37,7 @@ const STATE_KEYS := {"free": "MAP_REGION_STATE_FREE", "suggested": "MAP_REGION_S
 static var _heat_textures: Dictionary = {}  # po -> ImageTexture of the raw grid
 
 var _po: int = 0
-var _home: int = 0
-var _sim: Object = null
+var _bridge: GeoBridgeAdapter = null
 var _candidates: Array = []
 var _offshore: Array = []
 var _player_sites: Array = []
@@ -98,14 +99,13 @@ func _ready() -> void:
 	resized.connect(_layout_markers)
 
 
-## Show a production area (1-13); home_po is the company's home area (the
-## open-sea plot hav_1 binds from it). Returns false for an unknown area.
-func show_area(po: int, sim: Object, home_po: int = 0) -> bool:
+## Show a production area (1-13), read through the map's adapter. Returns
+## false for an unknown area.
+func show_area(po: int, bridge: GeoBridgeAdapter) -> bool:
 	var t := GeoRegionMath.transform(po)
 	if t.is_empty():
 		return false
-	_sim = sim
-	_home = home_po
+	_bridge = bridge
 	var changed := po != _po
 	_po = po
 	if changed:
@@ -115,7 +115,7 @@ func show_area(po: int, sim: Object, home_po: int = 0) -> bool:
 		var mat := _heat.material as ShaderMaterial
 		for k: String in _uniforms:
 			mat.set_shader_parameter(k, _uniforms[k])
-		mat.set_shader_parameter("suit_tex", _heat_texture(po))
+		mat.set_shader_parameter("suit_tex", heat_texture(po))
 		_overlay.set_area(GeoRegionData.area(po))
 		_sites_signature = "-"
 	refresh_live(true)
@@ -126,19 +126,19 @@ func show_area(po: int, sim: Object, home_po: int = 0) -> bool:
 ## Re-read what the sim changes: the candidates' states, the company's sites
 ## and (when the layout's signature moved) the rivals and hexagons.
 func refresh_live(force: bool = false) -> void:
-	if _po == 0:
+	if _po == 0 or _bridge == null:
 		return
-	_candidates = GeoRegionBridge.sea_candidates(_sim, _po)
-	var every_site := GeoRegionBridge.player_site_locations(_sim)
+	_candidates = _bridge.sea_candidates(_po)
+	var every_site := _bridge.player_site_locations()
 	_player_ids = {}
 	for r: Dictionary in every_site:
 		_player_ids[String(r.get("site_id", ""))] = true
 	_player_sites = every_site.filter(func(r: Dictionary) -> bool: return int(r.get("po", 0)) == _po)
-	var signature := GeoRegionBridge.geo_sites_signature(_sim)
+	var signature := _bridge.sites_signature()
 	if force or signature != _sites_signature:
 		_sites_signature = signature
-		_site_layer.set_sites(GeoRegionBridge.geo_sites(_sim), _po)
-		_offshore = GeoRegionBridge.offshore_candidates(_sim, _home).filter(_hexagon_in_view)
+		_site_layer.set_sites(_bridge.sites(), _po)
+		_offshore = _bridge.offshore_candidates().filter(_hexagon_in_view)
 	_rebuild_markers()
 
 
@@ -316,18 +316,36 @@ func _layout_markers() -> void:
 	var r := map_rect()
 	_clip.position = r.position
 	_clip.size = r.size
+	# The company's sites on one spot (zone anchors, approximate) are spread
+	# apart by their own size, so each takes its own click and tooltip.
+	var sites: Array[Control] = []
+	var site_pts := PackedVector2Array()
 	for m: Control in _markers.get_children():
-		var row: Dictionary = m.get_meta(&"row", {})
-		var at := to_view(GeoRegionMath.map_px(_po, float(row.get("x", 0.0)), float(row.get("y", 0.0))))
+		if m.name.begins_with("MapSite_"):
+			sites.append(m)
+			site_pts.append(_view_of(m.get_meta(&"row", {})))
+	var spread := GeoMapView.spread_marks(site_pts, SITE_PX)
+	for m: Control in _markers.get_children():
+		var at := _view_of(m.get_meta(&"row", {}))
+		var drawn := at
 		if m.name.begins_with("MapHex_"):
-			var pinned := _pin_inside(at, r, HEX_PX * 0.5 + 4.0)
+			drawn = _pin_inside(at, r, HEX_PX * 0.5 + 4.0)
 			# Off the map: a chevron on the hexagon points the way to it.
-			(m as _Marker).off_map = (at - pinned).normalized() if at.distance_to(pinned) > 0.5 else Vector2.ZERO
-			(m as _Marker).queue_redraw()
-			at = pinned
+			(m as _Marker).off_map = (at - drawn).normalized() if at.distance_to(drawn) > 0.5 else Vector2.ZERO
+			at = drawn
+		elif m.name.begins_with("MapSite_"):
+			drawn = spread[sites.find(m)]
+			# A spread mark draws a hairline back to where the site lies.
+			(m as _Marker).leader = at - drawn if at.distance_to(drawn) > 0.5 else Vector2.ZERO
+		(m as _Marker).queue_redraw()
 		m.size = m.custom_minimum_size
-		m.position = at - m.size * 0.5
+		m.position = drawn - m.size * 0.5
 		m.set_meta(&"anchor", at)
+
+
+## A row's x/y (EPSG:25833 m) -> this view's local position.
+func _view_of(row: Dictionary) -> Vector2:
+	return to_view(GeoRegionMath.map_px(_po, float(row.get("x", 0.0)), float(row.get("y", 0.0))))
 
 
 ## A hexagon off the base map is pinned to its edge (it points the way).
@@ -506,7 +524,9 @@ func _full(c: Control) -> void:
 	c.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 
-static func _heat_texture(po: int) -> ImageTexture:
+## The area's raw suitability grid as a texture (once per process; the heat
+## shader samples it nearest, the region view and the site card's crop).
+static func heat_texture(po: int) -> ImageTexture:
 	if _heat_textures.has(po):
 		return _heat_textures[po]
 	var grid := GeoData.suitability_grid(po)
@@ -525,6 +545,8 @@ class _Marker extends Control:
 	var bound := false
 	## For a hexagon pinned to the map edge: the way to its real position.
 	var off_map := Vector2.ZERO
+	## For a company site spread from its spot: centre -> where it lies.
+	var leader := Vector2.ZERO
 	var hovered := false
 
 	func _ready() -> void:
@@ -556,6 +578,10 @@ class _Marker extends Control:
 					draw_colored_polygon(PackedVector2Array([c + off_map * (r + 7.0), c + off_map * (r + 2.0) + side,
 						c + off_map * (r + 2.0) - side]), GeoRegionIcons.BUOY)
 			"site":
+				if leader != Vector2.ZERO:
+					draw_line(c, c + leader, GeoRegionIcons.HALO, 3.0, true)
+					draw_line(c, c + leader, GeoRegionIcons.SNOW, 1.0, true)
+					draw_circle(c + leader, 2.0, GeoRegionIcons.SNOW)
 				draw_circle(c, r, GeoRegionIcons.HALO)
 				draw_circle(c, r - 3.0, GeoRegionIcons.SALMON)
 				draw_arc(c, r - 1.5, 0.0, TAU, 32, GeoRegionIcons.SNOW, 2.0, true)

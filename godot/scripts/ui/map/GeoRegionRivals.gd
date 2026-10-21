@@ -6,10 +6,12 @@ extends Control
 ## independents slate), by kind (sea ring, land square, offshore 12-gon).
 ## One recording (redraw_count), re-recorded only on a resize, a new area or
 ## new rival data, never on a tick. Lives inside the view's map clip.
+## D17: an icon carries the parody owner, never the registry's locality name
+## (some localities are named after the company that holds them).
 
 var view: GeoRegionView = null
 var redraw_count := 0
-## [{id, px (map), kind, owner_id, owner_name, is_major, mtb_t, color}]
+## [{id, px (map), kind, stage, owner_id, owner_name, is_major, mtb_t, color}]
 var icons: Array = []
 
 
@@ -28,11 +30,10 @@ func set_sites(sites: Dictionary, po: int) -> void:
 	var mtb: PackedFloat32Array = sites.get("mtb_t", PackedFloat32Array())
 	var owner: PackedInt32Array = sites.get("owner", PackedInt32Array())
 	var owners: Array = sites.get("owners", [])
-	# kinds/stages/names arrive as PackedStringArray from the lane.
-	var kind_names: Variant = sites.get("kinds", GeoRegionBridge.DEFAULT_SITE_KINDS)
+	# kinds and stages arrive as PackedStringArray from the lane.
+	var kind_names: Variant = sites.get("kinds", GeoBridgeAdapter.KIND_TABLE)
 	var stage_codes: PackedByteArray = sites.get("stage", PackedByteArray())
 	var stage_names: Variant = sites.get("stages", PackedStringArray())
-	var names: Variant = sites.get("names", PackedStringArray())
 	for i in ids.size():
 		if i >= pos.size() or int(pos[i]) != po or i >= owner.size() or owner[i] < 0 or owner[i] >= owners.size():
 			continue
@@ -51,8 +52,6 @@ func set_sites(sites: Dictionary, po: int) -> void:
 		}
 		if i < stage_codes.size() and int(stage_codes[i]) < stage_names.size():
 			icon["stage"] = str(stage_names[stage_codes[i]])
-		if i < names.size():
-			icon["name"] = str(names[i])
 		icons.append(icon)
 	queue_redraw()
 

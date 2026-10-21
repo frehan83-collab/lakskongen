@@ -2604,6 +2604,7 @@ MAP_REGION_CRUMB_TIP,Go to %s,Gå til %s
 MAP_REGION_EXPLORE,Explore the area,Utforsk området
 MAP_REGION_EXPLORE_NONE_TIP,Pick an area first,Velg et område først
 MAP_REGION_EXPLORE_TIP,"Show the area with suitability, restrictions, rivals and candidates (or double-click the area)","Vis området med egnethet, restriksjoner, konkurrenter og kandidater (eller dobbeltklikk på området)"
+MAP_REGION_HAV_ROW,Your open-sea plot: %s (Hav 1),Havplassen din: %s (Hav 1)
 MAP_REGION_HEX_BOUND,Your open-sea plot (Hav 1) lies here and can be built from your area,Havplassen din (Hav 1) ligger her og kan bygges fra området ditt
 MAP_REGION_HEX_NOT_OFFERED,Not offered from your area: only the open-sea site nearest your home area can be built,Ikke tilbudt fra området ditt: bare havplassen nærmest hjemområdet ditt kan bygges
 MAP_REGION_HEX_TIP,Offshore farming area %s · %s m deep,"Havbruk til havs, %s · %s m dypt"
@@ -2613,6 +2614,12 @@ MAP_REGION_LEGEND_OFFSHORE,Offshore farming area,Havbruk til havs
 MAP_REGION_LEGEND_OFFSHORE_TIP,Havbruk til havs candidates; the filled one is your open-sea plot (Hav 1),Kandidater for havbruk til havs; den fylte er havplassen din (Hav 1)
 MAP_REGION_LEGEND_YOURS,Your site,Ditt anlegg
 MAP_REGION_LEGEND_YOURS_TIP,Your sites in the area,Anleggene dine i området
+MAP_REGION_PICK_CANDIDATE,"candidate %d, %s","kandidat %d, %s"
+MAP_REGION_PICK_OFFSHORE,the offshore farming area %s,havbruksområdet %s
+MAP_REGION_PICK_OPEN,Open the card for %s,Åpne kortet for %s
+MAP_REGION_PICK_OPEN_TIP,Shows it on the area's map at the site level (a double-click on the mark does the same),Viser det på stedsnivå i kartet over området (et dobbeltklikk på merket gjør det samme)
+MAP_REGION_PICK_RIVAL,locality no. %d (%s),lokalitet nr. %d (%s)
+MAP_REGION_PICK_SITE,your site %s,anlegget ditt %s
 MAP_REGION_READOUT_CLOSED,Closed: %s · %s m,Stengt: %s · %s m
 MAP_REGION_READOUT_CLOSED_NO_DEPTH,Closed: %s,Stengt: %s
 MAP_REGION_READOUT_HINT,Point at the map for suitability and depth,Pek på kartet for egnethet og dybde
@@ -2646,14 +2653,16 @@ MAP_REGION_RIVAL_FIGURES,%d sites · %s t,%d lokaliteter · %s t
 MAP_REGION_RIVAL_ROW_TIP,%s (%s),%s (%s)
 MAP_REGION_RIVAL_TIP,%s · %s · MTB %s t,%s · %s · MTB %s t
 MAP_REGION_SITE_APPROX,The position is approximate,Plasseringen er omtrentlig
+MAP_REGION_SITE_ROW,%s · %s,%s · %s
 MAP_REGION_SITE_TIP,Your site %s near %s,Ditt anlegg %s ved %s
 MAP_REGION_STAR_TIP_HEAD,Candidate %d: %s,Kandidat %d: %s
 MAP_REGION_STAR_TIP_PLACE,%s m deep · %s km to the nearest farm,%s m dypt · %s km til nærmeste anlegg
-MAP_REGION_STAR_TIP_SCORE,Suitability %s · weakest: %s,Egnethet %s · svakest: %s
+MAP_REGION_STAR_TIP_SCORE,Suitability %s · costs the most: %s,Egnethet %s · trekker mest ned: %s
 MAP_REGION_STATE_FREE,free,ledig
 MAP_REGION_STATE_SUGGESTED,suggested,foreslått
 MAP_REGION_STATE_TAKEN,taken,tatt
 MAP_REGION_STATE_YOURS,your site,ditt anlegg
+MAP_REGION_YOURS_HEADER,Your places in the area,Dine steder i området
 MAP_SITE_APPLY_LICENCE,Apply for a growth licence,Søk vekstlisens
 MAP_SITE_APPLY_LICENCE_TIP,Open the licence auction for the zone,Åpne lisensauksjonen for sonen
 MAP_SITE_BACK,Back to the area,Tilbake til området
@@ -2666,7 +2675,7 @@ MAP_SITE_BUILD_HERE,Build here,Bygg her
 MAP_SITE_BUILD_HERE_TIP,Open the build with this candidate chosen,Åpne byggingen med denne kandidaten valgt
 MAP_SITE_BUILD_REFUSED_TIP,Cannot be built here now,Kan ikke bygges her nå
 MAP_SITE_FACT_BAND,Owner group,Eiergruppe
-MAP_SITE_FACT_BINDING,Weakest term,Svakeste ledd
+MAP_SITE_FACT_BINDING,Costs the most,Trekker mest ned
 MAP_SITE_FACT_CANDIDATE,Candidate,Kandidat
 MAP_SITE_FACT_CURRENT,"Current, annual mean","Strøm, årssnitt"
 MAP_SITE_FACT_DEPTH,Depth,Dybde
@@ -2690,7 +2699,6 @@ MAP_SITE_KIND_OFFSHORE_SALMONID,Offshore unit,Havmerd
 MAP_SITE_KIND_OTHER,Other species,Annen art
 MAP_SITE_KIND_SEA_SALMONID,Sea grow-out,Matfisk i sjø
 MAP_SITE_LICENCE_ZONE,Needs a growth licence in %s,Krever vekstlisens i %s
-MAP_SITE_LOCALITY_NAMED,"%s, locality no. %d","%s, lokalitet nr. %d"
 MAP_SITE_LOCALITY_NUMBER,Locality no. %d,Lokalitet nr. %d
 MAP_SITE_LOCALITY_STAGE_BROODSTOCK,Broodstock,Stamfisk
 MAP_SITE_LOCALITY_STAGE_GROWOUT,Grow-out,Matfisk
@@ -2703,6 +2711,7 @@ MAP_SITE_OVERLINE_OFFSHORE,Offshore farming,Havbruk til havs
 MAP_SITE_OVERLINE_RIVAL,Rival,Konkurrent
 MAP_SITE_OVERLINE_YOURS,Your site,Ditt anlegg
 MAP_SITE_RINGS_LEGEND,White ring: the 2.5 km distance to other farms. Dashed: 5 km around river mouths.,"Hvit ring: 2,5 km avstand til andre anlegg. Stiplet: 5 km rundt elvemunninger."
+MAP_SITE_RINGS_LEGEND_RIVERS,Dashed: 5 km around river mouths.,Stiplet: 5 km rundt elvemunninger.
 MAP_SITE_SECTION_PLACE,The place,Stedet
 MAP_SITE_SECTION_WHY,Why here,Hvorfor her
 MAP_SITE_STAGE_ANBEFALING_2022,Proposed in 2022,Anbefalt i 2022

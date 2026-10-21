@@ -32,7 +32,7 @@ func _ready() -> void:
 	add_child(_empty)
 
 
-## Show an area's summary (GeoRegionBridge.rival_summary).
+## Show an area's summary (GeoBridgeAdapter.rival_summary).
 func show_summary(summary: Dictionary) -> void:
 	_owners = summary.get("top_owners", [])
 	for c in _rows.get_children():
