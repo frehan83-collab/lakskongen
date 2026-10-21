@@ -718,6 +718,12 @@ func _row(id: String, key: String, value: String, variation: StringName, area: i
 	v.theme_type_variation = variation
 	v.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# A floor width: an autowrapping label measured before the grid has a width
+	# wraps word-per-line and reports a huge minimum height. The VBox above had
+	# already sized PreviewRow's slot from the old minimum, and Godot clamps
+	# the child to the new one, so without this the row froze 2750 px tall over
+	# its siblings on the CI runner (PR #11, run 06:26; the rects in the lint).
+	v.custom_minimum_size.x = 200.0
 	_ledger.add_child(v)
 
 
@@ -961,6 +967,13 @@ func _fit() -> void:
 	var chrome := _dialog.get_combined_minimum_size().y - _scroll.get_combined_minimum_size().y
 	var room := view.y - chrome - 32.0
 	_scroll.custom_minimum_size.y = clampf(content, 0.0, maxf(120.0, room))
+	# Re-place the steps with the minimums as they are NOW: a child whose
+	# minimum changed after the last sort (the rebuilt ledger's wrapping
+	# labels) otherwise keeps a slot computed from the stale value, and when
+	# nothing else dirties the layout — slower runners — that never heals.
+	if body is Container:
+		(body as Container).queue_sort()
+	_scroll.queue_sort()
 
 
 # ── Confirm ─────────────────────────────────────────────────────────────────
