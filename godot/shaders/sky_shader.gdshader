@@ -95,27 +95,33 @@ uniform float grade_horizon_lift : hint_range(0.0, 4.0) = 0.0;
 // director composes it from the sun and sky at the camera's depth (linear
 // radiance): the background behind the fog, the colour the fog's aerial
 // perspective fades a line of sight into, the ambient light and what a
-// fish's silver flank mirrors. It is smooth on purpose, the horizontal
-// radiance plus a linear slope in the view's height (darker toward the
-// deep, lighter toward the surface) and a broad glow round the sun's
-// refracted direction: the fog takes its colour from the radiance map's
-// roughest level, which blurs the sky, so the radiance pass draws the slope
-// steeper by 1 / UW_BLUR_SLOPE and the blur gives back the background's
-// own slope. A fully fogged net then has the background's colour exactly
-// (with any sharper detail here it showed as a pattern of threads on the
-// deep). Snell's window is the surface's own (water/water_underside.gdshader).
-// Nothing else is drawn then.
+// fish's silver flank mirrors. It is a linear function of the direction
+// (wave4b int review): uw_horizontal, plus a slope in the view's height
+// (uw_vertical: darker toward the deep, lighter toward the surface) and one
+// toward the sun's refracted direction (uw_sun_slope along uw_sun_dir: the
+// sun's forward-scattered glow, its lobe's first two spherical harmonics).
+// The fog takes its colour from the radiance map's roughest level, which
+// blurs the sky; an isotropic blur keeps a linear function's mean and
+// shrinks its slope by one factor (uw_blur_slope, the filter's own,
+// measured), so the radiance pass draws the slopes steeper by its inverse
+// and the blur gives back the background's own function: a fully fogged
+// object has the colour of the water behind it in every direction (the
+// director keeps the steepened function positive, so nothing clips). The
+// stage's sharper glow and its clamp at the deep left the fogged seabed a
+// seam at the horizon and fogged floats pale against the deep. Snell's
+// window is the surface's own (water/water_underside.gdshader). Nothing else
+// is drawn then.
 uniform float underwater = 0.0;
 uniform vec3 uw_horizontal = vec3(0.01, 0.03, 0.03);
-uniform vec3 uw_nadir = vec3(0.003, 0.009, 0.009);
+uniform vec3 uw_vertical = vec3(0.007, 0.021, 0.021);
 uniform vec3 uw_sun_dir = vec3(0.0, 1.0, 0.0);
-uniform vec3 uw_sun_glow = vec3(0.0);
+uniform vec3 uw_sun_slope = vec3(0.0);
+// How much of a linear slope the radiance map's roughest level keeps
+// (EnvironmentDirector.UW_BLUR_SLOPE: measured for the REALTIME filter the
+// sky runs under water; the director writes it).
+uniform float uw_blur_slope : hint_range(0.05, 1.0) = 0.93;
 
 const float PI_ = 3.14159265;
-// How much of a linear slope in the view's height the radiance map's
-// roughest level keeps (its GGX lobe at roughness 1; measured in the
-// underwater shots: a fully fogged net against the deep behind it).
-const float UW_BLUR_SLOPE = 0.62;
 const float R_EARTH = 6360.0;      // km
 const float R_TOP = 6420.0;        // km
 const float H_RAYLEIGH = 8.0;      // km
@@ -1007,14 +1013,12 @@ vec4 unfogged(vec4 cl, vec3 dir, vec3 sun_dir) {
 	return vec4(max((cl.rgb - sky_fog_k * haze_color - sky_fog_scatter * scatter) / max(1.0 - sky_fog_k, 0.05), vec3(0.0)), cl.a);
 }
 
-// The water's own light in a direction, under the surface (G3-04); the
-// radiance pass (`cubemap`) draws the slope steeper (see UW_BLUR_SLOPE).
+// The water's own light in a direction, under the surface (G3-04): a
+// linear function of the direction; the radiance pass (`cubemap`) draws its
+// slopes steeper by 1 / uw_blur_slope (see uw_vertical).
 vec3 underwater_light(vec3 dir, bool cubemap) {
-	vec3 slope = (uw_horizontal - uw_nadir) * (cubemap ? 1.0 / UW_BLUR_SLOPE : 1.0);
-	vec3 col = max(uw_horizontal + slope * dir.y, vec3(0.0));
-	// The sun's light scattered forward round its refracted direction.
-	float s = max(dot(dir, uw_sun_dir), 0.0);
-	return col + uw_sun_glow * (s * s * s * s);
+	float steeper = cubemap ? 1.0 / uw_blur_slope : 1.0;
+	return max(uw_horizontal + (uw_vertical * dir.y + uw_sun_slope * dot(dir, uw_sun_dir)) * steeper, vec3(0.0));
 }
 
 void sky() {

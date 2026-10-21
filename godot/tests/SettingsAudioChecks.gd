@@ -676,17 +676,31 @@ func _the_ambience_bed_follows_the_weather() -> void:
 		_check(false, "ambience: the fjord has a weather controller (sea-state check)")
 	var fjord_cam := cam as FjordCamera
 	if fjord_cam != null:
+		# wave4b int (gfx-polish-2 review): the bed follows the camera itself
+		# under the surface, not the view's name: the UNDERWATER view hovers
+		# in the air over its pen before it dives, and a framing takes the
+		# camera out while the name may still say otherwise.
+		var was_processing := fjord_cam.is_processing()
+		var at := fjord_cam.global_position
 		var zoom_before := fjord_cam.current_zoom
-		fjord_cam.current_zoom = FjordCamera.ZoomLevel.UNDERWATER
+		fjord_cam.set_process(false)
+		fjord_cam.global_position = Vector3(at.x, -5.0, at.z)
 		mixer.sense(t.get_tree(), t._sim)
 		mixer.settle()
 		var under_ok := bool(mixer.last_inputs.get("underwater", false)) and is_equal_approx(mixer.gain_of("underwater"), 1.0) \
 			and AmbienceMixer.LAYERS.keys().all(func(l: String) -> bool: return l == "underwater" or mixer.gain_of(l) == 0.0)
-		fjord_cam.current_zoom = zoom_before
+		fjord_cam.global_position = Vector3(at.x, 7.0, at.z)
+		fjord_cam.current_zoom = FjordCamera.ZoomLevel.UNDERWATER
 		mixer.sense(t.get_tree(), t._sim)
 		mixer.settle()
-		_check(under_ok and mixer.gain_of("underwater") == 0.0,
-			"ambience: with the camera under the surface only the underwater bed plays, and it stops on the way up")
+		var hover_ok := not bool(mixer.last_inputs.get("underwater", true)) and mixer.gain_of("underwater") == 0.0
+		fjord_cam.current_zoom = zoom_before
+		fjord_cam.global_position = at
+		fjord_cam.set_process(was_processing)
+		mixer.sense(t.get_tree(), t._sim)
+		mixer.settle()
+		_check(under_ok and hover_ok and mixer.gain_of("underwater") == 0.0,
+			"ambience: with the camera under the surface only the underwater bed plays; none while the UNDERWATER view hovers in the air, and it stops on the way up")
 	else:
 		_check(false, "ambience: the game camera is a FjordCamera (underwater check)")
 	var barges: FeedBargeVisualManager = scene.get_node("FjordEnvironment/FeedBargeVisualManager")

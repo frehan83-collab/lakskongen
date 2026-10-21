@@ -131,6 +131,10 @@ var _health_ring: MeshInstance3D
 var _click_area: Area3D
 var _band_color: Color = Color(0, 0, 0, 0)
 var _net_opacity: float = 1.0
+## How much of the bird net shows over the pen's own net opacity (0-1): the
+## underwater view's dive fades it (UnderwaterView, wave4b int review).
+var _bird_net_fade: float = 1.0
+var _bird_net_nodes: Array[MeshInstance3D] = []
 var _net_fouling: float = 0.0
 var _net_nodes: Array[MeshInstance3D] = []
 var _lice_skirt: bool = false
@@ -307,8 +311,29 @@ func get_net_opacity() -> float:
 	return _net_opacity
 
 func _apply_net_opacity() -> void:
-	for net in get_net_nodes():
-		net.set_instance_shader_parameter("net_opacity", _net_opacity)
+	var birds := _bird_nets()
+	for net in _nets():
+		var fade := _bird_net_fade if net in birds else 1.0
+		net.set_instance_shader_parameter("net_opacity", _net_opacity * fade)
+
+## The bird net's share of the net opacity (0 gone .. 1 whole), every LOD:
+## the underwater view dissolves it as its dive passes through the roof.
+func set_bird_net_fade(value: float) -> void:
+	var v := clampf(value, 0.0, 1.0)
+	if v == _bird_net_fade:
+		return
+	_bird_net_fade = v
+	_apply_net_opacity()
+
+func get_bird_net_fade() -> float:
+	return _bird_net_fade
+
+## The bird-net meshes (both styles, every LOD), looked up once.
+func _bird_nets() -> Array[MeshInstance3D]:
+	if _bird_net_nodes.is_empty():
+		for part in ["BirdNet", "BirdNetRim"]:
+			_bird_net_nodes.append_array(get_parts(part))
+	return _bird_net_nodes
 
 ## The net's fouling, 0 clean .. 1 heavily grown (G3-04, pen_net_shader
 ## net_fouling): FarmSite hands every pen of a site the site's. It can come

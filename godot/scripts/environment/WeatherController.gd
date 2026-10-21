@@ -56,6 +56,10 @@ var _start: Dictionary = {}
 var _transition_progress: float = 1.0
 var _wind_direction: Vector2 = Vector2(1.0, 0.3).normalized()
 var _was_storm: bool = false
+## G3-04 (wave4b int review): no rain or snow falls round a camera under the
+## surface. The EnvironmentDirector sets it every frame from the camera's
+## depth: the streaks (unshaded, unfogged) fell through the water.
+var submerged := false
 var _rain_aim := Vector3.ZERO
 
 # Weather affects gameplay
@@ -197,12 +201,27 @@ func _blend(t: float) -> void:
 func _apply_particles() -> void:
 	var rain: float = _current.get("rain", 0.0)
 	if rain_particles:
-		rain_particles.emitting = rain > 0.05
+		rain_particles.visible = not submerged
+		rain_particles.emitting = rain > 0.05 and not submerged
 		_set_amount(rain_particles, int(clampf(rain * RAIN_PER_MM, 1.0, 8000.0)))
 	var snow: float = _current.get("snow", 0.0)
 	if snow_particles:
-		snow_particles.emitting = snow > 0.02
+		snow_particles.visible = not submerged
+		snow_particles.emitting = snow > 0.02 and not submerged
 		_set_amount(snow_particles, int(clampf(snow * SNOW_PER_MM, 1.0, 6000.0)))
+
+
+## Under the surface (G3-04): the rain and the snow stop and hide; back in
+## the air their falling column is there at once (the emitters' preprocess).
+func set_submerged(on: bool) -> void:
+	if on == submerged:
+		return
+	submerged = on
+	_apply_particles()
+	if not on:
+		for particles: GPUParticles3D in [rain_particles, snow_particles]:
+			if particles != null and particles.emitting:
+				particles.restart()
 
 
 ## Changing `amount` restarts the emitter, so a blend that set it every

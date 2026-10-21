@@ -25,15 +25,20 @@ render_mode world_vertex_coords, cull_front, depth_draw_opaque, unshaded, fog_di
 // - Outside the window the surface mirrors the water below it (total
 //   internal reflection): the water's own light in the mirrored direction,
 //   dark; foam from below a shade lighter.
-// - The water between the camera and the surface: its absorption tints the
-//   light (Beer-Lambert, the water's attenuation per channel), and its
-//   scattering veils it in the water's own light toward the surface, the
-//   same smooth function the sky draws under water (horizontal radiance +
-//   a slope in height + the sun's glow), so the surface fades into the
-//   fogged world without a seam at the horizon. The veil uses a share of
-//   the fog's attenuation (underside_attenuation): a bright extended
-//   source such as the window keeps its shape through forward scattering
-//   far longer than a dark object keeps its contrast.
+// - The water between the camera and the surface veils it in the water's
+//   own light toward the surface, the same linear function the sky draws
+//   under water (horizontal radiance + a slope in height + one toward the
+//   refracted sun), so the surface fades into the fogged world without a
+//   seam at the horizon. The mirrored water (total internal reflection, and
+//   the share Fresnel reflects inside the window) fades at the fog's own
+//   attenuation (underside_fog), as any object does: a fogged float in front
+//   of it then has its colour (wave4b int review: at a share of the fog the
+//   dark mirror stayed darker than the fog and every float showed pale
+//   against it). Only the light through Snell's window keeps its shape
+//   longer (underside_attenuation, a share of the fog: a bright extended
+//   source survives forward scattering far longer than a dark object keeps
+//   its contrast), tinted by the water's absorption (Beer-Lambert per
+//   channel).
 
 #define WAVES 16
 
@@ -64,15 +69,18 @@ uniform vec3 underside_land = vec3(0.03, 0.035, 0.03);
 // Toward the sun in the air, its disc's radiance and its glare's.
 uniform vec3 underside_sun_dir = vec3(0.0, 1.0, 0.0);
 uniform vec3 underside_sun = vec3(0.0);
-// The water's own light (the sky's underwater function): horizontal
-// radiance, the radiance straight down, toward the refracted sun its glow.
+// The water's own light (the sky's underwater function, sky_shader
+// underwater_light without its radiance-pass steepening): the horizontal
+// radiance, its slope in height and its slope toward the refracted sun.
 uniform vec3 underside_horizontal = vec3(0.01, 0.03, 0.03);
-uniform vec3 underside_nadir = vec3(0.003, 0.009, 0.009);
+uniform vec3 underside_vertical = vec3(0.007, 0.021, 0.021);
 uniform vec3 underside_glow_dir = vec3(0.0, 1.0, 0.0);
-uniform vec3 underside_glow = vec3(0.0);
-// The water's attenuation per channel (1/m, bloom included) and the veil's
-// attenuation (1/m).
+uniform vec3 underside_sun_slope = vec3(0.0);
+// The water's attenuation per channel (1/m, bloom included), the fog's own
+// attenuation (1/m: what the mirrored water fades at) and the window's
+// light's (1/m, a share of the fog).
 uniform vec3 underside_absorption = vec3(0.40, 0.09, 0.14);
+uniform float underside_fog = 0.45;
 uniform float underside_attenuation = 0.2;
 
 const float TAU_ = 6.28318530718;
@@ -221,9 +229,7 @@ vec3 surface_normal(vec2 p0, float exposure, float depth, float footprint, vec3 
 
 // The water's own light in a direction (the sky's underwater function).
 vec3 water_light(vec3 dir) {
-	vec3 col = max(underside_horizontal + (underside_horizontal - underside_nadir) * dir.y, vec3(0.0));
-	float s = max(dot(dir, underside_glow_dir), 0.0);
-	return col + underside_glow * (s * s * s * s);
+	return max(underside_horizontal + underside_vertical * dir.y + underside_sun_slope * dot(dir, underside_glow_dir), vec3(0.0));
 }
 
 // The sky in an air direction: zenith to the low sky, the fjord's walls
@@ -252,21 +258,24 @@ void fragment() {
 	vec3 r = reflect(d, nw);
 	vec3 below = water_light(r);
 	vec3 t = refract(d, nw, IOR_WATER);
-	vec3 col;
-	if (dot(t, t) < 1e-8) {
-		// Total internal reflection: the surface mirrors the water below.
-		col = below;
-	} else {
+	// The light through the window (the sky's) and the mirrored water.
+	vec3 window = vec3(0.0);
+	vec3 mirror = below;
+	if (dot(t, t) >= 1e-8) {
 		// Fresnel from inside by the air-side angle: 1 at the window's edge.
 		float cos_t = clamp(dot(t, n), 0.0, 1.0);
 		float f = WATER_F0 + (1.0 - WATER_F0) * pow(1.0 - cos_t, 5.0);
-		col = mix(sky_light(t) * (IOR_WATER * IOR_WATER), below, f);
+		window = sky_light(t) * (IOR_WATER * IOR_WATER) * (1.0 - f);
+		mirror = below * f;
 	}
 	// Breaking crests: foam from below, a shade of the light through it.
-	col = mix(col, underside_horizontal * 4.0 + col * 0.25, clamp(whitecaps * 3.0, 0.0, 0.6) * smoothstep(0.0, 3.0, bake.r));
-	// The water between: its absorption tints the light, its scattering
-	// veils it in the water's own light toward the surface.
-	col *= exp(-underside_absorption * dist);
-	float veil = 1.0 - exp(-underside_attenuation * dist);
-	ALBEDO = mix(col, water_light(d), veil);
+	float foam = clamp(whitecaps * 3.0, 0.0, 0.6) * smoothstep(0.0, 3.0, bake.r);
+	window = window * (1.0 - 0.75 * foam) + underside_horizontal * 4.0 * foam;
+	mirror *= 1.0 - 0.75 * foam;
+	// The water between veils the surface in its own light toward it: the
+	// mirrored water at the fog's attenuation, the window's light longer,
+	// tinted by the water's absorption.
+	float t_fog = exp(-underside_fog * dist);
+	float t_window = exp(-underside_attenuation * dist);
+	ALBEDO = water_light(d) * (1.0 - t_fog) + mirror * t_fog + window * exp(-underside_absorption * dist) * t_window;
 }

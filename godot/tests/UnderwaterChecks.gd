@@ -49,9 +49,19 @@ func run(tests: Node) -> void:
 	await _check_under_the_surface(env)
 	await _check_fouling_wiring(pens, site_id)
 	await _check_surfacing(env)
+	# wave4b int (the gfx-polish-2 review's findings, handled on the merge).
+	await _check_dive_path(env, pens, site_id)
+	await _check_water_sky(env, pens, site_id)
+	await _check_weather_under_water(env, pens, site_id)
+	await _check_no_dive_over_land(env, pens, site_id)
+	await _check_framing_leaves_the_water(env, pens, site_id)
+	await _check_offshore_water(env, scene)
 	_bloom(site_id, 0.0)
 	scene.queue_free()
 	await t.get_tree().process_frame
+	# The offshore check built a unit: the suite goes on with this check's own game.
+	t._check(t._sim.start_qa_scenario("po3_red_sone", 91), "underwater: the seeded scenario starts again after the offshore check")
+	t._sim.set_paused(true)
 
 
 ## Snell's law at the surface, the Fresnel share and the fog's visibility.
@@ -346,3 +356,304 @@ func _bloom(site_id: String, severity: float) -> void:
 	if severity > 0.0:
 		gb.SpawnQaBloom(site_id, severity, 21)
 	t._sim.call("_refresh_state")
+
+
+# ── wave4b int: the gfx-polish-2 review's findings ────────────────────────────
+
+## The pen the checks dive into: its anchor and its cage.
+func _pen_of(view: UnderwaterView, pens: FishPenManager, site_id: String) -> Dictionary:
+	var farm := pens.get_site(site_id)
+	var anchor := view.dive_anchor(farm.pen_rest_position(0))
+	return {"centre": anchor["center"] as Vector3, "cage": farm.get_cage(int(anchor["pen"]))}
+
+
+## A land pad's centre on its top (FjordTerrain.land_pad_slots).
+func _pad_point(env: FjordEnvironment) -> Vector3:
+	var pad: Dictionary = env.terrain.land_pad_slots()[0]
+	var c: Vector3 = pad["centre"]
+	return Vector3(c.x, LandCampusBuilder.PAD_TOP_Y, c.z)
+
+
+## Steps the camera and the view at 60 Hz toward `zoom` at `centre` (the
+## process of both held) until the camera has settled under the water (the
+## dive) or is high over it (the way up): the camera, the pen's bird net and
+## the lens's veil at every step.
+func _step_path(env: FjordEnvironment, centre: Vector3, cage: PenCage, zoom: FjordCamera.ZoomLevel) -> Array:
+	var cam := env.camera
+	var view := env.underwater_view
+	var dt := 1.0 / 60.0
+	if zoom == FjordCamera.ZoomLevel.UNDERWATER:
+		cam.look_at_position(centre, zoom)
+	else:
+		cam.set_zoom_level(zoom)
+	var samples := []
+	for i in 600:
+		cam._process(dt)
+		view._process(dt)
+		var at := cam.global_position
+		samples.append({"at": at, "fade": cage.get_bird_net_fade(), "veil": float(view.get("_veil"))})
+		await t.get_tree().process_frame
+		if zoom == FjordCamera.ZoomLevel.UNDERWATER and i > 30 and at.y < -FjordCamera.UNDERWATER_DEPTH + 0.05:
+			break
+		if zoom != FjordCamera.ZoomLevel.UNDERWATER and at.y > 60.0:
+			break
+	return samples
+
+
+## Finding 3 and 4 (the dive's path): stepped at 60 Hz, below DIVE_HOVER_M
+## the camera stays inside the pen's net; it crosses the surface straight
+## down and straight up; the pen's bird net is gone wherever the camera is
+## inside the pen under its top; on the way up the veil covers the last
+## metres under the surface (the water material's own underside), and the
+## bird net is whole again once the camera is out.
+func _check_dive_path(env: FjordEnvironment, pens: FishPenManager, site_id: String) -> void:
+	var cam := env.camera
+	var view := env.underwater_view
+	var pen := _pen_of(view, pens, site_id)
+	var centre: Vector3 = pen["centre"]
+	var cage: PenCage = pen["cage"]
+	cam.look_at_position(centre, FjordCamera.ZoomLevel.FARM)
+	await t._settle_camera(cam)
+	cam.set_process(false)
+	view.set_process(false)
+	var down := await _step_path(env, centre, cage, FjordCamera.ZoomLevel.UNDERWATER)
+	for i in 20:
+		cam._process(1.0 / 60.0)
+		view._process(1.0 / 60.0)
+		await t.get_tree().process_frame
+	var up := await _step_path(env, centre, cage, FjordCamera.ZoomLevel.FARM)
+	cam.set_process(true)
+	view.set_process(true)
+	var outside := 0
+	var gauzy := 0
+	for s: Dictionary in down:
+		var at: Vector3 = s["at"]
+		var r := Vector2(at.x - centre.x, at.z - centre.z).length()
+		if at.y < FjordCamera.DIVE_HOVER_M - 0.5 and r >= UnderwaterView.NET_RADIUS_M:
+			outside += 1
+		if r < UnderwaterView.NET_RADIUS_M and at.y < UnderwaterView.BIRD_NET_FADE_M.x and float(s["fade"]) > 0.0:
+			gauzy += 1
+	var bare := 0
+	for s: Dictionary in up:
+		var at: Vector3 = s["at"]
+		var depth := -at.y
+		if depth > 0.0 and depth < EnvironmentDirector.UNDERSIDE_FROM_M and float(s["veil"]) < 0.99:
+			bare += 1
+		var r := Vector2(at.x - centre.x, at.z - centre.z).length()
+		if r < UnderwaterView.NET_RADIUS_M and at.y < UnderwaterView.BIRD_NET_FADE_M.x and float(s["fade"]) > 0.0:
+			gauzy += 1
+	var drift := maxf(_crossing_drift(down), _crossing_drift(up))
+	t._check(down.size() > 20 and up.size() > 5 and outside == 0 and drift < MAX_CROSSING_SLOPE and gauzy == 0 and bare == 0
+		and float(up[up.size() - 1]["fade"]) == 1.0,
+		"underwater: the dive stays inside the net under %.0f m (%d outside), crosses the surface straight (%.3f m across a metre down), the bird net gone inside it (%d frames left), the veil over the last metres up (%d bare)" % [
+			FjordCamera.DIVE_HOVER_M, outside, drift, gauzy, bare])
+
+
+## The dive crosses the surface within this slope of the vertical (across
+## per metre down: 0.25 is 14 degrees; it comes down within
+## FjordCamera.DIVE_ENTRY_M of its place).
+const MAX_CROSSING_SLOPE := 0.25
+
+
+## How far the camera moved across per metre it moved up or down between
+## the two steps either side of the surface (INF without a crossing).
+static func _crossing_drift(samples: Array) -> float:
+	for i in range(1, samples.size()):
+		var a: Vector3 = samples[i - 1]["at"]
+		var b: Vector3 = samples[i]["at"]
+		if (a.y >= 0.0) != (b.y >= 0.0):
+			return Vector2(b.x - a.x, b.z - a.z).length() / maxf(absf(b.y - a.y), 1e-3)
+	return INF
+
+
+## Findings 1 and 2 (the water's sky): under the surface the sky runs
+## REALTIME (its radiance map, which the fog, the ambient and the
+## reflections read, is the water's on the first frame) and the scene's mode
+## comes back above; the sky draws the director's linear function with the
+## measured blur factor, steepened positive everywhere (nothing clips); the
+## surface seen from below fades into that same function at the fog's
+## attenuation; the fog takes its colour from it.
+func _check_water_sky(env: FjordEnvironment, pens: FishPenManager, site_id: String) -> void:
+	var cam := env.camera
+	var director := env.director
+	var world_env := director.world_environment.environment
+	var centre: Vector3 = _pen_of(env.underwater_view, pens, site_id)["centre"]
+	var above_mode := world_env.sky.process_mode
+	cam.look_at_position(centre, FjordCamera.ZoomLevel.UNDERWATER)
+	await t._settle_camera(cam)
+	for i in 3:
+		await t.get_tree().process_frame
+	var under_mode := world_env.sky.process_mode
+	# The suite's UI may cover the world, which holds the sky still: a
+	# staging compose writes it (as the checks above).
+	director.compose(0.0, true)
+	var sky := world_env.sky.sky_material as ShaderMaterial
+	var side := director.water_grid.underside_material
+	var uw: Dictionary = director.get_composed().get("uw", {})
+	var fn: Dictionary = uw.get("sky", {})
+	var sky_fn: bool = not fn.is_empty() and sky.get_shader_parameter("uw_horizontal") == fn["horizontal"] \
+		and sky.get_shader_parameter("uw_vertical") == fn["vertical"] and sky.get_shader_parameter("uw_sun_slope") == fn["sun_slope"] \
+		and is_equal_approx(float(sky.get_shader_parameter("uw_blur_slope")), EnvironmentDirector.UW_BLUR_SLOPE)
+	var side_fn: bool = not fn.is_empty() and side.get_shader_parameter("underside_horizontal") == fn["horizontal"] \
+		and side.get_shader_parameter("underside_vertical") == fn["vertical"] and side.get_shader_parameter("underside_sun_slope") == fn["sun_slope"] \
+		and side.get_shader_parameter("underside_glow_dir") == sky.get_shader_parameter("uw_sun_dir")
+	var fog_fn: bool = is_equal_approx(float(side.get_shader_parameter("underside_fog")), world_env.fog_density) \
+		and world_env.fog_aerial_perspective == 1.0 and world_env.fog_sky_affect == 0.0
+	var floor := _steepened_floor(fn, sky.get_shader_parameter("uw_sun_dir"))
+	var same := sky_fn and side_fn and fog_fn
+	var floor_ok := floor >= EnvironmentDirector.UW_SKY_FLOOR - 1e-4
+	cam.set_zoom_level(FjordCamera.ZoomLevel.FARM)
+	await t._settle_camera(cam)
+	for i in 3:
+		await t.get_tree().process_frame
+	t._check(under_mode == Sky.PROCESS_MODE_REALTIME and above_mode != Sky.PROCESS_MODE_REALTIME
+		and world_env.sky.process_mode == above_mode and same and floor_ok,
+		"underwater: the sky runs REALTIME under the surface (mode %d, %d above) and draws the director's linear water light (%s), steepened positive (floor %.3f); the surface from below (%s) and the fog (%s) share it" % [
+			under_mode, world_env.sky.process_mode, sky_fn, floor, side_fn, fog_fn])
+
+
+## The lowest share of its mean the radiance pass's steepened function
+## reaches over the sphere, the worst channel (EnvironmentDirector.underwater_sky).
+static func _steepened_floor(fn: Dictionary, sun: Vector3) -> float:
+	if fn.is_empty():
+		return -1.0
+	var mean: Vector3 = fn["horizontal"]
+	var up: Vector3 = fn["vertical"]
+	var toward: Vector3 = fn["sun_slope"]
+	var worst := INF
+	var n := 400
+	for i in n:
+		var y := 1.0 - 2.0 * (float(i) + 0.5) / float(n)
+		var ring := sqrt(maxf(1.0 - y * y, 0.0))
+		var phi := float(i) * 2.39996323
+		var d := Vector3(cos(phi) * ring, y, sin(phi) * ring)
+		var f := mean + (up * d.y + toward * d.dot(sun)) / EnvironmentDirector.UW_BLUR_SLOPE
+		for c in 3:
+			if mean[c] > 0.0:
+				worst = minf(worst, f[c] / mean[c])
+	return worst
+
+
+## Finding 5: no rain or snow round a camera under the surface; back in the
+## air they fall again.
+func _check_weather_under_water(env: FjordEnvironment, pens: FishPenManager, site_id: String) -> void:
+	var cam := env.camera
+	var ws := env.weather_system
+	var centre: Vector3 = _pen_of(env.underwater_view, pens, site_id)["centre"]
+	var blend := ws.transition_duration
+	ws.transition_duration = 0.0
+	env.set_weather(WeatherController.WeatherState.STORM)
+	cam.look_at_position(centre, FjordCamera.ZoomLevel.UNDERWATER)
+	await t._settle_camera(cam)
+	for i in 3:
+		await t.get_tree().process_frame
+	var under := ws.submerged and not ws.rain_particles.visible and not ws.rain_particles.emitting \
+		and not ws.snow_particles.visible and not ws.snow_particles.emitting
+	cam.set_zoom_level(FjordCamera.ZoomLevel.FARM)
+	await t._settle_camera(cam)
+	for i in 3:
+		await t.get_tree().process_frame
+	var back := not ws.submerged and ws.rain_particles.visible and ws.rain_particles.emitting
+	env.set_weather(WeatherController.WeatherState.CLEAR)
+	for i in 2:
+		await t.get_tree().process_frame
+	ws.transition_duration = blend
+	t._check(under and back, "underwater: a storm's rain and snow stop and hide under the surface and fall again above it")
+
+
+## Finding 6a: over land (a land pad, the land campus's) the view does not
+## dive: the wheel past its last notch and the API both stop at FARM; a pen
+## it dives into.
+func _check_no_dive_over_land(env: FjordEnvironment, pens: FishPenManager, site_id: String) -> void:
+	var cam := env.camera
+	var pad := _pad_point(env)
+	var centre: Vector3 = _pen_of(env.underwater_view, pens, site_id)["centre"]
+	cam.look_at_position(pad, FjordCamera.ZoomLevel.FARM)
+	await t._settle_camera(cam)
+	var middle := cam.get_viewport().get_visible_rect().size * 0.5
+	for i in 30:
+		cam._zoom_by(1.0 / FjordCamera.ZOOM_STEP, middle)
+	cam.look_at_position(pad, FjordCamera.ZoomLevel.UNDERWATER)
+	await t._settle_camera(cam)
+	var at := cam.global_position
+	var over := at.y - env.terrain.get_height_at(at.x, at.z)
+	t._check(not cam.is_underwater_view() and cam.current_zoom == FjordCamera.ZoomLevel.FARM and not cam.can_dive_at(pad)
+		and over > 1.0 and cam.can_dive_at(centre),
+		"underwater: over a land pad the view does not dive (the camera %.0f m over the ground); into a pen it does" % over)
+
+
+## Finding 6b: a framing or a hold asked for under water takes the camera
+## out of the water before it goes (a land campus's card, a bookmark).
+func _check_framing_leaves_the_water(env: FjordEnvironment, pens: FishPenManager, site_id: String) -> void:
+	var cam := env.camera
+	var pad := _pad_point(env)
+	var centre: Vector3 = _pen_of(env.underwater_view, pens, site_id)["centre"]
+	cam.look_at_position(centre, FjordCamera.ZoomLevel.UNDERWATER)
+	await t._settle_camera(cam)
+	var dived := cam.is_underwater_view() and cam.is_below_surface()
+	cam.frame_position(pad, 220.0, -18.0)
+	await t._settle_camera(cam)
+	var at := cam.global_position
+	var framed := not cam.is_underwater_view() and cam.current_zoom == FjordCamera.ZoomLevel.FARM and not cam.is_below_surface() \
+		and at.y > env.terrain.get_height_at(at.x, at.z) + 10.0
+	cam.look_at_position(centre, FjordCamera.ZoomLevel.UNDERWATER)
+	await t._settle_camera(cam)
+	cam.hold_view(pad, cam.home_yaw(pad), 300.0)
+	await t._settle_camera(cam)
+	at = cam.global_position
+	var held := not cam.is_underwater_view() and not cam.is_below_surface() and at.y > env.terrain.get_height_at(at.x, at.z) + 10.0
+	cam.recentre()
+	await t._settle_camera(cam)
+	t._check(dived and framed and held,
+		"underwater: a framing or a hold from under the water takes the camera out (dived %s, framed %s, held %s)" % [dived, framed, held])
+
+
+## Finding 9 and 4: an offshore unit's water is the sim's (its row in
+## GetAllSeaSiteDetails), not the fallback, and there, with the open sea's
+## swell drawn, the surface seen from below carries every wave uniform the
+## water does, the swell's too.
+func _check_offshore_water(env: FjordEnvironment, scene: Node) -> void:
+	var cam := env.camera
+	var view := env.underwater_view
+	var director := env.director
+	var bridge: Node = t.get_node("/root/GameBridge")
+	var placed: Dictionary = bridge.QaPlaceFarmTypeSet(0, 0, 1)
+	t._sim.advance_days(1)
+	t._sim.set_paused(true)
+	t._sim.state_updated.emit()
+	for i in 3:
+		await t.get_tree().process_frame
+	var unit_id := str(placed.get("offshore_id", ""))
+	var row := {}
+	for r in bridge.GetAllSeaSiteDetails():
+		if str(r.get("id", "")) == unit_id:
+			row = r
+	var slot := Vector3.INF
+	for s: Dictionary in env.terrain.offshore_slots():
+		if str(s.get("id", "")) == str(row.get("plot_id", "")):
+			slot = s["position"]
+	var manager := scene.get_node_or_null("FjordEnvironment/FarmFacilityVisualManager")
+	var dived := false
+	if slot.is_finite():
+		cam.look_at_position(slot, FjordCamera.ZoomLevel.UNDERWATER)
+		await t._settle_camera(cam)
+		if manager != null:
+			manager._refresh_seas()
+			manager._update_sea_target()
+		for i in 90:
+			await t.get_tree().process_frame
+		dived = cam.is_underwater_view() and cam.is_below_surface()
+	var w := view.water_now
+	var water := director.water_material()
+	var side := director.water_grid.underside_material
+	var copied := director.water_grid.is_underside()
+	for key in EnvironmentDirector.UNDERSIDE_COPIED:
+		copied = copied and side.get_shader_parameter(key) == water.get_shader_parameter(key)
+	var swell := float(water.get_shader_parameter("swell_peak"))
+	cam.set_zoom_level(FjordCamera.ZoomLevel.FARM)
+	await t._settle_camera(cam)
+	t._check(bool(placed.get("success", false)) and not row.is_empty() and dived and String(w["site_id"]) == unit_id
+		and is_equal_approx(float(w["visibility_m"]), float(row.get("water_visibility_m", -1.0))),
+		"underwater: at an offshore unit the view takes the unit's water from the sim (%s: %.2f m)" % [String(w["site_id"]), float(w["visibility_m"])])
+	t._check(copied and swell > 0.0,
+		"underwater: under the open sea's swell (peak %.2f m) the surface from below carries every wave uniform the water does" % swell)

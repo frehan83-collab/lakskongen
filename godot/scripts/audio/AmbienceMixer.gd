@@ -138,7 +138,9 @@ func sense(tree: SceneTree, sim: Node) -> void:
 	var cam: Camera3D = tree.root.get_viewport().get_camera_3d() if tree != null else null
 	if cam != null:
 		inputs["camera_height_m"] = cam.global_position.y
-		inputs["underwater"] = cam is FjordCamera and (cam as FjordCamera).current_zoom == FjordCamera.ZoomLevel.UNDERWATER
+		# The camera itself under the surface (G3-04: the UNDERWATER view
+		# hovers over its pen before it dives; a framing takes it out).
+		inputs["underwater"] = cam is FjordCamera and (cam as FjordCamera).is_below_surface()
 	last_inputs = inputs
 	set_targets(gains_for(inputs))
 

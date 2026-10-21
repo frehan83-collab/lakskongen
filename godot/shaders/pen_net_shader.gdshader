@@ -73,6 +73,14 @@ const vec2 FOULED_TUFT_STRETCH = vec2(0.25, 0.75);
 const float FOULED_DENSITY = 0.92;
 const float FOULED_COVER_GAIN = 2.35;
 const vec2 FOULED_COVER_RAMP = vec2(0.1, 0.95);
+// Under the surface the caustics' moving light shows on a thread's
+// sun-facing top at this albedo at least (linear; wave4b int, the captain's
+// art call over the review's finding: at the coated net's 1.6 % albedo the
+// clean net's shimmer was about one level of 255, p99 4). The net's mean
+// light stays its own albedo's (the caustics add sunlight x (i - 1), whose
+// mean is 0): only the moving network reads brighter, as on a wet cord's
+// lit top. Above the surface the caustics are off and nothing changes.
+const vec3 UW_THREAD_CAUSTIC_ALBEDO = vec3(0.05);
 
 varying float model_y;
 
@@ -164,7 +172,7 @@ void fragment() {
 		NORMAL = normalize((VIEW_MATRIX * vec4(normal_world, 0.0)).xyz);
 	}
 	ALBEDO = albedo * uw_depth_light(world.y);
-	EMISSION = uw_caustic_light(world, normal_world, albedo);
+	EMISSION = uw_caustic_light(world, normal_world, max(albedo, UW_THREAD_CAUSTIC_ALBEDO));
 	ROUGHNESS = 0.9;
 	SPECULAR = 0.2;
 	ALPHA = clamp(cover * thread_alpha * (1.0 + 0.4 * foul) * net_opacity, 0.0, 1.0);

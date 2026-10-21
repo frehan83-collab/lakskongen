@@ -160,6 +160,24 @@ const UW_WINDOW_GAIN := 1.0
 ## The sun's forward-scattered glow under the water, round its refracted
 ## direction, as a share of the sunlight at depth (the sky's underwater light).
 const UW_SUN_GLOW := 0.05
+## The sky under the surface is a linear function of the direction (the
+## horizontal radiance, a slope in height, a slope toward the refracted sun:
+## underwater_sky). The glow's lobe (cos^4 round the sun) enters by its first
+## two spherical harmonics: its mean over the sphere (1/10 of its peak) and
+## its slope toward the sun (1/4).
+const UW_GLOW_MEAN := 0.1
+const UW_GLOW_SLOPE := 0.25
+## How much of a linear slope the sky's radiance map keeps at its roughest
+## level (the level the fog's aerial perspective reads), the sky's REALTIME
+## filter's: the radiance pass draws the slopes steeper by its inverse.
+## Measured (wave4b int review, RUN_LOG §7): a black sphere 12, 30 and 300 m
+## round the camera in a fog that hides it wholly, against the sky alone,
+## leaves the least difference at 0.93 (mean |dL| 0.37 of 255; 0.62, the
+## stage's value for the incremental filter, left 3.46).
+const UW_BLUR_SLOPE := 0.93
+## The steepened function stays at least this share of its mean in every
+## direction (nothing clips, so the blur gives the drawn function back).
+const UW_SKY_FLOOR := 0.05
 ## Under the water the eye adapts to the light at its depth: by
 ## (light just under the surface / light here)^UW_ADAPTATION, at most
 ## UW_MAX_ADAPT times brighter than the day above.
@@ -354,6 +372,10 @@ var uw_globals_on := false
 ## clock held at a time (s; negative: it runs).
 var caustics_staged_off := false
 var caustic_clock_staged := -1.0
+## The sky's process mode (wave4b int review, _apply_sky_mode): the scene's
+## own above the surface, REALTIME under it; switches counted for the tests.
+var sky_mode_switches := 0
+var _sky_mode_above := -1
 ## The ground (G2-02): fresh snow and wet ground, eased toward the weather.
 var _fresh_snow := 0.0
 var _wetness := 0.0
@@ -676,6 +698,7 @@ func compose(delta: float, snap: bool = false) -> void:
 	# G3-04: under the surface the light, the fog and the sky are the water's.
 	_compose_underwater(sun_dir, underwater, c)
 	_apply_underwater_globals(delta, sun_elev, cloud, underwater, c)
+	_apply_sky_mode(not (c["uw"] as Dictionary).is_empty(), c)
 	# Behind an opaque panel the sky holds still: an unchanged sky material
 	# re-renders no radiance map (set_world_visible). A snap (staging) still
 	# writes it.
@@ -833,10 +856,12 @@ func _apply_sky(delta: float, sun_elev: float, cloud: float, density: float, vis
 		var water_sky := not mirror_sky and not uw.is_empty()
 		mat.set_shader_parameter("underwater", 1.0 if water_sky else 0.0)
 		if water_sky:
-			mat.set_shader_parameter("uw_horizontal", uw["horizontal"])
-			mat.set_shader_parameter("uw_nadir", uw["nadir"])
+			var sky: Dictionary = uw["sky"]
+			mat.set_shader_parameter("uw_horizontal", sky["horizontal"])
+			mat.set_shader_parameter("uw_vertical", sky["vertical"])
 			mat.set_shader_parameter("uw_sun_dir", uw["sun_dir"])
-			mat.set_shader_parameter("uw_sun_glow", uw["sun_glow"])
+			mat.set_shader_parameter("uw_sun_slope", sky["sun_slope"])
+			mat.set_shader_parameter("uw_blur_slope", UW_BLUR_SLOPE)
 	sky_updates += 1
 	c["aurora_intensity"] = _aurora
 	c["haze_amount"] = haze
@@ -926,6 +951,8 @@ func _compose_underwater(sun_dir: Vector3, underwater: bool, c: Dictionary) -> v
 		c.get("sky_zenith", Vector3(0.05, 0.1, 0.25)), c.get("horizon_color", Color(0.4, 0.5, 0.6)), _uw_chlorophyll)
 	uw["visibility_m"] = _uw_visibility
 	uw["fog_density"] = UnderwaterOptics.fog_density(_uw_visibility)
+	# The water's light as the sky, the fog and the underside draw it.
+	uw["sky"] = underwater_sky(uw, UW_BLUR_SLOPE)
 	# The eye adapts to the light at its depth (against the light just under
 	# the surface), from the day's exposure up.
 	var just_under := UnderwaterOptics.luminance(uw["down_surface"])
@@ -945,6 +972,28 @@ func _compose_underwater(sun_dir: Vector3, underwater: bool, c: Dictionary) -> v
 	if moon_light != null:
 		_point_light(moon_light, UnderwaterOptics.refracted_sun(_moon_dir))
 		moon_light.light_energy = float(c.get("moon_energy", 0.0)) * UnderwaterOptics.luminance(uw["sun_filter"])
+
+
+## Under the surface the sky's radiance map is the water's light: the fog's
+## colour (its aerial perspective), the ambient light and every reflection
+## read it. The scene's sky rebuilds it a layer a frame
+## (Sky.PROCESS_MODE_INCREMENTAL), so after a dive the fog showed the day's
+## sky for 13 frames, a pale wall over the water, then popped to the water's
+## colour (wave4b int review). While the camera is under the surface the sky
+## runs REALTIME (the whole map every frame through the fast filter; the
+## water's sky is a few multiplies a texel); on the way up the scene's own
+## mode comes back, and the switch rebuilds the map whole in its first frame.
+func _apply_sky_mode(underwater: bool, c: Dictionary) -> void:
+	var env := _env()
+	if env == null or env.sky == null:
+		return
+	if _sky_mode_above < 0:
+		_sky_mode_above = env.sky.process_mode
+	var want: int = Sky.PROCESS_MODE_REALTIME if underwater else _sky_mode_above
+	if env.sky.process_mode != want:
+		env.sky.process_mode = want
+		sky_mode_switches += 1
+	c["sky_process_mode"] = env.sky.process_mode
 
 
 ## The light under the surface for the net, the collar and the fish
@@ -1023,6 +1072,35 @@ static func underwater_profile(sun_dir: Vector3, depth: float, sun_energy: float
 
 static func _mul3(a: Vector3, b: Vector3) -> Vector3:
 	return Vector3(a.x * b.x, a.y * b.y, a.z * b.z)
+
+
+## The water's light as the sky draws it under the surface (sky_shader
+## underwater_light; the underside's water_light): a linear function of the
+## view direction d, horizontal + vertical d.y + sun_slope (d . the refracted
+## sun), from underwater_profile's horizontal and nadir radiance and the
+## sun's glow (its lobe by UW_GLOW_MEAN and UW_GLOW_SLOPE). An isotropic blur
+## keeps a linear function linear and shrinks its slope by one factor, so
+## the radiance map the fog reads, drawn with the slopes divided by
+## `blur_slope`, blurs back to this function exactly: a fogged object takes
+## the colour of the water behind it. Each channel's slopes are scaled so
+## that the steepened function never falls under UW_SKY_FLOOR of its mean
+## (it never clips). Pure (the tests drive it).
+static func underwater_sky(uw: Dictionary, blur_slope: float) -> Dictionary:
+	var glow: Vector3 = uw["sun_glow"]
+	var sun: Vector3 = uw["sun_dir"]
+	var mean: Vector3 = (uw["horizontal"] as Vector3) + glow * UW_GLOW_MEAN
+	var up: Vector3 = (uw["horizontal"] as Vector3) - (uw["nadir"] as Vector3)
+	var toward: Vector3 = glow * UW_GLOW_SLOPE
+	var vertical := Vector3.ZERO
+	var sun_slope := Vector3.ZERO
+	for c in 3:
+		# The steepest slope of channel c: |up y + toward sun|.
+		var slope := sqrt(maxf(up[c] * up[c] + toward[c] * toward[c] + 2.0 * up[c] * toward[c] * sun.y, 0.0))
+		var limit := (1.0 - UW_SKY_FLOOR) * maxf(blur_slope, 1e-3) * mean[c]
+		var keep := limit / slope if slope > limit else 1.0
+		vertical[c] = up[c] * keep
+		sun_slope[c] = toward[c] * keep
+	return {"horizontal": mean, "vertical": vertical, "sun_slope": sun_slope}
 
 
 ## Clear-sky scene key for a sun direction (the exposure reference).
@@ -1449,11 +1527,13 @@ func _apply_underside(mat: ShaderMaterial, c: Dictionary) -> void:
 	side.set_shader_parameter("underside_land", horizon_v * UNDERSIDE_LAND)
 	side.set_shader_parameter("underside_sun_dir", c.get("sun_direction", Vector3.UP))
 	side.set_shader_parameter("underside_sun", sun_rgb * UNDERSIDE_SUN_DISC)
-	side.set_shader_parameter("underside_horizontal", uw["horizontal"])
-	side.set_shader_parameter("underside_nadir", uw["nadir"])
+	var sky: Dictionary = uw["sky"]
+	side.set_shader_parameter("underside_horizontal", sky["horizontal"])
+	side.set_shader_parameter("underside_vertical", sky["vertical"])
 	side.set_shader_parameter("underside_glow_dir", uw["sun_dir"])
-	side.set_shader_parameter("underside_glow", uw["sun_glow"])
+	side.set_shader_parameter("underside_sun_slope", sky["sun_slope"])
 	side.set_shader_parameter("underside_absorption", uw["sigma"])
+	side.set_shader_parameter("underside_fog", float(uw["fog_density"]))
 	side.set_shader_parameter("underside_attenuation", float(uw["fog_density"]) * UNDERSIDE_VEIL)
 
 
@@ -1702,6 +1782,9 @@ func _apply_weather_drama(delta: float, sun_dir: Vector3, sun_elev: float, cloud
 	_apply_cloud_shadows(mat, sun_dir, sun_elev, cloud, c)
 	_apply_lamps(mat, sun_elev, cloud, c)
 	_apply_mist(delta, underwater, wind.length(), c)
+	# G3-04 (wave4b int review): no rain or snow round a camera under water.
+	if weather_system != null:
+		weather_system.set_submerged(underwater)
 	if _storm_sway != null:
 		_storm_sway.set_wind(0.0 if underwater else wind.length())
 		c["sway_level"] = _storm_sway.level

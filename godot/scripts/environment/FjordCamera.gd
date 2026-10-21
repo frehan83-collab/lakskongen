@@ -89,6 +89,21 @@ const UNDERWATER_DEPTH := 5.0
 const UNDERWATER_MIN_DEPTH := 3.0
 const UNDERWATER_MAX_DEPTH := 8.0
 const UNDERWATER_SEABED_CLEARANCE := 4.0
+## The view dives only where it has water to stand in (wave4b int review: a
+## focus on land, such as a land campus, dived to 1 m under the mountain):
+## inside a pen (underwater_anchor), or where the seabed lies at least this
+## deep (m) under the camera's place in open water.
+const UNDERWATER_MIN_WATER_M := UNDERWATER_MIN_DEPTH + UNDERWATER_SEABED_CLEARANCE
+## In open water the camera comes in toward the focus (halving the distance,
+## this many times) until the water under it is deep enough.
+const UNDERWATER_SHALLOW_STEPS := 6
+## Under the surface the far plane stands this many times further out
+## (wave4b int review): the fog's colour is the sky's radiance map at a level
+## that sharpens as a point nears the far plane, so the seabed kilometres off
+## read a sharper level than the water's own and drew bands along the
+## horizon. Nothing past the fog's reach shows, and no geometry lies past the
+## far field, so the farther plane costs nothing.
+const UNDERWATER_FAR_GAIN := 20.0
 ## Inside a pen (underwater_anchor): the camera stands this share of the
 ## net's radius out from the pen's centre (18 m of 24.95: in the school's
 ## band, which circles out to FishSchool.SCHOOL_OUTER_M, 22.5 m) and looks
@@ -167,6 +182,8 @@ var _anchor_key := Vector3.INF
 ## True while the view eases between the orbit and the underwater view (it
 ## turns smoothly there instead of snapping to a look-at).
 var _turning := false
+## The far plane above the surface (the scene's), taken at the first frame.
+var _far_above := -1.0
 var _rig_position := Vector3.ZERO
 var _user_rotated := false
 var _idle_time: float = 0.0
@@ -206,6 +223,12 @@ func _ready() -> void:
 # ── Public API ────────────────────────────────────────────────────────────────
 
 func set_zoom_level(level: ZoomLevel) -> void:
+	if level == ZoomLevel.UNDERWATER and not can_dive_at(_focus_target):
+		return
+	_apply_zoom_level(level)
+
+
+func _apply_zoom_level(level: ZoomLevel) -> void:
 	var was_underwater := _underwater
 	_underwater = level == ZoomLevel.UNDERWATER
 	_distance_target = ZOOM_DISTANCE[level]
@@ -223,6 +246,35 @@ func set_zoom_level(level: ZoomLevel) -> void:
 ## True in the UNDERWATER view (the camera may still be on its way down).
 func is_underwater_view() -> bool:
 	return _underwater
+
+
+## True while the camera itself is under the surface (the UNDERWATER view
+## hovers over its pen before it dives and rises out of the water before it
+## leaves: the ambience follows the camera, not the view's name).
+func is_below_surface() -> bool:
+	return global_position.y < _water_level()
+
+
+## Whether the UNDERWATER view can dive at a focus point: inside a pen
+## (underwater_anchor), or in open water at least UNDERWATER_MIN_WATER_M
+## deep at the focus. Over land (a land campus, a plot on its pad) it
+## cannot: the zoom stops at FARM there.
+func can_dive_at(focus: Vector3) -> bool:
+	if not _anchor_for(focus).is_empty():
+		return true
+	return _water_deep_enough(focus)
+
+
+func _water_deep_enough(p: Vector3) -> bool:
+	return _ground(p.x, p.z) <= _water_level() - UNDERWATER_MIN_WATER_M
+
+
+## A framing, a hold or a bookmark while under water takes the camera out of
+## the water first (wave4b int review: it kept the underwater view and solved
+## it at the new focus, on land 1 m under the terrain).
+func _leave_underwater_for(distance: float) -> void:
+	if _underwater:
+		set_zoom_level(_band_for(clampf(distance, MIN_DISTANCE, MAX_DISTANCE)))
 
 
 ## The pen the underwater view stands in for a focus point ({} in open
@@ -255,9 +307,12 @@ func look_at_position(world_pos: Vector3, zoom: ZoomLevel = current_zoom) -> voi
 ## Eased fly-to: tweens the focus over `duration` seconds; the damping keeps
 ## every other axis smooth.
 func fly_to_position(world_pos: Vector3, zoom: ZoomLevel = current_zoom, duration: float = 1.2) -> void:
-	set_zoom_level(zoom)
-	_cancel_fly()
 	var dest := _clamp_to_world(Vector3(world_pos.x, 0.0, world_pos.z))
+	# The view dives at the destination only if it can (can_dive_at).
+	if zoom == ZoomLevel.UNDERWATER and not can_dive_at(dest):
+		zoom = ZoomLevel.FARM
+	_apply_zoom_level(zoom)
+	_cancel_fly()
 	if not _user_rotated:
 		_yaw_target = _nearest_angle(_yaw, home_yaw(dest))
 	if not is_inside_tree() or duration <= 0.0:
@@ -353,6 +408,7 @@ func focus_target(id: String, duration: float = 1.2) -> bool:
 ## fjord-axis heading unless the player has turned the view.
 func frame_position(world_pos: Vector3, distance: float, pitch_deg: float, duration: float = 1.2, yaw: float = NAN) -> void:
 	_cancel_fly()
+	_leave_underwater_for(distance)
 	_top_down = false
 	_distance_target = clampf(distance, MIN_DISTANCE, MAX_DISTANCE)
 	_pitch_offset_target = clampf(pitch_deg - view_for_distance(_distance_target).x, -40.0, 15.0)
@@ -389,6 +445,7 @@ func recentre() -> void:
 ## target glides and never cuts through a mountainside; `snap` jumps there.
 func hold_view(focus: Vector3, yaw: float, distance: float, pitch_offset_deg: float = 0.0, snap: bool = false) -> void:
 	_cancel_fly()
+	_leave_underwater_for(distance)
 	_set_focus_target(focus)
 	_user_rotated = true
 	_yaw_target = _nearest_angle(_yaw, yaw)
@@ -523,6 +580,7 @@ func _process(delta: float) -> void:
 		_process_idle_orbit(delta)
 	_damp(delta)
 	_apply_transform(delta)
+	_apply_far()
 
 
 func _damp(delta: float) -> void:
@@ -609,6 +667,7 @@ func _snap() -> void:
 	_settled = false
 	_turning = false
 	_apply_transform()
+	_apply_far()
 
 
 func _approach(current: float, target: float, k: float) -> float:
@@ -655,7 +714,17 @@ func _solve_underwater(focus: Vector3, yaw: float, distance: float) -> Vector3:
 	var anchor := _anchor_for(focus)
 	var pos: Vector3
 	if anchor.is_empty():
-		pos = focus + dir * distance
+		# Open water: `distance` from the focus, or closer to it where the
+		# seabed rises under the camera's place (a shore turned toward).
+		var d := distance
+		pos = focus + dir * d
+		for i in UNDERWATER_SHALLOW_STEPS:
+			if _water_deep_enough(pos):
+				break
+			d *= 0.5
+			pos = focus + dir * d
+		if not _water_deep_enough(pos):
+			pos = Vector3(focus.x, 0.0, focus.z)
 	else:
 		var centre: Vector3 = anchor["center"]
 		pos = Vector3(centre.x, 0.0, centre.z) + dir * float(anchor["radius"]) * UNDERWATER_RING
@@ -663,6 +732,16 @@ func _solve_underwater(focus: Vector3, yaw: float, distance: float) -> Vector3:
 	var seabed := _ground(pos.x, pos.z)
 	pos.y = maxf(pos.y, minf(seabed + UNDERWATER_SEABED_CLEARANCE, water_y - 1.0))
 	return pos
+
+
+## The far plane: the scene's above the surface, UNDERWATER_FAR_GAIN times
+## further under it.
+func _apply_far() -> void:
+	if _far_above < 0.0:
+		_far_above = far
+	var want := _far_above * UNDERWATER_FAR_GAIN if is_below_surface() else _far_above
+	if far != want:
+		far = want
 
 
 ## The pen underwater_anchor gives for a focus point, cached per point.

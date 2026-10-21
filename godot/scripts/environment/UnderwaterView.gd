@@ -26,11 +26,35 @@ const ANCHOR_REACH_M := 120.0
 const NET_RADIUS_M := 24.95
 ## A site's water reaches this far from its grid's centre (m); beyond it
 ## the camera is in open water and takes the nearest site's within
-## OPEN_WATER_REACH_M, else UnderwaterOptics.FALLBACK_VISIBILITY_M.
+## OPEN_WATER_REACH_M (a fjord site's, or an offshore unit's round its
+## plot's slot: wave4b int review, the units took the fallback 5-83 km out),
+## else UnderwaterOptics.FALLBACK_VISIBILITY_M. The offshore units' water is
+## read from the sim (GameBridge.GetAllSeaSiteDetails) only while the view
+## is under water away from the fjord's sites, at most every
+## OFFSHORE_REFRESH_S (the fjord's comes with the vista's daily sync).
 const OPEN_WATER_REACH_M := 1500.0
+const OFFSHORE_REFRESH_S := 1.0
 ## The veil as the camera crosses the surface: up in a moment, gone in
-## VEIL_FADE_S.
+## VEIL_FADE_S. On the way up it comes up before the crossing: over the last
+## VEIL_BAND_M below the depth where the grid stops wearing the underside
+## material (EnvironmentDirector.UNDERSIDE_FROM_M), where the water material's
+## own underside shows a flat bright blue (wave4b int review). Its colour is
+## the water's (the fog's last colour under the surface), both ways.
 const VEIL_FADE_S := 0.45
+const VEIL_BAND_M := 0.8
+## The dive passes through the bird net over the pen (wave4b int review: the
+## roof's threads filled the frame as the camera dropped through them).
+## While the view dives, is under water or is on its way out
+## (DIVE_LINGER_S after it was last under), the bird net of the pen it
+## dives into (the camera's own anchor) dissolves with the camera's place:
+## gone within BIRD_NET_NEAR_M.x of the pen's centre and under
+## BIRD_NET_FADE_M.x over the water (over the tent's 7.5 m mast top), whole
+## beyond BIRD_NET_NEAR_M.y or over BIRD_NET_FADE_M.y, smooth between, the
+## same way down and up (the pen's far LODs, drawn by the site, never fade:
+## it is whole again before the camera is that far).
+const BIRD_NET_NEAR_M := Vector2(30.0, 45.0)
+const BIRD_NET_FADE_M := Vector2(8.5, 25.0)
+const DIVE_LINGER_S := 3.0
 ## The lens's vignette under water (share of the corner darkened).
 const VIGNETTE := 0.32
 
@@ -75,9 +99,22 @@ const SNOW_SHADER := preload("res://shaders/underwater/marine_snow.gdshader")
 
 ## site id -> {"visibility_m", "chlorophyll_ug_l"} (set_site_waters).
 var _site_waters: Dictionary = {}
+## Offshore unit id -> {"plot", "visibility_m", "chlorophyll_ug_l"} (the
+## sim's rows of kind "Offshore", _read_offshore); the plots' slot
+## positions, looked up once (_slot_positions).
+var _units: Dictionary = {}
+var _slots: Dictionary = {}
+var _offshore_read_at := -INF
 var _pens: FishPenManager = null
 var _was_under := false
 var _veil := 0.0
+## The water's colour for the veil (the fog the director composed last under
+## the surface).
+var _water_color := Color(0.05, 0.12, 0.12)
+## The pen whose bird net the dive fades, and how much of it shows (0-1).
+var bird_net_cage: PenCage = null
+var bird_net_fade := 1.0
+var _dive_linger := 0.0
 var _shaft_time := 0.0
 var _shaft_centre := Vector3.INF
 ## What the director was last handed (tests read it).
@@ -110,10 +147,19 @@ func _process(delta: float) -> void:
 			# Fill the water round the camera at once (the snow's preprocess).
 			snow.restart()
 	_veil = move_toward(_veil, 0.0, delta / VEIL_FADE_S)
+	if under:
+		var depth := _water_level() - camera.global_position.y
+		_veil = maxf(_veil, 1.0 - smoothstep(EnvironmentDirector.UNDERSIDE_FROM_M,
+			EnvironmentDirector.UNDERSIDE_FROM_M + VEIL_BAND_M, depth))
 	if under or camera.is_underwater_view():
-		_hand_water(water_at(camera.global_position))
+		var at := camera.global_position
+		if dive_anchor(at).is_empty() and _nearest_site(at) == "":
+			_read_offshore()
+		_hand_water(water_at(at))
+	_track_water_color()
 	_update_lens(under)
 	_update_effects(under, delta)
+	_update_bird_net(under, delta)
 
 
 ## True while the camera is under the surface.
@@ -158,6 +204,21 @@ func set_site_waters(sites: Array) -> void:
 	_site_waters = waters
 
 
+## The offshore units' water from the sim's rows (GetAllSeaSiteDetails, or
+## the rows a test hands in): kind "Offshore" with a plot.
+func set_offshore_waters(rows: Array) -> void:
+	var units := {}
+	for row in rows:
+		if not (row is Dictionary) or not row.has("water_visibility_m"):
+			continue
+		if str(row.get("kind", "")) != "Offshore" or str(row.get("plot_id", "")) == "":
+			continue
+		units[str(row.get("id", ""))] = {"plot": str(row["plot_id"]),
+			"visibility_m": float(row["water_visibility_m"]),
+			"chlorophyll_ug_l": float(row.get("bloom_chlorophyll_ug_l", 0.0))}
+	_units = units
+
+
 ## The water at a world point: its pen's site's, else the nearest site's
 ## within OPEN_WATER_REACH_M, else the fallback.
 func water_at(point: Vector3) -> Dictionary:
@@ -168,7 +229,41 @@ func water_at(point: Vector3) -> Dictionary:
 	if site_id != "" and _site_waters.has(site_id):
 		var w: Dictionary = _site_waters[site_id]
 		return {"visibility_m": w["visibility_m"], "chlorophyll_ug_l": w["chlorophyll_ug_l"], "site_id": site_id}
+	var unit_id := _nearest_unit(point)
+	if unit_id != "":
+		var u: Dictionary = _units[unit_id]
+		return {"visibility_m": u["visibility_m"], "chlorophyll_ug_l": u["chlorophyll_ug_l"], "site_id": unit_id}
 	return {"visibility_m": UnderwaterOptics.FALLBACK_VISIBILITY_M, "chlorophyll_ug_l": 0.0, "site_id": ""}
+
+
+## The offshore unit whose plot's slot is nearest a point within
+## OPEN_WATER_REACH_M ("" for none).
+func _nearest_unit(point: Vector3) -> String:
+	var slots := _slot_positions()
+	var best := ""
+	var best_d := OPEN_WATER_REACH_M
+	for unit_id in _units:
+		var plot := str(_units[unit_id]["plot"])
+		if not slots.has(plot):
+			continue
+		var at: Vector3 = slots[plot]
+		var d := Vector2(at.x - point.x, at.z - point.z).length()
+		if d < best_d:
+			best_d = d
+			best = str(unit_id)
+	return best
+
+
+## Under water away from the fjord's sites: the offshore units' water from
+## the sim, at most every OFFSHORE_REFRESH_S.
+func _read_offshore() -> void:
+	var now := Time.get_ticks_msec() / 1000.0
+	if now - _offshore_read_at < OFFSHORE_REFRESH_S:
+		return
+	_offshore_read_at = now
+	var gb := get_node_or_null("/root/GameBridge")
+	if gb != null and gb.has_method("GetAllSeaSiteDetails"):
+		set_offshore_waters(gb.GetAllSeaSiteDetails())
 
 
 func _nearest_site(point: Vector3) -> String:
@@ -186,6 +281,18 @@ func _nearest_site(point: Vector3) -> String:
 			best_d = d
 			best = site_id
 	return best
+
+
+## The offshore slots' positions (FjordTerrain.offshore_slots), plot id ->
+## world position, looked up once.
+func _slot_positions() -> Dictionary:
+	if _slots.is_empty() and not _units.is_empty():
+		var env := get_parent()
+		var terrain: FjordTerrain = env.get("terrain") if env != null and "terrain" in env else null
+		if terrain != null:
+			for slot: Dictionary in terrain.offshore_slots():
+				_slots[str(slot.get("id", ""))] = slot.get("position", Vector3.ZERO)
+	return _slots
 
 
 func _hand_water(water: Dictionary) -> void:
@@ -207,9 +314,57 @@ func _update_lens(under: bool) -> void:
 	var mat := lens_rect.material as ShaderMaterial
 	mat.set_shader_parameter("vignette", vignette)
 	mat.set_shader_parameter("veil", _veil * _veil)
-	if director != null:
-		var fog: Color = director.get_composed().get("fog_color", Color(0.05, 0.12, 0.12))
-		mat.set_shader_parameter("veil_color", fog)
+	mat.set_shader_parameter("veil_color", _water_color)
+
+
+## The water's colour for the veil: the fog the director composed, while it
+## composes the water (above the surface it keeps the last).
+func _track_water_color() -> void:
+	if director == null:
+		return
+	var composed := director.get_composed()
+	if not (composed.get("uw", {}) as Dictionary).is_empty():
+		_water_color = composed.get("fog_color", _water_color)
+
+
+## The bird net of the pen the dive goes into (see BIRD_NET_FADE_M), by the
+## camera's place, while the dive lasts; given back whole after it.
+func _update_bird_net(under: bool, delta: float) -> void:
+	_dive_linger = DIVE_LINGER_S if under or camera.is_underwater_view() else maxf(_dive_linger - delta, 0.0)
+	var cage: PenCage = null
+	var want := 1.0
+	var pens := _pen_manager()
+	if _dive_linger > 0.0 and pens != null:
+		var anchor := camera.underwater_anchor_for(camera.get_focus_point())
+		if anchor.has("site_id"):
+			var farm := pens.get_site(String(anchor["site_id"]))
+			cage = farm.get_cage(int(anchor["pen"])) if farm != null else null
+			want = bird_net_shown(camera.global_position - (anchor["center"] as Vector3), _water_level())
+	if cage != bird_net_cage:
+		_release_bird_net()
+		bird_net_cage = cage
+	if bird_net_cage == null or not is_instance_valid(bird_net_cage):
+		bird_net_cage = null
+		bird_net_fade = 1.0
+		return
+	bird_net_fade = want
+	bird_net_cage.set_bird_net_fade(want)
+	if want >= 1.0 and _dive_linger <= 0.0:
+		_release_bird_net()
+
+
+## How much of the dive's pen's bird net shows with the camera at `offset`
+## from the pen's centre (on the water) and the water at `water_y`.
+static func bird_net_shown(offset: Vector3, water_y: float) -> float:
+	var near := 1.0 - smoothstep(BIRD_NET_NEAR_M.x, BIRD_NET_NEAR_M.y, Vector2(offset.x, offset.z).length())
+	return 1.0 - near * (1.0 - smoothstep(BIRD_NET_FADE_M.x, BIRD_NET_FADE_M.y, offset.y - water_y))
+
+
+func _release_bird_net() -> void:
+	if bird_net_cage != null and is_instance_valid(bird_net_cage):
+		bird_net_cage.set_bird_net_fade(1.0)
+	bird_net_cage = null
+	bird_net_fade = 1.0
 
 
 ## Staging (UnderwaterShots, G3-04): hold the shafts and the snow off (or
