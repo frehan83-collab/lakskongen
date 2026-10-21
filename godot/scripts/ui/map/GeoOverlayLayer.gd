@@ -7,7 +7,8 @@ extends Control
 ##   announced (2026);
 ## - the 30 national salmon fjords as a soft red hatch (triangulated, with a
 ##   procedural repeating hatch), or as an outline when a fjord does not
-##   triangulate at this scale, so no engine error is ever logged;
+##   triangulate at this scale, so no engine error is ever logged; the holes
+##   five of them have (exclusions.national) stay open, drawn and hit-tested;
 ## - the candidates: the 156 open-pen sites as one salmon star per area
 ##   (12 each, at the area's best-ranked site the company has not built on,
 ##   from track B's get_sea_candidates; no star where it farms all twelve)
@@ -24,6 +25,8 @@ const STAGES: Array[String] = ["tilradning_2019", "anbefaling_2022", "konsekvens
 ## Per stage: [dash px, gap px (0: solid), width px, alpha].
 const STAGE_STROKES: Array = [[2.0, 4.0, 1.3, 0.6], [5.0, 4.0, 1.5, 0.78], [9.0, 4.0, 1.7, 0.9], [1.0, 0.0, 2.0, 1.0]]
 const HATCH_PX := 7.0
+## A cut piece smaller than this (px²) is a sliver of the cut, not drawn.
+const SLIVER_PX2 := 0.1
 const STAR_HIT_PX := 8.0
 const HEX_HIT_PX := 7.0
 const HAV_PLOT := "hav_1"
@@ -37,12 +40,18 @@ var show_fjords := true
 ## How the last recording drew the fjords (tests: filled + outlined == 30).
 var fjords_filled: int = 0
 var fjords_outlined: int = 0
+## The fjords the last recording hatched, by name (tests).
+var fjords_hatched := PackedStringArray()
 var offshore_drawn: int = 0
 
-## National-image pixel polygons, once per process: [{name, stage, ring}].
+## National-image pixel polygons, once per process: [{name, stage, ring,
+## holes, pieces}] (pieces: the polygon with its holes cut open, see cut_holes).
 static var _offshore_px: Array = []
 static var _fjords_px: Array = []
 static var _hatch: ImageTexture = null
+## Geometry2D's orientation for an outer ring (1 clockwise, 0 not, -1 not yet
+## measured): clip_polygons gives a hole the other one.
+static var _outer_clockwise := -1
 
 var _origin := Vector2.ZERO
 var _scale := 1.0
@@ -134,9 +143,15 @@ func item_at(p: Vector2) -> Dictionary:
 				return {"kind": "offshore_area", "name": o["name"], "stage": o["stage"]}
 	if show_fjords and part == "areas":
 		for f: Dictionary in _fjords_local:
-			if Geometry2D.is_point_in_polygon(p, f["ring"]):
+			if Geometry2D.is_point_in_polygon(p, f["ring"]) \
+					and not (f["holes"] as Array).any(func(h: PackedVector2Array) -> bool: return Geometry2D.is_point_in_polygon(p, h)):
 				return {"kind": "fjord", "name": f["name"]}
 	return {}
+
+
+## The salmon fjords on this layer: [{name, ring, holes, pieces}].
+func fjords() -> Array:
+	return _fjords_local
 
 
 func _rebuild() -> void:
@@ -197,10 +212,16 @@ func _local_of(x: float, y: float) -> Vector2:
 func _to_local(polys: Array) -> Array:
 	var out: Array = []
 	for o: Dictionary in polys:
-		var ring := PackedVector2Array()
-		for q in (o["ring"] as PackedVector2Array):
-			ring.append(_origin + q * _scale)
-		out.append({"name": o["name"], "stage": o.get("stage", ""), "ring": ring})
+		out.append({"name": o["name"], "stage": o.get("stage", ""), "ring": _poly_local(o["ring"]),
+			"holes": (o.get("holes", []) as Array).map(_poly_local),
+			"pieces": (o.get("pieces", [o["ring"]]) as Array).map(_poly_local)})
+	return out
+
+
+func _poly_local(poly: PackedVector2Array) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	for q in poly:
+		out.append(_origin + q * _scale)
 	return out
 
 
@@ -218,15 +239,31 @@ func _project_once() -> void:
 			"ring": _ring_px(f)})
 	_fjords_px = []
 	for f: Dictionary in GeoData.salmon_fjords():
-		_fjords_px.append({"name": str(f["properties"].get("name", "")), "ring": _ring_px(f)})
+		var ring := _ring_px(f)
+		var holes := _holes_px(f)
+		_fjords_px.append({"name": str(f["properties"].get("name", "")), "ring": ring, "holes": holes,
+			"pieces": cut_holes(ring, holes) if not holes.is_empty() else [ring]})
 
 
+## The outer ring of a Polygon (of a MultiPolygon's first part).
 func _ring_px(feature: Dictionary) -> PackedVector2Array:
+	return _project_ring(_rings_of(feature)[0])
+
+
+## The inner rings (holes) of a Polygon (of a MultiPolygon's first part).
+func _holes_px(feature: Dictionary) -> Array:
+	return _rings_of(feature).slice(1).map(_project_ring)
+
+
+static func _rings_of(feature: Dictionary) -> Array:
 	var geom: Dictionary = feature["geometry"]
 	var coords: Array = geom["coordinates"]
-	var outer: Array = coords[0] if str(geom["type"]) == "Polygon" else coords[0][0]
+	return coords if str(geom["type"]) == "Polygon" else coords[0]
+
+
+func _project_ring(lonlat: Array) -> PackedVector2Array:
 	var ring := PackedVector2Array()
-	for ll: Array in outer:
+	for ll: Array in lonlat:
 		var xy := GeoProjection.utm33(float(ll[0]), float(ll[1]))
 		var px := GeoProjection.to_px(xy[0], xy[1], _bounds, _res)
 		if ring.is_empty() or ring[ring.size() - 1].distance_to(px) > 0.01:
@@ -236,10 +273,73 @@ func _ring_px(feature: Dictionary) -> PackedVector2Array:
 	return ring
 
 
+## A polygon with holes as simple pieces that cover exactly it: each hole is
+## cut open along the vertical line through the middle of its bounds (a
+## connected hole always crosses it), so no piece encloses a hole and
+## clip_polygons returns plain outlines. Pieces share the polygon's
+## coordinates, so a hatch drawn over them runs on without a seam.
+static func cut_holes(outer: PackedVector2Array, holes: Array) -> Array[PackedVector2Array]:
+	var pieces: Array[PackedVector2Array] = [outer]
+	for hole: PackedVector2Array in holes:
+		var hb := _bounds_of(hole)
+		var x := hb.get_center().x
+		var next: Array[PackedVector2Array] = []
+		for piece in pieces:
+			var pb := _bounds_of(piece)
+			if not pb.intersects(hb):
+				next.append(piece)
+				continue
+			var box := pb.merge(hb).grow(1.0)
+			var halves := [Rect2(box.position, Vector2(x - box.position.x, box.size.y)),
+				Rect2(Vector2(x, box.position.y), Vector2(box.end.x - x, box.size.y))]
+			for half: Rect2 in halves:
+				for part in Geometry2D.intersect_polygons(piece, _rect_ring(half)):
+					if not _is_outer(part):
+						continue
+					for cut in Geometry2D.clip_polygons(part, hole):
+						if _is_outer(cut) and cut.size() >= 3:
+							next.append(cut)
+		pieces = next
+	return pieces
+
+
+static func _is_outer(poly: PackedVector2Array) -> bool:
+	if _outer_clockwise < 0:
+		var cut := Geometry2D.clip_polygons(_rect_ring(Rect2(0, 0, 10, 10)), _rect_ring(Rect2(4, 4, 2, 2)))
+		var outer: PackedVector2Array = cut[0]
+		for poly_out in cut:
+			if polygon_area(poly_out) > polygon_area(outer):
+				outer = poly_out
+		_outer_clockwise = 1 if Geometry2D.is_polygon_clockwise(outer) else 0
+	return Geometry2D.is_polygon_clockwise(poly) == (_outer_clockwise == 1)
+
+
+## The (unsigned) area of a simple polygon.
+static func polygon_area(poly: PackedVector2Array) -> float:
+	var twice := 0.0
+	for i in poly.size():
+		var a := poly[i]
+		var b := poly[(i + 1) % poly.size()]
+		twice += a.x * b.y - b.x * a.y
+	return absf(twice) * 0.5
+
+
+static func _bounds_of(poly: PackedVector2Array) -> Rect2:
+	var r := Rect2(poly[0], Vector2.ZERO)
+	for q in poly:
+		r = r.expand(q)
+	return r
+
+
+static func _rect_ring(r: Rect2) -> PackedVector2Array:
+	return PackedVector2Array([r.position, Vector2(r.end.x, r.position.y), r.end, Vector2(r.position.x, r.end.y)])
+
+
 func _draw() -> void:
 	redraw_count += 1
 	fjords_filled = 0
 	fjords_outlined = 0
+	fjords_hatched = PackedStringArray()
 	offshore_drawn = 0
 	if part == "areas":
 		if show_fjords:
@@ -253,15 +353,37 @@ func _draw() -> void:
 func _draw_fjords() -> void:
 	var red := MapPalette.fjord_red()
 	var hatch := _hatch_texture()
+	var fill := Color(red.lightened(0.25), 0.75)
+	var line := Color(red.lightened(0.2), 0.85)
 	for f: Dictionary in _fjords_local:
 		var ring: PackedVector2Array = f["ring"]
+		var holes: Array = f["holes"]
 		if ring.size() < 3:
 			fjords_outlined += 1
 			continue
-		if fill_or_outline(self, ring, Color(red.lightened(0.25), 0.75), Color(red.lightened(0.2), 0.85), hatch):
+		if holes.is_empty():
+			if fill_or_outline(self, ring, fill, line, hatch):
+				fjords_filled += 1
+				fjords_hatched.append(str(f["name"]))
+			else:
+				fjords_outlined += 1
+			continue
+		# With holes: the pieces are hatched (only if every one triangulates;
+		# a sliver of the cut is left out), the outline is the fjord's own and
+		# its holes', never the cuts.
+		var pieces: Array = (f["pieces"] as Array).filter(func(q: PackedVector2Array) -> bool:
+			return polygon_area(q) >= SLIVER_PX2)
+		var ok := not pieces.is_empty() and pieces.all(func(q: PackedVector2Array) -> bool:
+			return q.size() >= 3 and not Geometry2D.triangulate_polygon(q).is_empty())
+		if ok:
+			for q: PackedVector2Array in pieces:
+				_hatch_fill(self, q, fill, hatch)
 			fjords_filled += 1
+			fjords_hatched.append(str(f["name"]))
 		else:
 			fjords_outlined += 1
+		for r: PackedVector2Array in [ring] + holes:
+			draw_polyline(_closed(r), line, 1.0, true)
 
 
 ## A hatched area, or its outline alone when it does not triangulate:
@@ -271,13 +393,19 @@ static func fill_or_outline(canvas: CanvasItem, ring: PackedVector2Array, fill: 
 		hatch: Texture2D) -> bool:
 	var filled := ring.size() >= 3 and not Geometry2D.triangulate_polygon(ring).is_empty()
 	if filled:
-		var uvs := PackedVector2Array()
-		for q in ring:
-			uvs.append(q / HATCH_PX)
-		canvas.draw_colored_polygon(ring, fill, uvs, hatch)
+		_hatch_fill(canvas, ring, fill, hatch)
 	if ring.size() >= 2:
 		canvas.draw_polyline(_closed(ring), line, 1.0, true)
 	return filled
+
+
+## A polygon (known to triangulate) under the repeating hatch, its UVs in the
+## layer's own pixels so neighbouring pieces continue one hatch.
+static func _hatch_fill(canvas: CanvasItem, ring: PackedVector2Array, fill: Color, hatch: Texture2D) -> void:
+	var uvs := PackedVector2Array()
+	for q in ring:
+		uvs.append(q / HATCH_PX)
+	canvas.draw_colored_polygon(ring, fill, uvs, hatch)
 
 
 func _draw_offshore() -> void:

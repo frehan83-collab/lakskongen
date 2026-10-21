@@ -10,6 +10,8 @@ extends RefCounted
 ##    ("Selje", not "Selje kloster"); a farm built on that place moves the
 ##    star to the next free one, with a line saying how many are the
 ##    company's; where it farms all twelve there is no star.
+## 3. The five salmon fjords with a hole: the hatch covers the fjord less its
+##    hole, and a point in the hole is not the fjord.
 
 var t: Node = null
 
@@ -19,6 +21,7 @@ func run(runner: Node, map: Control, chart: GeoMapView) -> void:
 	_singular_forms(map, chart)
 	_stars_read_the_bridge(chart)
 	await _stars_follow_the_companys_places(chart)
+	_fjord_holes(chart)
 
 
 func _check(ok: bool, label: String) -> void:
@@ -138,3 +141,36 @@ class _FakeHolder extends Node:
 			if str(r["id"]) in held:
 				c["taken_by_site_id"] = "geo_review_site"
 			return c)
+
+
+## The salmon fjords with holes (exclusions.national: Porsanger,
+## Namsfjorden, Trondheimsfjorden, Kysten Jæren-Dalane, Lindesnes -
+## Mannefjorden): the hatched pieces' area is the fjord's less its holes'
+## (within 0.5 %), every piece but a sliver triangulates (the fjord is
+## hatched, not merely outlined), a point in a hole is not the fjord, a point
+## in a piece is.
+func _fjord_holes(chart: GeoMapView) -> void:
+	var layer := chart.overlay_layer()
+	var holed := layer.fjords().filter(func(f: Dictionary) -> bool: return not (f["holes"] as Array).is_empty())
+	var wrong := []
+	for f: Dictionary in holed:
+		var want := GeoOverlayLayer.polygon_area(f["ring"])
+		for h: PackedVector2Array in f["holes"]:
+			want -= GeoOverlayLayer.polygon_area(h)
+		var got := 0.0
+		for q: PackedVector2Array in f["pieces"]:
+			got += GeoOverlayLayer.polygon_area(q)
+		var in_hole := str(layer.item_at(_inside(f["holes"][0])).get("kind", ""))
+		var in_fjord := str(layer.item_at(_inside(f["pieces"][0])).get("name", ""))
+		var hatched := str(f["name"]) in layer.fjords_hatched
+		if absf(got - want) > want * 0.005 or in_hole == "fjord" or in_fjord != str(f["name"]) or not hatched:
+			wrong.append("%s: %.1f/%.1f px², hole '%s', piece '%s'" % [str(f["name"]), got, want, in_hole, in_fjord])
+	_check(holed.size() == 5 and wrong.is_empty(),
+		"geo map: the %d salmon fjords with a hole are hatched around it and do not answer inside it %s" % [
+			holed.size(), str(wrong.slice(0, 2))])
+
+
+## A point inside a simple polygon: the centre of its first triangle.
+static func _inside(poly: PackedVector2Array) -> Vector2:
+	var tri := Geometry2D.triangulate_polygon(poly)
+	return (poly[tri[0]] + poly[tri[1]] + poly[tri[2]]) / 3.0 if tri.size() >= 3 else poly[0]
