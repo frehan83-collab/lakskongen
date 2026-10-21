@@ -916,3 +916,41 @@ func pay_licence_conversion(site_id: String) -> Dictionary:
 func place_converted_licences(holding_ids: Array, zone_id: String) -> Dictionary:
 	return game_bridge.PlaceConvertedLicences(holding_ids, zone_id) if game_bridge else {"success": false, "error": "engine_not_ready", "message": "Not initialized"}
 # ═══ END sim·sea lane block ═══
+
+# ═══ BEGIN sim·geo lane block (geo track A: production areas, hav_1's binding, rivals, anchors) ═══
+# Geo stages 2-3 (docs/geo/STAGE23_PLAN.md §3): pull-only reads of
+# GameBridge.Geo.cs. Track B's sim·candidates block follows this one.
+## The 13 production areas: code, name, the source's traffic light, tint, areas and the label point.
+func get_geo_production_areas() -> Array[Dictionary]:
+	return _arr(game_bridge.GetGeoProductionAreas()) if game_bridge else []
+## The Havbruk til havs candidate a plot is bound to ({"bound": false} for every plot but hav_1).
+func get_geo_plot_binding(plot_id: String) -> Dictionary:
+	return game_bridge.GetGeoPlotBinding(plot_id) if game_bridge else {"bound": false, "plot_id": plot_id}
+## All 33 Havbruk til havs candidates, the bound one with bound_plot_id "hav_1".
+func get_geo_offshore_candidates() -> Array[Dictionary]:
+	return _arr(game_bridge.GetGeoOffshoreCandidates()) if game_bridge else []
+## The production area (1-13) holding an EPSG:25833 point, or 0 (the polygons; display only).
+func get_geo_area_at(x: float, y: float) -> int:
+	return int(game_bridge.GeoAreaAt(x, y)) if game_bridge else 0
+## The rival layout's signature: refetch get_geo_sites only when it changes.
+func get_geo_sites_signature() -> String:
+	return str(game_bridge.GetGeoSitesSignature()) if game_bridge else ""
+## Every locality as packed arrays (ids, x, y, kind, stage, po, mtb_t, owner, names) with the owners.
+func get_geo_sites() -> Dictionary:
+	return game_bridge.GetGeoSites() if game_bridge else {}
+## An area's localities by kind, its sea grow-out MTB and its top 5 rival owners.
+func get_rival_summary(po: int) -> Dictionary:
+	return game_bridge.GetRivalSummary(po) if game_bridge else {}
+## Where each zone's farm is drawn: its anchor locality (approximate by design).
+func get_zone_anchors() -> Array[Dictionary]:
+	return _arr(game_bridge.GetZoneAnchors()) if game_bridge else []
+# ═══ END sim·geo lane block ═══
+
+# ═══ BEGIN sim·candidates lane block (geo stages 2-3 track B: open-pen candidates, the build at a candidate, the company's site locations) ═══
+## Geo B: a production area's 12 open-pen candidates by rank (0: the home area), each with its 'why here' and its build verdict.
+func get_sea_candidates(area: int) -> Array[Dictionary]: return _arr(game_bridge.GetSeaCandidates(area)) if game_bridge else ([] as Array[Dictionary])
+## Geo B: what a build at a candidate costs and adds (plan_site_build's keys and figures, plus the candidate and its checks).
+func plan_site_build_at(zone_id: String, candidate_id: String) -> Dictionary: return game_bridge.PlanSiteBuildAt(zone_id, candidate_id) if game_bridge else {"success": false, "allowed": false, "reason_key": "engine_not_ready"}
+## Geo B: where the company's fjord localities lie (at their candidate, or approximately at their zone's anchor).
+func get_player_site_locations() -> Array[Dictionary]: return _arr(game_bridge.GetPlayerSiteLocations()) if game_bridge else ([] as Array[Dictionary])
+# ═══ END sim·candidates lane block ═══

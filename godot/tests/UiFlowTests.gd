@@ -199,6 +199,10 @@ func _run() -> void:
 	# U2-08 (settings that apply, richer save slots) and Au2-01 (the audio
 	# floor): tests/SettingsAudioChecks.gd.
 	await preload("res://tests/SettingsAudioChecks.gd").new().run(self)
+	await preload("res://tests/GeoBridgeChecks.gd").new().run(self)
+	await preload("res://tests/GeoExpansionChecks.gd").new().run(self)
+	await preload("res://tests/GeoMapChecks.gd").new().run(self)
+	await preload("res://tests/GeoRegionChecks.gd").new().run(self)
 
 	_clear_test_saves()
 	CampaignProgress.reset()

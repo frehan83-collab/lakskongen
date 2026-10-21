@@ -53,8 +53,47 @@ static func problems(dialog: Control) -> PackedStringArray:
 			for j in range(i + 1, kids.size()):
 				var b2 := (kids[j] as Control).get_global_rect().grow(-0.5)
 				if b2.has_area() and a.intersects(b2):
-					out.append("%s × %s" % [_path(kids[i], panel), str(kids[j].name)])
+					# The rects and the parent pin down the geometry when the
+					# failure is on a machine we cannot look at (CI).
+					out.append("%s %s × %s %s in %s %s sep %d" % [
+							_path(kids[i], panel), str(a.grow(0.5)), str(kids[j].name), str(b2.grow(0.5)),
+							cont.get_class(), str(cont.get_global_rect()),
+							cont.get_theme_constant("separation") if cont is BoxContainer else -1])
 	return out
+
+
+## problems() once the layout has settled. Container sorts are deferred and
+## flush once per frame, so a snapshot taken mid-cascade (a window resize or a
+## scale change fans out over several frames) can show one child moved and its
+## sibling not yet — an "overlap" no player ever sees. A wall-clock wait is not
+## enough: on a loaded CI runner 0.3 s can be a single frame (PR #11's Quality
+## gate measured PreviewRow over ExplainCallout inside a sorted VBox this way).
+## Two identical consecutive frames mean the layout is the one on screen; the
+## 12-frame cap keeps a pathological animation from hanging the check, and the
+## last snapshot is then measured as-is.
+static func settled_problems(dialog: Control, tree: SceneTree) -> PackedStringArray:
+	var last := PackedInt64Array()
+	for i in 12:
+		await tree.process_frame
+		var now := _rect_signature(dialog)
+		if now == last:
+			break
+		last = now
+	return problems(dialog)
+
+
+## One int64 per visible control: its global rect at 1/8 px, so any moved or
+## resized control changes the signature.
+static func _rect_signature(dialog: Control) -> PackedInt64Array:
+	var sig := PackedInt64Array()
+	for node in dialog.find_children("*", "Control", true, false):
+		var c := node as Control
+		if not c.is_visible_in_tree():
+			continue
+		var r := c.get_global_rect()
+		sig.append(int(r.position.x * 8.0) ^ (int(r.position.y * 8.0) << 16) \
+				^ (int(r.size.x * 8.0) << 32) ^ (int(r.size.y * 8.0) << 48))
+	return sig
 
 
 static func _path(n: Node, root: Node) -> String:

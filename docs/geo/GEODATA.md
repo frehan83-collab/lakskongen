@@ -273,17 +273,69 @@ GIS package).
 
 ## 7. Integration guide (next stage)
 
+Status (geo stages 2-3, integration close, 2026-10-21): all four tracks
+(A sim, B candidates, C national map, D region and site) are merged on
+`geo/int`, with the captain's review fixes; the per-track lines below say
+what each built. The windowed review GEO-VIS judged every level, the 'why
+here', the Hav lens and the 3D rival order at 1280x720 and 1920x1080, 100 %
+and 125 % (`docs/run/evidence/geo_vis_review.md`) and fixed three things
+(below); the close's gate runs found a fourth, the build dialog's entrance
+(track B's lines). The golden traces were re-recorded once: 27 of 27 games
+identical to `origin/main`, save drift only from the D17 rename
+(`docs/run/evidence/geo_stage23_golden_diff.md`). The PR to `main` is the
+owner's next step; nothing under `godot/data/geo` changed after P0.
+
 ### 7.1 Loading
 
 - Read JSON/GeoJSON with `FileAccess` + `JSON.parse_string` (GDScript) or
   `System.Text.Json` (C#). Parse once and cache, as `NorwayCoastline.gd` does.
 - **The data PNGs are data, not pictures**: `suitability/*.png` and
-  `po_index.national.png` must keep exact byte values. Set their import to
-  *Keep File (no import)* or read them with `FileAccess.get_file_as_bytes` +
-  `Image.load_png_from_buffer`, and sample with nearest filtering, no mipmaps,
-  no VRAM compression. The JPEG base maps can use the normal texture import.
-- The export presets have an empty `include_filter`; add `data/geo/*` (JSON,
-  GeoJSON, MD and the data PNGs) so exports carry the non-resource files.
+  `po_index.national.png` must keep exact byte values. Read them with
+  `FileAccess.get_file_as_bytes` + `Image.load_png_from_buffer` (not `load()`),
+  and sample with nearest filtering, no mipmaps, no VRAM compression.
+  Status (geo P0, 2026-10-20): their 14 `.import` sidecars are committed with
+  `importer="keep"` (*Keep File*), and the 14 JPEG base maps import as
+  lossless textures with mipmaps (`detect_3d/compress_to=0`), pinned by
+  `tests/test_geo_packaging.py`.
+- Status (geo P0, 2026-10-20, ruling OD13): both export presets carry this
+  explicit `include_filter`:
+  `data/geo/*.json,data/geo/*.geojson,data/geo/*.md,data/geo/suitability/*.png,data/geo/basemap/po_index.national.png`.
+  Exports pack every file the game reads raw and never the raw JPEGs (their
+  imported textures ship as resources); `tests/test_geo_packaging.py` pins it.
+- Status (geo C1, 2026-10-20): the map UI's loader and projection are in
+  `godot/scripts/ui/map/`. `GeoData` is a static, parse-once cache
+  (`read_json`, `basemap`, `basemap_texture`, `load_data_png`,
+  `po_index_image`, `production_areas(lod)`, `offshore_areas(lod)`,
+  `salmon_fjords()`, `candidates()`, `suitability_grid(po)`, `rules()`,
+  `parse_count`, `parses_of(rel)`): ids cast to int, the parsed data shared
+  read-only, the data PNGs decoded from raw bytes only, and a failure
+  recorded in `last_error` with no engine error. It uses a `JSON` instance
+  rather than `JSON.parse_string`, which push_errors on a broken file.
+  `GeoProjection.utm33` reproduces the six reference points within the
+  1 cm gate (measured at most 0.46 mm; 64-bit, atanh/sinh/cosh through log
+  and exp); `to_px`, `to_cell` and
+  `to_utm` subtract the origin in 64-bit. `godot/tests/GeoMapChecks.gd`
+  (UiFlowTests) and `tests/test_geo_map_contract.py` pin them. The game
+  never parses `localities.geojson` in GDScript; the icons come from the
+  sim's packed arrays (Track A).
+  Merged into geo/int (`4ea2cf8`); the captain's fix `e87371f` makes the id
+  cast exact, so only a whole-number `id`, `po`, `rank` or `area_id` becomes
+  an int and a fractional one keeps its float value.
+- Status (geo C2, 2026-10-20): `MapPalette` completes the plan's GDScript
+  interface (`landscape(key)`, plus `brand`, `chart` and the map's signal
+  colours, all read from `tokens.json` through `theme_tokens.gd`). The
+  national map reads the sim only through `GeoBridgeAdapter.gd`, by the
+  plan's names (`get_geo_production_areas`, `get_geo_offshore_candidates`,
+  `get_geo_area_at`, `get_geo_sites_signature`, `get_geo_sites`,
+  `get_rival_summary`, `get_player_site_locations`). Until Tracks A and B
+  merge, a marked stub answers each read from these files; it has no rival
+  owners and places the company's farms at their area's label point, and it
+  is the only GDScript that parses `localities.geojson` (pinned by
+  `tests/test_geo_map_contract.py`).
+  Merged into geo/int (geo int C2, 2026-10-21): A and B were already merged,
+  so the captain deleted the stub. Every read is now the facade's own call;
+  a scene with no SimBridge gets empty answers, never invented ones; and no
+  GDScript parses `localities.geojson` (pinned).
 - Credits: `godot/data/credits.json` already lists the seven map-data
   providers with their attribution notices (translation keys in
   `translations.csv`), so `CreditsScreen` shows them with no code change.
@@ -296,11 +348,25 @@ GIS package).
   `GeoProductionAreas` reader can add the polygon (for "which PO is this
   point in") and `traffic_light` (the source's status) to `ProductionAreaInfo`,
   embedded like `site_plots.json` so the engine never touches the file system.
+  Status (geo A1, 2026-10-20): `src/LakskongenSim/Environment/Geo/` reads
+  the embedded `production_areas.regional.geojson`, `candidates.json`,
+  `suitability.json`, `suitability_rules.json`, `localities.geojson` and the
+  13 grids (LakskongenSim.csproj ItemGroup "geo", each SHA-256 equal to
+  `manifest.json`), each parsed once per process: `GeoProductionAreas`
+  (`AreaOf` lon/lat, `AreaAtUtm` for display), `GeoCandidates` (cleaned
+  labels via `PlaceLabels`), `GeoSuitability.CellAt` on `PngGrid`,
+  `GeoSuitabilityRules` (weights, costs, binding) and `GeoLocalities`. No
+  engine wiring and no bridge yet (A2 and A3).
 - **Zones and site validation**: a candidate or player-picked point is legal
   when its suitability cell (`origin + (c, r) * 500 m`) has R > 0; G says why
   not. Sample at the point's UTM coordinates (port `utm33` from the test, check
   it against `manifest.json` `projection_check_25833`). PNG decoding in C# is
   the stdlib loop in the test (zlib via `ZLibStream`).
+  Status (geo A1, 2026-10-20): `Utm33.Forward` matches the six reference
+  points to 1 cm (display and validation only, never game state);
+  `PngGrid.Decode` takes 8-bit grey or RGB, non-interlaced, filters 0-4 and
+  names the field it refuses; `GeoSuitability.CellAt(po, x, y)` samples
+  floor((x - ox) / 500), floor((oy - y) / 500), row 0 north.
 - **Site plots (F2-03, `SitePlotCatalog` / `ISitePlotGeometry`)**: implement a
   `GeoSitePlotGeometry` that turns `candidates.json` offshore sites into
   `OffshoreSlot` records (`X`/`Z` from the site's position relative to the
@@ -310,9 +376,77 @@ GIS package).
   build dialog), keyed by `id`, with `score`, `components` and `binding` as the
   dialog's "why here" explanation. Land pads have no geo candidates yet (a
   follow-up: flat shore land near deep water from N250 + DTM 50).
+  Status (geo A2, 2026-10-20, rulings OD1 and OD2): `GeoSitePlotGeometry`
+  binds hav_1 only, to the HTH candidate nearest the home area's label
+  (integer squared distance; ties score, rank, id), at Z = -clamp(5200 ×
+  km / 83, 4600, 9000) with the candidate's depth; off_1, off_2 and the pads
+  keep the file's values, and hav_1 keeps its id, Hs calibration and lice
+  band. `GeoPlotCatalogs.ForHomeArea` joins it strictly
+  (`SitePlotCatalog.WithGeometry(geometry, strict: true)`), and the engine
+  selects it at StartScenario and on load from the saved home area (nothing
+  saved). Bridge: `GetGeoProductionAreas`, `GetGeoPlotBinding`,
+  `GetGeoOffshoreCandidates`, `GeoAreaAt` (GameBridge.Geo.cs, the sim·geo
+  lane block). The per-area table is in BALANCE §1ab.
+  Merged into geo/int 2026-10-21 (`18953ec`) with the captain's review
+  fixes: a New Game on GameBridge's long-lived engine is back on the default
+  catalogue (Reset), and `GetGeoOffshoreCandidates` works in a game with no
+  home area (`distance_km` -1, measured as the binding measures it
+  otherwise).
+  GEO-VIS (integration close): `GetGeoPlotBinding` adds `home_po`, the
+  area the binding is measured from; in the six home areas with no Havbruk
+  til havs area of their own (PO1, 4, 5, 7, 9, 10) the lens names the
+  borrowed area 'Nærmeste havområde' (BALANCE §1ab).
+  Status (geo B, 2026-10-20, `geo/sea-candidates`): the build dialog's Sjø
+  step lists the area's 12 open-pen candidates by rank
+  (`SimulationEngine.GetSeaCandidates`, bridge `get_sea_candidates`) with
+  the first free one preselected, so tutorial step 16 is unchanged; the
+  'why here' leads with the binding term, then each weighted term's weight,
+  points and measurement, the river factor, the zone whose licence and water
+  the build uses, and the note that the score explains and changes no
+  farming (OD3). A build at a candidate is U2-01's build plus an optional
+  `SeaSite.CandidateId` (written only when set); a candidate carries one
+  locality; `GetPlayerSiteLocations` places built sites at their candidate
+  and other sites at their zone's anchor ('approximate'). hav_1's Hav lens
+  names its Havbruk til havs area, stage, real distance and depth. The
+  anchor and hav_1 binding read track A's interfaces (track A's own code
+  since the merge).
+  Merged into geo/int 2026-10-21 (`b4cc97f`; the track-A stand-ins deleted
+  there) with the captain's review fixes: the map's
+  `open_for_candidate(zone, candidate)` keeps the place it is given (the
+  zone follows a place in another area; a held or unknown place stays
+  chosen with its check's text), a build goes to the place chosen, and
+  with every home place held «Nytt anlegg» → Sjø offers the zone's build
+  without a place and says so. The list's last column is 'Trekker ned'
+  (the binding term), and the dialog re-centres after its entrance slide
+  and fits once laid out, so the places and the confirm stay in view.
+  Integration close (`88f2954`): the places grow the panel while it slides
+  in, and the slide held the confirm below the window for 0.28 s (U2-01's
+  auction test clicked past it in 2 of 3 UI runs). The entrance now rises
+  into the place the centre gives the panel at its size now
+  (`godot/tests/GeoVisChecks.gd`).
 - **Rival farms**: `localities.geojson` sea and land salmonid sites, with
   `mtb_t` and `po`, give the real distribution of competitors per area; give
   them generated parody company names (D17: the data has none, by design).
+  Status (geo A1, 2026-10-20): `GeoLocalities` reads all 1,781 sites;
+  `SeaGrowoutProducing` (sea salmonid grow-out without harvest pens) is 994
+  sites holding 3,722,295 t. The rival layout and the parody names are A3.
+  Status (geo A3, 2026-10-20, rulings OD4, OD8-OD10): `RivalLayout` gives
+  every one of the 1,304 pool sites (994 sea grow-out, 309 land salmonid,
+  offshore 45196) one owner: the six roster majors their MTB share (557 sea
+  sites, home areas first), 162 generated independents the rest
+  (`ParodyNames`: 112 coast × 10 trade words + AS, no place token, 0
+  matches against the raw registry's holder names offline).
+  `ScenarioGeoAnchors` puts the 16 shipped starting sites and the 13
+  catalogue zones on real producing grow-out localities (display only).
+  Pure and cached by roster signature; no RNG stream, no GameState field, no
+  tick reads it. Bridge: `GetGeoSites` (packed arrays), `GetGeoSitesSignature`,
+  `GetRivalSummary`, `GetZoneAnchors`; `GetCompetitorCompanies` orders the 3D
+  rivals by their sites in the home area. Rules, counts and word lists in
+  BALANCE §1ab. Merged into geo/int 2026-10-21 (`18953ec`): the captain's
+  review made the layout signature name every input (a loaded save's stored
+  names no longer follow the engine into the next game), counted no home
+  sites in a game with no home area, and approved the word lists with
+  "Tare" replaced by "Stortare" (ruling OD10).
 - **Determinism**: the files are inputs; their sha256 is in `manifest.json`.
   Golden traces are unaffected until the sim reads them; the first change that
   does must re-record them with a diff report (HANDOFF §7).
@@ -330,6 +464,48 @@ GIS package).
   dashed by stage), `exclusions.national` salmon fjords as a soft red hatch,
   and candidates as salmon stars (open pens) and yellow hexagons (offshore).
   This replaces `NorwayCoastline.gd` and the hand-placed `REGIONS[].pos`.
+  Status (geo C2, 2026-10-20): built as `GeoMapView` in
+  `godot/scripts/ui/map/` and hosted by `MapPanel` (the 'Kart' tab). The base
+  map sits in a keep-aspect `TextureRect` in a deep-water frame with a faint
+  graticule; `map_po_tint.gdshader` mixes each area's `tint` at 35 % over the
+  raw `po_index` (more for the hovered and picked area), and a click reads the
+  same raw image on the CPU, falling back to the sim's polygons where it is 0.
+  Thirteen plates (the engine's traffic light as a badge, the code, the name
+  where it fits) are placed by `MapLabelPlacer` around their label points,
+  clear of each other, the anchors, the chips and the key, and where they can
+  of the site clusters, with leader lines. Sites are shape-coded by kind and
+  ringed in the owner's band, in screen-grid clusters; the player's farms
+  are salmon discs. Offshore areas are dashed by stage (solid once they can
+  be announced), the 30 salmon fjords hatched (outlined when a fjord does
+  not triangulate), the 156 open-pen candidates one salmon star per area,
+  the 33 offshore ones yellow hexagons with hav_1's ringed. Layer chips, a
+  key, tooltips and eight city names complete it. `NorwayCoastline.gd`,
+  `MiniMap.gd` and `norway_coastline.json` are deleted. Checked headless by
+  `godot/tests/GeoMapNationalChecks.gd`; frames for the visual review come
+  from `godot/qa/scenes/GeoMapCapture.tscn`.
+  Merged into geo/int (geo int C2, 2026-10-21), on A's and B's real reads,
+  with the review's fixes:
+  - The pointer takes the nearest feature. The ringed hav_1 hexagon is
+    drawn on top and answers for itself, for any binding.
+  - The company's farms that share a place are spread apart on screen, and
+    the hover ring sits on the mark.
+  - The stars come from track B's `get_sea_candidates`. Each star stands on
+    its area's best free place, with the cleaned name ("Selje"), and an area
+    where the company farms all twelve places has no star.
+  - The five salmon fjords with a hole keep it open.
+  - Counts of one are singular ("1 laksefisklokalitet i sjø").
+  - Cluster numerals stay at least 11 screen pixels: on a 1280x720 window
+    with the UI at 100 %, the badges and their grid grow by 1.5.
+  Pinned by `godot/tests/GeoMapHitChecks.gd` and `GeoMapReviewChecks.gd`.
+  Judged frames are in `docs/run/evidence/geo_int_c2/`.
+  GEO-VIS (integration close, judged windowed at 1280x720 and 1920x1080,
+  100 % and 125 %): the grown badges stacked over each other and the city
+  names, and the plates' anchor diamonds sat on numerals.
+  `GeoClusterer.declutter` now merges clusters until no badge covers another
+  badge or a single site (101 → 47 clusters at 1920x1080), and a plate whose
+  anchor lies on a badge lets the badge mark it (no diamond, the stem from
+  the rim).
+  Pinned by `GeoMapReviewChecks.gd`; frames in `docs/run/evidence/geo_vis/`.
 - **Regional (PO) view**: `basemap/poNN.jpg` with the suitability heat from
   `suitability/poNN.png` (R through a cool-to-gold ramp, hard exclusions from
   G as a muted hatch, the planning-area limit quieter still), site polygons
@@ -337,8 +513,61 @@ GIS package).
   outlines (`exclusions.regional`), river and coral points with their radii,
   and the area's 12 candidates with tooltips (score, binding, depth, nearest
   farm, `near`).
+  Status (geo D, 2026-10-20, branch `geo/map-region`): built as
+  `godot/scripts/ui/map/GeoRegionView.gd` and friends, reached by
+  `MapPanel.drill_into(area)` (a double-click on an area, 'Utforsk området').
+  `GeoRegionMath.suit_uv` maps a base-map pixel to the grid's UV (the
+  numbers `godot/shaders/map_suitability.gdshader` takes: nearest, no
+  mipmaps); the ramp's stops sit on the scored cells' spread (0.5, 0.7, 0.85,
+  1.0) and its opacity rises with the score; codes 4-12 hatch, 13 hatches
+  quieter, 1-3 stay clear. `GeoRegionData` caches each area's five vector
+  layers in base-map pixels on the first drill (a repeat drill parses
+  nothing); a feature is kept when it meets the base map's bounds. Rivals in
+  owner bands (A's `get_geo_sites`), the company's sites (B's
+  `get_player_site_locations`), the 12 candidates as stars and as keyboard
+  buttons (B's `get_sea_candidates`), the Havbruk til havs hexagons with
+  hav_1's filled, a legend in the layer chips and a hover readout (score,
+  why, depth) from the CPU grid. Until A and B merge, their reads go through
+  the marked stub adapter `GeoRegionBridge.gd`. Checked by
+  `godot/tests/GeoRegionChecks.gd` and `tests/test_geo_map_contract.py`.
+  Merged into geo/int (geo int D, 2026-10-21), on A's and B's real reads,
+  with the review's fixes:
+  - The stub adapter is gone: the region and site levels read through the
+    map's one adapter, `GeoBridgeAdapter.gd` (Track C's).
+  - National clicks: a click selects the area and names the feature it hit
+    in the detail column, with a button to its card; a double-click on a
+    feature opens its card; a double-click elsewhere on an area, on its
+    plate, Enter on a plate or 'Utforsk området' drill into the area.
+  - The 160 ms crossfade gives each node its own tween, so no level is left
+    see-through.
+  - A feature's buffer or radius counts towards its extent in the lon/lat
+    prefilter (PO10's river mouths off the map edge); all 13 areas' layer
+    counts are pinned.
+  - Holes stay open: a salmon fjord's islands and a protected area's
+    enclaves are cut out of the fill (Track C's `cut_holes`).
+  - The company's sites and hav_1's plot are rows in the detail column (the
+    keyboard's way to their cards), Esc puts the focus back where the card
+    came from, and sites on one spot are spread apart.
+  - The site card's crop draws its heat with the region's shader, in one
+    rect.
+  - A rival's card names the locality by its number, never the registry's
+    name (D17).
+  Pinned by `godot/tests/GeoRegionReviewChecks.gd`. Judged frames are in
+  `docs/run/evidence/geo_int_d/`.
 - **Local site view**: the existing 3D fjord scene; the candidate or site
   position, depth and `ocean` values seed it.
+  Status (geo D, 2026-10-20): the site level is a 2D card
+  (`GeoSiteCard.gd`) over a 4x crop of the area's base map (the heat's 500 m
+  cells, site and mooring polygons, a 2.5 km ring and the river mouths' 5 km
+  rings): a candidate's 'why here' with 'Bygg her' (the build dialog at the
+  candidate) or 'Søk vekstlisens' (naming the zone's licence), a company
+  site's 'Vis i 3D' (the existing single fjord, with the site selected), a
+  rival's owner, kind, stage and MTB, and hav_1's 'Bygg her (hav)'. Seeding
+  the 3D scene from a candidate stays G2-01 phase 2.
+  GEO-VIS (integration close): hav_1's 'Bygg her (hav)' opened the Hav
+  family with no unit chosen, so its lens stayed hidden and choosing a unit
+  dropped hav_1; it now opens on the first unit the company may start with
+  hav_1 chosen and its lens in view (`godot/tests/GeoVisChecks.gd`).
 - Style: Kyst & Stål. The base maps already use the cool landscape palette
   (`design/tokens.json` "landscape"); keep saturation for icons and signals
   (buoy yellow for offshore, salmon for candidates, orange for land sites).

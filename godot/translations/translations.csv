@@ -2395,6 +2395,16 @@ GAME_EVENT_LICENCE_AUCTION_WON,Growth licence won,Vekstlisens vunnet
 GAME_EVENT_LICENCE_OUTBID,Outbid in the licence auction,Overbudt i lisensauksjonen
 GAME_EVENT_LIQUIDITY_WARNING,Liquidity warning,Likviditetsvarsel
 GAME_EVENT_RESCUE_LOAN_TAKEN,Rescue loan taken,Redningslån tatt opp
+GEO_PLOT_AREA,Open-sea area,Havområde
+GEO_PLOT_AREA_NEAREST,Nearest open-sea area,Nærmeste havområde
+GEO_PLOT_AREA_VALUE,%s (PO %d),%s (PO %d)
+GEO_PLOT_CLIMATE_NOTE,"A Havbruk til havs area from the government's planning work. The sea state and the lice band here are the game's calibrated open-sea climate, not measurements from this area.","Et område for havbruk til havs fra myndighetenes planarbeid. Sjøtilstanden og lusebåndet her er spillets kalibrerte havklima, ikke målinger fra dette området."
+GEO_PLOT_DISTANCE_VALUE,%s km in a straight line from your production area,%s km i luftlinje fra produksjonsområdet ditt
+GEO_PLOT_STAGE,Planning stage,Planstatus
+GEO_PLOT_STAGE_ANBEFALING_2022,Recommended (2022),Anbefalt (2022)
+GEO_PLOT_STAGE_KAN_UTLYSES_2026,Can be announced (2026),Kan lyses ut (2026)
+GEO_PLOT_STAGE_KONSEKVENSVURDERING_2024,Impact assessed (2024),Konsekvensutredet (2024)
+GEO_PLOT_STAGE_TILRADNING_2019,Proposed (2019),Tilrådd (2019)
 HARVESTPLAN_BEST,best,best
 HARVESTPLAN_BUTTON_ORDERED,Harvest plan · ordered,Slakteplan · bestilt
 HARVESTPLAN_BUTTON_TIP,"Open the harvest planner: weights, prices, the wellboat and what waiting would bring","Åpne slakteplanen: vekter, priser, brønnbåt og hva det gir å vente"
@@ -2537,6 +2547,290 @@ LEDGER_OVERDRAFT_INTEREST,Overdraft interest,Renter på overtrekk
 LEDGER_POST_SMOLT_SALES,Post-smolt sales,Salg av postsmolt
 LEDGER_RESCUE_LOAN_FEE,Rescue loan fee,Gebyr for redningslån
 LEDGER_TRANSFERS,Fish transfers,Flytting av fisk
+MAP_GEO_AREA_NUMBER,Production area %d,Produksjonsområde %d
+MAP_GEO_FACTS_HEADER,THE AREA,OMRÅDET
+MAP_GEO_GROUP_ALGAE,algae,alger
+MAP_GEO_GROUP_MARINE_FISH,marine fish,marin fisk
+MAP_GEO_GROUP_OTHER,other species,andre arter
+MAP_GEO_GROUP_SALMONID,salmonids,laksefisk
+MAP_GEO_GROUP_SHELLFISH,shellfish,skjell
+MAP_GEO_KM2,%s km²,%s km²
+MAP_GEO_LAT,%d° N,%d° N
+MAP_GEO_LAYER_CANDIDATES,Candidates,Kandidater
+MAP_GEO_LAYER_CANDIDATES_TIP,"Show the possible new sites: twelve open-pen sites per area, one star each, and the offshore sites as hexagons","Vis mulige nye lokaliteter: tolv lokaliteter for åpne merder per område, én stjerne hver, og havlokalitetene som sekskanter"
+MAP_GEO_LAYER_FJORDS,Salmon fjords,Laksefjorder
+MAP_GEO_LAYER_FJORDS_TIP,"Show the national salmon fjords, where no new farms are allowed","Vis de nasjonale laksefjordene, der nye anlegg ikke er tillatt"
+MAP_GEO_LAYER_OFFSHORE,Offshore areas,Havområder
+MAP_GEO_LAYER_OFFSHORE_TIP,"Show the areas for farming at sea, dashed while in planning and solid once they can be announced","Vis områdene for havbruk til havs, stiplet mens de planlegges og heltrukket når de kan lyses ut"
+MAP_GEO_LAYER_SITES,Farms,Anlegg
+MAP_GEO_LAYER_SITES_TIP,"Show every active aquaculture site in the register, grouped where they lie close","Vis alle aktive akvakulturlokaliteter i registeret, samlet der de ligger tett"
+MAP_GEO_LEGEND_CANDIDATES,"Possible sites, twelve per area","Mulige lokaliteter, tolv per område"
+MAP_GEO_LEGEND_CLUSTER,Cluster: number of sites,Klynge: antall lokaliteter
+MAP_GEO_LEGEND_FJORD,National salmon fjord,Nasjonal laksefjord
+MAP_GEO_LEGEND_HEXAGON,Possible offshore site,Mulig havlokalitet
+MAP_GEO_LEGEND_LAND,"Land farm, salmonids","Landanlegg, laksefisk"
+MAP_GEO_LEGEND_LIGHT,Badge: the game's traffic light,Merke: trafikklyset i spillet
+MAP_GEO_LEGEND_OFFSHORE,Offshore farm,Havbruksanlegg
+MAP_GEO_LEGEND_OFFSHORE_AREA,"Offshore area, dashed in planning","Havområde, stiplet under planlegging"
+MAP_GEO_LEGEND_OTHER,Other species,Andre arter
+MAP_GEO_LEGEND_PLAYER,Your farms,Dine anlegg
+MAP_GEO_LEGEND_SEA,"Sea farm, salmonids","Sjøanlegg, laksefisk"
+MAP_GEO_LEGEND_TIP,Fold the map key away or open it,Skjul eller vis tegnforklaringen
+MAP_GEO_LEGEND_TITLE,Map key,Tegnforklaring
+MAP_GEO_LOCALITIES,Aquaculture sites,Akvakulturlokaliteter
+MAP_GEO_NORTH,N,N
+MAP_GEO_NO_OWNERS,No owner data yet,Ingen eierdata ennå
+MAP_GEO_OFFICIAL_LIGHT,Official traffic light: %s,Offisielt trafikklys: %s
+MAP_GEO_OFFICIAL_LIGHT_TIP,"The area's traffic light as Fiskeridirektoratet publishes it. The game's own light, above, follows the lice in the game.","Områdets trafikklys slik Fiskeridirektoratet publiserer det. Spillets eget lys, over, følger lusa i spillet."
+MAP_GEO_OWNER_ROW,%d sites · %s t,%d lokaliteter · %s t
+MAP_GEO_OWNER_ROW_ONE,%d site · %s t,%d lokalitet · %s t
+MAP_GEO_PLACE_LAND,Land farm,Landanlegg
+MAP_GEO_PLACE_OFFSHORE,Offshore farm,Havbruksanlegg
+MAP_GEO_PLACE_SEA,Sea farm,Sjøanlegg
+MAP_GEO_PLATE_CODE,PO %d,PO %d
+MAP_GEO_SCALE_KM,%d km,%d km
+MAP_GEO_SEA_AREA,Sea area,Sjøareal
+MAP_GEO_SEA_MTB,Grow-out MTB at sea,MTB matfisk i sjø
+MAP_GEO_SITE_KIND,"%s, %s","%s, %s"
+MAP_GEO_SOURCE_NOTE,Sites and areas: Fiskeridirektoratet's register. The owners are the game's companies.,Lokaliteter og områder: Fiskeridirektoratets register. Eierne er spillets selskaper.
+MAP_GEO_SPLIT_LAND,%d on land,%d på land
+MAP_GEO_SPLIT_OFFSHORE,%d offshore,%d til havs
+MAP_GEO_SPLIT_OTHER,%d other species,%d andre arter
+MAP_GEO_SPLIT_OTHER_ONE,%d other species,%d annen art
+MAP_GEO_SPLIT_SEA,%d salmonid sites at sea,%d laksefisklokaliteter i sjø
+MAP_GEO_SPLIT_SEA_ONE,%d salmonid site at sea,%d laksefisklokalitet i sjø
+MAP_GEO_STAGE_2019,recommended in 2019,tilrådd i 2019
+MAP_GEO_STAGE_2022,recommended for study in 2022,anbefalt utredet i 2022
+MAP_GEO_STAGE_2024,impact assessed in 2024,konsekvensutredet i 2024
+MAP_GEO_STAGE_2026,can be announced from 2026,kan lyses ut fra 2026
+MAP_GEO_TIP_CANDIDATES,"%d possible sites in %s · the best near %s, suitability %s","%d mulige lokaliteter i %s · den beste ved %s, egnethet %s"
+MAP_GEO_TIP_CANDIDATES_FREE,"%d possible sites in %s · the best free one near %s, suitability %s","%d mulige lokaliteter i %s · den beste ledige ved %s, egnethet %s"
+MAP_GEO_TIP_CANDIDATES_YOURS,You farm %d of them,Du har anlegg på %d av dem
+MAP_GEO_TIP_CLUSTER,%d sites,%d lokaliteter
+MAP_GEO_TIP_FJORD,National salmon fjord: %s. No new farms.,Nasjonal laksefjord: %s. Ingen nye anlegg.
+MAP_GEO_TIP_HAV1,The game's open-sea plot lies here,Spillets havlokalitet ligger her
+MAP_GEO_TIP_HEXAGON,"Possible offshore site in %s, near %s · %s m deep","Mulig havlokalitet i %s, ved %s · %s m dyp"
+MAP_GEO_TIP_MAJORS,%s held by the large companies,%s eies av de store selskapene
+MAP_GEO_TIP_MTB,MTB %s t,MTB %s t
+MAP_GEO_TIP_OFFSHORE_AREA,"%s: offshore area, %s","%s: havområde, %s"
+MAP_GEO_TIP_PLAYER,"Your site %s, at %s","Lokaliteten din %s, ved %s"
+MAP_GEO_TIP_PLAYER_APPROX,"Your site %s, near %s (approximate position)","Lokaliteten din %s, nær %s (omtrentlig plassering)"
+MAP_GEO_TONNES,%s t,%s t
+MAP_GEO_TOP_OWNERS,LARGEST OWNERS,STØRSTE EIERE
+MAP_REGION_AREA_NAME,PO%d %s,PO%d %s
+MAP_REGION_BACK,Back,Tilbake
+MAP_REGION_BACK_TIP,One level up (Esc),Ett nivå opp (Esc)
+MAP_REGION_CANDIDATES_HEADER,"Candidates, ranked","Kandidater, rangert"
+MAP_REGION_CANDIDATES_NOTE,"The scores are close: read why in the card, not just the number.","Poengene ligger tett: les hvorfor i kortet, ikke bare tallet."
+MAP_REGION_CANDIDATE_BUTTON,%d. %s  %s · %s,%d. %s  %s · %s
+MAP_REGION_CANDIDATE_BUTTON_TIP,Open the card for %s (Enter),Åpne kortet for %s (Enter)
+MAP_REGION_CHIP_CANDIDATES,Candidates,Kandidater
+MAP_REGION_CHIP_CANDIDATES_TIP,The area's 12 candidates and the offshore farming areas,Områdets 12 kandidater og havbruk til havs
+MAP_REGION_CHIP_HEAT,Suitability,Egnethet
+MAP_REGION_CHIP_HEAT_TIP,Show or hide the suitability map (500 m cells),Vis eller skjul egnethetskartet (ruter på 500 m)
+MAP_REGION_CHIP_RESTRICTIONS,Restrictions,Restriksjoner
+MAP_REGION_CHIP_RESTRICTIONS_TIP,"Salmon fjords, protected areas, coral closures, fairways and river mouths","Laksefjorder, verneområder, korallforbud, farleder og elvemunninger"
+MAP_REGION_CHIP_SITES,Farms,Anlegg
+MAP_REGION_CHIP_SITES_TIP,"Registered sites, moorings and the rivals' farms","Registrerte lokaliteter, fortøyninger og konkurrentenes anlegg"
+MAP_REGION_CRUMB_NORWAY,Norway,Norge
+MAP_REGION_CRUMB_TIP,Go to %s,Gå til %s
+MAP_REGION_EXPLORE,Explore the area,Utforsk området
+MAP_REGION_EXPLORE_NONE_TIP,Pick an area first,Velg et område først
+MAP_REGION_EXPLORE_TIP,"Show the area with suitability, restrictions, rivals and candidates (or double-click the area)","Vis området med egnethet, restriksjoner, konkurrenter og kandidater (eller dobbeltklikk på området)"
+MAP_REGION_HAV_ROW,Your open-sea plot: %s (Hav 1),Havplassen din: %s (Hav 1)
+MAP_REGION_HEX_BOUND,Your open-sea plot (Hav 1) lies here and can be built from your area,Havplassen din (Hav 1) ligger her og kan bygges fra området ditt
+MAP_REGION_HEX_NOT_OFFERED,Not offered from your area: only the open-sea site nearest your home area can be built,Ikke tilbudt fra området ditt: bare havplassen nærmest hjemområdet ditt kan bygges
+MAP_REGION_HEX_TIP,Offshore farming area %s · %s m deep,"Havbruk til havs, %s · %s m dypt"
+MAP_REGION_LEGEND_CLOSED,Closed to farming,Stengt for oppdrett
+MAP_REGION_LEGEND_CLOSED_TIP,"Hatched: a salmon fjord, a protected area, a coral closure or reef, a fairway, a salmon river's 5 km, a farm within 2.5 km, or water too shallow or too deep. Sparse hatch: outside the planning area (open sea).","Skravert: nasjonal laksefjord, verneområde, korallforbud eller korallrev, farled, 5 km fra lakseelv, et anlegg nærmere enn 2,5 km, eller for grunt eller for dypt. Glissen skravur: utenfor planområdet (åpent hav)."
+MAP_REGION_LEGEND_OFFSHORE,Offshore farming area,Havbruk til havs
+MAP_REGION_LEGEND_OFFSHORE_TIP,Havbruk til havs candidates; the filled one is your open-sea plot (Hav 1),Kandidater for havbruk til havs; den fylte er havplassen din (Hav 1)
+MAP_REGION_LEGEND_YOURS,Your site,Ditt anlegg
+MAP_REGION_LEGEND_YOURS_TIP,Your sites in the area,Anleggene dine i området
+MAP_REGION_PICK_CANDIDATE,"candidate %d, %s","kandidat %d, %s"
+MAP_REGION_PICK_OFFSHORE,the offshore farming area %s,havbruksområdet %s
+MAP_REGION_PICK_OPEN,Open the card for %s,Åpne kortet for %s
+MAP_REGION_PICK_OPEN_TIP,Shows it on the area's map at the site level (a double-click on the mark does the same),Viser det på stedsnivå i kartet over området (et dobbeltklikk på merket gjør det samme)
+MAP_REGION_PICK_RIVAL,locality no. %d (%s),lokalitet nr. %d (%s)
+MAP_REGION_PICK_SITE,your site %s,anlegget ditt %s
+MAP_REGION_READOUT_CLOSED,Closed: %s · %s m,Stengt: %s · %s m
+MAP_REGION_READOUT_CLOSED_NO_DEPTH,Closed: %s,Stengt: %s
+MAP_REGION_READOUT_HINT,Point at the map for suitability and depth,Pek på kartet for egnethet og dybde
+MAP_REGION_READOUT_SCORED,Suitability %s · %s · %s m,Egnethet %s · %s · %s m
+MAP_REGION_REASON_0,no data,ingen data
+MAP_REGION_REASON_1,land,land
+MAP_REGION_REASON_10,under 2.5 km from another farm,"under 2,5 km fra et annet anlegg"
+MAP_REGION_REASON_11,too shallow (under 15 m),for grunt (under 15 m)
+MAP_REGION_REASON_12,too deep (over 300 m),for dypt (over 300 m)
+MAP_REGION_REASON_13,outside the planning area (open sea),utenfor planområdet (åpent hav)
+MAP_REGION_REASON_16,depth limits it,dybden begrenser
+MAP_REGION_REASON_17,water exchange limits it,vannutskiftingen begrenser
+MAP_REGION_REASON_18,distance to farms limits it,avstanden til anlegg begrenser
+MAP_REGION_REASON_19,temperature limits it,temperaturen begrenser
+MAP_REGION_REASON_2,outside the production area,utenfor produksjonsområdet
+MAP_REGION_REASON_20,a salmon river nearby limits it,en lakseelv i nærheten begrenser
+MAP_REGION_REASON_21,current limits it,strømmen begrenser
+MAP_REGION_REASON_22,waves limit it,bølgene begrenser
+MAP_REGION_REASON_23,oxygen limits it,oksygenet begrenser
+MAP_REGION_REASON_24,nothing limits it,ingenting begrenser
+MAP_REGION_REASON_3,depth unknown,ukjent dybde
+MAP_REGION_REASON_4,national salmon fjord,nasjonal laksefjord
+MAP_REGION_REASON_5,within 5 km of a national salmon river,under 5 km fra et nasjonalt laksevassdrag
+MAP_REGION_REASON_6,protected area,verneområde
+MAP_REGION_REASON_7,coral closure,korallforbud
+MAP_REGION_REASON_8,near a coral reef,nær korallrev
+MAP_REGION_REASON_9,fairway,farled
+MAP_REGION_RIVALS_HEADER,Largest owners in the area,Største eiere i området
+MAP_REGION_RIVALS_NONE,No owners to show,Ingen eiere å vise
+MAP_REGION_RIVAL_FIGURES,%d sites · %s t,%d lokaliteter · %s t
+MAP_REGION_RIVAL_ROW_TIP,%s (%s),%s (%s)
+MAP_REGION_RIVAL_TIP,%s · %s · MTB %s t,%s · %s · MTB %s t
+MAP_REGION_SITE_APPROX,The position is approximate,Plasseringen er omtrentlig
+MAP_REGION_SITE_ROW,%s · %s,%s · %s
+MAP_REGION_SITE_TIP,Your site %s near %s,Ditt anlegg %s ved %s
+MAP_REGION_STAR_TIP_HEAD,Candidate %d: %s,Kandidat %d: %s
+MAP_REGION_STAR_TIP_PLACE,%s m deep · %s km to the nearest farm,%s m dypt · %s km til nærmeste anlegg
+MAP_REGION_STAR_TIP_SCORE,Suitability %s · costs the most: %s,Egnethet %s · trekker mest ned: %s
+MAP_REGION_STATE_FREE,free,ledig
+MAP_REGION_STATE_SUGGESTED,suggested,foreslått
+MAP_REGION_STATE_TAKEN,taken,tatt
+MAP_REGION_STATE_YOURS,your site,ditt anlegg
+MAP_REGION_YOURS_HEADER,Your places in the area,Dine steder i området
+MAP_SITE_APPLY_LICENCE,Apply for a growth licence,Søk vekstlisens
+MAP_SITE_APPLY_LICENCE_TIP,Open the licence auction for the zone,Åpne lisensauksjonen for sonen
+MAP_SITE_BACK,Back to the area,Tilbake til området
+MAP_SITE_BACK_TIP,One level up (Esc),Ett nivå opp (Esc)
+MAP_SITE_BAND_INDEPENDENT,Independent,Uavhengig
+MAP_SITE_BAND_MAJOR,Major company,Stort selskap
+MAP_SITE_BUILD_HAV,Build here (offshore),Bygg her (hav)
+MAP_SITE_BUILD_HAV_TIP,Open the offshore build with the open-sea plot chosen,Åpne havbyggingen med havplassen valgt
+MAP_SITE_BUILD_HERE,Build here,Bygg her
+MAP_SITE_BUILD_HERE_TIP,Open the build with this candidate chosen,Åpne byggingen med denne kandidaten valgt
+MAP_SITE_BUILD_REFUSED_TIP,Cannot be built here now,Kan ikke bygges her nå
+MAP_SITE_FACT_BAND,Owner group,Eiergruppe
+MAP_SITE_FACT_BINDING,Costs the most,Trekker mest ned
+MAP_SITE_FACT_CANDIDATE,Candidate,Kandidat
+MAP_SITE_FACT_CURRENT,"Current, annual mean","Strøm, årssnitt"
+MAP_SITE_FACT_DEPTH,Depth,Dybde
+MAP_SITE_FACT_KIND,Kind,Type
+MAP_SITE_FACT_MTB,Allowed biomass (MTB),Tillatt biomasse (MTB)
+MAP_SITE_FACT_NEAR,Nearest place,Nærmeste sted
+MAP_SITE_FACT_NEAREST_FARM,Nearest farm,Nærmeste anlegg
+MAP_SITE_FACT_NEAREST_RIVER,Nearest salmon river,Nærmeste lakseelv
+MAP_SITE_FACT_OPENNESS,Open water within 3 km,Åpent vann innen 3 km
+MAP_SITE_FACT_OWNER,Owner,Eier
+MAP_SITE_FACT_OXYGEN,"Oxygen, lowest month","Oksygen, laveste måned"
+MAP_SITE_FACT_SCORE,Suitability,Egnethet
+MAP_SITE_FACT_STAGE,Stage,Stadium
+MAP_SITE_FACT_STAGE_FACTOR,Planning stage factor,Faktor for planstatus
+MAP_SITE_FACT_WAVES,"Wave height, worst month","Bølgehøyde, verste måned"
+MAP_SITE_FACT_WHERE,Position,Plassering
+MAP_SITE_FACT_ZONE,Zone the build uses,Sone byggingen bruker
+MAP_SITE_HONEST_NOTE,"The score is the game's siting model, built on open sources. It is not a licensing decision, and in this version it changes no growth, lice or operations.","Poengsummen er spillets modell for plassering, bygget på åpne kilder. Den er ikke et vedtak, og i denne versjonen endrer den ikke vekst, lus eller drift."
+MAP_SITE_KIND_LAND_SALMONID,Land-based farm,Landanlegg
+MAP_SITE_KIND_OFFSHORE_SALMONID,Offshore unit,Havmerd
+MAP_SITE_KIND_OTHER,Other species,Annen art
+MAP_SITE_KIND_SEA_SALMONID,Sea grow-out,Matfisk i sjø
+MAP_SITE_LICENCE_ZONE,Needs a growth licence in %s,Krever vekstlisens i %s
+MAP_SITE_LOCALITY_NUMBER,Locality no. %d,Lokalitet nr. %d
+MAP_SITE_LOCALITY_STAGE_BROODSTOCK,Broodstock,Stamfisk
+MAP_SITE_LOCALITY_STAGE_GROWOUT,Grow-out,Matfisk
+MAP_SITE_LOCALITY_STAGE_NURSERY,Nursery,Yngel
+MAP_SITE_LOCALITY_STAGE_OTHER,Other,Annet
+MAP_SITE_LOCALITY_STAGE_RANCHING,Sea ranching,Havbeite
+MAP_SITE_LOCALITY_STAGE_SMOLT,Smolt,Settefisk
+MAP_SITE_OVERLINE_CANDIDATE,Candidate %d of %d,Kandidat %d av %d
+MAP_SITE_OVERLINE_OFFSHORE,Offshore farming,Havbruk til havs
+MAP_SITE_OVERLINE_RIVAL,Rival,Konkurrent
+MAP_SITE_OVERLINE_YOURS,Your site,Ditt anlegg
+MAP_SITE_RINGS_LEGEND,White ring: the 2.5 km distance to other farms. Dashed: 5 km around river mouths.,"Hvit ring: 2,5 km avstand til andre anlegg. Stiplet: 5 km rundt elvemunninger."
+MAP_SITE_RINGS_LEGEND_RIVERS,Dashed: 5 km around river mouths.,Stiplet: 5 km rundt elvemunninger.
+MAP_SITE_SECTION_PLACE,The place,Stedet
+MAP_SITE_SECTION_WHY,Why here,Hvorfor her
+MAP_SITE_STAGE_ANBEFALING_2022,Proposed in 2022,Anbefalt i 2022
+MAP_SITE_STAGE_KAN_UTLYSES_2026,Can be announced in 2026,Kan lyses ut i 2026
+MAP_SITE_STAGE_KONSEKVENSVURDERING_2024,Impact assessed in 2024,Konsekvensutredet i 2024
+MAP_SITE_STAGE_TILRADNING_2019,Recommended in 2019,Tilrådd i 2019
+MAP_SITE_TERM_CURRENT,Current,Strøm
+MAP_SITE_TERM_DEPTH,Depth,Dybde
+MAP_SITE_TERM_EXCHANGE,Water exchange,Vannutskifting
+MAP_SITE_TERM_FARM_DISTANCE,Distance to farms,Avstand til anlegg
+MAP_SITE_TERM_NONE,None,Ingen
+MAP_SITE_TERM_OXYGEN,Oxygen,Oksygen
+MAP_SITE_TERM_RIVER,Salmon river nearby,Lakseelv i nærheten
+MAP_SITE_TERM_STAGE,Planning stage,Planstatus
+MAP_SITE_TERM_TEMPERATURE,Temperature,Temperatur
+MAP_SITE_TERM_VALUE,%s (−%s),%s (−%s)
+MAP_SITE_TERM_WAVES,Waves,Bølger
+MAP_SITE_UNIT_KM,%s km,%s km
+MAP_SITE_UNIT_M,%s m,%s m
+MAP_SITE_UNIT_MS,%s m/s,%s m/s
+MAP_SITE_UNIT_M_DEC,%s m,%s m
+MAP_SITE_UNIT_O2,%s mmol/m³,%s mmol/m³
+MAP_SITE_UNIT_T,%s t,%s t
+MAP_SITE_VIEW_3D,View in 3D,Vis i 3D
+MAP_SITE_VIEW_3D_TIP,Open the fjord with the site selected,Åpne fjorden med anlegget valgt
+MAP_SITE_WHERE_CANDIDATE,At the candidate it was built on,Ved kandidaten det ble bygget på
+SEA_CANDIDATE_BINDING_CURRENT,The current costs the most here: it is weaker or stronger than the 0.05-0.40 m/s that renews the water in open pens.,"Strømmen trekker mest ned her: den er svakere eller sterkere enn de 0,05–0,40 m/s som fornyer vannet i åpne merder."
+SEA_CANDIDATE_BINDING_DEPTH,Depth costs the most here: open pens stand best in 25-150 m of water.,Dybden trekker mest ned her: åpne merder står best på 25–150 m vann.
+SEA_CANDIDATE_BINDING_EXCHANGE,Water exchange costs the most here: the place is more enclosed than an open sound.,Vannutskiftingen trekker mest ned her: stedet er mer innestengt enn et åpent sund.
+SEA_CANDIDATE_BINDING_FARM_DISTANCE,Neighbouring farms cost the most here: another salmon farm lies closer than the 5 km Mattilsynet recommends.,Naboanlegg trekker mest ned her: et annet lakseanlegg ligger nærmere enn de 5 km Mattilsynet anbefaler.
+SEA_CANDIDATE_BINDING_NONE,Nothing costs this place anything on the published model.,Ingenting trekker ned på dette stedet i den publiserte modellen.
+SEA_CANDIDATE_BINDING_OXYGEN,Oxygen costs the most here: the upper water holds less oxygen than salmon need.,Oksygenet trekker mest ned her: de øvre vannlagene har mindre oksygen enn laksen trenger.
+SEA_CANDIDATE_BINDING_RIVER,A salmon river costs the most here: a river mouth with wild salmon lies within 5 km.,En lakseelv trekker mest ned her: en elv med villaks munner ut innenfor 5 km.
+SEA_CANDIDATE_BINDING_STAGE,The planning stage costs the most here: the open-sea area is early in the Havbruk til havs process.,Planstatusen trekker mest ned her: havområdet er tidlig i prosessen for havbruk til havs.
+SEA_CANDIDATE_BINDING_TEMPERATURE,Temperature costs the most here: the area's sea is colder or warmer than the 8-16 °C salmon grows best in.,Temperaturen trekker mest ned her: sjøen i området er kaldere eller varmere enn de 8–16 °C laksen vokser best i.
+SEA_CANDIDATE_BINDING_WAVES,Waves cost the most here: the winter sea is higher than at the sheltered places open pens use.,Bølgene trekker mest ned her: vintersjøen er høyere enn på de skjermede stedene der åpne merder står.
+SEA_CANDIDATE_BUILD_TITLE,Build a locality near %s,Bygg lokalitet ved %s
+SEA_CANDIDATE_CHIP_TAKEN,Yours,Ditt anlegg
+SEA_CANDIDATE_COL_BINDING,Costs most,Trekker ned
+SEA_CANDIDATE_COL_DEPTH,Depth,Dybde
+SEA_CANDIDATE_COL_MEASURED,Measured,Målt
+SEA_CANDIDATE_COL_PLACE,Place,Sted
+SEA_CANDIDATE_COL_POINTS,Points,Poeng
+SEA_CANDIDATE_COL_RANK,No.,Nr.
+SEA_CANDIDATE_COL_SCORE,Suitability,Egnethet
+SEA_CANDIDATE_COL_WEIGHT,Weight,Vekt
+SEA_CANDIDATE_COMPONENT_CURRENT,Current,Strøm
+SEA_CANDIDATE_COMPONENT_DEPTH,Depth,Dybde
+SEA_CANDIDATE_COMPONENT_EXCHANGE,Water exchange,Vannutskifting
+SEA_CANDIDATE_COMPONENT_FARM_DISTANCE,Distance to farms,Avstand til anlegg
+SEA_CANDIDATE_COMPONENT_OXYGEN,Oxygen,Oksygen
+SEA_CANDIDATE_COMPONENT_RIVER,Salmon rivers,Lakseelver
+SEA_CANDIDATE_COMPONENT_TEMPERATURE,Temperature,Temperatur
+SEA_CANDIDATE_COMPONENT_WAVES,Waves,Bølger
+SEA_CANDIDATE_DONE_TITLE,%s is built near %s,%s er bygd ved %s
+SEA_CANDIDATE_HEADER,Locality: the area's best places for open pens,Lokalitet: områdets beste steder for åpne merder
+SEA_CANDIDATE_HONEST_NOTE,"The score is a siting model on open data (Kartverket, Fiskeridirektoratet, Mattilsynet, Copernicus). It explains the choice and does not change the farming: the water your fish live in comes from the production area and the zone, the same at every place in it.","Poengsummen er en lokaliseringsmodell på åpne data (Kartverket, Fiskeridirektoratet, Mattilsynet, Copernicus). Den forklarer valget og endrer ikke driften: vannet fisken lever i, kommer fra produksjonsområdet og sonen, likt for alle stedene der."
+SEA_CANDIDATE_OPENNESS,%s sea,%s sjø
+SEA_CANDIDATE_PICK,Choose a place in the list to see its build.,Velg et sted i listen for å se byggingen der.
+SEA_CANDIDATE_PLACE,near %s,ved %s
+SEA_CANDIDATE_RANK,No. %d of %d in PO %d,Nr. %d av %d i PO %d
+SEA_CANDIDATE_REASON_CANDIDATE_NOT_FOUND,This place is not one of the area's places for open pens,Stedet er ikke blant områdets steder for åpne merder
+SEA_CANDIDATE_REASON_CANDIDATE_NOT_SUITABLE,This place lies in a cell closed to open pens,Stedet ligger i en rute som er stengt for åpne merder
+SEA_CANDIDATE_REASON_CANDIDATE_TAKEN,One of your localities already stands here,Et av anleggene dine står allerede her
+SEA_CANDIDATE_REASON_CANDIDATE_WRONG_AREA,This place lies in another production area than the zone,Stedet ligger i et annet produksjonsområde enn sonen
+SEA_CANDIDATE_REASON_ENGINE_NOT_READY,The game has not started,Spillet har ikke startet
+SEA_CANDIDATE_RIVER_FACTOR,River factor,Elvefaktor
+SEA_CANDIDATE_ROW_TIP,"%s: suitability %d of 100, %s m deep. %s","%s: egnethet %d av 100, %s m dypt. %s"
+SEA_CANDIDATE_SCORE,%d of 100,%d av 100
+SEA_CANDIDATE_SCORE_LABEL,Suitability,Egnethet
+SEA_CANDIDATE_SHORT_CURRENT,Current,Strøm
+SEA_CANDIDATE_SHORT_DEPTH,Depth,Dybde
+SEA_CANDIDATE_SHORT_EXCHANGE,Exchange,Utskifting
+SEA_CANDIDATE_SHORT_FARM_DISTANCE,Neighbours,Naboer
+SEA_CANDIDATE_SHORT_NONE,Nothing,Ingenting
+SEA_CANDIDATE_SHORT_OXYGEN,Oxygen,Oksygen
+SEA_CANDIDATE_SHORT_RIVER,River,Lakseelv
+SEA_CANDIDATE_SHORT_STAGE,Stage,Planstatus
+SEA_CANDIDATE_SHORT_TEMPERATURE,Temperature,Temperatur
+SEA_CANDIDATE_SHORT_WAVES,Waves,Bølger
+SEA_CANDIDATE_SUBTITLE_PICK,Production area %d · open pens at the area's places,Produksjonsområde %d · åpne merder på områdets steder
+SEA_CANDIDATE_TAKEN_TIP,%s already stands here.,%s står allerede her.
+SEA_CANDIDATE_WHY_ALL_HELD,Every place in the list already holds one of your localities. A new one is built in %s without a place of its own and is placed approximately where the zone lies.,Alle stedene i listen har allerede et av anleggene dine. Et nytt anlegg bygges i %s uten eget sted og plasseres omtrent der sonen ligger.
+SEA_CANDIDATE_WHY_EMPTY,Choose a place to see why it ranks where it does.,Velg et sted for å se hvorfor det ligger der det gjør i rekken.
+SEA_CANDIDATE_WHY_TITLE,Why here,Hvorfor her
+SEA_CANDIDATE_ZONE,Licence and water: the zone %s,Lisens og vann: sonen %s
 TUTORIAL_BUILD_SITE_DO,Press «Build locality» in your zone and confirm.,Trykk «Bygg lokalitet» i din sone og bekreft.
 TUTORIAL_BUILD_SITE_TEXT,"A site gives room, not biomass: the licence's MTB is shared by every site in the area. Two sites let you fallow one and spread the risk.","En lokalitet gir plass, ikke biomasse: lisensens MTB deles av alle lokalitetene i området. To lokaliteter lar deg brakklegge den ene og spre risikoen."
 TUTORIAL_BUILD_SITE_TITLE,Build a second site,Bygg en lokalitet til

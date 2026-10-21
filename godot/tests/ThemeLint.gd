@@ -11,7 +11,8 @@ extends RefCounted
 ##    resolved colour against what is actually drawn behind it is below
 ##    4.5:1, or 3:1 for large text (≥ 24 px, or ≥ 18 px in a bold face).
 ##    The backdrop is found by painter's order: the backgrounds (panels,
-##    colour rects, buttons, tag pills) drawn before the text and covering
+##    colour rects, buttons, tag pills, pictures marked with meta
+##    'lint_background') drawn before the text and covering
 ##    its centre, composited top-down. Translucent glass with nothing opaque
 ##    behind it is judged over both a white and a black world (worst case).
 
@@ -169,7 +170,9 @@ static func _collect_drawers(n: Node, layer: int, counter: Array, out: Array) ->
 		_collect_drawers(child, layer, counter, out)
 
 
-## The colour a control paints behind its children, or null.
+## The colour a control paints behind its children, or null. A TextureRect
+## counts when it carries meta 'lint_background' (a Color): what its picture
+## reads as, such as the map's deep water.
 static func _drawn_bg(c: Control) -> Variant:
 	var col: Variant = null
 	if c is ColorRect:
@@ -184,6 +187,12 @@ static func _drawn_bg(c: Control) -> Variant:
 		var sb := b.get_theme_stylebox(state)
 		if sb is StyleBoxFlat and (sb as StyleBoxFlat).draw_center:
 			col = (sb as StyleBoxFlat).bg_color
+	elif c is TextureRect and c.has_meta(&"lint_background"):
+		# A picture cannot be sampled here; the node says which colour it
+		# reads as (geo stages 2-3: the national map is deep water).
+		var meta: Variant = c.get_meta(&"lint_background")
+		if meta is Color:
+			col = meta
 	if col == null:
 		return null
 	var out: Color = (col as Color) * _modulate_chain(c)
