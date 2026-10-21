@@ -16,7 +16,13 @@ extends Camera3D
 ##   to any focused Control, letters to text fields.
 ## - Controls: WASD/arrows pan, middle-drag pans, right-drag orbits, wheel
 ##   zooms, Q/E rotate, Home recentres, T toggles top-down, double-click
-##   focuses. Idle auto-orbit starts after 30 s without input.
+##   focuses, G (the camera_bookmark action, rebindable) cycles the bookmarks
+##   Fjord -> Land -> Hav (F2-21). Idle auto-orbit starts after 30 s without
+##   input.
+## - Focus targets (F2-20/F2-21, farm-types spec §4): places framed at their
+##   own distance, pitch and (optionally) yaw; both clamps take the union of
+##   the world's box and the targets' discs, so a unit or a plot beyond the
+##   world's edge can be framed and orbited.
 
 enum ZoomLevel { COAST, FJORD, FARM, UNDERWATER }
 
@@ -62,6 +68,9 @@ const SNAP_EPSILON := 0.0005
 const GROUND_CLEARANCE := 32.0
 const SIGHT_CLEARANCE := 15.0
 const SIGHT_SAMPLES := 48
+## F2-21: the sight line's clearance tapers to nothing over this last stretch
+## (m) to the focus, so a focus on land can be framed (_required_height).
+const FOCUS_GROUND_M := 120.0
 ## Steepest view the avoidance may force before it pulls the camera closer.
 const MAX_ELEVATION_DEG := 78.0
 const MIN_PITCH_DEG := -85.0
@@ -118,10 +127,23 @@ var _panning := false
 var _fly_tween: Tween = null
 var _settled := false
 ## F2-20 (farm-types spec §4; F2-21 adds the bookmarks): places the focus may
-## stand beyond the world's focus clamp, id -> {pos, distance, pitch, radius}.
+## stand beyond the world's focus clamp, id -> {pos, distance, pitch, radius, yaw}.
 var _focus_targets: Dictionary = {}
+## F2-21 bookmarks: slot ("land", "hav") -> the focus target it flies to (the
+## presenter names them); "fjord" is the home view. G steps through
+## BOOKMARK_SLOTS from the one shown last.
+var _bookmarks: Dictionary = {}
+var _bookmark_at := 0
+
+## F2-21 (spec §4 "Bookmarks"): the input action that cycles the bookmarks
+## (project.godot, G by default; rebindable, D15), and the cycle's order.
+const BOOKMARK_ACTION := "camera_bookmark"
+const BOOKMARK_SLOTS := ["fjord", "land", "hav"]
 
 signal zoom_level_changed(level: ZoomLevel)
+## F2-21: G took the camera to a bookmark ("fjord", "land" or "hav"; the
+## target id, "" for the home view).
+signal bookmark_changed(slot: String, target_id: String)
 signal entered_underwater()
 signal exited_underwater()
 
@@ -173,15 +195,66 @@ func fly_to_position(world_pos: Vector3, zoom: ZoomLevel = current_zoom, duratio
 
 ## F2-20 (spec §4 "Camera"): register a place the camera frames, such as a
 ## land campus or an offshore unit, at its own distance and pitch (degrees,
-## negative looks down). The focus clamp takes the union of the world's box
-## and every target's disc of `radius` metres, so a unit beyond the world's
-## edge can be focused and panned round. Re-registering an id moves it.
-func register_focus_target(id: String, pos: Vector3, framing_distance: float, pitch_deg: float, radius: float) -> void:
-	_focus_targets[id] = {"pos": pos, "distance": framing_distance, "pitch": pitch_deg, "radius": maxf(radius, 0.0)}
+## negative looks down) and, F2-21, its own yaw (radians, the rig's heading
+## as home_yaw() gives it; NAN: the fjord-axis heading). The focus clamp takes
+## the union of the world's box and every target's disc of `radius` metres,
+## so a unit beyond the world's edge can be focused and panned round.
+## Re-registering an id moves it.
+func register_focus_target(id: String, pos: Vector3, framing_distance: float, pitch_deg: float, radius: float,
+		yaw: float = NAN) -> void:
+	_focus_targets[id] = {"pos": pos, "distance": framing_distance, "pitch": pitch_deg, "radius": maxf(radius, 0.0),
+		"yaw": yaw}
 
 
 func unregister_focus_target(id: String) -> void:
 	_focus_targets.erase(id)
+
+
+## Every registered target id.
+func focus_target_ids() -> Array:
+	return _focus_targets.keys()
+
+
+## F2-21: the bookmark `slot` ("land" or "hav") flies to focus target
+## `target_id` ("" clears it; a cleared or unregistered slot is skipped).
+func set_bookmark(slot: String, target_id: String) -> void:
+	if target_id == "":
+		_bookmarks.erase(slot)
+	else:
+		_bookmarks[slot] = target_id
+
+
+## The focus target a bookmark slot flies to ("" when none).
+func get_bookmark(slot: String) -> String:
+	return str(_bookmarks.get(slot, ""))
+
+
+## The bookmark shown last ("fjord" after Home or a new game).
+func current_bookmark() -> String:
+	return BOOKMARK_SLOTS[_bookmark_at]
+
+
+## F2-21 (spec §4): the next bookmark after the one shown last, Fjord ->
+## Land -> Hav -> Fjord, skipping a slot with no registered target; flies
+## there and returns the slot.
+func cycle_bookmark() -> String:
+	for step in range(1, BOOKMARK_SLOTS.size() + 1):
+		var at := (_bookmark_at + step) % BOOKMARK_SLOTS.size()
+		var slot: String = BOOKMARK_SLOTS[at]
+		if slot == "fjord":
+			# The home view: down the fjord to the mouth at the FJORD default
+			# (from a unit's close framing, not Home's kept zoom band).
+			set_zoom_level(ZoomLevel.FJORD)
+			recentre()
+			_bookmark_at = at
+			bookmark_changed.emit(slot, "")
+			return slot
+		var id := get_bookmark(slot)
+		if id != "" and focus_target(id):
+			_bookmark_at = at
+			bookmark_changed.emit(slot, id)
+			return slot
+	return current_bookmark()
 
 
 func has_focus_target(id: String) -> bool:
@@ -193,26 +266,32 @@ func get_focus_target(id: String) -> Dictionary:
 	return _focus_targets.get(id, {})
 
 
-## Fly to a registered target at its framing. False for an unknown id.
+## Fly to a registered target at its framing (its own yaw when it has one).
+## False for an unknown id.
 func focus_target(id: String, duration: float = 1.2) -> bool:
 	if not _focus_targets.has(id):
 		return false
 	var t: Dictionary = _focus_targets[id]
-	frame_position(t["pos"], float(t["distance"]), float(t["pitch"]), duration)
+	frame_position(t["pos"], float(t["distance"]), float(t["pitch"]), duration, float(t.get("yaw", NAN)))
 	return true
 
 
 ## Fly the focus to `world_pos` at `distance` metres and `pitch_deg` (below the
 ## horizon, e.g. -40): the pitch becomes an offset from the distance table's,
-## as a right-drag tilt would, so Home restores the table.
-func frame_position(world_pos: Vector3, distance: float, pitch_deg: float, duration: float = 1.2) -> void:
+## as a right-drag tilt would, so Home restores the table. A finite `yaw`
+## (radians) heads the rig there, as a turn with Q/E would; NAN keeps the
+## fjord-axis heading unless the player has turned the view.
+func frame_position(world_pos: Vector3, distance: float, pitch_deg: float, duration: float = 1.2, yaw: float = NAN) -> void:
 	_cancel_fly()
 	_top_down = false
 	_distance_target = clampf(distance, MIN_DISTANCE, MAX_DISTANCE)
 	_pitch_offset_target = clampf(pitch_deg - view_for_distance(_distance_target).x, -40.0, 15.0)
 	_update_zoom_band(_band_for(_distance_target))
 	var dest := _clamp_to_world(Vector3(world_pos.x, 0.0, world_pos.z))
-	if not _user_rotated:
+	if is_finite(yaw):
+		_user_rotated = true
+		_yaw_target = _nearest_angle(_yaw, yaw)
+	elif not _user_rotated:
 		_yaw_target = _nearest_angle(_yaw, home_yaw(dest))
 	if not is_inside_tree() or duration <= 0.0:
 		_focus_target = dest
@@ -227,6 +306,7 @@ func recentre() -> void:
 	_user_rotated = false
 	_top_down = false
 	_pitch_offset_target = 0.0
+	_bookmark_at = 0
 	if _underwater:
 		set_zoom_level(ZoomLevel.FJORD)
 	fly_to_position(home_focus, current_zoom, 0.8)
@@ -247,6 +327,18 @@ func hold_view(focus: Vector3, yaw: float, distance: float, pitch_offset_deg: fl
 	_update_zoom_band(_band_for(_distance_target))
 	if snap:
 		_snap()
+
+
+## F2-23: a cinematic (the first sight) places the camera itself while the
+## rig stands still (its process off): the pose and the field of view, and
+## the distance the environment reads for its depth of field and shadows.
+func cinematic_pose(eye: Vector3, look: Vector3, fov_deg: float) -> void:
+	_rig_position = eye
+	_distance = maxf(eye.distance_to(look), MIN_DISTANCE)
+	fov = fov_deg
+	global_position = eye
+	if Vector2(look.x - eye.x, look.z - eye.z).length() > 0.01:
+		look_at(look, Vector3.UP)
 
 
 ## Tilt the view relative to the distance table (degrees, positive looks
@@ -393,7 +485,11 @@ func _snap() -> void:
 	_top_down_blend = 1.0 if _top_down else 0.0
 	var view := view_for_distance(_distance)
 	fov = 70.0 if _underwater else view.y
-	_rig_position = solve_rig(_focus, _yaw, _distance, clampf(view.x, MIN_PITCH_DEG, MAX_PITCH_DEG))
+	# The pitch _damp settles on (the table's, the offset, top-down), so a
+	# snapped rig does not move on its next frame (F2-23: a first-sight
+	# sequence hands the camera back on a framing's pitch).
+	var pitch := clampf(view.x + _pitch_offset, MIN_PITCH_DEG, MAX_PITCH_DEG)
+	_rig_position = solve_rig(_focus, _yaw, _distance, lerpf(pitch, TOP_DOWN_PITCH_DEG, _top_down_blend))
 	_settled = false
 	_apply_transform()
 
@@ -413,17 +509,22 @@ func _approach_v(current: Vector3, target: Vector3, k: float) -> Vector3:
 # ── Terrain avoidance ─────────────────────────────────────────────────────────
 
 ## Lowest camera height that clears the ground under it and the terrain along
-## the sight line to the focus.
+## the sight line to the focus. Over the last FOCUS_GROUND_M to the focus the
+## clearance tapers to nothing: a focus on land (a campus on its pad, F2-21)
+## stands on the ground, and asking the line to pass 15 m over the pad a few
+## metres from it lifted a -40 deg land framing to -64 to -71 deg.
 func _required_height(focus: Vector3, pos: Vector3, water_y: float) -> float:
 	var need := maxf(_ground(pos.x, pos.z), water_y) + GROUND_CLEARANCE
+	var reach := Vector2(focus.x - pos.x, focus.z - pos.z).length()
 	for i in range(1, SIGHT_SAMPLES + 1):
 		var t := float(i) / float(SIGHT_SAMPLES + 1)
 		var p := pos.lerp(focus, t)
 		var ground := _ground(p.x, p.z)
 		if ground <= water_y:
 			continue  # water never hides the focus
+		var clearance := SIGHT_CLEARANCE * clampf((1.0 - t) * reach / FOCUS_GROUND_M, 0.0, 1.0)
 		# The sight line at t is pos.y*(1-t) + focus.y*t: solve for pos.y.
-		need = maxf(need, (ground + SIGHT_CLEARANCE - focus.y * t) / (1.0 - t))
+		need = maxf(need, (ground + clearance - focus.y * t) / (1.0 - t))
 	return need
 
 
@@ -564,6 +665,10 @@ func _handle_drag_pan(event: InputEventMouseMotion) -> void:
 
 func _handle_key(event: InputEventKey) -> void:
 	if not _letter_keys_allowed():
+		return
+	if InputMap.has_action(BOOKMARK_ACTION) and event.is_action_pressed(BOOKMARK_ACTION, false, true):
+		cycle_bookmark()
+		get_viewport().set_input_as_handled()
 		return
 	match event.keycode:
 		KEY_HOME:

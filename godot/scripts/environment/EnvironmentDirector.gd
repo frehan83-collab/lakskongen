@@ -20,6 +20,9 @@ extends Node
 ##   optics and the terrain's water bake (G1-05);
 ## - wave_field, the CPU mirror of the drawn water (G2-03): the same wave
 ##   arrays, grid and bake, so pens and boats ride the waves they sit in.
+## - the open sea at the camera's offshore plot (F2-21, OpenSea): the plot's
+##   Hs from the engine split into its wind sea and a long swell (two bands
+##   at 150-300 m), drawn on the exposed sea only (set_target_sea).
 ## - the ground's season, as global shader parameters for the terrain and
 ##   the trees: snow line, wet ground, birch leaves (G2-02).
 ## - the mood (G3-05, EnvironmentMood): eight art-directed moods weighed
@@ -275,6 +278,10 @@ const LAMP_WHITE := Vector3(0.95, 1.0, 1.0)
 const WATER_ABSORPTION := Vector3(0.40, 0.09, 0.14)
 const LAMP_GLOW_ON_SCREEN := 0.75
 const LAMP_LIGHT_ENERGY := 2.5
+## F2-23: the farm-type units' pools of lamplight (CampusLights) join this
+## group; their owner names each pool's energy (meta "energy", 0 off) and
+## the director, the only writer of light energy, sets it every frame.
+const LIGHT_POOL_GROUP := "lk_light_pools"
 ## The mist banks' light against the horizon's (scene-linear).
 const MIST_LIGHT := 1.1
 ## The land's cloud-shadow globals (project.godot [shader_globals], read by
@@ -295,6 +302,10 @@ var land_shadow_darken := -1.0
 ## last frame (tests and the harness read them).
 var mood_weights := PackedFloat32Array()
 var mood: Dictionary = {}
+## F2-23: a presentation hook that leans the moods toward one (a first-sight
+## sequence's Blåtime or low sun): its name and how far (0-1).
+var mood_hook := ""
+var mood_hook_strength := 0.0
 var _smoke_drift := Vector2.ZERO
 var _storm_sway: StormSway = null
 ## The low cloud banks on the walls (created at _ready; tests read them).
@@ -332,6 +343,10 @@ var sea_state: Dictionary = {}
 ## wave uniforms get, every frame. WaveField.active points at it while this
 ## director is in the tree; PenCage and VesselModel float on it.
 var wave_field := WaveField.new()
+## The open sea at the camera's offshore plot (F2-21, OpenSea): the engine's
+## sea there split into its wind sea and a long swell, drawn on the exposed
+## sea (set_target_sea); without a target the open coast is the wind model's.
+var open_sea := OpenSea.new()
 ## Quality tier (P0-04, G5-01 groundwork): the knobs this director composes
 ## with, and the global render settings it applies through RenderQuality.
 var quality := RenderQuality.new()
@@ -524,6 +539,15 @@ func get_sky_clock() -> Dictionary:
 	return {"sky_time": _sky_time, "cloud_drift": _cloud_offset}
 
 
+## F2-23 (spec §7.2 "EnvironmentDirector mood hook"): lean the weighed moods
+## toward `mood_name` (EnvironmentMood.NAMES) by `strength` (0-1) on top of
+## the sim's weather and calendar; "" or 0 lets go. Presentation only: a
+## first-sight sequence's Blåtime (land) and low sun (offshore).
+func set_mood_hook(mood_name: String, strength: float) -> void:
+	mood_hook = mood_name
+	mood_hook_strength = clampf(strength, 0.0, 1.0) if EnvironmentMood.NAMES.has(mood_name) else 0.0
+
+
 ## The values composed last frame (tests and the harness read them).
 func get_composed() -> Dictionary:
 	return _composed
@@ -576,9 +600,10 @@ func compose(delta: float, snap: bool = false) -> void:
 			c[key] = _composed.get(key, 0.0)
 	_apply_fog(sun_elev, cloud, visibility, sea_fog, underwater, c)
 	_apply_image(sun_elev, distance, underwater, c)
-	_apply_water(delta, c)
+	_apply_water(delta, c, snap)
 	_apply_ground(delta, snap, c)
 	_apply_weather_drama(delta, sun_dir, sun_elev, cloud, underwater, c)
+	_apply_light_pools()
 	_apply_mirror(underwater, c)
 	_refresh_probe(delta, snap, sun_elev, cloud, sea_fog)
 	c["world_visible"] = not quality.world_hidden
@@ -1055,7 +1080,7 @@ func _refresh_probe(delta: float, snap: bool, sun_elev: float, cloud: float, sea
 
 # ── Water ─────────────────────────────────────────────────────────────────────
 
-func _apply_water(delta: float, c: Dictionary) -> void:
+func _apply_water(delta: float, c: Dictionary, snap: bool = false) -> void:
 	var mat := water_material()
 	if mat == null:
 		return
@@ -1071,7 +1096,9 @@ func _apply_water(delta: float, c: Dictionary) -> void:
 	_sea_time += delta
 	var amp := PackedVector4Array()
 	var a_sh: PackedFloat32Array = sea_state["sheltered_amplitudes"]
-	var a_ex: PackedFloat32Array = sea_state["exposed_amplitudes"]
+	# The open coast: the wind model's, or the target plot's wind sea (F2-21).
+	open_sea.step(delta, snap, sea_state["exposed_amplitudes"])
+	var a_ex: PackedFloat32Array = open_sea.shown_wind
 	for i in _comp_k.size():
 		var omega := sqrt(GRAVITY * _comp_k[i])
 		_comp_phase[i] = fmod(_comp_phase[i] + omega * delta, TAU)
@@ -1080,6 +1107,11 @@ func _apply_water(delta: float, c: Dictionary) -> void:
 	mat.set_shader_parameter("wave_k", sea_state["wave_k"])
 	mat.set_shader_parameter("wave_amp", amp)
 	wave_field.set_waves(sea_state["wave_k"], amp)
+	# The open sea's swell (F2-21): its own components, the exposed sea's only.
+	var swell := open_sea.swell_amp()
+	mat.set_shader_parameter("swell_k", open_sea.swell_k)
+	mat.set_shader_parameter("swell_amp", swell)
+	wave_field.set_swell(open_sea.swell_k, swell)
 	mat.set_shader_parameter("wave_peak", sea_state["wave_peak"])
 	# Dead calm mirrors crisply; a breeze's ripples break the mirror up.
 	mat.set_shader_parameter("planar_distort", lerpf(MIRROR_DISTORT_CALM, MIRROR_DISTORT_BREEZE, smoothstep(1.0, 6.0, wind)))
@@ -1087,7 +1119,8 @@ func _apply_water(delta: float, c: Dictionary) -> void:
 	mat.set_shader_parameter("whitecap_threshold", whitecap_threshold(float(sea_state["whitecaps"])))
 	_apply_pen_calm(mat, float(sea_state["whitecaps"]), c)
 	mat.set_shader_parameter("ripple_strength", ripple_strength_for(wind))
-	mat.set_shader_parameter("sea_height", Vector2(sea_state["sheltered_hs"], sea_state["exposed_hs"]))
+	var exposed_hs := open_sea.exposed_hs()
+	mat.set_shader_parameter("sea_height", Vector2(sea_state["sheltered_hs"], exposed_hs))
 	mat.set_shader_parameter("sea_peak", Vector2(sea_state["sheltered_peak_m"], sea_state["exposed_peak_m"]))
 	mat.set_shader_parameter("sea_direction", sea_state["direction"])
 	mat.set_shader_parameter("sea_time", _sea_time)
@@ -1098,7 +1131,43 @@ func _apply_water(delta: float, c: Dictionary) -> void:
 	var day := smoothstep(-8.0, 20.0, float(c.get("sun_elevation", 30.0)))
 	mat.set_shader_parameter("underside_light", Vector3(horizon.r, horizon.g, horizon.b) * lerpf(0.05, 0.9, day))
 	c["sea_hs_sheltered"] = sea_state["sheltered_hs"]
-	c["sea_hs_exposed"] = sea_state["exposed_hs"]
+	c["sea_hs_exposed"] = exposed_hs
+	c["swell_hs"] = open_sea.swell_hs()
+	c["open_sea_plot"] = str(open_sea.target.get("plot_id", ""))
+
+
+## F2-21 (farm-types spec §4 "Wave driver"): draw the open coast as the sea
+## of the offshore plot the camera is at (the presenter hands it the
+## engine's split of that plot's sea: SimBridge.get_sea_state_forecast
+## "today", with "plot_id"); {} goes back to the wind model's open coast.
+## The drawn sea follows over a couple of seconds (OpenSea.FOLLOW_RATE).
+func set_target_sea(sea: Dictionary) -> void:
+	if not _ensure_sea_bridge():
+		return
+	if sea == open_sea.target or (sea.is_empty() and not open_sea.has_target()):
+		return
+	open_sea.set_target(sea, _sea_bridge, float(_sea_bridge.call("ExposedFetchM")))
+	# The choppiness and the exposed sea's spectral peak take the new sea.
+	if _sea_wind >= 0.0:
+		_derive_sea(_sea_wind)
+
+
+## The drawn sea's components, for tests and the spectrum check (F2-21
+## acceptance 4): [{wavelength, sheltered, exposed, kind}] with "kind" "wind"
+## or "swell", each component's own amplitude (its band's times its weight).
+func drawn_components() -> Array:
+	var out: Array = []
+	if sea_state.is_empty():
+		return out
+	var a_sh: PackedFloat32Array = sea_state["sheltered_amplitudes"]
+	for i in _comp_k.size():
+		var band := _comp_band[i]
+		var ex := open_sea.shown_wind[band] if band < open_sea.shown_wind.size() else 0.0
+		out.append({"wavelength": TAU / _comp_k[i], "sheltered": a_sh[band] * _comp_weight[i],
+			"exposed": ex * _comp_weight[i], "kind": "wind"})
+	for row: Vector4 in open_sea.swell_amp():
+		out.append({"wavelength": row.w, "sheltered": row.x, "exposed": row.y, "kind": "swell"})
+	return out
 
 
 ## A pen's collar and net damp the sea inside it: the water breaks no
@@ -1165,6 +1234,7 @@ func _ensure_sea_bridge() -> bool:
 			_comp_weight.append(COMPONENT_WEIGHT[j])
 			# Fixed, well-mixed starting phases (golden-angle steps).
 			_comp_phase.append(fmod((band * COMPONENTS_PER_BAND + j) * 2.39996323, TAU))
+	open_sea.setup(_sea_bridge.call("SwellBandWavelengths"))
 	return true
 
 
@@ -1177,14 +1247,19 @@ func _derive_sea(wind: float) -> void:
 	var direction := terrain.sea_direction if terrain != null else Vector2(0.3, 1.0).normalized()
 	var a_sh: PackedFloat32Array = sheltered["amplitudes"]
 	var a_ex: PackedFloat32Array = exposed["amplitudes"]
+	# The open coast may draw a target plot's sea (F2-21, OpenSea): the
+	# steepness takes the larger of the two, so neither folds.
+	var a_open := open_sea.shown_wind if open_sea.has_target() else a_ex
 	var steepness := 0.0
 	for i in _comp_k.size():
-		steepness += _comp_k[i] * _comp_weight[i] * maxf(a_sh[_comp_band[i]], a_ex[_comp_band[i]])
+		var band := _comp_band[i]
+		var open_a := a_open[band] if band < a_open.size() else 0.0
+		steepness += _comp_k[i] * _comp_weight[i] * maxf(a_sh[band], maxf(a_ex[band], maxf(open_a, open_sea.goal_amplitude(band))))
 	var chop := minf(CHOPPINESS, WAVE_FOLD_LIMIT / maxf(steepness, 1e-4))
 	var shape := PackedVector4Array()
 	var peak := PackedVector2Array()
 	var sheltered_peak := maxf(float(sheltered["peak_wavelength"]), 0.5)
-	var exposed_peak := maxf(float(exposed["peak_wavelength"]), 0.5)
+	var exposed_peak := open_sea.goal_wind_peak_m if open_sea.goal_wind_peak_m > 0.0 else maxf(float(exposed["peak_wavelength"]), 0.5)
 	for i in _comp_k.size():
 		var heading := direction.rotated(deg_to_rad(_comp_heading[i]))
 		shape.append(Vector4(heading.x * _comp_k[i], heading.y * _comp_k[i], _comp_k[i], chop))
@@ -1201,7 +1276,7 @@ func _derive_sea(wind: float) -> void:
 		"exposed_tp": float(exposed["tp"]),
 		"exposed_amplitudes": a_ex,
 		"sheltered_peak_m": maxf(float(sheltered["peak_wavelength"]), 0.5),
-		"exposed_peak_m": maxf(float(exposed["peak_wavelength"]), 0.5),
+		"exposed_peak_m": exposed_peak,
 		"whitecaps": float(sheltered["whitecaps"]),
 		"wave_k": shape,
 		"wave_peak": peak,
@@ -1239,10 +1314,13 @@ func max_crest_at(exposure: float) -> float:
 	if sea_state.is_empty():
 		return 0.0
 	var a_sh: PackedFloat32Array = sea_state["sheltered_amplitudes"]
-	var a_ex: PackedFloat32Array = sea_state["exposed_amplitudes"]
+	var a_ex: PackedFloat32Array = open_sea.shown_wind if not open_sea.shown_wind.is_empty() else sea_state["exposed_amplitudes"]
 	var total := 0.0
 	for i in _comp_k.size():
 		total += lerpf(a_sh[_comp_band[i]], a_ex[_comp_band[i]], exposure) * _comp_weight[i]
+	# The open sea's swell rides the exposed sea only (F2-21).
+	for row: Vector4 in open_sea.swell_amp():
+		total += row.y * exposure
 	return total
 
 
@@ -1299,6 +1377,10 @@ func _compose_mood(delta: float, snap: bool, sun_dir: Vector3, sun_elev: float, 
 		"wind": weather_system.get_wind_speed_ms() if weather_system else 4.0,
 	}
 	var target := EnvironmentMood.weights(inputs)
+	var hooked := EnvironmentMood.NAMES.find(mood_hook)
+	if hooked >= 0 and mood_hook_strength > 0.0:
+		for i in target.size():
+			target[i] = lerpf(target[i], 1.0 if i == hooked else 0.0, clampf(mood_hook_strength, 0.0, 1.0))
 	if snap or mood_weights.size() != target.size():
 		mood_weights = target
 	else:
@@ -1451,6 +1533,19 @@ func _apply_lamps(mat: ShaderMaterial, sun_elev: float, cloud: float, c: Diction
 		mat.set_shader_parameter("lamp_light", filtered * (LAMP_GLOW_ON_SCREEN * on / exposure))
 	c["lamps_on"] = on
 	c["lamp_count"] = entries.size()
+
+
+## F2-23: every pool of lamplight in LIGHT_POOL_GROUP at the energy its owner
+## names for it (CampusLights: the night level, built parts, a first-sight
+## wave), on while above 0.
+func _apply_light_pools() -> void:
+	if not is_inside_tree():
+		return
+	for node in get_tree().get_nodes_in_group(LIGHT_POOL_GROUP):
+		for light: OmniLight3D in node.get("pools"):
+			var energy := float(light.get_meta("energy", 0.0))
+			light.visible = energy > 0.0
+			light.light_energy = energy
 
 
 # ── Static setup (once) ───────────────────────────────────────────────────────

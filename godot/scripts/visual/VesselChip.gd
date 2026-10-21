@@ -97,14 +97,22 @@ func _init(max_distance: float = 1400.0) -> void:
 		node.visibility_range_end_margin = max_distance * 0.1
 		node.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 
-## Show `text` with an `accent` dot and rim.
-func set_chip(text: String, accent: Color) -> void:
+## The dot's shapes (F2-21: status is colour plus shape).
+enum Shape { CIRCLE, TRIANGLE, SQUARE }
+
+var _shape := Shape.CIRCLE
+
+## Show `text` with an `accent` dot (a circle, or F2-21's triangle or square)
+## and rim.
+func set_chip(text: String, accent: Color, shape: Shape = Shape.CIRCLE) -> void:
 	# Called on every sim refresh: measuring the text shapes it, so an
 	# unchanged chip is left alone.
-	if text == _text and accent == _accent and _label.text == text:
+	if text == _text and accent == _accent and shape == _shape and _label.text == text:
 		return
 	_text = text
 	_accent = accent
+	_shape = shape
+	_quad.set_instance_shader_parameter("dot_shape", float(shape))
 	_label.text = text
 	var font: Font = _label.font if _label.font != null else ThemeDB.fallback_font
 	var text_w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE).x if font else 8.0 * text.length()
@@ -125,6 +133,9 @@ func get_text() -> String:
 
 func get_accent() -> Color:
 	return _accent
+
+func get_shape() -> Shape:
+	return _shape
 
 ## The pill's size on screen, in pixels.
 func get_size_px() -> Vector2:

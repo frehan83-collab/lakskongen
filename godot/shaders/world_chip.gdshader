@@ -10,6 +10,9 @@ render_mode unshaded, cull_disabled, depth_draw_never, shadows_disabled, fog_dis
 // pixel_size world units per pixel (VesselChip.PIXEL_SIZE).
 instance uniform vec2 size_px = vec2(160.0, 44.0);
 instance uniform vec4 accent : source_color = vec4(0.549, 0.780, 0.855, 1.0);
+// The dot's shape (F2-21: status is colour plus shape): 0 a circle (ok),
+// 1 a triangle point up (warning), 2 a square (critical).
+instance uniform float dot_shape = 0.0;
 uniform vec4 fill : source_color = vec4(0.043, 0.165, 0.227, 0.9);
 uniform float pixel_size = 0.0005;
 uniform float dot_px = 12.0;
@@ -39,7 +42,24 @@ void fragment() {
 	float inside = 1.0 - smoothstep(-aa, aa, d);
 	float rim = 1.0 - smoothstep(0.5, 0.5 + aa, abs(d + 1.0));
 	vec2 dot_c = vec2(-size_px.x * 0.5 + pad_px + dot_px * 0.5, 0.0);
-	float dd = length(p - dot_c) - dot_px * 0.5;
+	vec2 dp = p - dot_c;
+	float rad = dot_px * 0.5;
+	float dd = length(dp) - rad;
+	if (dot_shape > 1.5) {
+		// A square a shade smaller than the circle's box, so both read as one size.
+		vec2 qs = abs(dp) - vec2(rad * 0.86);
+		dd = length(max(qs, 0.0)) + min(max(qs.x, qs.y), 0.0);
+	} else if (dot_shape > 0.5) {
+		// An equilateral triangle, apex up (the pill's y runs down the screen).
+		const float K = 1.7320508;
+		float tri_r = rad * 1.18;
+		vec2 t = vec2(abs(dp.x) - tri_r, -dp.y + 0.15 * rad + tri_r / K);
+		if (t.x + K * t.y > 0.0) {
+			t = vec2(t.x - K * t.y, -K * t.x - t.y) * 0.5;
+		}
+		t.x -= clamp(t.x, -2.0 * tri_r, 0.0);
+		dd = -length(t) * sign(t.y);
+	}
 	float dot_mask = 1.0 - smoothstep(-aa, aa, dd);
 	float accent_mix = max(dot_mask, rim * 0.65);
 	ALBEDO = mix(fill.rgb, accent.rgb, accent_mix) * exposure_comp;

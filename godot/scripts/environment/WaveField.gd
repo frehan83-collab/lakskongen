@@ -30,6 +30,11 @@ extends RefCounted
 ## fades in up to WAVE_FULL_SPACINGS, and the displacement fades flat over
 ## the grid's outer levels. Finer waves live in the normal maps and lift
 ## nothing.
+##
+## The open sea's swell (F2-21, water/water_swell.gdshaderinc) rides on top:
+## the director hands its components over with set_swell() (the very arrays
+## the shader's swell_k / swell_amp get), and every sum here runs over the
+## wind sea's components, then the swell's, with the same rules.
 
 ## water_shader.gdshader displacement(): a component is drawn where its
 ## wavelength spans at least this many grid spacings, at full height from
@@ -63,6 +68,10 @@ var wave_k := PackedVector4Array()
 ## The shader's wave_amp uniform as written: (sheltered amplitude, exposed
 ## amplitude, phase, wavelength) per component.
 var wave_amp := PackedVector4Array()
+## The shader's swell_k / swell_amp uniforms as written (F2-21): the open
+## sea's swell components, longest first, in the wave rows' layout.
+var swell_k := PackedVector4Array()
+var swell_amp := PackedVector4Array()
 ## The shader's grid uniforms (WaterGrid writes them on its material).
 var grid_half_units := 128.0
 var grid_base_spacing := 2.0
@@ -82,6 +91,10 @@ var _ring_mean := PackedFloat32Array()
 var _ring_slope := PackedFloat32Array()
 var _ring_mean2 := PackedFloat32Array()
 var _ring_slope2 := PackedFloat32Array()
+var _swell_ring_mean := PackedFloat32Array()
+var _swell_ring_slope := PackedFloat32Array()
+var _swell_ring_mean2 := PackedFloat32Array()
+var _swell_ring_slope2 := PackedFloat32Array()
 
 
 ## Follow a water grid: its origin moves with the camera and sets how fine
@@ -100,6 +113,14 @@ func set_waves(k: PackedVector4Array, amp: PackedVector4Array) -> void:
 		_ring_radius = -1.0
 	wave_k = k
 	wave_amp = amp
+
+
+## The swell uniforms the director has just written (F2-21; the same arrays).
+func set_swell(k: PackedVector4Array, amp: PackedVector4Array) -> void:
+	if k.size() != swell_k.size() or (k.size() > 0 and k[0].z != swell_k[0].z):
+		_ring_radius = -1.0
+	swell_k = k
+	swell_amp = amp
 
 
 ## The terrain's water bake as the shader samples it.
@@ -149,7 +170,11 @@ func grid_reach(x: float, z: float) -> Vector2:
 ## A component's drawn amplitude for a bake sample (shader
 ## component_amplitude() times the grid's band limit).
 func drawn_amplitude(i: int, bake: Color, spacing: float) -> float:
-	var wa := wave_amp[i]
+	return drawn_amplitude_of(wave_amp[i], bake, spacing)
+
+
+## The drawn amplitude of an amplitude row (a wave's or the swell's).
+static func drawn_amplitude_of(wa: Vector4, bake: Color, spacing: float) -> float:
 	var a := lerpf(wa.x, wa.y, bake.b)
 	if bake.r < SHALLOW_DEPTH_M:
 		var d := maxf(bake.r, 0.0)
@@ -162,20 +187,28 @@ func drawn_amplitude(i: int, bake: Color, spacing: float) -> float:
 func displacement(x: float, z: float) -> Vector3:
 	var bake := bake_at(x, z)
 	var reach := grid_reach(x, z)
+	return (_displacement_of(wave_k, wave_amp, x, z, bake, reach.x)
+		+ _displacement_of(swell_k, swell_amp, x, z, bake, reach.x)) * reach.y
+
+
+## One set of components' Gerstner displacement at (x, z) (the shader's
+## displacement() loop and swell_displacement()), no far fade.
+static func _displacement_of(ks: PackedVector4Array, amps: PackedVector4Array, x: float, z: float,
+		bake: Color, spacing: float) -> Vector3:
 	var d := Vector3.ZERO
-	for i in mini(wave_k.size(), wave_amp.size()):
-		if wave_amp[i].w < WAVE_MIN_SPACINGS * reach.x:
+	for i in mini(ks.size(), amps.size()):
+		if amps[i].w < WAVE_MIN_SPACINGS * spacing:
 			break
-		var a := drawn_amplitude(i, bake, reach.x)
+		var a := drawn_amplitude_of(amps[i], bake, spacing)
 		if a < MIN_AMPLITUDE_M:
 			continue
-		var wk := wave_k[i]
-		var ph := wk.x * x + wk.y * z - wave_amp[i].z
+		var wk := ks[i]
+		var ph := wk.x * x + wk.y * z - amps[i].z
 		var c := cos(ph)
 		d.y += a * sin(ph)
 		d.x += wk.w * a * wk.x / wk.z * c
 		d.z += wk.w * a * wk.y / wk.z * c
-	return d * reach.y
+	return d
 
 
 ## The drawn surface height over the world point (x, z).
@@ -202,26 +235,36 @@ func ring(x: float, z: float, radius: float, bake: Variant = null) -> Vector3:
 	_ensure_ring(radius)
 	var b: Color = bake if bake is Color else bake_at(x, z)
 	var reach := grid_reach(x, z)
+	var sum := _ring_of(wave_k, wave_amp, _ring_mean, _ring_slope, _ring_mean2, _ring_slope2, x, z, b, reach.x)
+	sum += _ring_of(swell_k, swell_amp, _swell_ring_mean, _swell_ring_slope, _swell_ring_mean2, _swell_ring_slope2, x, z, b, reach.x)
+	return Vector3(grid_origin().y + sum.x * reach.y, sum.y * reach.y, sum.z * reach.y)
+
+
+## One set of components' ring plane (mean, slope x, slope z), from its
+## per-component Bessel factors.
+static func _ring_of(ks: PackedVector4Array, amps: PackedVector4Array, r_mean: PackedFloat32Array,
+		r_slope: PackedFloat32Array, r_mean2: PackedFloat32Array, r_slope2: PackedFloat32Array,
+		x: float, z: float, b: Color, spacing: float) -> Vector3:
 	var mean := 0.0
 	var sx := 0.0
 	var sz := 0.0
-	for i in mini(mini(wave_k.size(), wave_amp.size()), _ring_mean.size()):
-		if wave_amp[i].w < WAVE_MIN_SPACINGS * reach.x:
+	for i in mini(mini(ks.size(), amps.size()), r_mean.size()):
+		if amps[i].w < WAVE_MIN_SPACINGS * spacing:
 			break
-		var a := drawn_amplitude(i, b, reach.x)
+		var a := drawn_amplitude_of(amps[i], b, spacing)
 		if a < MIN_AMPLITUDE_M:
 			continue
-		var wk := wave_k[i]
-		var ph := wk.x * x + wk.y * z - wave_amp[i].z
+		var wk := ks[i]
+		var ph := wk.x * x + wk.y * z - amps[i].z
 		# Second order: the crests sharpen and the troughs widen, so the
 		# water over fixed ground sits q lower on average, with a 2k ripple.
 		var q := 0.5 * wk.w * wk.z * a * a
-		mean += a * _ring_mean[i] * sin(ph) - q * (1.0 + _ring_mean2[i] * cos(2.0 * ph))
+		mean += a * r_mean[i] * sin(ph) - q * (1.0 + r_mean2[i] * cos(2.0 * ph))
 		# Along the wave's heading (wk.xy / k).
-		var s := (a * _ring_slope[i] * cos(ph) + q * _ring_slope2[i] * sin(2.0 * ph)) / wk.z
+		var s := (a * r_slope[i] * cos(ph) + q * r_slope2[i] * sin(2.0 * ph)) / wk.z
 		sx += s * wk.x
 		sz += s * wk.y
-	return Vector3(grid_origin().y + mean * reach.y, sx * reach.y, sz * reach.y)
+	return Vector3(mean, sx, sz)
 
 
 ## The plane a rigid hull floating at (x, z) settles on: its waterplane is a
@@ -232,23 +275,31 @@ func hull(x: float, z: float, along: Vector2, across: Vector2, half_length: floa
 		bake: Variant = null) -> Vector3:
 	var b: Color = bake if bake is Color else bake_at(x, z)
 	var reach := grid_reach(x, z)
+	var sum := _hull_of(wave_k, wave_amp, x, z, along, across, half_length, half_beam, b, reach.x)
+	sum += _hull_of(swell_k, swell_amp, x, z, along, across, half_length, half_beam, b, reach.x)
+	return Vector3(grid_origin().y + sum.x * reach.y, sum.y * reach.y, sum.z * reach.y)
+
+
+## One set of components' hull plane (mean, slope along, slope across).
+static func _hull_of(ks: PackedVector4Array, amps: PackedVector4Array, x: float, z: float, along: Vector2,
+		across: Vector2, half_length: float, half_beam: float, b: Color, spacing: float) -> Vector3:
 	var mean := 0.0
 	var s_along := 0.0
 	var s_across := 0.0
-	for i in mini(wave_k.size(), wave_amp.size()):
-		if wave_amp[i].w < WAVE_MIN_SPACINGS * reach.x:
+	for i in mini(ks.size(), amps.size()):
+		if amps[i].w < WAVE_MIN_SPACINGS * spacing:
 			break
-		var a := drawn_amplitude(i, b, reach.x)
+		var a := drawn_amplitude_of(amps[i], b, spacing)
 		if a < MIN_AMPLITUDE_M:
 			continue
-		var wk := wave_k[i]
+		var wk := ks[i]
 		var k_along := wk.x * along.x + wk.y * along.y
 		var k_across := wk.x * across.x + wk.y * across.y
 		var u := k_along * half_length
 		var w := k_across * half_beam
 		var sinc_u := sinc(u)
 		var sinc_w := sinc(w)
-		var ph := wk.x * x + wk.y * z - wave_amp[i].z
+		var ph := wk.x * x + wk.y * z - amps[i].z
 		var c := a * cos(ph)
 		# Second order (see ring()): q lower on average, with a 2k ripple.
 		var q := 0.5 * wk.w * wk.z * a * a
@@ -258,7 +309,7 @@ func hull(x: float, z: float, along: Vector2, across: Vector2, half_length: floa
 		mean += a * sinc_u * sinc_w * sin(ph) - q * (1.0 + sinc_2u * sinc_2w * cos(2.0 * ph))
 		s_along += c * k_along * plane_fit(u) * sinc_w + q2 * 2.0 * k_along * plane_fit(2.0 * u) * sinc_2w
 		s_across += c * k_across * plane_fit(w) * sinc_u + q2 * 2.0 * k_across * plane_fit(2.0 * w) * sinc_2u
-	return Vector3(grid_origin().y + mean * reach.y, s_along * reach.y, s_across * reach.y)
+	return Vector3(mean, s_along, s_across)
 
 
 ## Mean of cos(k x) over [-h, h] for u = k h: sin(u) / u.
@@ -314,16 +365,24 @@ static func bessel_j1(x: float) -> float:
 ## a 2 J1(kR) / R cos, which tends to a k cos for a ring much smaller than
 ## the wave). Wavenumbers never change, so this runs once per ring radius.
 func _ensure_ring(radius: float) -> void:
-	if is_equal_approx(radius, _ring_radius) and _ring_mean.size() == wave_k.size():
+	if is_equal_approx(radius, _ring_radius) and _ring_mean.size() == wave_k.size() \
+			and _swell_ring_mean.size() == swell_k.size():
 		return
 	_ring_radius = radius
-	_ring_mean.resize(wave_k.size())
-	_ring_slope.resize(wave_k.size())
-	_ring_mean2.resize(wave_k.size())
-	_ring_slope2.resize(wave_k.size())
-	for i in wave_k.size():
-		var kr := wave_k[i].z * radius
-		_ring_mean[i] = bessel_j0(kr)
-		_ring_slope[i] = 2.0 * bessel_j1(kr) / radius
-		_ring_mean2[i] = bessel_j0(2.0 * kr)
-		_ring_slope2[i] = 2.0 * bessel_j1(2.0 * kr) / radius
+	_bessel_factors(wave_k, radius, _ring_mean, _ring_slope, _ring_mean2, _ring_slope2)
+	_bessel_factors(swell_k, radius, _swell_ring_mean, _swell_ring_slope, _swell_ring_mean2, _swell_ring_slope2)
+
+
+## Per component the ring's Bessel factors (filled in place).
+static func _bessel_factors(ks: PackedVector4Array, radius: float, r_mean: PackedFloat32Array,
+		r_slope: PackedFloat32Array, r_mean2: PackedFloat32Array, r_slope2: PackedFloat32Array) -> void:
+	r_mean.resize(ks.size())
+	r_slope.resize(ks.size())
+	r_mean2.resize(ks.size())
+	r_slope2.resize(ks.size())
+	for i in ks.size():
+		var kr := ks[i].z * radius
+		r_mean[i] = bessel_j0(kr)
+		r_slope[i] = 2.0 * bessel_j1(kr) / radius
+		r_mean2[i] = bessel_j0(2.0 * kr)
+		r_slope2[i] = 2.0 * bessel_j1(2.0 * kr) / radius
