@@ -97,14 +97,26 @@ func hexagons() -> Array:
 
 ## The candidate, offshore area or salmon fjord under a layer point:
 ## {kind: "candidates"|"hexagon"|"offshore_area"|"fjord", ...}, or {}.
+## Candidates: the nearest star or hexagon within its hit radius; on equal
+## distance the one drawn later (above) wins, and the ringed hav_1 hexagon is
+## drawn last of all. "distance" is the pointer's distance to the item.
 func item_at(p: Vector2) -> Dictionary:
 	if show_candidates and part == "candidates":
-		for h: Dictionary in _hexes:
-			if (h["pos"] as Vector2).distance_to(p) <= HEX_HIT_PX:
-				return {"kind": "hexagon", "row": h["row"], "bound": h["bound"], "pos": h["pos"]}
+		var best: Dictionary = {}
+		var best_d := INF
 		for s: Dictionary in _stars:
-			if (s["pos"] as Vector2).distance_to(p) <= STAR_HIT_PX:
-				return {"kind": "candidates", "po": s["po"], "count": s["count"], "best": s["best"], "pos": s["pos"]}
+			var d := (s["pos"] as Vector2).distance_to(p)
+			if d <= STAR_HIT_PX and d <= best_d:
+				best_d = d
+				best = {"kind": "candidates", "po": s["po"], "count": s["count"], "best": s["best"], "pos": s["pos"],
+					"distance": d}
+		for h: Dictionary in _hexes:
+			var d := (h["pos"] as Vector2).distance_to(p)
+			if d <= HEX_HIT_PX and d <= best_d:
+				best_d = d
+				best = {"kind": "hexagon", "row": h["row"], "bound": h["bound"], "pos": h["pos"], "distance": d}
+		if not best.is_empty():
+			return best
 	if show_offshore and part == "areas":
 		for i in range(_offshore_local.size() - 1, -1, -1):
 			var o: Dictionary = _offshore_local[i]
@@ -144,9 +156,13 @@ func _rebuild() -> void:
 		_stars.append({"po": po, "count": count_by_po[po], "best": best,
 			"pos": _local_of(float(best["x"]), float(best["y"]))})
 	_hexes.clear()
+	var ringed: Array = []
 	for row: Dictionary in _offshore_rows:
-		_hexes.append({"row": row, "pos": _local_of(float(row["x"]), float(row["y"])),
-			"bound": str(row.get("bound_plot_id", "")) == HAV_PLOT})
+		var h := {"row": row, "pos": _local_of(float(row["x"]), float(row["y"])),
+			"bound": str(row.get("bound_plot_id", "")) == HAV_PLOT}
+		(ringed if h["bound"] else _hexes).append(h)
+	# The ringed one last: drawn above its neighbours, and first to answer.
+	_hexes.append_array(ringed)
 	queue_redraw()
 
 

@@ -48,6 +48,10 @@ const LAND_CENTRE_LONLAT := Vector2(15.5, 64.0)
 const EDGE_PAD := 8.0
 ## The key starts open on a map at least this tall (1080p at 100 %).
 const LEGEND_OPEN_MIN_HEIGHT := 700.0
+## The company's farms closer than this on screen are spread apart around
+## their common place, so each keeps a disc of its own (two scenario farms
+## anchored at one locality would otherwise draw, and answer, as one).
+const PLAYER_SPREAD_PX := 13.0
 
 ## Times the layout ran (one per size).
 var layout_count: int = 0
@@ -455,6 +459,29 @@ func _city_anchors() -> Array:
 	return out
 
 
+## Marks closer than PLAYER_SPREAD_PX pushed apart along the line between
+## them (a fixed, index-based direction for marks on one point), a few rounds,
+## pair by pair in index order: deterministic, and a group keeps its centre.
+static func spread_marks(points: PackedVector2Array) -> PackedVector2Array:
+	var out := points.duplicate()
+	for _round in 12:
+		var moved := false
+		for i in out.size():
+			for j in range(i + 1, out.size()):
+				var d := out[j] - out[i]
+				var gap := d.length()
+				if gap >= PLAYER_SPREAD_PX - 0.01:
+					continue
+				var dir := d / gap if gap > 0.01 else Vector2.RIGHT.rotated(TAU * float(i + 2 * j) / 7.0)
+				var push := dir * (PLAYER_SPREAD_PX - gap) * 0.5
+				out[i] -= push
+				out[j] += push
+				moved = true
+		if not moved:
+			break
+	return out
+
+
 ## Re-read the player's farms; true when they changed.
 func _update_players(force: bool = false) -> bool:
 	var rows := bridge.player_site_locations()
@@ -464,7 +491,7 @@ func _update_players(force: bool = false) -> bool:
 	var pts := PackedVector2Array()
 	for r: Dictionary in rows:
 		pts.append(utm_to_local(float(r.get("x", 0.0)), float(r.get("y", 0.0))))
-	_players.set_marks(rows, pts)
+	_players.set_marks(rows, spread_marks(pts))
 	return true
 
 
@@ -493,14 +520,18 @@ func _notification(what: int) -> void:
 		set_hovered_area(0)
 
 
-## The feature under a point, top first: the player's farm, a candidate or
-## hexagon, a site or cluster, an offshore area, a salmon fjord. {} for none.
+## The feature under a point: the nearer of the company's farm and a
+## candidate star or hexagon (the farm, drawn above, on equal distance), else
+## a site or cluster, an offshore area, a salmon fjord. {} for none. "pos" is
+## the feature's own point (the hover ring's centre), never the pointer.
 func feature_at(p: Vector2) -> Dictionary:
-	if _players != null:
-		var row := _players.row_at(p)
-		if not row.is_empty():
-			return {"kind": "player", "row": row, "pos": p}
 	var candidate := _candidates.item_at(p) if _candidates != null else {}
+	var mark := _players.index_at(p) if _players != null else -1
+	if mark >= 0:
+		var at: Vector2 = _players.points()[mark]
+		if candidate.is_empty() or at.distance_to(p) <= float(candidate.get("distance", INF)):
+			return {"kind": "player", "row": _players.rows()[mark], "pos": at,
+				"radius": GeoSiteLayer.PlayerMarks.RADIUS}
 	if not candidate.is_empty():
 		return candidate
 	var site := _sites.item_at(p) if _sites != null else {}

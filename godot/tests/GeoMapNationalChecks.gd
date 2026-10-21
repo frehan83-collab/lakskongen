@@ -28,6 +28,8 @@ extends RefCounted
 
 const ThemeLint := preload("res://tests/ThemeLint.gd")
 const TextLint := preload("res://tests/TextLint.gd")
+## The captain's C2 merge: what a pointer finds, at both layouts.
+const HitChecks := preload("res://tests/GeoMapHitChecks.gd")
 
 const SCENARIO_SEED := 20261020
 ## 1920x1080 / 1.5: the panel lays out as at 1280x720.
@@ -69,6 +71,7 @@ func run(runner: Node) -> void:
 	_adapter_uses_the_real_reads()
 	_plates_anchored(chart, "the default size")
 	_plates_clear(map, chart, "the default size")
+	await HitChecks.new().run(t, chart, "the default size")
 	await _small_size(map, chart)
 	await _clicks_select_areas(map, chart)
 	await _layers(chart)
@@ -231,6 +234,7 @@ func _small_size(map: Control, chart: GeoMapView) -> void:
 		"geo map: a resize lays the chart out again and re-records its layers (%s -> %s, compact %s)" % [str(big), str(chart.size), str(chart.compact)])
 	_plates_anchored(chart, "a 1280x720 layout")
 	_plates_clear(map, chart, "a 1280x720 layout")
+	await HitChecks.new().run(t, chart, "a 1280x720 layout")
 	await t._lint_screen("map national at a 1280x720 layout")
 	win.content_scale_factor = old_scale
 	await _frames(6)

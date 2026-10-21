@@ -222,6 +222,9 @@ static func _closed(poly: PackedVector2Array) -> PackedVector2Array:
 ## light ring, above every other icon. A small canvas item of its own, so a
 ## new farm re-records only these few marks.
 class PlayerMarks extends Control:
+	## A mark's disc: the hover ring and the pointer's reach.
+	const RADIUS := 8.5
+	const HIT_PX := 8.0
 	var redraw_count: int = 0
 	var _rows: Array = []
 	var _points := PackedVector2Array()
@@ -241,18 +244,28 @@ class PlayerMarks extends Control:
 	func points() -> PackedVector2Array:
 		return _points
 
-	## The row under a point, or {}.
+	## The row under a point, or {}: the nearest mark within HIT_PX (on
+	## equal distance the one drawn later, above).
 	func row_at(p: Vector2) -> Dictionary:
+		var i := index_at(p)
+		return _rows[i] if i >= 0 else {}
+
+	## The index of the mark under a point, or -1.
+	func index_at(p: Vector2) -> int:
+		var best := -1
+		var best_d := INF
 		for i in _points.size():
-			if _points[i].distance_to(p) <= 8.0:
-				return _rows[i]
-		return {}
+			var d := _points[i].distance_to(p)
+			if d <= HIT_PX and d <= best_d:
+				best_d = d
+				best = i
+		return best
 
 	func _draw() -> void:
 		redraw_count += 1
 		var deep := MapPalette.deep_water()
 		for p in _points:
-			draw_circle(p, 8.5, Color(deep, 0.75))
+			draw_circle(p, RADIUS, Color(deep, 0.75))
 			draw_circle(p, 7.0, MapPalette.snow())
 			draw_circle(p, 5.2, MapPalette.salmon())
 			draw_circle(p, 1.8, deep)
