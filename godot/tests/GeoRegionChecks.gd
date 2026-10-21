@@ -411,7 +411,7 @@ func _lints(map: Control) -> void:
 		await t._lint_screen("map region " + label)
 		drill.open_candidate(rows[0])
 		await t.get_tree().create_timer(0.3).timeout
-		problems = DialogLayoutLint.problems(drill.site_card())
+		problems = await DialogLayoutLint.settled_problems(drill.site_card(), t.get_tree())
 		_check(problems.is_empty(), "geo region: the site card has nothing overlapping, cut or off screen at %s %s" % [label, str(problems.slice(0, 3))])
 		await t._lint_screen("map site card " + label)
 	win.content_scale_factor = old_scale

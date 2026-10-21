@@ -167,7 +167,9 @@ func _lint_dialog(dialog: BuildSiteDialog, where: String) -> void:
 		win.content_scale_factor = scale
 		await t.get_tree().create_timer(0.3).timeout
 		var label := "%s at %dx%d %d %%" % [where, LINT_SIZE.x, LINT_SIZE.y, int(round(scale * 100.0))]
-		var problems := DialogLayoutLint.problems(dialog)
+		# Settled, frame-based: on a loaded runner 0.3 s can be one frame of a
+		# resize's multi-frame sort cascade (PR #11 Quality gate).
+		var problems: PackedStringArray = await DialogLayoutLint.settled_problems(dialog, t.get_tree())
 		var confirm: Button = dialog.get_node("%ConfirmBtn")
 		_check(problems.is_empty() and dialog.get_viewport_rect().encloses(confirm.get_global_rect()),
 			"geo sjø: nothing overlaps, is cut or leaves the screen, the confirm on screen: %s %s" % [label, str(problems.slice(0, 4))])
