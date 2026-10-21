@@ -28,8 +28,10 @@ extends RefCounted
 
 const ThemeLint := preload("res://tests/ThemeLint.gd")
 const TextLint := preload("res://tests/TextLint.gd")
-## The captain's C2 merge: what a pointer finds, at both layouts.
+## The captain's C2 merge: what a pointer finds, at both layouts, and the
+## review's lower findings.
 const HitChecks := preload("res://tests/GeoMapHitChecks.gd")
+const ReviewChecks := preload("res://tests/GeoMapReviewChecks.gd")
 
 const SCENARIO_SEED := 20261020
 ## 1920x1080 / 1.5: the panel lays out as at 1280x720.
@@ -78,6 +80,7 @@ func run(runner: Node) -> void:
 	await _fjord_fallback()
 	_detail(map, chart)
 	_overlay_fix(map)
+	ReviewChecks.new().run(t, map, chart)
 	await _chips(chart)
 	_tooltips(chart)
 	await _legend(chart)
@@ -362,9 +365,13 @@ func _detail(map: Control, chart: GeoMapView) -> void:
 		total += int(by_kind[k])
 	var count := facts.find_child("Localities", true, false) as Label
 	var split := facts.find_child("LocalitiesSplit", true, false) as Label
+	# The four numbers in the column's order, from the bridge's kinds alone
+	# (the review's mutant swapped the land and other-species columns).
+	var want_split := _salmonid_split(by_kind, total)
 	_check(count != null and count.text == SimFormatters.integer(total) and total > 0 and split != null
-			and split.text.begins_with(str(int(by_kind.get("sea_salmonid", 0)))),
-		"geo map: PO3's localities by kind equal get_rival_summary (%d: %s)" % [total, split.text if split else "missing"])
+			and _numbers(split.text) == want_split,
+		"geo map: PO3's localities by kind equal get_rival_summary (%d: %s; want %s)" % [
+			total, split.text if split else "missing", str(want_split)])
 	var mtb := facts.find_child("SeaMtb", true, false) as Label
 	_check(mtb != null and mtb.text == t.tr("MAP_GEO_TONNES") % SimFormatters.num(float(summary.get("sea_growout_mtb_t", 0.0)))
 			and float(summary.get("sea_growout_mtb_t", 0.0)) > 0.0,
@@ -441,15 +448,19 @@ func _tooltips(chart: GeoMapView) -> void:
 	_check(not star.is_empty() and star_tip.begins_with(str(int(star["count"])))
 			and star_tip.contains(str(chart.areas()[int(star.get("po", 1)) - 1]["name"])),
 		"geo map: a star's tooltip counts its area's candidates ('%s')" % star_tip.replace("\n", " / "))
+	# A cluster the pointer reaches (no farm or candidate over its centre),
+	# with a major among its owners where there is one.
 	var cluster: Dictionary = {}
 	for c: Dictionary in chart.site_layer().clusters():
-		if int(c["count"]) > 1 and chart.candidate_layer().item_at(c["pos"]).is_empty():
+		if int(c["count"]) > 1 and str(chart.feature_at(c["pos"]).get("kind", "")) == "cluster" \
+				and (cluster.is_empty() or _majors_of(chart, c) > _majors_of(chart, cluster)):
 			cluster = c
-			break
 	var cluster_tip := chart._get_tooltip(cluster.get("pos", Vector2.ZERO))
 	texts.append(cluster_tip)
-	_check(not cluster.is_empty() and cluster_tip == GeoMapTips.cluster(chart.site_layer(), cluster),
-		"geo map: a cluster's tooltip gives its sites by kind ('%s')" % cluster_tip.replace("\n", " / "))
+	var tip_lines := cluster_tip.split("\n")
+	_check(not cluster.is_empty() and cluster_tip == _cluster_tip_expected(chart, cluster) and tip_lines.size() >= 2
+			and _numbers(tip_lines[1]) == _cluster_split(chart, cluster),
+		"geo map: a cluster's tooltip gives its count, its sites by kind and the majors' share ('%s')" % cluster_tip.replace("\n", " / "))
 	var bound := chart.candidate_layer().hexagons().filter(func(h: Dictionary) -> bool: return h["bound"])
 	var hex_tip := chart._get_tooltip(bound[0]["pos"]) if not bound.is_empty() else ""
 	texts.append(hex_tip)
@@ -469,6 +480,58 @@ func _tooltips(chart: GeoMapView) -> void:
 	for text: String in texts:
 		bad.append_array(TextLint.check_text(text, true))
 	_check(bad.is_empty() and not texts.has(""), "geo map: the tooltips read as Norwegian, with no ids %s" % str(bad.slice(0, 3)))
+
+
+## [sea salmonid, land salmonid, offshore salmonid, every other kind] from a
+## {kind: count} table, written out here rather than through the map's code.
+static func _salmonid_split(by_kind: Dictionary, total: int) -> Array:
+	var sea := int(by_kind.get("sea_salmonid", 0))
+	var land := int(by_kind.get("land_salmonid", 0))
+	var offshore := int(by_kind.get("offshore_salmonid", 0))
+	return [sea, land, offshore, total - sea - land - offshore]
+
+
+## The whole numbers in a text, in order (thousands separators never occur
+## in these counts' %d).
+static func _numbers(text: String) -> Array:
+	var out := []
+	for m in RegEx.create_from_string("\\d+").search_all(text):
+		out.append(int(m.get_string()))
+	return out
+
+
+## Sites of a cluster held by the large companies.
+static func _majors_of(chart: GeoMapView, c: Dictionary) -> int:
+	var sites := chart.site_layer().sites()
+	var owners: Array = sites.get("owners", [])
+	var owner: PackedInt32Array = sites.get("owner", PackedInt32Array())
+	var n := 0
+	for i in (c["members"] as PackedInt32Array):
+		var o := owner[i] if i < owner.size() else -1
+		if o >= 0 and o < owners.size() and bool((owners[o] as Dictionary).get("is_major", false)):
+			n += 1
+	return n
+
+
+## A cluster's split by kind from its members' kind bytes, counted here.
+static func _cluster_split(chart: GeoMapView, c: Dictionary) -> Array:
+	var sites := chart.site_layer().sites()
+	var by_kind := {}
+	for i in (c["members"] as PackedInt32Array):
+		var kind := GeoBridgeAdapter.kind_name(sites, i)
+		by_kind[kind] = int(by_kind.get(kind, 0)) + 1
+	return _salmonid_split(by_kind, int(c["count"]))
+
+
+## A cluster's tooltip built from its members' kinds and owners here: the
+## count, the split by kind, and the large companies' share when they hold any.
+func _cluster_tip_expected(chart: GeoMapView, c: Dictionary) -> String:
+	var n := int(c["count"])
+	var text := t.tr("MAP_GEO_TIP_CLUSTER") % n + "\n" + GeoMapTips.split_text(_cluster_split(chart, c))
+	var majors := _majors_of(chart, c)
+	if majors > 0:
+		text += "\n" + t.tr("MAP_GEO_TIP_MAJORS") % SimFormatters.percent(float(majors) / float(n))
+	return text
 
 
 func _legend(chart: GeoMapView) -> void:

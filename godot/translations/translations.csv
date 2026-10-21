@@ -2545,12 +2545,12 @@ MAP_GEO_LEGEND_SEA,"Sea farm, salmonids","Sjøanlegg, laksefisk"
 MAP_GEO_LEGEND_TIP,Fold the map key away or open it,Skjul eller vis tegnforklaringen
 MAP_GEO_LEGEND_TITLE,Map key,Tegnforklaring
 MAP_GEO_LOCALITIES,Aquaculture sites,Akvakulturlokaliteter
-MAP_GEO_LOCALITIES_SPLIT,%d salmonid sites at sea · %d on land · %d offshore · %d other species,%d laksefisklokaliteter i sjø · %d på land · %d til havs · %d andre arter
 MAP_GEO_NORTH,N,N
 MAP_GEO_NO_OWNERS,No owner data yet,Ingen eierdata ennå
 MAP_GEO_OFFICIAL_LIGHT,Official traffic light: %s,Offisielt trafikklys: %s
 MAP_GEO_OFFICIAL_LIGHT_TIP,"The area's traffic light as Fiskeridirektoratet publishes it. The game's own light, above, follows the lice in the game.","Områdets trafikklys slik Fiskeridirektoratet publiserer det. Spillets eget lys, over, følger lusa i spillet."
 MAP_GEO_OWNER_ROW,%d sites · %s t,%d lokaliteter · %s t
+MAP_GEO_OWNER_ROW_ONE,%d site · %s t,%d lokalitet · %s t
 MAP_GEO_PLACE_LAND,Land farm,Landanlegg
 MAP_GEO_PLACE_OFFSHORE,Offshore farm,Havbruksanlegg
 MAP_GEO_PLACE_SEA,Sea farm,Sjøanlegg
@@ -2560,6 +2560,12 @@ MAP_GEO_SEA_AREA,Sea area,Sjøareal
 MAP_GEO_SEA_MTB,Grow-out MTB at sea,MTB matfisk i sjø
 MAP_GEO_SITE_KIND,"%s, %s","%s, %s"
 MAP_GEO_SOURCE_NOTE,Sites and areas: Fiskeridirektoratet's register. The owners are the game's companies.,Lokaliteter og områder: Fiskeridirektoratets register. Eierne er spillets selskaper.
+MAP_GEO_SPLIT_LAND,%d on land,%d på land
+MAP_GEO_SPLIT_OFFSHORE,%d offshore,%d til havs
+MAP_GEO_SPLIT_OTHER,%d other species,%d andre arter
+MAP_GEO_SPLIT_OTHER_ONE,%d other species,%d annen art
+MAP_GEO_SPLIT_SEA,%d salmonid sites at sea,%d laksefisklokaliteter i sjø
+MAP_GEO_SPLIT_SEA_ONE,%d salmonid site at sea,%d laksefisklokalitet i sjø
 MAP_GEO_STAGE_2019,recommended in 2019,tilrådd i 2019
 MAP_GEO_STAGE_2022,recommended for study in 2022,anbefalt utredet i 2022
 MAP_GEO_STAGE_2024,impact assessed in 2024,konsekvensutredet i 2024

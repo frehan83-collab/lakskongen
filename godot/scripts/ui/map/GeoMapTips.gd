@@ -65,7 +65,7 @@ static func site(layer: GeoSiteLayer, i: int) -> String:
 static func cluster(layer: GeoSiteLayer, c: Dictionary) -> String:
 	var by: PackedInt32Array = c["by_class"]
 	var text := _t("MAP_GEO_TIP_CLUSTER") % int(c["count"])
-	text += "\n" + _t("MAP_GEO_LOCALITIES_SPLIT") % [by[0], by[1], by[2], by[3]]
+	text += "\n" + split_text(Array(by))
 	var majors := 0
 	var owners: Dictionary = c["owners"]
 	for o: int in owners:
@@ -74,6 +74,26 @@ static func cluster(layer: GeoSiteLayer, c: Dictionary) -> String:
 	if majors > 0:
 		text += "\n" + _t("MAP_GEO_TIP_MAJORS") % SimFormatters.percent(float(majors) / float(c["count"]))
 	return text
+
+
+## "153 laksefisklokaliteter i sjø · 45 på land · 0 til havs · 60 andre
+## arter" from [sea salmonid, land salmonid, offshore salmonid, other
+## species]; a count of 1 takes its part's singular form ("1
+## laksefisklokalitet i sjø", "1 annen art").
+static func split_text(by: Array) -> String:
+	var sea := int(by[0])
+	var other := int(by[3])
+	return " · ".join(PackedStringArray([
+		_t("MAP_GEO_SPLIT_SEA_ONE" if sea == 1 else "MAP_GEO_SPLIT_SEA") % sea,
+		_t("MAP_GEO_SPLIT_LAND") % int(by[1]),
+		_t("MAP_GEO_SPLIT_OFFSHORE") % int(by[2]),
+		_t("MAP_GEO_SPLIT_OTHER_ONE" if other == 1 else "MAP_GEO_SPLIT_OTHER") % other,
+	]))
+
+
+## An owner's row in the detail column: "12 lokaliteter · 3 120 t", "1 lokalitet · 940 t".
+static func owner_row(sites: int, mtb_t: float) -> String:
+	return _t("MAP_GEO_OWNER_ROW_ONE" if sites == 1 else "MAP_GEO_OWNER_ROW") % [sites, SimFormatters.num(mtb_t)]
 
 
 ## "Sjøanlegg, laksefisk" for "sea_salmonid".

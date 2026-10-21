@@ -65,7 +65,7 @@ func show_area(area_id: int, geo_area: Dictionary, summary: Dictionary) -> void:
 	var split := Label.new()
 	split.name = "LocalitiesSplit"
 	split.theme_type_variation = &"SmallMuted"
-	split.text = tr("MAP_GEO_LOCALITIES_SPLIT") % [by_class[0], by_class[1], by_class[2], by_class[3]]
+	split.text = GeoMapTips.split_text(Array(by_class))
 	split.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	add_child(split)
 	add_child(_label("MAP_GEO_TOP_OWNERS", &"OverlineMuted", "OwnersHeader"))
@@ -87,7 +87,7 @@ func show_area(area_id: int, geo_area: Dictionary, summary: Dictionary) -> void:
 		var what := Label.new()
 		what.name = "Sites"
 		what.theme_type_variation = &"SmallMuted"
-		what.text = tr("MAP_GEO_OWNER_ROW") % [int(o.get("sites", 0)), SimFormatters.num(float(o.get("mtb_t", 0.0)))]
+		what.text = GeoMapTips.owner_row(int(o.get("sites", 0)), float(o.get("mtb_t", 0.0)))
 		row.add_child(what)
 		add_child(row)
 	var note := _label("MAP_GEO_SOURCE_NOTE", &"SmallMuted", "SourceNote")
