@@ -50,6 +50,19 @@ const AURORA_SEARCH_DAYS := 45
 const AURORA_HOUR := 22.0
 const AURORA_YAW_DEG := -15.0
 const AURORA_PITCH_UP_DEG := 12.0
+## The clouds' drift (km, the sky's cloud_offset) the menu (01) and the
+## aurora (09) are shot at, pinned as the mood goldens' are (gfx-polish-1):
+## the clouds drift with the time a run has played, so an unpinned frame
+## showed other clouds each run, and 09's reflection check passed or failed
+## with where they happened to be (0.8 % at drift 0, 2.6 % at the full run's
+## drift). Each is the drift a full run reaches at that shot: the menu's
+## just after its reveal, 09's after the game's other shots.
+const MENU_CLOUD_DRIFT_KM := Vector2(0.008, 0.002)
+const AURORA_CLOUD_DRIFT_KM := Vector2(0.27, 0.14)
+## The aurora's curtains move with the sky's clock (sky_time, s): 09 is shot
+## at the clock a full run reaches there (114.9 s), so the curtains over the
+## far shore, and their reflection, are the same every run.
+const AURORA_SKY_TIME_S := 115.0
 const MIN_AURORA_FRACTION := 0.03
 
 # G3-01: the salmon schools change at least this share of the farm frame
@@ -73,20 +86,37 @@ const LIGHT_LUMA := 0.75
 # shore: the water within 5 m of the shore (the bake's shore distance) is
 # whiter than the open water 15-40 m out. 09 (the aurora night): the aurora
 # shows in the calm water too.
+# gfx-polish-1 re-staged 18 as owner reference 2: a Beaufort-0 calm
+# (MIRROR_SKY, wind 0.4 m/s: "sea like a mirror", no wind ripples), the
+# camera low over the southern site 2.4 km down the fjord from its head, so
+# the band over the waterline holds the head's snow walls and misty
+# gullies, the large-scale structure only a mirror gives back (the Low tier
+# reflects the sky's radiance there). Before, 18 sat 1.3 km from the head at
+# 1.5 m/s: its band held the walls' dark base, which the blurred sky
+# reflection matched as well as the mirror (RUN_LOG section 8).
 const MIRROR_LATITUDE := 68.5
 const MIRROR_SEASON := 0.11
 const MIRROR_HOUR := 15.6
-const MIRROR_FOCUS_Z := 700.0
-const MIRROR_DISTANCE_M := 520.0
-const MIRROR_PITCH_UP_DEG := 14.0
+const MIRROR_FOCUS_Z := -500.0
+const MIRROR_DISTANCE_M := 450.0
+const MIRROR_PITCH_UP_DEG := 26.0
+const MIRROR_YAW_DEG := 190.0
 const MIN_MIRROR_SSIM := 0.5
-const MIN_MIRROR_SSIM_GAIN := 0.1
 const MIRROR_BAND := 0.12
+# wave4b int ruling (RUN_LOG section 7): the mirror's gain is its structure
+# (mirror_scores) over the same frame with the mirror off and nothing else
+# changed. The SSIM gain over the Low tier (0.1, wave 3) passed on High's
+# depth of field alone and failed a working mirror: SSIM scores a flat,
+# bright sky reflection above a darker mirror image in the band's flat
+# windows. A window whose upper half varies by less than
+# MIRROR_STRUCTURE_MIN_SIGMA (luminance) has no structure to mirror.
+const MIRROR_STRUCTURE_MIN_SIGMA := 0.01
+const MIN_MIRROR_STRUCTURE_GAIN := 0.2
 # Merge-captain ruling (wave 3, RUN_LOG §7): a water mirror cannot keep
 # detail finer than its ripples, so 18 judges the mirror at the ripple scale.
-# Both frames (the tier's and the Low tier's sky-only twin) are blurred by a
-# Gaussian of sigma = the ripple wavelength as the camera sees it at the
-# waterline (ripple_sigma_px); the bars above stay. The ripple wavelength is
+# Every frame (the tier's and its twins) is blurred by a Gaussian of
+# sigma = the ripple wavelength as the camera sees it at the waterline
+# (ripple_sigma_px); the bars above stay. The ripple wavelength is
 # the coarser of the wind sea's peak (the director's sea state) and the drawn
 # ripple field's dominant wavelength: the water shader's long ripple map tiles
 # every MIRROR_RIPPLE_TILE_M (water_shader.gdshader `q / 31.0`) and its
@@ -96,7 +126,12 @@ const MIRROR_RIPPLE_TILE_M := 31.0
 const MIRROR_RIPPLE_K_MIN := 4.0
 const CALM_SKY := {"weather_state": "Calm", "cloud_cover": 0.15, "wind_ms": 1.5, "visibility_km": 50.0,
 	"precip_mm_h": 0.0, "sea_fog": 0.0, "wave_m": 0.1}
+const MIRROR_SKY := {"weather_state": "Calm", "cloud_cover": 0.15, "wind_ms": 0.4, "visibility_km": 50.0,
+	"precip_mm_h": 0.0, "sea_fog": 0.0, "wave_m": 0.02}
 const SHORE_FOAM_SDF_M := 5.0
+## 19's shore lies at this world Z (it was MIRROR_FOCUS_Z - 900 and moved
+## with 18's re-staging; gfx-polish-1 keeps it where it was).
+const SHORE_FOAM_Z := -200.0
 const MIN_SHORE_FOAM_LIFT := 0.04
 const MIN_AURORA_REFLECTION := 0.01
 
@@ -143,25 +178,129 @@ func _ready() -> void:
 
 # ── Capture sequence ──────────────────────────────────────────────────────────
 
-func _run_sequence() -> void:
-	await _wait(0.4)
-	# `-- --only=mirror`: boot the game and shoot 18 (the mirror) alone.
-	if "--only=mirror" in OS.get_cmdline_user_args():
-		await _boot_game()
-		await _capture_fjord_calm_dusk()
-		_print_summary()
-		for failure in _content_failures:
-			push_error("[ScreenshotHarness] content check failed: %s" % failure)
-		get_tree().quit(0 if _content_failures.is_empty() else 1)
+## `-- --only=a,b,...`: shoot these groups alone, in the full run's order
+## (the game boots once for every group but the menu). `mirror` (18) and
+## `moods` (20) were the first single-shot modes (wave 3).
+const ONLY_GROUPS := ["menu", "fjord_day", "fjord_farm", "feeding", "night_lights", "storm",
+	"underwater", "mirror", "shore_foam", "moods", "aurora"]
+const ONLY_LIVE_SETTLE_S := 15.0
+
+
+## Why an `--only=` argument cannot run ("" when it can, or when there is
+## none): a name that is no group (a typo, or a shell that passed two
+## arguments as one: "--only=mirror --quality=high"). The harness stops on
+## it before it boots anything; it would otherwise run the full windowed
+## sequence (wave4b int review).
+static func only_arg_error(args: PackedStringArray) -> String:
+	for arg in args:
+		if not arg.begins_with("--only="):
+			continue
+		var names := arg.trim_prefix("--only=").split(",", false)
+		if names.is_empty():
+			return "--only= names no group (known: %s)" % ", ".join(ONLY_GROUPS)
+		for name in names:
+			if not name.strip_edges() in ONLY_GROUPS:
+				return "unknown --only group '%s' (known: %s)" % [name.strip_edges(), ", ".join(ONLY_GROUPS)]
+	return ""
+
+
+## The groups `--only=` names (unknown names are reported and skipped), or
+## an empty list for the full run.
+static func only_groups(args: PackedStringArray) -> PackedStringArray:
+	var out := PackedStringArray()
+	for arg in args:
+		if not arg.begins_with("--only="):
+			continue
+		for name in arg.trim_prefix("--only=").split(",", false):
+			var group := name.strip_edges()
+			if group in ONLY_GROUPS:
+				out.append(group)
+			else:
+				push_warning("[ScreenshotHarness] unknown --only group '%s' (known: %s)" % [group, ", ".join(ONLY_GROUPS)])
+	return out
+
+
+## `-- --quality=high,cloud_pass=0`: a quality tier and knob overrides (the
+## perf harness's variant syntax) every live EnvironmentDirector takes after
+## it starts, for visual A/B frames; empty for the player's own tier.
+static func quality_arg(args: PackedStringArray) -> Dictionary:
+	for arg in args:
+		if not arg.begins_with("--quality="):
+			continue
+		var tier := ""
+		var overrides := {}
+		for part in arg.trim_prefix("--quality=").split(",", false):
+			var kv := part.strip_edges().split("=", false, 1)
+			if kv.size() == 1:
+				tier = kv[0]
+				continue
+			var v: Variant = kv[1]
+			if kv[1] == "true" or kv[1] == "false":
+				v = kv[1] == "true"
+			elif kv[1].is_valid_int():
+				v = kv[1].to_int()
+			elif kv[1].is_valid_float():
+				v = kv[1].to_float()
+			overrides[kv[0]] = v
+		return {"tier": tier, "overrides": overrides}
+	return {}
+
+
+func _apply_quality_arg() -> void:
+	var q := quality_arg(OS.get_cmdline_user_args())
+	if q.is_empty():
 		return
-	# `-- --only=moods`: boot the game and shoot the mood goldens alone (G3-05).
-	if "--only=moods" in OS.get_cmdline_user_args():
+	for director in get_tree().get_nodes_in_group(RenderQuality.DIRECTOR_GROUP):
+		var tier: Variant = q["tier"] if String(q["tier"]) != "" else director.call("get_quality_name")
+		director.call("set_quality", tier, q["overrides"])
+		print("[ScreenshotHarness] quality %s %s" % [str(tier), str(q["overrides"])])
+
+
+func _run_only(groups: PackedStringArray) -> void:
+	if "menu" in groups:
+		await _capture_main_menu()
+		# The full run frees the menu after the scenario picker's shot.
+		if _menu_instance != null and is_instance_valid(_menu_instance):
+			_menu_instance.queue_free()
+			_menu_instance = null
+		await _wait(0.5)
+	if groups.size() > (1 if "menu" in groups else 0):
 		await _boot_game()
-		await _capture_mood_goldens()
-		_print_summary()
-		for failure in _content_failures:
-			push_error("[ScreenshotHarness] content check failed: %s" % failure)
-		get_tree().quit(0 if _content_failures.is_empty() else 1)
+		# 08a reads the sim's weather live: the full run reaches it after
+		# the panels' shots, when the weather's blend (WeatherController,
+		# 10 s) and the mood (0.8/s) have settled; wait as long here.
+		if "fjord_day" in groups:
+			await _wait(ONLY_LIVE_SETTLE_S)
+	for group in ONLY_GROUPS:
+		if not group in groups:
+			continue
+		match group:
+			"fjord_day": await _capture_fjord_day()
+			"fjord_farm": await _capture_fjord_farm()
+			"feeding": await _capture_fjord_farm_feeding()
+			"night_lights": await _capture_fjord_night_lights()
+			"storm": await _capture_fjord_storm()
+			"underwater": await _capture_fjord_underwater()
+			"mirror": await _capture_fjord_calm_dusk()
+			"shore_foam": await _capture_fjord_shore_foam()
+			"moods": await _capture_mood_goldens()
+			"aurora": await _capture_fjord_night_aurora()
+	_print_summary()
+	for failure in _content_failures:
+		push_error("[ScreenshotHarness] content check failed: %s" % failure)
+	get_tree().quit(0 if _content_failures.is_empty() else 1)
+
+
+func _run_sequence() -> void:
+	var only_error := only_arg_error(OS.get_cmdline_user_args())
+	if only_error != "":
+		push_error("[ScreenshotHarness] %s: nothing captured" % only_error)
+		get_tree().quit(2)
+		return
+	await _wait(0.4)
+	var only := only_groups(OS.get_cmdline_user_args())
+	if not only.is_empty():
+		await _run_only(only)
 		return
 
 	await _capture_main_menu()
@@ -306,10 +445,16 @@ func _capture_main_menu() -> void:
 		push_warning("[ScreenshotHarness] main menu unavailable — skipped")
 		return
 	add_child(menu)
+	_apply_quality_arg()
 	var waited := 0.0
 	while not bool(menu.get("revealed")) and waited < MENU_REVEAL_TIMEOUT_S:
 		await _wait(0.1)
 		waited += 0.1
+	var backdrop = menu.get("backdrop")
+	var menu_env = backdrop.get("environment") if backdrop != null else null
+	var menu_director = menu_env.get("director") if menu_env != null else null
+	if menu_director != null:
+		menu_director.call("stage_cloud_drift", MENU_CLOUD_DRIFT_KM)
 	await _wait(1.6)
 	var first := await _shoot("01_main_menu")
 	await _wait(2.0)
@@ -421,6 +566,7 @@ func _boot_game() -> void:
 	# need days move it explicitly (advance_days / QA forcing).
 	if sim != null and sim.has_method("set_paused"):
 		sim.set_paused(true)
+	_apply_quality_arg()
 	await _wait(2.0)
 
 
@@ -818,6 +964,10 @@ func _capture_fjord_night_aurora() -> void:
 	var toasts := get_node_or_null("/root/ToastNotification")
 	if toasts != null and toasts.has_method("clear_all"):
 		toasts.call("clear_all")
+	var director = _env.get("director") if _env != null else null
+	if director != null:
+		director.call("stage_cloud_drift", AURORA_CLOUD_DRIFT_KM)
+		director.call("stage_sky_time", AURORA_SKY_TIME_S)
 	await _wait(0.6)
 	var horizon_y := _horizon_pixel_row(cam)
 	var img := await _shoot("09_fjord_night_aurora", true)
@@ -881,6 +1031,20 @@ func _horizon_pixel_row(cam) -> int:
 	return clampi(int(row / size.y * tex_h), 0, int(tex_h))
 
 
+## A twin of the frame on screen after a quality change: settled for
+## `settle_s`, without a toast that arrived since the shot.
+func _grab_twin(settle_s: float) -> Image:
+	await _wait(settle_s)
+	var toasts := get_node_or_null("/root/ToastNotification") as CanvasLayer
+	var toasts_were_visible := toasts != null and toasts.visible
+	if toasts != null:
+		toasts.visible = false
+	var frame := await _grab_frame()
+	if toasts != null:
+		toasts.visible = toasts_were_visible
+	return frame
+
+
 ## The current frame without saving it.
 func _grab_frame() -> Image:
 	var frame_done := [false]
@@ -899,14 +1063,22 @@ func _capture_fjord_storm() -> void:
 	await _shoot("10_fjord_storm", true)
 
 
+## G3-04: shot 11 and its variants from inside the first stocked pen
+## (UnderwaterShots: staging, the content checks, a JSON report).
 func _capture_fjord_underwater() -> void:
-	_configure_env(0.5, 12.0, WEATHER_CLEAR, ZOOM_UNDERWATER)
-	var cam = _env.get("camera") if _env != null else null
-	if cam != null:
-		cam.set("auto_orbit_enabled", false)
-		cam.set("global_position", Vector3(0.0, -60.0, 0.0))
-	await _wait(2.6)
-	_check_not_black("11_fjord_underwater", await _shoot("11_fjord_underwater", true))
+	if _env == null or not is_instance_valid(_env):
+		_content_failures.append("11_fjord_underwater: the fjord scene is incomplete")
+		return
+	_hide_ui()
+	var shots := UnderwaterShots.new()
+	await shots.capture(self, _env, _game)
+	_content_failures.append_array(shots.failures)
+	var first: Dictionary = shots.report.get("shots", {}).get("11_fjord_underwater", {})
+	if not first.is_empty():
+		_check_not_black("11_fjord_underwater", Image.load_from_file(_project_dir_abs.path_join("11_fjord_underwater.png")))
+	# The shots after it frame the fjord again from above.
+	_configure_env(0.5, 12.0, WEATHER_CLEAR, ZOOM_FARM)
+	await _wait(1.0)
 
 
 # ── G3-05 moods: eight goldens from one camera (MoodGoldens) ──────────────────
@@ -943,7 +1115,7 @@ func _capture_fjord_calm_dusk() -> void:
 	_env.call("set_season", MIRROR_SEASON)
 	_env.call("set_time", MIRROR_HOUR)
 	ws.set("transition_duration", 0.15)
-	ws.call("apply_sky_context", CALM_SKY)
+	ws.call("apply_sky_context", MIRROR_SKY)
 	var focus := Vector3(float(terrain.call("channel_center_x", MIRROR_FOCUS_Z)), 0.0, MIRROR_FOCUS_Z)
 	var shore := focus
 	for i in 600:
@@ -954,7 +1126,7 @@ func _capture_fjord_calm_dusk() -> void:
 	cam.set("auto_orbit_enabled", false)
 	cam.call("look_at_position", focus, ZOOM_FJORD)
 	cam.set("_distance_target", MIRROR_DISTANCE_M)
-	cam.set("_yaw_target", PI)
+	cam.set("_yaw_target", deg_to_rad(MIRROR_YAW_DEG))
 	cam.set("_user_rotated", true)
 	cam.call("set_pitch_offset", MIRROR_PITCH_UP_DEG)
 	cam.call("_snap")
@@ -971,27 +1143,53 @@ func _capture_fjord_calm_dusk() -> void:
 		var sigma := float(ripple["sigma_px"])
 		var ssim := mirror_ssim(img, row, sigma)
 		var ssim_sharp := mirror_ssim(img, row)
-		# The same frame with the sky's radiance alone (the Low tier's water):
-		# the mirror must be what makes the band match.
+		var scores := mirror_scores(img, row, sigma)
+		# The gain's twin: the same frame with the planar mirror off and
+		# nothing else changed (the tier, its depth of field, scale and
+		# detail, and the run's --quality overrides): the water then reflects
+		# the sky's radiance alone, so the mirror must be what makes the band
+		# match. wave4b int review: the Low tier's twin also dropped High's
+		# depth of field, which blurs the far head and its reflection alike
+		# and carried most of the gain (0.045 without it). The Low twin is
+		# still shot and saved, as information.
 		var tier := String(director.call("get_quality_name")) if director != null else ""
+		var overrides: Dictionary = quality_arg(OS.get_cmdline_user_args()).get("overrides", {})
+		var mirror_on := bool(director.call("get_quality_knobs").get("mirror", false)) if director != null else false
+		var ssim_off := 0.0
+		var ssim_off_sharp := 0.0
+		var scores_off := {"structure": 0.0, "structured": 0}
 		var ssim_sky := 0.0
 		var ssim_sky_sharp := 0.0
 		if director != null:
+			var no_mirror := overrides.duplicate()
+			no_mirror["mirror"] = false
+			director.call("set_quality", tier, no_mirror)
+			var off_frame := await _grab_twin(1.2)
+			if off_frame != null:
+				off_frame.save_png(_project_dir_abs.path_join("18_fjord_calm_dusk_no_mirror.png"))
+			ssim_off = mirror_ssim(off_frame, row, sigma)
+			ssim_off_sharp = mirror_ssim(off_frame, row)
+			scores_off = mirror_scores(off_frame, row, sigma)
 			director.call("set_quality", "low")
-			await _wait(1.2)
-			var sky_frame := await _grab_frame()
+			var sky_frame := await _grab_twin(1.2)
+			if sky_frame != null:
+				sky_frame.save_png(_project_dir_abs.path_join("18_fjord_calm_dusk_low.png"))
 			ssim_sky = mirror_ssim(sky_frame, row, sigma)
 			ssim_sky_sharp = mirror_ssim(sky_frame, row)
-			director.call("set_quality", tier)
+			director.call("set_quality", tier, overrides)
 			await _wait(1.0)
-		print("[ScreenshotHarness] 18_fjord_calm_dusk: waterline row %d of %d at %.0f m; ripple %.2f m (sea peak %.2f m, drawn ripples %.2f m), f %.0f px -> sigma %.1f px; mirror SSIM %.3f (%s), sky reflection alone %.3f; unblurred (information) %.3f vs %.3f" % [
+		var structure := float(scores["structure"])
+		var structure_off := float(scores_off["structure"])
+		print("[ScreenshotHarness] 18_fjord_calm_dusk: waterline row %d of %d at %.0f m; ripple %.2f m (sea peak %.2f m, drawn ripples %.2f m), f %.0f px -> sigma %.1f px; mirror SSIM %.3f (%s %s); structure %.3f over %d of %d windows, the same frame without the mirror %.3f over %d (gain %.3f); information: SSIM without the mirror %.3f (gain %.3f), the Low tier %.3f, unblurred %.3f, %.3f, %.3f" % [
 			row, img.get_height(), float(ripple["distance_m"]), float(ripple["wavelength_m"]), float(ripple["sea_peak_m"]),
-			float(ripple["drawn_ripple_m"]), float(ripple["focal_px"]), sigma, ssim, tier, ssim_sky, ssim_sharp, ssim_sky_sharp])
+			float(ripple["drawn_ripple_m"]), float(ripple["focal_px"]), sigma, ssim, tier, str(overrides),
+			structure, int(scores["structured"]), int(scores["windows"]), structure_off, int(scores_off["structured"]), structure - structure_off,
+			ssim_off, ssim - ssim_off, ssim_sky, ssim_sharp, ssim_off_sharp, ssim_sky_sharp])
 		if ssim < MIN_MIRROR_SSIM:
 			_content_failures.append("18_fjord_calm_dusk: the reflection band matches the flipped skyline at SSIM %.3f (min %.2f)" % [ssim, MIN_MIRROR_SSIM])
-		if tier != "low" and ssim - ssim_sky < MIN_MIRROR_SSIM_GAIN:
-			_content_failures.append("18_fjord_calm_dusk: the mirror lifts the band's SSIM by %.3f over the sky's reflection alone (min %.2f)" % [
-				ssim - ssim_sky, MIN_MIRROR_SSIM_GAIN])
+		if mirror_on and structure - structure_off < MIN_MIRROR_STRUCTURE_GAIN:
+			_content_failures.append("18_fjord_calm_dusk: the mirror lifts the band's structure by %.3f over the same frame without it (min %.2f)" % [
+				structure - structure_off, MIN_MIRROR_STRUCTURE_GAIN])
 	cam.call("set_pitch_offset", 0.0)
 	cam.set("_user_rotated", false)
 
@@ -1044,6 +1242,22 @@ func _sea_peak_wavelength_m(director: Object) -> float:
 ## pixels) the luminance is first blurred by a Gaussian of that sigma (half
 ## of it on the half-size copy): the ripple scale of ripple_sigma_px.
 static func mirror_ssim(img: Image, row: int, sigma_px: float = 0.0) -> float:
+	return float(mirror_scores(img, row, sigma_px)["ssim"])
+
+
+## The mirror's scores over mirror_ssim's windows: "ssim" (their mean SSIM)
+## and "structure", the mean correlation (Pearson, the windows' means taken
+## out) between a window over the waterline and its flipped twin under it,
+## over the windows whose upper half has structure (luminance standard
+## deviation >= MIRROR_STRUCTURE_MIN_SIGMA; "structured" of "windows"). The
+## structure ignores how much darker and flatter the reflection is (Fresnel
+## and the water's colour make it so) and a flat window scores nothing, where
+## SSIM rewards a flat, bright sky reflection for matching a flat, blurred
+## band's luminance (wave4b int ruling, RUN_LOG section 7).
+static func mirror_scores(img: Image, row: int, sigma_px: float = 0.0) -> Dictionary:
+	var out := {"ssim": 0.0, "structure": 0.0, "structured": 0, "windows": 0}
+	if img == null:
+		return out
 	var small := img.duplicate() as Image
 	small.resize(img.get_width() / 2, img.get_height() / 2, Image.INTERPOLATE_BILINEAR)
 	var w := small.get_width()
@@ -1051,7 +1265,7 @@ static func mirror_ssim(img: Image, row: int, sigma_px: float = 0.0) -> float:
 	var r := row / 2
 	var band := mini(int(h * MIRROR_BAND), mini(r, h - r - 1))
 	if band < 8:
-		return 0.0
+		return out
 	# The luminance of the compared region (both bands, the central half of
 	# the columns) with a margin for the blur, blurred if asked.
 	var sigma := 0.5 * maxf(sigma_px, 0.0)
@@ -1066,8 +1280,11 @@ static func mirror_ssim(img: Image, row: int, sigma_px: float = 0.0) -> float:
 	var rw := x1 - x0
 	var c1 := 0.01 * 0.01
 	var c2 := 0.03 * 0.03
+	var min_var := MIRROR_STRUCTURE_MIN_SIGMA * MIRROR_STRUCTURE_MIN_SIGMA
 	var total := 0.0
 	var count := 0
+	var structure := 0.0
+	var structured := 0
 	for by in range(0, band - 7, 4):
 		for bx in range(w / 4, w * 3 / 4 - 7, 4):
 			var sa := 0.0
@@ -1091,7 +1308,14 @@ static func mirror_ssim(img: Image, row: int, sigma_px: float = 0.0) -> float:
 			var cov := sab / 64.0 - ma * mb
 			total += ((2.0 * ma * mb + c1) * (2.0 * cov + c2)) / ((ma * ma + mb * mb + c1) * (va + vb + c2))
 			count += 1
-	return total / maxf(float(count), 1.0)
+			if va >= min_var:
+				structure += cov / (sqrt(va) * sqrt(maxf(vb, 0.0)) + 1e-6)
+				structured += 1
+	out["ssim"] = total / maxf(float(count), 1.0)
+	out["structure"] = structure / maxf(float(structured), 1.0)
+	out["structured"] = structured
+	out["windows"] = count
+	return out
 
 
 ## Luminance of img over the rectangle [x0, x1) x [y0, y1), row by row.
@@ -1155,7 +1379,7 @@ func _capture_fjord_shore_foam() -> void:
 	_env.call("set_season", 0.5)
 	_env.call("set_time", 12.0)
 	ws.call("apply_sky_context", CALM_SKY)
-	var z := MIRROR_FOCUS_Z - 900.0
+	var z := SHORE_FOAM_Z
 	var x := float(terrain.call("channel_center_x", z))
 	for i in 400:
 		x += 4.0
@@ -1550,14 +1774,38 @@ func _check_land_contrast(shot_name: String, img: Image) -> void:
 	for l in lums:
 		variance += (l - mean) * (l - mean)
 	var rms := sqrt(variance / lums.size())
-	print("[ScreenshotHarness] %s: land mean %.3f, RMS contrast %.3f (%d samples; visibility %.1f km, snowfall %.2f%s)" % [
-		shot_name, mean, rms, lums.size(), visibility / 1000.0, snowfall, "" if applies else " — weather hides the land, not checked"])
+	var director = _env.get("director")
+	var composed: Dictionary = director.call("get_composed") if director != null else {}
+	var mood_name := "%s, snow line %.0f m, wet %.2f" % [String(composed.get("mood", "?")), float(composed.get("snow_line_m", -1.0)),
+		float(composed.get("ground_wetness", -1.0))]
+	var sorted := lums.duplicate()
+	sorted.sort()
+	print("[ScreenshotHarness] %s: land mean %.3f, RMS contrast %.3f, p10/p50/p90 %.3f/%.3f/%.3f (%d samples; visibility %.1f km, snowfall %.2f, mood %s%s)" % [
+		shot_name, mean, rms, sorted[sorted.size() / 10], sorted[sorted.size() / 2], sorted[sorted.size() * 9 / 10], lums.size(),
+		visibility / 1000.0, snowfall, mood_name, "" if applies else " — weather hides the land, not checked"])
+	if OS.get_environment("LK_LAND_MASK") != "":
+		_save_land_mask(shot_name, img, cam, terrain)
 	if not applies:
 		return
 	if mean > LAND_MEAN_MAX:
 		_content_failures.append("%s: land mean luminance %.3f > %.2f (whiteout)" % [shot_name, mean, LAND_MEAN_MAX])
 	if rms < LAND_RMS_MIN:
 		_content_failures.append("%s: land RMS contrast %.3f < %.2f" % [shot_name, rms, LAND_RMS_MIN])
+
+
+## Debug (LK_LAND_MASK set): the land check's samples as a PNG next to the
+## frame, the frame's pixel where the ray hit land, black elsewhere.
+func _save_land_mask(shot_name: String, img: Image, cam, terrain) -> void:
+	var vp_size := get_viewport().get_visible_rect().size
+	var mask := Image.create(160, 90, false, Image.FORMAT_RGB8)
+	for gy in 90:
+		for gx in 160:
+			var p := Vector2((gx + 0.5) / 160.0 * vp_size.x, (gy + 0.5) / 90.0 * vp_size.y)
+			var hit: Vector3 = cam.pick_ground(p)
+			if not hit.is_finite() or terrain.get_height_at(hit.x, hit.z) <= 0.5:
+				continue
+			mask.set_pixel(gx, gy, img.get_pixelv(Vector2i(int(p.x / vp_size.x * img.get_width()), int(p.y / vp_size.y * img.get_height()))))
+	mask.save_png(_project_dir_abs.path_join("%s_land_mask.png" % shot_name))
 
 
 ## Fail the run when a captured frame is mostly pure black (sampled every 8 px).

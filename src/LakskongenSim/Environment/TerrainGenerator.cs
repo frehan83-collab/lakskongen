@@ -126,7 +126,11 @@ namespace LakskongenSim.Environment
             _centreX = new float[CentreBaseX.Length];
             for (int k = 0; k < _centreX.Length; k++)
                 _centreX[k] = CentreBaseX[k] + CentreJitterM * HashToSigned(Settings.Seed + SeedCentre, k);
+            // F2-19: each land pad's quay side, from the uncarved ground (the carve reads it).
+            _padQuaySides = QuaySides();
         }
+
+        private readonly int[] _padQuaySides;
 
         public TerrainGenerator(int seed) : this(new FjordTerrainSettings { Seed = seed }) { }
 
@@ -147,7 +151,26 @@ namespace LakskongenSim.Environment
             return heights;
         }
 
-        /// <summary>Single-threaded twin of <see cref="GenerateHeightmap"/> (for tests).</summary>
+        /// <summary>
+        /// <see cref="GenerateHeightmap()"/>, and in <paramref name="ledges"/> the wall ledges'
+        /// terraces on the same grid: the heights minus their offsets are the walls without the
+        /// terraces, whose slope and cavity the terrain shader's masks read where a terrace is too
+        /// small on screen to draw, with the strength telling it how far the terraces spread the
+        /// slope there (<see cref="TerrainMesh.Chunk.Macro"/>, gfx-polish-1). The heights are
+        /// bit-identical to <see cref="GenerateHeightmap()"/>'s.
+        /// </summary>
+        public float[] GenerateHeightmap(out WallLedges ledges)
+        {
+            int n = Settings.Resolution;
+            var heights = new float[n * n];
+            var offsets = new float[n * n];
+            var strength = new float[n * n];
+            Parallel.For(0, n, row => FillRow(heights, row, offsets, strength));
+            ledges = new WallLedges(offsets, strength);
+            return heights;
+        }
+
+        /// <summary>Single-threaded twin of <see cref="GenerateHeightmap()"/> (for tests).</summary>
         public float[] GenerateHeightmapSequential()
         {
             int n = Settings.Resolution;
@@ -157,14 +180,21 @@ namespace LakskongenSim.Environment
             return heights;
         }
 
-        private void FillRow(float[] heights, int row)
+        private void FillRow(float[] heights, int row, float[]? ledgeOffsets = null, float[]? ledgeStrength = null)
         {
             int n = Settings.Resolution;
             float half = Settings.WorldSizeM * 0.5f;
             float spacing = Settings.SpacingM;
             float z = -half + row * spacing;
             for (int col = 0; col < n; col++)
-                heights[row * n + col] = HeightAt(-half + col * spacing, z);
+            {
+                var point = Ground(-half + col * spacing, z);
+                heights[row * n + col] = point.Height;
+                if (ledgeOffsets != null)
+                    ledgeOffsets[row * n + col] = point.Ledge;
+                if (ledgeStrength != null)
+                    ledgeStrength[row * n + col] = point.LedgeStrength;
+            }
         }
 
         /// <summary>World X of the channel centreline at world Z.</summary>
@@ -183,11 +213,42 @@ namespace LakskongenSim.Environment
             return 0.5f * (2f * p1 + (p2 - p0) * f + (2f * p0 - 5f * p1 + 4f * p2 - p3) * f2 + (3f * p1 - p0 - 3f * p2 + p3) * f3);
         }
 
-        /// <summary>Terrain height in metres at world (x, z); sea level is 0.</summary>
-        public float HeightAt(float x, float z)
+        /// <summary>
+        /// Terrain height in metres at world (x, z); sea level is 0. The land
+        /// pads are carved into it (F2-19, <see cref="CarvePads(float, float, float)"/>),
+        /// so the heightfield, the far field's seam and every placement query
+        /// see the same flat pads: the grid and this read the same
+        /// <see cref="Ground"/>.
+        /// </summary>
+        public float HeightAt(float x, float z) => Ground(x, z).Height;
+
+        /// <summary>
+        /// The generated ground at (x, z): the fjord's <see cref="Sample(float, float)"/>
+        /// with the land pads carved into it. <see cref="FillRow"/> and
+        /// <see cref="HeightAt"/> both read it, so the heightfield and every
+        /// placement query agree bit for bit (wave4b int: gfx-polish-1's grid
+        /// read <c>Sample</c> and lost F2-19's pads). The wall ledges'
+        /// terraces carry over as far as the carve keeps the ground it was
+        /// given: none on a pad or a shelf's fill, a cut face's share on a cut
+        /// face, all of them where nothing is carved (heights - offsets is then
+        /// the carve of the ground without its terraces, not the uncarved wall).
+        /// </summary>
+        private Point Ground(float x, float z)
         {
             var s = Sample(x, z);
-            return s.Height;
+            float h = CarvePads(s.Height, x, z, out float keep);
+            return new Point(h, s.WallU, s.Ledge * keep, s.LedgeStrength * keep);
+        }
+
+        /// <summary>
+        /// The fjord at (x, z) before the pads are carved: the height, the part
+        /// of it the wall ledges' terraces add and their strength (tests: what
+        /// <see cref="Ground"/> and the carve start from).
+        /// </summary>
+        internal (float Height, float Ledge, float LedgeStrength) UncarvedAt(float x, float z)
+        {
+            var s = Sample(x, z);
+            return (s.Height, s.Ledge, s.LedgeStrength);
         }
 
         /// <summary>
@@ -229,7 +290,17 @@ namespace LakskongenSim.Environment
         {
             public readonly float Height;
             public readonly float WallU;
-            public Point(float height, float wallU) { Height = height; WallU = wallU; }
+            /// <summary>The part of <see cref="Height"/> the wall ledges' terraces add (m).</summary>
+            public readonly float Ledge;
+            /// <summary>How far the terraces flatten and steepen the slope here (a share of it).</summary>
+            public readonly float LedgeStrength;
+            public Point(float height, float wallU, float ledge, float ledgeStrength)
+            {
+                Height = height;
+                WallU = wallU;
+                Ledge = ledge;
+                LedgeStrength = ledgeStrength;
+            }
         }
 
         private Point Sample(float x, float z) => Sample(x, z, PlayAreaDetail);
@@ -280,10 +351,11 @@ namespace LakskongenSim.Environment
 
             h = DeltaAtHead(h, d, w, z);
             h = BlendStrandflat(h, x, z, cx, detail, out float coast);
+            float ledge = 0f, ledgeStrength = 0f;
             if (detail.Relief)
-                h = WallRelief(h, x, z, d, u, coast);
+                h = WallRelief(h, x, z, d, u, coast, out ledge, out ledgeStrength);
             h += Detail(x, z, h, u, Coastal(z), detail);
-            return new Point(h, u);
+            return new Point(h, u, ledge, ledgeStrength);
         }
 
         /// <summary>
@@ -291,8 +363,10 @@ namespace LakskongenSim.Environment
         /// ledges between cliff bands, faded out at the waterline and the
         /// shoulder so the floor and the upland stay smooth.
         /// </summary>
-        private float WallRelief(float h, float x, float z, float d, float u, float coast)
+        private float WallRelief(float h, float x, float z, float d, float u, float coast, out float ledge, out float ledgeStrength)
         {
+            ledge = 0f;
+            ledgeStrength = 0f;
             float mask = SmoothStep(-0.05f, 0.2f, u) * SmoothStep(1.15f, 0.85f, u) * SmoothStep(8f, 60f, h);
             if (mask <= 0f)
                 return h;
@@ -313,7 +387,9 @@ namespace LakskongenSim.Environment
             float t = h / LedgeStepM + 0.6f * FractalNoise.Fbm(seed + SeedLedge, x / 300f, z / 300f, 2);
             float step = MathF.Floor(t);
             float terraced = step + SmoothStep(0.25f, 0.75f, t - step);
-            return h + (terraced - t) * LedgeStepM * LedgeStrength * mask;
+            ledge = (terraced - t) * LedgeStepM * LedgeStrength * mask;
+            ledgeStrength = LedgeStrength * mask;
+            return h + ledge;
         }
 
         /// <summary>Monotone cubic Hermite from (0, 0) to (1, 1) with end slopes m0, m1.</summary>

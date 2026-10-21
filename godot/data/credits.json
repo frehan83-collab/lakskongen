@@ -4,6 +4,13 @@
     {
       "role_key": "UI_CREDITS_ROLE_CREATOR",
       "name": "Fredrik Hansen"
+    },
+    {
+      "role_key": "UI_CREDITS_ROLE_SOUND",
+      "name": "Lakskongen",
+      "licence": "Original work of the project",
+      "source": "tools/audio/gen_audio.py, tools/gen_harvest_stinger.py",
+      "_comment": "Au2-01: the ambience loops and verb cues are synthesised in the project (godot/assets/audio/audio_manifest.json); no third-party audio but the rows below."
     }
   ],
   "third_party": [
@@ -55,16 +62,6 @@
       "author": "Freesound.org",
       "source": "freesound.org",
       "licence": "CC0 1.0",
-      "notice_key": ""
-    },
-    {
-      "name": "Mixkit sound effects",
-      "display_key": "UI_CREDITS_MIXKIT_TITLE",
-      "use_key": "UI_CREDITS_USE_AMBIENCE",
-      "author": "Mixkit",
-      "source": "mixkit.co",
-      "licence": "Mixkit Sound Effects Free License",
-      "licence_key": "UI_CREDITS_LICENCE_MIXKIT",
       "notice_key": ""
     },
     {

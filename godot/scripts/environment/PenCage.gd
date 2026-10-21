@@ -131,6 +131,12 @@ var _health_ring: MeshInstance3D
 var _click_area: Area3D
 var _band_color: Color = Color(0, 0, 0, 0)
 var _net_opacity: float = 1.0
+## How much of the bird net shows over the pen's own net opacity (0-1): the
+## underwater view's dive fades it (UnderwaterView, wave4b int review).
+var _bird_net_fade: float = 1.0
+var _bird_net_nodes: Array[MeshInstance3D] = []
+var _net_fouling: float = 0.0
+var _net_nodes: Array[MeshInstance3D] = []
 var _lice_skirt: bool = false
 var _bird_net: int = BirdNet.TENT
 ## True once a FarmSite draws this pen's LOD1 and LOD2 (set_site_drawn).
@@ -305,15 +311,52 @@ func get_net_opacity() -> float:
 	return _net_opacity
 
 func _apply_net_opacity() -> void:
-	for net in get_net_nodes():
-		net.set_instance_shader_parameter("net_opacity", _net_opacity)
+	var birds := _bird_nets()
+	for net in _nets():
+		var fade := _bird_net_fade if net in birds else 1.0
+		net.set_instance_shader_parameter("net_opacity", _net_opacity * fade)
+
+## The bird net's share of the net opacity (0 gone .. 1 whole), every LOD:
+## the underwater view dissolves it as its dive passes through the roof.
+func set_bird_net_fade(value: float) -> void:
+	var v := clampf(value, 0.0, 1.0)
+	if v == _bird_net_fade:
+		return
+	_bird_net_fade = v
+	_apply_net_opacity()
+
+func get_bird_net_fade() -> float:
+	return _bird_net_fade
+
+## The bird-net meshes (both styles, every LOD), looked up once.
+func _bird_nets() -> Array[MeshInstance3D]:
+	if _bird_net_nodes.is_empty():
+		for part in ["BirdNet", "BirdNetRim"]:
+			_bird_net_nodes.append_array(get_parts(part))
+	return _bird_net_nodes
+
+## The net's fouling, 0 clean .. 1 heavily grown (G3-04, pen_net_shader
+## net_fouling): FarmSite hands every pen of a site the site's. It can come
+## every few sim days, so it writes through the nets found once (_nets).
+func set_net_fouling(value: float) -> void:
+	_net_fouling = clampf(value, 0.0, 1.0)
+	for net in _nets():
+		net.set_instance_shader_parameter("net_fouling", _net_fouling)
+
+func get_net_fouling() -> float:
+	return _net_fouling
 
 ## Every mesh drawn with the net shader (pen net and bird net, all LODs).
 func get_net_nodes() -> Array[MeshInstance3D]:
-	var nets: Array[MeshInstance3D] = []
-	for part in NET_PARTS:
-		nets.append_array(get_parts(part))
-	return nets
+	return _nets().duplicate()
+
+## The net meshes, looked up once the pen has its parts (the scene's LOD
+## children never change).
+func _nets() -> Array[MeshInstance3D]:
+	if _net_nodes.is_empty():
+		for part in NET_PARTS:
+			_net_nodes.append_array(get_parts(part))
+	return _net_nodes
 
 ## The lice-skirt variant: a tarpaulin round the top 10 m of the net
 ## (GameBridge sends it per site as "has_skirt").

@@ -10,7 +10,9 @@ extends Node
 ##   view (the fjord axis toward the mouth) over the segment, the HUD on the
 ##   Fjord tab as the player sees it;
 ## - panel: the finance tab open, an opaque full-screen panel over the world
-##   (shot 06), the camera at the FJORD default.
+##   (shot 06), the camera at the FJORD default;
+## - underwater (G3-04, only when --segments names it): the UNDERWATER view in
+##   the first pen (FjordCamera's dive), its yaw swept 50 degrees round the pen.
 ##
 ## Per frame: wall-clock frame time (vsync off, no fps cap), the viewport's
 ## GPU and CPU render time (RenderingServer timestamps), the script process
@@ -28,7 +30,9 @@ extends Node
 ##   --label=NAME       file label (default "smoke")
 ##   --seconds=S        recorded seconds per segment (default 10)
 ##   --warmup=S         settle time before each segment (default 2)
-##   --segments=LIST    comma list of farm,fjord,coast,panel (default all)
+##   --segments=LIST    comma list of farm,fjord,coast,panel (default all),
+##                      plus underwater (EXTRA_SEGMENTS) and land and hav
+##                      with --facilities
 ##   --variants=LIST    ';' list of variants; each is a preset name and
 ##                      optional knob overrides: "high,sky_res=full,ssao=false"
 ##                      (default: the director's default preset)
@@ -47,6 +51,18 @@ extends Node
 ##   --series           keep every frame's time, phases and draw counts
 ##   --boot-only        record the boot (first frames, terrain upload) and quit
 ##   --no-prewarm       boot without the terrain pipeline warm-up (its A/B)
+##   --sea-sites=N      F2-20 (the spec's 12-site baseline): build sea sites
+##                      through the engine in the first site's zone (organic
+##                      growth, paid by a QA grant) until the player has N
+##   --facilities       F2-20: build the farm-type set through the engine
+##                      (GameBridge.QaPlaceFarmTypeSet: a full 4-lot campus,
+##                      a post-smolt site of 2 modules, an OF1-class unit and a
+##                      Havfarm-class unit, which has no model before F2-29,
+##                      all operational) before measuring; the land and hav
+##                      segments frame the campus (520 m, -40 deg) and the
+##                      first unit (220 m, -18 deg) and sweep round them. The
+##                      presenter's own cost is the A/B against
+##                      "hide.FarmFacilityVisualManager=true".
 ##
 ## It prints one PERF_SEGMENT line per segment and PERF_RESULT at the end,
 ## and exits non-zero only when it could not measure (no display, no scene).
@@ -63,6 +79,16 @@ const SPIKE_MS := 50.0
 ## Boot frames recorded (from the scene entering the tree).
 const BOOT_FRAMES := 900
 const SEGMENT_NAMES := ["farm", "fjord", "coast", "panel"]
+## Segments run only when --segments names them (not in the default run).
+const EXTRA_SEGMENTS := ["underwater"]
+## F2-20 segments (with --facilities): the camera on a facility's framing.
+const FACILITY_SEGMENTS := ["land", "hav"]
+## The farm-type set --facilities builds: grow-out lots, post-smolt modules,
+## offshore units (an OF1-class unit, then a Havfarm-class unit, which has no
+## model before F2-29).
+const FACILITY_LOTS := 4
+const FACILITY_MODULES := 2
+const FACILITY_UNITS := 2
 ## Quality tier names (RenderQuality.NAMES, kept local so the harness runs on
 ## builds that predate the tiers).
 const TIERS := ["low", "medium", "high", "ultra"]
@@ -70,7 +96,9 @@ const TIERS := ["low", "medium", "high", "ultra"]
 const ZOOM_COAST := 0
 const ZOOM_FJORD := 1
 const ZOOM_FARM := 2
-const SEGMENT_ZOOM := {"farm": ZOOM_FARM, "fjord": ZOOM_FJORD, "coast": ZOOM_COAST, "panel": ZOOM_FJORD}
+const ZOOM_UNDERWATER := 3
+const SEGMENT_ZOOM := {"farm": ZOOM_FARM, "fjord": ZOOM_FJORD, "coast": ZOOM_COAST, "panel": ZOOM_FJORD,
+	"underwater": ZOOM_UNDERWATER}
 ## WeatherController.WeatherState ordinals.
 const WEATHER := {"clear": 0, "overcast": 1, "rain": 2, "snow": 3, "storm": 4, "fog": 5}
 
@@ -85,6 +113,9 @@ var _focus := Vector3.ZERO
 var _results: Array = []
 var _boot := {}
 var _out_dir := "user://perf"
+## --facilities: the focus targets of the land and hav segments (unit ids).
+var _facility_ids := {}
+var _facility_set := {}
 ## Frame phases (usec ticks): the scene tree's process step starts
 ## (process_frame), the renderer starts (frame_pre_draw) and finishes
 ## (frame_post_draw). Script time = process -> pre_draw; render submission =
@@ -240,7 +271,7 @@ func _run() -> void:
 			order.append(v)
 	for r in repeats:
 		for seg in segments:
-			if not seg in SEGMENT_NAMES:
+			if not seg in SEGMENT_NAMES and not seg in EXTRA_SEGMENTS and not (seg in FACILITY_SEGMENTS and _facility_ids.has(seg)):
 				push_warning("PerfHarness: unknown segment '%s'" % seg)
 				continue
 			for i in order.size():
@@ -351,6 +382,88 @@ func _boot_game() -> bool:
 	var toasts := get_node_or_null("/root/ToastNotification") as CanvasLayer
 	if toasts:
 		toasts.visible = false
+	if _args.has("sea-sites") and not await _fill_sea_sites(int(_args["sea-sites"])):
+		return false
+	if _args.has("facilities") and not await _place_facilities():
+		return false
+	return true
+
+
+## --sea-sites=N: the player's sea sites grow in their zone until there are N.
+func _fill_sea_sites(target: int) -> bool:
+	var gb := get_node_or_null("/root/GameBridge")
+	var sim := get_node_or_null("/root/SimBridge")
+	if gb == null or sim == null:
+		return false
+	var sites: Array = sim.call("get_all_pens")
+	if sites.is_empty():
+		push_error("PerfHarness: --sea-sites needs a scenario with a sea site")
+		return false
+	var zone := str(sites[0].get("zone", ""))
+	for attempt in target:
+		if sites.size() >= target:
+			break
+		gb.QaGrantCash(1_000_000_000.0)
+		if not gb.BuildSeaSite(zone, ""):
+			push_error("PerfHarness: a sea site in %s was refused" % zone)
+			return false
+		sites = sim.call("get_all_pens")
+	sim.state_updated.emit()
+	for i in 30:
+		await get_tree().process_frame
+	print("PERF_SEA_SITES player=%d" % sites.size())
+	return true
+
+
+## Sea sites in the world the run measured: the player's (the engine's), the
+## sites the fjord draws for them (FishPenManager) and the rival farms.
+func _sites_drawn() -> Dictionary:
+	if _env == null:
+		return {}
+	var sim := get_node_or_null("/root/SimBridge")
+	var pens := _env.get_node_or_null("FishPenManager")
+	var rivals := _env.get_node_or_null("CompetitorFarmVisualManager")
+	return {
+		"player_sites": (sim.call("get_all_pens") as Array).size() if sim != null else 0,
+		"fjord_sites_drawn": (pens.call("get_pen_ids") as Array).size() if pens != null else 0,
+		"rival_farms": (rivals.call("farm_ids") as Array).size() if rivals != null and rivals.has_method("farm_ids") else 0,
+	}
+
+
+## --facilities: the farm-type set through the engine, every unit operational,
+## drawn by the presenter before the first segment (both sides of an A/B run
+## on the same state).
+func _place_facilities() -> bool:
+	var gb := get_node_or_null("/root/GameBridge")
+	if gb == null or not gb.has_method("QaPlaceFarmTypeSet"):
+		push_error("PerfHarness: --facilities needs GameBridge.QaPlaceFarmTypeSet")
+		return false
+	var placed: Dictionary = gb.QaPlaceFarmTypeSet(FACILITY_LOTS, FACILITY_MODULES, FACILITY_UNITS)
+	if not bool(placed.get("success", false)):
+		push_error("PerfHarness: the farm-type set was refused: %s" % placed.get("message", ""))
+		return false
+	var ids: Array = [str(placed["land_id"]), str(placed["post_smolt_id"])]
+	ids.append_array(Array(placed.get("offshore_ids", [])))
+	_facility_ids = {"land": str(placed["land_id"]), "hav": str(placed["offshore_id"])}
+	_facility_set = {"grow_out_lots": FACILITY_LOTS, "post_smolt_modules": FACILITY_MODULES,
+		"offshore_units": FACILITY_UNITS, "units": ids}
+	var presenter := _env.get_node_or_null("FarmFacilityVisualManager")
+	if presenter != null and presenter.has_method("sync_units"):
+		presenter.call("sync_units", gb.GetFacilityVisuals())
+		# The set's first build (the kit read and merged) is one sync; build it
+		# again from nothing (the kit warm) for a re-layout's cost. A sync over
+		# SPIKE_MS is a frame the player waits on (wave4b review).
+		_facility_set["create_ms"] = snappedf(float(presenter.get("max_sync_ms")), 0.01)
+		for i in 10:
+			await get_tree().process_frame
+		presenter.call("sync_units", [])
+		var started := Time.get_ticks_usec()
+		presenter.call("sync_units", gb.GetFacilityVisuals())
+		_facility_set["rebuild_ms"] = snappedf((Time.get_ticks_usec() - started) / 1000.0, 0.01)
+		_facility_set["create_spike"] = float(_facility_set["create_ms"]) > SPIKE_MS or float(_facility_set["rebuild_ms"]) > SPIKE_MS
+	for i in 30:
+		await get_tree().process_frame
+	print("PERF_FACILITIES units=%s create_ms=%s rebuild_ms=%s" % [",".join(ids), _facility_set.get("create_ms", -1), _facility_set.get("rebuild_ms", -1)])
 	return true
 
 
@@ -378,20 +491,37 @@ func _apply_variant(v: Dictionary) -> void:
 ## Raw overrides, for profiling only: "env.ssao_enabled=false" (the
 ## Environment), "vp.msaa_3d=0" (the root viewport), "sun.shadow_enabled=false",
 ## "camattr.dof_blur_far_enabled=false", "sky.<uniform>" (the sky material),
-## "water.<uniform>" (the water material), "hide.<path under the
+## "water.<uniform>" (the water material), "shoal.<uniform>" (the schools
+## seen through the surface, one shared material), "hide.<path under the
 ## FjordEnvironment>=true" (visible = false), "mirrorenv.<property>",
 ## "mirrorcam.<property>" and "mirrorvp.<property>" (the planar mirror's
-## environment, camera and viewport). They are set right before every draw,
-## after the director composed the frame, so they win.
+## environment, camera and viewport), and "hideall.<name prefix>=true" (every
+## GeometryInstance3D under the FjordEnvironment whose name begins with the
+## prefix: "Shoal", "FishSchool", "Net"... to split a node's cost by part), and
+## "eachgeom.<name glob>/<property>=value" (that property on every
+## GeometryInstance3D whose name matches, e.g. the trees' far LOD's
+## "eachgeom.Spruce_*_LOD1/visibility_range_end=4000"), and
+## "director.<property>" (an EnvironmentDirector staging property, e.g.
+## "director.sky_mode_staged=2": the sky's mode under the surface).
+## They are set right before every draw, after the director composed the
+## frame, so they win.
 var _raw := {}
 ## Values the raw overrides replaced: [object, property, value, is_uniform].
 var _raw_saved := {}
+## hideall: the nodes each prefix matched (found once per variant).
+var _hideall_nodes := {}
 
 
 func _apply_raw_overrides() -> void:
 	if _raw.is_empty() or _env == null:
 		return
 	for key: String in _raw:
+		if scope_of(key) == "hideall":
+			_hide_all(key.substr(key.find(".") + 1), bool(_raw[key]))
+			continue
+		if scope_of(key) == "eachgeom":
+			_set_each(key.substr(key.find(".") + 1), _raw[key])
+			continue
 		var target := _raw_target(key)
 		if target.is_empty():
 			continue
@@ -409,7 +539,57 @@ func _apply_raw_overrides() -> void:
 			obj.set(prop, value)
 
 
+## Hide (or show) every GeometryInstance3D under the environment whose name
+## begins with `prefix`, remembering each one's visibility for the restore.
+## The nodes are found once per variant (the walk would cost script time
+## every frame).
+func _hide_all(prefix: String, hidden: bool) -> void:
+	if not _hideall_nodes.has(prefix):
+		var found: Array[Node3D] = []
+		var stack: Array[Node] = [_env]
+		while not stack.is_empty():
+			var node: Node = stack.pop_back()
+			for child in node.get_children():
+				stack.append(child)
+			if node is GeometryInstance3D and String(node.name).begins_with(prefix):
+				found.append(node as Node3D)
+				_raw_saved["hideall:%d" % node.get_instance_id()] = [node, "visible", (node as Node3D).visible, false]
+		_hideall_nodes[prefix] = found
+		print("PERF_HIDEALL prefix=%s nodes=%d" % [prefix, found.size()])
+	for node: Node3D in _hideall_nodes[prefix]:
+		if is_instance_valid(node):
+			node.visible = not hidden
+
+
+## Set a property on every GeometryInstance3D under the environment whose
+## name matches a glob ("eachgeom.Spruce_*_LOD1/visibility_range_end=4000":
+## pattern, slash, property), remembering each one's value for the restore.
+## The nodes are found once per variant.
+func _set_each(spec: String, value: Variant) -> void:
+	var slash := spec.rfind("/")
+	if slash <= 0:
+		return
+	var pattern := spec.substr(0, slash)
+	var prop := spec.substr(slash + 1)
+	if not _hideall_nodes.has(spec):
+		var found: Array[Node3D] = []
+		var stack: Array[Node] = [_env]
+		while not stack.is_empty():
+			var node: Node = stack.pop_back()
+			for child in node.get_children():
+				stack.append(child)
+			if node is GeometryInstance3D and String(node.name).match(pattern):
+				found.append(node as Node3D)
+				_raw_saved["eachgeom:%d:%s" % [node.get_instance_id(), prop]] = [node, prop, node.get(prop), false]
+		_hideall_nodes[spec] = found
+		print("PERF_EACHGEOM pattern=%s property=%s nodes=%d" % [pattern, prop, found.size()])
+	for node: Node3D in _hideall_nodes[spec]:
+		if is_instance_valid(node):
+			node.set(prop, value)
+
+
 func _restore_raw() -> void:
+	_hideall_nodes = {}
 	for key in _raw_saved:
 		var saved: Array = _raw_saved[key]
 		if not is_instance_valid(saved[0]):
@@ -450,6 +630,11 @@ func _raw_target(key: String) -> Array:
 			var grid := _env.get_node_or_null("WaterGrid")
 			if grid and grid.get("material"):
 				return [grid.get("material"), prop, true]
+		"shoal":
+			# The salmon schools seen through the surface (G3-01): one shared
+			# material, so "shoal.fish_range=0" splits the fish from the pens'
+			# water column (gfx-polish-1).
+			return [FishSchool.SHOAL_MATERIAL, prop, true]
 		"terrain":
 			var terrain := _env.get_node_or_null("Terrain")
 			var chunks: Array = terrain.call("get_chunk_meshes") if terrain else []
@@ -461,6 +646,10 @@ func _raw_target(key: String) -> Array:
 		"probe":
 			var probe := _env.get_node_or_null("ReflectionProbe")
 			return [probe, prop, false] if probe else []
+		"director":
+			# A director staging property (wave4b int: "director.sky_mode_staged=2",
+			# the sky's incremental mode under the surface against REALTIME).
+			return [_director, prop, false] if _director else []
 		"mirrorenv":
 			# The planar mirror's environment (G2-03).
 			var mirror := _env.get_node_or_null("PlanarReflection")
@@ -487,11 +676,18 @@ func _set_panel(open: bool) -> void:
 func _run_segment(seg: String, seconds: float, warmup: float, variant: Dictionary, repeat: int) -> Dictionary:
 	var panel := seg == "panel"
 	_set_panel(panel)
-	_camera.call("look_at_position", _focus, SEGMENT_ZOOM[seg])
-	var home: float = _camera.call("home_yaw", _focus)
+	var focus := _focus
+	if seg in FACILITY_SEGMENTS:
+		# The unit's own framing (FjordCamera focus target, spec section 4).
+		_camera.call("focus_target", _facility_ids[seg], 0.0)
+		focus = _camera.call("get_focus_point")
+	else:
+		_camera.call("look_at_position", _focus, SEGMENT_ZOOM[seg])
+	var home: float = _camera.call("home_yaw", focus)
 	var start_yaw := home if panel else home - deg_to_rad(SWEEP_DEG * 0.5)
 	_camera.set("_yaw_target", start_yaw)
-	_camera.call("set_pitch_offset", float(_args.get("pitch", 0.0)))
+	if not seg in FACILITY_SEGMENTS or _args.has("pitch"):
+		_camera.call("set_pitch_offset", float(_args.get("pitch", 0.0)))
 	_camera.call("_snap")
 	var t := 0.0
 	while t < warmup:
@@ -622,6 +818,9 @@ func _write_report() -> void:
 		"boot": _boot,
 		"runs": _results,
 	}
+	if not _facility_set.is_empty():
+		report["facilities"] = _facility_set
+	report["sites_drawn"] = _sites_drawn()
 	var dir := _out_dir if not _out_dir.begins_with("user://") else ProjectSettings.globalize_path(_out_dir)
 	var path := dir.path_join("perf_%s.json" % _label())
 	var f := FileAccess.open(path, FileAccess.WRITE)

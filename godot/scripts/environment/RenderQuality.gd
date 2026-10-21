@@ -202,10 +202,11 @@ func render_scale() -> float:
 
 ## The saved tier (the graphics section's quality in user://settings.json),
 ## or the default.
+## (SettingsStore: the player's file, or a test's own through path_override.)
 static func load_saved_tier() -> int:
-	if not FileAccess.file_exists(SETTINGS_PATH):
+	if not SettingsStore.has_file():
 		return DEFAULT_TIER
-	return tier_from_settings(JSON.parse_string(FileAccess.get_file_as_string(SETTINGS_PATH)))
+	return tier_from_settings(SettingsStore.load_raw())
 
 
 ## The tier a parsed settings file names, or the default (for any shape).

@@ -25,7 +25,8 @@ FjordEnvironment (FjordEnvironment.gd)    environment controller + gameplay API
 ├── PlanarReflection (PlanarReflection.gd) the water's mirror: SubViewport, mirrored camera
 ├── VesselWakes (VesselWakes.gd)          wakes behind moving boats (ribbons, wake_shader)
 ├── PenSpray (PenSpray.gd)                spray at the pens in a gale (particles)
-├── UnderwaterCanvas                      underwater overlay
+├── UnderwaterView (UnderwaterView.gd)    under the surface: the site's water, shafts, snow, the lens
+├── UnderwaterCanvas                      the lens (underwater_lens: vignette, the crossing's veil)
 ├── ParticleEffects (ParticleEffects.gd)
 ├── WellboatVisualManager / FeedBargeVisualManager / CompetitorFarmVisualManager
 └── FishPenManager (GameScene)            sites (FarmSite: pens, grid, hoses), fish, selection
@@ -130,8 +131,10 @@ black per building) on sheltered, gentle (under 14°), dry shore 1.8-9 m above
 the sea and 5-28 m from it, doors turned to the water by the shore distance
 field's gradient, rows 300 m apart; one solid quay beside a row, from the
 waterline 18 m out to at least 2.5 m of water. The trees keep a 14 m yard
-around each. On the seed-42 fjord: two rows on the head delta and a row with
-the quay on the spruce spit by the mouth (in the default FJORD view). Meshes:
+around each. Nothing stands or grows on a land pad or its rim (F2-19). On
+the seed-42 fjord: a row on the head delta east of pad_delta (the delta's
+second row stood where pad_delta is carved) and a row with the quay on the
+spruce spit by the mouth (in the default FJORD view). Meshes:
 `blender/build_shore_props.py` (manifest entries `naust`, `quay`).
 
 ## Far field (G2-01)
@@ -180,7 +183,26 @@ from the far field (`far_field_height_at`), so the camera's terrain avoidance,
 pick and sight line see it. The terrain shader fades its wall structure (cliff
 bands, ledges, tone, seepage, buttresses) from 2.5 to 5 km from the camera:
 out there a band is a few pixels tall and the same bands ran across whole
-mountainsides like a venetian blind.
+mountainsides like a venetian blind. Nearer (1-2 km, shot 18) two more
+stripe sources are handled (gfx-polish-1): the cliff bands also fade by
+their height on screen (gone under 10 px, full from 26 px) and vary from
+about 11 to 37 m up a wall; and the heightfield's own ledges (a soft
+terrace every 48 m of height, `WallRelief`) no longer decide the masks where
+a terrace is small on screen (under 28-64 px): the generator returns each
+height's terrace offset and strength (`WallLedges`, the heights unchanged),
+the chunks carry the slope and cavity of the ground without the terraces
+and the strength in CUSTOM0 (`TerrainMesh.Chunk.Macro`), and the snow takes
+the mean of what the terraces' flats (slope × (1 − k)) and risers (× (1 + k))
+hold, bare rock half of each. On the old 18 staging the head walls' stripe
+energy at 8-40 px periods fell from 0.236 to 0.117 of the AC power, their
+RMS contrast unchanged (0.110 → 0.109). The heights, `HeightAt` and the
+ledges come from one function (`TerrainGenerator.Ground`: the sample with
+the pads carved), and the ledges keep only the share of the ground the
+carve keeps (`CarvePads(h, x, z, out keep)`: 0 on a pad and a shelf's fill,
+the cut face's or the drop's smoothstep on its slope), so a pad's macro
+ground is the pad and a cut face's the cut face of the ground without its
+terraces (wave4b int: the stage's grid read the uncarved sample and lost
+F2-19's pads; `TerrainGroundTests`).
 
 | Measure | Value (seed 42) |
 |---|---|
@@ -197,9 +219,40 @@ facing the nearest water) with `IntakeReachM(pad)` (computed: the nearest
 heightfield vertex at −95 m or the world edge), and `OffshoreSlots()` (off_1
 Ytre kyst, off_2 Havkanten, hav_1 Havområde beyond the world, exposure 1,
 depth from the far field). `FjordTerrain.land_pad_slots()` /
-`offshore_slots()` hand them to GDScript. The pads are not carved yet (F2-19
-carves them with their `pad_state` heath/granite and the vegetation and shore
-exclusions); the heightfield, and its golden hash, are unchanged.
+`offshore_slots()` hand them to GDScript; a baked region (G2-01) names the same
+fields in its `meta.json` (`schemas/terrain/meta.schema.json`: `land_pads[]`,
+`offshore_slots[]`, the intake reach never authored).
+
+The pads are carved (F2-19, `TerrainGenerator.CarvePads` over `Sample`, in `Ground`): each
+pad flat at +3.6 m over its rectangle, and round it a rim of up to 105 m
+(`PadRimMaxM`). Where the ground stands higher, the rim is a cut face into the
+hill (24 m, wider where the slope bound needs it); toward the sea it is a low
+rock shelf 6-70 m wide (its width wanders along the edge, read at the nearest
+edge point) down to a lip 0.4 m over the sea, then a drop to the seabed at
+least 18 m wide, never steeper than 1:3 and at most 35 m wide; in front of the
+quay edge a quay face (lip 3.0 m, shelf 1.5 m, drop 9 m) lets a wellboat lie
+alongside. The quay edge is fixed from the uncarved ground (`QuaySides`: the
+water-facing edge nearest the channel's centreline); near the world edge the
+shelf takes at most 40% of the room left. Trees, meadow and shore buildings
+keep off every pad and its rim (`FjordGroundCover`: the masks are zeroed and
+the scatter and `ShorePropPlacer` skip `PadClearings()`). The seed-42 golden
+hash is `a7b58a2c48dd4a8f` (headless and windowed equal); pad_a's quay at
+(−130, −1720) has 25 m of water 80 m out and its −95 m intake line at the
+world edge 280 m out (BALANCE §1p).
+
+The terrain shader paints each pad by `pad_state` (0 heath, 1 built;
+`FjordTerrain.set_pad_state(id, state, blast)`, at most four pads): unbuilt,
+the pad and its rim keep the heath with a few granite slabs; built, the
+blasted rectangle `blast` (world x0, z0, x1, z1; zero = the whole pad; the
+facility presenter passes its campus's footprint + 22 m) turns crushed stone
+(the shingle layer tinted to granite #6B7378, with fines and warm patches),
+its edge broken by noise, and the rim's cut faces and the armoured shelf turn
+bare granite (wet #3E4448 toward the sea). The yard is graded crushed rock:
+its stones' tone contrast is a power of 0.8 on the shingle's luma
+(`yard_contrast`) and 70 % of their relief is rolled flat (`yard_flatten`),
+so a built pad reads as one even granite yard, not as stones (F2-20's
+frames). Shots `45_pads_*` measure the
+pads' mean colour built against heath (ΔE76; `docs/run/evidence/f2_19_pads.md`).
 
 ## Camera (G1-03)
 
@@ -209,7 +262,7 @@ exclusions); the heightfield, and its golden hash, are unchanged.
 |---|---|
 | WASD, arrows, middle-drag | pan |
 | Q/E, right-drag | rotate (right-drag also tilts) |
-| Wheel | zoom ×1.15 toward the cursor, 25–3000 m; past 25 m: underwater |
+| Wheel | zoom ×1.15 toward the cursor, 25–3000 m; past 25 m: underwater, inside the nearest pen, or in open water at least 7 m deep (G3-04, below; over land it stops at 25 m) |
 | T | top-down toggle |
 | Home | recentre on the first pen, looking down the fjord to the mouth |
 | Double-click | focus the clicked point |
@@ -227,6 +280,23 @@ mouth looks up the fjord from out at sea. Camera input acts only while the Fjord
 shows the world (`GameUI.world_view_changed` → `FjordVistaBridge` →
 `input_enabled`), letters are ignored while a text field has focus and arrows
 while any Control has focus. Idle auto-orbit starts after 30 s.
+
+Focus targets (F2-20, farm-types spec §4): `register_focus_target(id, pos,
+distance, pitch, radius)` names a place the camera frames at its own distance
+and pitch (a campus at 520 m and −40°, one lot at 380 m, an OF1-class unit at
+220 m and −18°); `focus_target(id)` and `frame_position(pos, distance, pitch)`
+fly there, the pitch kept as an offset from the distance table's so Home
+restores the table. The focus clamp and the camera-position clamp both take
+the union of the world box and every target's disc, so a unit beyond the
+world's edge can be framed and orbited. The facility presenter registers each
+unit and (F2-21) every pad and slot (`plot:<id>`), each with its own yaw; G
+(the input action `camera_bookmark`) cycles Fjord (home) → Land → Hav, and
+the hint's chip names the place. The framings keep the horizon 10-25 % from
+the top (FJORD 13.1 %, COAST 12.7 %, OF1 220 m −18° 14.1 %, Havfarm class
+700 m −16° 15.9 %); a campus's framing yaw is the side that keeps the rig at
+−35..−45°. Near the focus the sight-line clearance tapers (`FOCUS_GROUND_M`),
+so the ground a framing looks at does not lift it. A cinematic (F2-23) poses
+the camera itself (`cinematic_pose`) with the rig stopped and its keys off.
 
 The water grid (`WaterGrid.gd`, below) runs out to ±32.8 km under the far
 field, so the view out of the mouth ends at a horizon.
@@ -261,8 +331,8 @@ axes: north +X, up +Y, east +Z; the fjord opens west (−Z).
 
 | Composed | Rule |
 |---|---|
-| Fog | `fog_density = 3.912 / visibility` (Koschmieder), drawn at no less than a smooth 2.5 km (G3-05, below); aerial perspective 0.6, sky affect 0.15, sun scatter 0.25; height fog for a sea-fog layer, or mist above a mood's low cloud base; underwater 30 m visibility; the colour (the mood-graded sky) written sRGB-encoded |
-| Sun | direction from `SolarGeometry`; colour and energy from the same Chapman-function transmittance the sky draws, white-balanced at 60°; clouds dim it (× lerp(1, 0.15, c)), soften its shadow and take its specular glint off the water |
+| Fog | `fog_density = 3.912 / visibility` (Koschmieder), drawn at no less than a smooth 2.5 km (G3-05, below); aerial perspective 0.6, sky affect 0.15, sun scatter 0.25; height fog for a sea-fog layer, or mist above a mood's low cloud base; under the surface the site's water (G3-04, below); the colour (the mood-graded sky) written sRGB-encoded |
+| Sun | direction from `SolarGeometry`; colour and energy from the same Chapman-function transmittance the sky draws, white-balanced at 60°; the colour (sRGB-encoded, as Light3D colours are) sets the hue only and the light is divided by its luminance, so it carries the energy at every elevation (gfx-polish-1: a 3° sun had kept 0.60 of it, a 10° one 0.74); clouds dim it (× lerp(1, 0.15, c)), soften its shadow and take its specular glint off the water |
 | Moon | #C7D7E8, energy 0.04 × phase × elevation × (1 − 0.85 c), shadows only when the sun's are off |
 | Exposure | 1 with the sun above 12°; below that the eye adapts as (key_ref / key)^0.72 up to 16×, where the key is the zenith and horizon luminance of the same sky model plus the direct light; under a deck it adapts only part of the way, so storms stay dark |
 | Tonemap, glow | AgX, white 6, contrast 1.3, adjustments off; Screen glow, intensity 0.25, threshold 1, levels 3-5 |
@@ -273,7 +343,7 @@ axes: north +X, up +Y, east +Z; the fjord opens west (−Z).
 header): single scattering through a spherical atmosphere (Rayleigh, Mie,
 ozone) with Schüler's Chapman approximation for the sun ray, a twilight
 term and a night floor; the sun disc is `LIGHT0` (`LIGHT0_DIRECTION`,
-`_COLOR`, `_ENERGY`); a cumulus slab (1.2-2.4 km: a search, a bisected edge and 3 steps in, G3-05) and
+`_COLOR`, `_ENERGY`); a cumulus slab (1.2-2.4 km: an eye-anchored search, a refined edge, a march into the cloud and a second cloud behind a thin one, G3-05, gfx-polish-1) and
 cirrus at 8 km lit by the sun at cloud height (pink clouds after sunset),
 scud under storms; stars; a phased moon disc; aurora curtains as vertical
 sheets 100-300 km up crossed analytically per ray (557.7 nm green, a 630 nm
@@ -284,8 +354,13 @@ twice or turn green.
 
 The three cloud layers can be marched in the sky's half- or quarter-
 resolution pass instead of per pixel (`cloud_pass`, from the quality tier:
-High uses the half pass, Medium and Low the quarter pass, which turns the
-dark cumulus against an aurora blocky). The pass writes them premultiplied
+High uses the half pass, Medium and Low the quarter pass; a hero view can
+ask for one pass finer, `EnvironmentDirector.set_hero_sky`, which the main
+menu no longer does: per pixel its clouds cost +2.3 ms a frame at 1080p
+and +3.7-4.1 ms at 1440p on High and drew contours inside the clouds,
+where the band-limited half pass is soft, wave4b int). The low layer is band-limited to the
+pass's own pixel (below), so the reduced passes have no edge sharper than
+their texels for the upsample to step. The pass writes them premultiplied
 and the full-resolution pass composites them over the sky. The engine
 blends the environment's fog into every sky pass, the reduced ones too
 (Godot `sky.glsl`: rgb' = rgb (1 − k) + k fog colour + s sun light ·
@@ -398,15 +473,32 @@ emitter sits upwind.
 **World UI at night**: a vessel's status chip divides its text and pill
 by the exposure (`VesselChip.set_exposure`, `world_chip.gdshader`
 `exposure_comp`); site labels and signal rings do the same through
-`SiteLights` on the art-site track (`integration/wave2`).
+`SiteLights` on the art-site track (`integration/wave2`). At a screen edge
+the chip slides in to stay whole, 8 px inside the view, while any of its boat
+shows (the anchor up to half the boat's projected length past the edge),
+and hides once the whole boat has left (gfx-polish-1; the text takes the
+pill's cull margin, or it is culled with the off-screen anchor).
 
-**The clouds' march** (`cloud_layer_low`): the low slab's noise is 2D, so
-samples at fixed distances along a ray stack each cloud into horizontal
-slices. The march searches a finer grid on screen (≤ 0.6 km, up to
-`cloud_search` × the tier's steps, two octaves fewer plus a margin), bisects
-to the first cloud's edge (4 steps) and integrates 3 steps into it (0.4 km,
-longer far off), lit by one look toward the sun at its edge: edges and
-shading are continuous. The radiance map and the planar mirror's sky (blurred
+**The clouds' march** (`cloud_layer_low`, `find_cloud_edge`): the low
+slab's noise is 2D, so samples at fixed distances along a ray stack each
+cloud into horizontal slices. The march searches a grid anchored to the eye
+(points at multiples of a step ≤ 0.6 km, up to `cloud_search` × the tier's
+steps; a grid that started at the slab's entry moved with every pixel row
+and flipped thin clouds on and off row by row), tests each point's interval
+(two octaves fewer plus a margin for the noise's rise over half a step,
+then three full tests across it), bisects to the edge (4 steps) and puts it
+where the edge margin crosses (a secant step), then marches into the cloud
+(3 steps of 0.4 km, longer far off, on to 8 while it lets light through) and
+looks for a second cloud behind a thin one (`CLOUD_HITS` 2), lit by one look
+toward the sun at each edge (gfx-polish-1: three steps into the first cloud
+only cut bright holes where a wisp stood in front of a thick cloud). The
+noise is band-limited to the pixel (`cloud_lod`): the octave count whose
+finest octave spans two footprints (fractional, `fbm_lod`, a fading octave
+weighed in the sum and the normalisation) and the edge widened by the
+noise's change across the footprint (0.11-0.16 per km, measured on a
+replica); the footprint is the geometric mean of a pixel's stretch along the
+view and its width across it. The harness pins 01's and 09's cloud drift and
+09's sky clock, so those stills show the same clouds and curtains every run. The radiance map and the planar mirror's sky (blurred
 into ambient light and a wave-distorted reflection) keep the plain march
 (`cloud_layer_low_simple`), and the water draws its lamp glow and frost smoke
 per vertex: in the fragment stage their code (off on most days) cost ~1 ms at
@@ -515,6 +607,32 @@ COAST 15.31 ms on High (`docs/run/evidence/g2_03_water.md`).
 No mirror underwater, behind an opaque panel, or above 11 m/s of wind
 (`MIRROR_MAX_WIND_MS`: no water anywhere is calm enough), so a storm costs
 nothing extra; it fades in and out over 0.6 s.
+
+The screenshot harness judges the mirror on shot 18 (a Beaufort-0 winter
+dusk up the fjord, the head 2.4 km off). The band under the head's
+waterline, flipped, is compared with the band over it at the ripple scale
+(`ScreenshotHarness.mirror_scores`): SSIM >= 0.5, and the mirror's
+structure (the windows' correlation where the band over the line varies,
+whatever the reflection's brightness) at least 0.2 above the same frame
+with only the mirror off (wave4b int ruling: SSIM's gain over the Low
+tier passed on High's depth of field and scored a flat, bright sky
+reflection above a darker mirror image). Measured: 0.39-0.40 against
+0.01-0.06 with High's depth of field, 0.30 against 0.03 without
+(`docs/run/evidence/wave4b_int_gfx_polish_1.md`).
+
+**Pens damp the sea** (gfx-polish-1): no whitecap breaks inside a pen's
+collar. `PenSpray` lists every visible cage's collar (centre and radius,
+nearest the camera first, at most 32) and the director hands them to the
+water (`pen_calm`, `pen_calm_count`) while any cap breaks; the shader fades
+the caps out over 2.5 m inside the collar (spray still flies off it).
+
+**Calm**: under 0.5 m/s (Beaufort 0, "sea like a mirror") the wind draws no
+ripples (`RIPPLE_GLASS` 0.03), growing to force 1's by 1.5 m/s; the breeze's
+curve is unchanged above. The planar mirror covers the screen exactly (its
+view is the camera's, mirrored): a lookup a ripple pushes past a screen edge
+reads the edge's texels, and the mirror fades out only beyond the edge (it
+faded inside it, and calm water drew a strip of sky reflection down both
+sides of the screen).
 
 **Whitecaps** are calibrated top-down against Monahan's share (the director's
 `WHITECAP_Z_SCALE`/`OFFSET`, 1.25 and 0.39): drawn cover 0.75 / 3.88 / 11.9 %
@@ -680,6 +798,368 @@ column (`SiteBerths.gd` through `get_berth` and `site_zones`).
 channel with keel depth under its whole length, clear of every other site's
 grid and berths, and runs it straight in along the grid to its berth.
 
+### Land campuses and offshore units (F2-20)
+
+`FarmFacilityVisualManager.gd` (under `FjordEnvironment` in `GameScene`)
+draws the company's land sites and offshore units from the engine's own
+units: `SimBridge.get_facility_visuals()` is a pure read of
+`SimulationEngine.FacilityVisualViews` (`Core/FacilityVisualViews.cs`): each
+unit's plot, its lots or post-smolt modules with their tanks in tank order
+(role, diameter, handed over or not, fish), each lot's construction project
+(the land lane's F2-14 phases `site_works` … `completion`), an offshore
+unit's project (the sea lane's F2-07 phases `yard_contract` …
+`commissioning`, with why it waits), and whether the unit feeds. The fjord's
+pens and barges never see these units (`GetSeaSiteDetails` lists fjord sites
+only). The sync diffs by unit id: a new unit is built, a known one takes its
+state, a unit whose lots changed is laid out again, a unit the engine no
+longer has (a cancelled build) is freed, and nothing else moves.
+
+- **A land site** is a `LandCampusBuilder` on its carved pad, in the pad's
+  own frame (u toward the quay edge, v along it): lot slots back from the
+  quay (a full HFS lot two rows of six Ø28 m tanks 4 m apart, the process
+  hall between them, a Ø16 m pre-grow tank closing each row; a pilot four
+  and one with a hall stub; a RAS hall 6 × 3 bays), the quay, the dark
+  harvest hall, the orange pipe bridge, the intake basin, the utilities row
+  behind the lots, roads, a concrete apron and an asphalt car park; a
+  post-smolt site's modules (two Ø16 m tanks under a lean-to bay) side by
+  side with the river intake on the delta. The quay side is laid out from
+  the pipe bridge's line (`bridge_line_v`, over the first lot road): the
+  intake basin beside the first lot row on one side of it, the harvest hall
+  10 m off it on the other and 3 m off the cross road, the quay fronting the
+  hall from the bridge on, all from the kit's real LOD0 boxes
+  (`turned_box`: the pieces are not centred on their origins). A road along
+  the pad runs on to the apron only through the bridge's corridor. A plot
+  the terrain has no pad for (a migrated save's overflow plot) gets a frame
+  its campus fits (`frame_size_for`). `CampusLayoutCheck` lists solids in one
+  another, roads under buildings and pieces off the pad;
+  `tests/FacilityLayoutChecks.gd` runs it over every pad and lot count the
+  engine lists. Draws: one MultiMesh per tank
+  type per LOD band (re-bucketed as the camera moves: LOD0 < 350 m, LOD1 <
+  1,200 m), a double-sided twin of each for tanks under construction, the
+  feeders at LOD0/LOD1, and each building group merged into one surface per
+  LOD (LOD0 < 500 m, LOD1 < 2,000 m, no hysteresis margins: with fade off a
+  pair of margins leaves a band where a camera that jumped there sees
+  neither LOD): roads, the harvest hall, the sea works, the utilities, and
+  each lot's hall bays. LOD2 casts no shadow; of LOD1 only the tanks do.
+- **Building one is no stall.** `KitMeshMerge` merges a group on the CPU
+  from the kit's arrays, read back from the GPU once per mesh per session
+  (`SurfaceTool.append_from` read every piece back: 84 ms warm, 236 ms
+  cold for a 4-lot campus's groups on the M1 Pro); the terrain computes its
+  pads once per generation (each lookup cost 21-31 ms); the land kit loads
+  in the background from the presenter's `_ready`. The presenter keeps
+  `last_sync_ms` / `max_sync_ms`, which `PerfHarness --facilities` reports
+  (`create_ms`, `rebuild_ms`) against the 50 ms spike line.
+- **Construction** follows each lot's project: the site works spread the
+  pad's blasted granite (`FjordTerrain.set_pad_state` with the campus's
+  footprint + 22 m) over their first 60 % and then pour the ring
+  foundations and lay the roads; the walls rise through the tank rings
+  (`INSTANCE_CUSTOM.r`, open-topped); the lot's hall bays and the harvest
+  hall rise in the treatment hall, the quay, apron, bridge and basin in the
+  sea works, the utilities in the first-tanks phase (`build_cut_m`); a tank
+  the engine has handed over stands whole with its lid and its feeder, which
+  turns while the tank holds fish and the site feeds. A shell cut open by
+  its build progress is drawn with `LK_FacilityKitBuild`
+  (`facility_kit_build.gdshader`: the kit's body, double-sided, the inner
+  face the wall swatch × 0.72), so the inside of its far wall shows.
+- **An offshore unit** is an `OffshoreUnitVisual`: yard contract, four
+  yellow survey buoys at the slot; hull, the pre-laid moorings' eight pick-up
+  buoys; voyage, the unit coming in from 2.6 km behind a tug; tow, three
+  anchor tugs bringing it the last 600 m (holding it there while the
+  project waits for "Start slep nå" or shelters); mooring, the tugs at the
+  anchor bearings; commissioning, the crew boat at the boat landing;
+  operational, the orange service vessel at the walk-to-work landing. It
+  heaves on `WaveField.hull`, damped; its net stays on
+  `PlanarReflection.NO_MIRROR_LAYER`. The Havfarm-class hull has no model
+  before F2-29 and draws nothing.
+- **Lights** (presentation clock, D20): from a sun elevation of 6° down to
+  −2° the kits' windows, lid work-lights and roof lights come up to 0.8
+  (`night_light` on `LK_FacilityKit`, its build twin and `LK_OffshoreKit`);
+  the offshore lanterns flash at night. F2-23 adds the lamps, the pools and
+  the compensation below.
+- **Picking**: a click on a tank (an `Area3D` cylinder per tank) or a unit
+  opens `FacilityWorldCard` (the unit, its variant and plot, the tank's
+  number, lot and fish, the engine's phase name with "Byggefase n av m", why
+  it waits or stands still, a progress ring of the whole build; once built,
+  fish and biomass) hanging from the clicked point, and frames it: a tank its
+  lot at 380 m and −40°, the campus at 520 m and −40°, an OF1-class unit at
+  220 m and −18° (spec §4). Esc closes it before anything else (the card is
+  in `FacilityWorldCard.WORLD_CARD_GROUP`, which `GameUI` closes first: the
+  world sits before the UI in the tree, so the card's own input came too
+  late); so does covering the world. While its anchor is behind the camera
+  the card is hidden (it takes no clicks) and stays open.
+
+QA staging (never the player's UI, `tests/test_facility_presenter.py`): the
+bridge's `QaPlaceFarmTypeSet`, `QaStartLandBuild`, `QaExpandLandSite`
+(the engine's own permit, grid-project and expansion verbs, the cases
+approved at once), `QaContractOffshore` (the engine's
+`QaContractOffshoreUnit`: `BuildOffshoreUnit`'s contract with the unlock
+gates waived and a QA award) and `QaStageConstruction` (a project stood in a
+named phase). The capture scene `qa/scenes/FacilityPresenterCapture.tscn`
+renders shots `45_pads_*`, `32_land_construction_*` and `46_facilities_*`
+(renamed from `44_`, which U2-08 owns) from them, the clouds' drift staged
+at one point before every grab; with a campus framed it also hashes the
+campus's own screen box (`phash_roi`), and the tank-rings state is stood
+twice (`32_land_construction_p2_tank_rings_twin`) so the phase difference is
+read against the hash's own noise. Budgets: the spec's §5 draw-call budget
+is measured at the home view (the P0-04 view); at the units' own framings
+(`46_facilities_campus_full`, `46_facilities_budget_of1_framing`) the
+counts measured at the wave-4b merge are regression ceilings. Evidence
+`docs/run/evidence/f2_20_presenter.md`,
+`docs/run/evidence/wave4b_int_gfx_farm_1.md`.
+
+### The open sea, first sight and the farm types after dark (F2-21, F2-23)
+
+- **The open sea at a unit.** The presenter targets the plot of the offshore
+  unit nearest the camera's focus (`EnvironmentDirector.set_target_sea` with
+  the engine's `today`: Hs and its split into wind sea and swell,
+  `SimulationEngine.OpenSeaPartsAt`). `OpenSea.gd` draws the open coast as
+  that sea: the wind sea as the JONSWAP bands of the wind whose open-coast sea
+  has that height (`SeaStateModel.WindForHeight`), scaled to exactly
+  Σa² = wind sea²/8, and a swell on two bands beyond the wind sea's 128 m
+  (280 m and 160 m, `SwellAmplitudes`), each two long-crested Gerstner
+  components (152-168 m, 265-295 m, 6° apart, from the WSW), so across both
+  Σa² = Hs²/8. `water/water_swell.gdshaderinc` adds the swell to the exposed
+  sea only (sheltered amplitude 0; its slope per vertex, the `v_swell`
+  varying) and `WaveField` carries it, so the units heave on it. A new
+  target eases in at 0.6/s; with none the coast is the wind model's and has
+  no swell. The director is the only writer of `swell_k`, `swell_amp` and
+  `swell_peak` (the largest exposed amplitude): a vertex where exposure ×
+  `swell_peak` is under 0.1 mm skips the swell's loops (`swell_skips`, the
+  components' own skip made early), so a game without an offshore unit pays
+  nothing for it (the loops cost +0.2-0.5 ms p50 at 1080p High with every
+  amplitude 0) and one with a unit +0.32-0.36 ms (wave4b int, paired A/B in
+  `docs/run/evidence/f2_21_camera_sea.md`).
+- **The Hs chip.** Each offshore unit carries an Ink chip with the engine's
+  forecast ("Hs 2,4 m · Tp 10 s · i morgen 3,1 m · behandlingsvindu om 3 d")
+  within 1,000 m and wherever fog or sea fog hides it (spec §5.5 rule 2), its
+  status as a colour and a shape, every colour ≥ 20 ΔE off the hull yellow.
+- **First sight.** A variant's first unit in operation plays one sequence
+  of ≤ 20 s (`FirstSightDirector`, `godot/data/first_sight.json`): a 4 s
+  construction timelapse through the presenter's own drawing, then the
+  camera on keys anchored to the unit (land: low over the quay, along the
+  orange bridge to the tanks as their lights come on in a wave, up to the
+  campus's −40° framing, at Blåtime; offshore: from behind the service vessel
+  up to the OF1 framing at the low sun, a wellboat coming in), ending on the
+  camera's own framing, then the card ("Lagre bilde", "Fortsett"). Esc or a
+  click skips it; a repeat gets a toast; reduced motion gets a still and a
+  2 s cross-fade. `CinematicStage` holds the clock and pins the hour, the
+  weather and the mood (`set_mood_hook`), and gives them back as they were
+  (the weather from its snapshot, at once). A sequence waits for an open
+  card or menu (the critical event card, the briefing, the pause menu, the
+  end screen, the inbox: `CinematicStage.blocker`) and for the other
+  cinematic; one that comes up while it plays holds it still, its overlay
+  aside; the overlay holds the game's own keys back as a card does. The
+  presenter's first sync of a new or loaded game is no completion
+  (`SimBridge.get_game_generation`). "Lagre bilde" confirms on the card.
+- **The teaser** (`TeaserDirector`, Første sesong only): once after day 150,
+  while no tutorial step asks anything of the player, a parody rival's OF1-
+  class hull at its transit draft is towed by three anchor tugs past the
+  mouth toward hav_1 (a 13 s telephoto from the strandflat in the morning sun
+  at the camera's back), then a news card that offers "Fortsett" only.
+  Presentation only: the engine state hash is unchanged.
+- **After dark.** The kits' night lights are compensated for the eye's
+  exposure (`night_comp`: the windows kept their brightness instead of
+  blooming at the night's 16×) and can come on in a wave
+  (`light_wave_origin`/`radius`); the lids carry the work-lights' warm pool
+  on their rims. `CampusLights` draws every lamp of a campus as a camera-
+  facing glow (`campus_light_glow.gdshader`: the tanks' rail lamps, the
+  quay's masts, the hall's wall lamps, the bridge's walkway, road masts) and
+  up to six warm pools of light on the ground, whose energy the director
+  writes (`EnvironmentDirector.LIGHT_POOL_GROUP`).
+- **Landmarks at the home view.** By day, from 900 m to 1,800 m, the hull
+  rows and the pale wall and cladding rows keep a share of their own light
+  through haze (`landmark_lift`, gated to transmittance ≥ 0.25-0.5), so the
+  OF1 and the campus read in overcast; in rain, snow and storm the chip
+  carries the read.
+
+Frames and checks: `qa/scenes/ShowcaseCapture.tscn` (shots
+`30_land_campus_day`, `31_land_dusk`, `32_land_construction`,
+`33_offshore_of1_winter_sun`, `35_offshore_storm`,
+`36_home_{overcast,rain,snow,storm}_landmarks`, `34_first_sight_*`,
+`34_teaser_*`; metrics `f2_23_showcase_metrics.json`). Evidence
+`docs/run/evidence/f2_21_camera_sea.md`, `f2_23_first_sight.md`.
+
+## Under the surface (G3-04)
+
+Past the FARM zoom the wheel takes the camera into the water, inside the pen
+nearest its focus. The water is drawn in 3D: no full-screen tint, blur or
+painted caustic (the old `underwater_post.gdshader` is gone).
+
+**The camera.** `UnderwaterView.dive_anchor` (the pen within 120 m of the
+focus) is `FjordCamera.underwater_anchor`. The view stands 5 m down
+(`UNDERWATER_DEPTH`, kept 3-8 m and 4 m over the seabed), 0.72 of the net's
+radius out from the pen's centre (18 m of 24.95, in the school's band), and
+looks across the pen 45 degrees off its centre and 16 degrees up (64 degree
+field of view): the school passes through one side, the net wall and its
+ropes show at the other, Snell's window at the top. Q/E and right-drag turn
+it round the pen, the up and down keys tilt it (60 degrees at most). The dive
+flies to 7 m over its place, then straight down, looking down (eased); the
+way out rises straight up first. In open water it looks at the focus. The
+view dives only where it has water (`FjordCamera.can_dive_at`: in a pen, or
+over at least 7 m of water; over a land pad the wheel stops at FARM), and in
+open water it comes in toward the focus where the seabed rises under it; a
+framing or a hold asked for under water (a facility card, a bookmark, a
+cinematic's hand-back) surfaces first. While the view dives, is under or is
+on its way out, the bird net of the pen it dives into dissolves by the
+camera's place (gone within 30 m of the pen's centre and under 8.5 m, whole
+beyond 45 m or over 25 m: `UnderwaterView.bird_net_shown`, the net's
+`net_opacity`); the dive passed through the roof's threads. Under the surface
+the far plane stands 20x out (the fog's map level sharpens toward it) and the
+ambience follows the camera itself (`is_below_surface`).
+
+**The water is the sim's.** `WaterClarity` (sim, pure: no state, no RNG)
+gives each site's horizontal black-target visibility, 4.8 / α: a Norwegian
+fjord's Secchi depth through the year (OH-10, Hardangerfjorden, 2024) times
+0.75, and the chlorophyll a live algal blooms at the site add (Voss 1992),
+`BALANCE.md` §1ab. `GetSeaSiteDetails` carries `water_visibility_m` and
+`bloom_chlorophyll_ug_l`; `FjordVistaBridge` hands every site's row to
+`UnderwaterView.set_site_waters`, which hands the water at the camera (its
+pen's site, else the nearest site within 1.5 km, else an offshore unit's
+round its plot's slot within 1.5 km, read from `GetAllSeaSiteDetails` at
+most once a second while the view is under water away from the fjord, else
+6 m) to `EnvironmentDirector.set_underwater_water`. A unit's water is the
+sim's, but its climatology is still the fjord's (RUN_LOG §8). The fog density is 4.8 / the drawn
+visibility, `sqrt((1.5 v)^2 + 4.5^2)`: a camera's contrast stretch (1.5) and a
+readable floor, so a 2.3 m bloom still shows the net beside the camera
+(`UnderwaterOptics`). 11's water reads 11.5 m (fog 0.269 /m), 11b's bloom
+2.35 m (0.839 /m).
+
+**The light** (`EnvironmentDirector.underwater_profile`, pure): the sun
+refracted (Snell, n 1.333: a horizon sun shines in at 48.6 degrees from the
+zenith), through the surface by Fresnel, filtered by Beer-Lambert along its
+slant path (σ (0.40, 0.09, 0.14) /m, plus a bloom's (0.16, 0.06, 0.30) × its
+share of 20 µg/L); the sky's light through the surface over a 1.2× longer
+diffuse path. The scene's sun carries the sunlight at the camera's depth,
+pointed along the refracted sun; the ambient light is the water's own light
+field. The water's horizontal radiance is 0.032 × the light at depth × its
+scatter share (green-blue; in a bloom a deep green, hue 133 degrees in 11b:
+the water over the camera has taken the red, which a bloom cannot give back;
+olive is a bloom's look from above), straight down 0.3 of it. The
+eye adapts to the light at depth by (the light just under the surface / the
+light here)^0.7, at most 6×.
+
+**The sky** under water (`sky_shader.gdshader`, `underwater` 1) is that
+light as an exact linear function of the direction
+(`EnvironmentDirector.underwater_sky`): the horizontal radiance, a slope in
+height (the nadir's 0.3) and a slope toward the refracted sun (the sun's
+forward-scattered glow, its cos^4 lobe by its first two spherical harmonics:
+mean 1/10, slope 1/4 of its peak). Fog sky affect 0, aerial perspective 1:
+the fog's colour is the sky's radiance map at its roughest level, and an
+isotropic blur keeps a linear function linear, its slope times one factor,
+so the radiance pass draws the slopes steeper by 1/0.93 (`UW_BLUR_SLOPE`, the
+REALTIME filter's, measured: a black sphere in a fog that hides it wholly
+against the sky alone leaves mean |dL| 0.37 of 255) and a fogged object has
+the colour of the water behind it in every direction: no ghost, no seam. The
+director scales each channel's slopes so the steepened function stays over
+5 % of its mean (nothing clips). Under the surface the sky runs
+`PROCESS_MODE_REALTIME`, so the map (the fog, the ambient light, every
+reflection) is the water's from the first frame; above it the scene's mode
+(incremental, a layer a frame) comes back, rebuilt whole on the switch
+(`_apply_sky_mode`). The stage drew a clamped gradient and a sharp glow
+pre-sharpened for the incremental filter's 0.62, and the incremental map
+held the day's sky for 13 frames after a dive. The reflection probe rests
+(hidden, no capture): nothing mirrors the fjord above.
+
+**The surface from below** (`shaders/water/water_underside.gdshader`): the
+water grid wears it once the camera is 0.6 m down (`WaterGrid.set_underside`).
+Its vertex stage is the water's (`tests/test_underwater.py` holds the copy to
+the original); `cull_front`, unshaded, its own fog. Per pixel: the wave
+normal band-limited to the pixel and the ripples at 0.25 of their slope
+(steeper ones shatter the window), the ray refracted out (Snell's window:
+the sky, the walls round its rim, the sun's disc, radiance n² denser) or
+totally reflected outside 48.6 degrees (the water's own light below: the
+window's tinted ring), mixed by Fresnel taken on the air side, foam lighter,
+the water between veiling it in the sky's linear function: the mirrored water
+at the fog's own attenuation (`underside_fog`: a fogged float in front of it
+then has its colour), the window's light at 0.45 of it, tinted by the
+absorption (a bright source keeps its shape through forward scattering). It
+carries the open sea's swell (F2-21: its vertex stage includes
+`water_swell.gdshaderinc`, the director copies the swell's uniforms). 11c
+measures the window at 2.12× the surface outside it, the TIR ring green
+over red.
+
+**On the net, the collar and the fish** (`shaders/include/underwater_light.gdshaderinc`,
+globals `lk_uw*` in `project.godot`, written only by the director):
+`uw_depth_light` filters the sun from the camera's depth to the surface's
+(red goes first); `uw_caustic_light` adds the caustics: the sunlight × (i − 1)
+where the loop of frames puts it (Godot folds the BRDF's 1/π into a light's
+energy: measured, a light of 0.25 lights a white Lambert quad to 0.2502), on
+surfaces facing the refracted sun, projected along it to the surface, in
+3.4 m cells that grow 7 %/m and soften with depth and fade over 9 m; none
+with the sun under 4-18 degrees, under a closing deck or a glassy sea. The
+frames: `tools/gen_caustics.py` refracts 768² vertical rays through a
+periodic field of short waves (|k| 2-11 a tile, RMS slope 0.075) and bins
+them on a plane 0.9 tiles down, 32 frames of 256², a 9 s loop, seamless in
+space and time (every wave turns whole cycles), texel = I / 4 (mean 1). The
+net's threads take the sun on their tops under water (the normal tilted 0.7
+toward up; above water unchanged), and a thread's lit top takes the
+caustics at an albedo of at least 0.05 (`UW_THREAD_CAUSTIC_ALBEDO`, art
+direction: the coated net is 0.016, which moved about one level of 255; the
+mean light is unchanged, the caustics add sunlight × (i − 1)). With time
+stopped, 0.5 s on the caustics' clock moves the clean net's pixels by mean
+|dL| 0.0083 (p99 6, at most 19 levels), the fouled net's by 0.0088,
+nothing with them held off.
+
+**Fouling.** `pen_net_shader`'s `net_fouling` instance uniform is the site's
+net condition from the sim (`FarmSite.net_fouling_for`: `net_integrity` 100
+clean, 60 and below fully fouled; the sim has no fouling of its own and its
+ROV restores the same number). The growth is under the surface only, deeper
+as it grows (to 18 m), patchy (0.55-1 round the pen): the tile's thread
+coverage spread over 3 mips, reached 0-2× by three octaves of clumps, cut at
+a threshold falling with the fouling: ragged tufts, then the mesh closes; a
+fully fouled tile covers 2.35× the clean 0.15 (Gansel et al. 2015 measured a
+0.20 net reach 0.50 in ten weeks); olive-tan; past the spread's mip it gives
+way to its mean. 11e is 11d fouled (41 % of the frame changes).
+
+**Shafts and snow** (`UnderwaterView`, presenter: they read the director's
+composition and write nothing else). Shafts: one additive quad a 3 m world
+cell (hashed, so a shaft stays put), within 16 m of the camera, 0.2-1.8 m
+wide and 8-22 m long along the refracted sun, flickering slowly; 5× the
+water's horizontal light at their core, fading at 0.45 of the fog's
+attenuation, brighter seen toward the sun; none with a low sun or a closed
+deck. Art direction: a beam 5 m off in 12 m water holds 6 % contrast.
+Marine snow: 4000 flakes of 3 cm in an 8 × 5 × 8 m box round the camera,
+sinking and drifting, 0.16 of the light at depth, 0.55 of them in clear
+water; the snow is simulated at 10 steps a second, interpolated, so a dive
+fills its box at once in 120 steps (at 30 a second the restart held the
+crossing's frame 100 ms). The lens (`underwater_lens.gdshader`,
+`UnderwaterCanvas`): a 0.32 vignette under water and a 0.45 s veil in the
+water's colour as the screen shows it (the sky's horizontal water light at
+the exposure, both ways) as the camera crosses the surface; on the way up it
+comes up over the last 0.8 m below 0.6 m, where the grid wears the water
+material's own flat underside; it reads no screen texture. Rain and snow stop
+and hide under the surface (`WeatherController.set_submerged`).
+
+**The fish** under water show within 5 optical depths of the fog plus the
+school's ring (`FishSchool.underwater_reach_m`, 40 m in 11's water): the
+schools beyond it are not drawn. 11's school changes 2.9-3.3 % of the frame.
+
+**The shots** (`--only=underwater`, `UnderwaterShots.gd`, a JSON report
+`11_underwater.json`): 11 (noon, clear, the first stocked pen), 11c (tilted
+45 degrees up), 11b (a QA bloom of 0.8 at the site), 11d (2.6 m from the net
+at 4 m, facing away from the sun: the sun-side wall lies in the collar's and
+walkway's shadow down to ~5 m at noon) and 11e (11d fouled). The checks: 11
+at 3-8 m inside the net; the window over the TIR ring (≥ 1.8×, tinted); the
+bloom's fog over the clear water's; fish ≥ 1 %; with time stopped (the
+floating pen stays where the net's mask was taken, and a run's frame pacing
+cannot move it) 0.5 s on the caustics' clock moves the clean net ≥ 0.007,
+the fouled net ≥ 0.005 and, held off, ≤ 0.0005; the fouling ≥ 10 % of the
+frame; a dive stepped at 60 Hz shows, in its 20 frames after the crossing,
+the lower frame within 12 levels of the settled view and 8 a step; in 11's
+framing (fish and effects off, time stopped) hiding the terrain and every
+mesh past the fog's 1 % transmittance changes p99 at most 2 levels and 0.2 %
+of the pixels by more than 3. The caustics' frame pairs go to
+`screenshots/game/underwater_motion/`.
+
+Cost (`tools/perf_smoke.sh --segments=farm,underwater`, the new
+`underwater` segment run only when named; 2560×1440 High, M1 Pro, load 9-14,
+three interleaved repeats): the underwater view p50 14.4 ms, p95 15.2 ms,
+against FARM's 20.3 / 23.3 ms in the same run (the fog hides the world: 266
+draws against 310, 75 shadow draws against 107); the shafts and the snow
+cost 0.66 ms p50 (paired ratio 0.952 with the view hidden). The REALTIME
+sky under water: +0.34 ms p50 (14.66 against 14.32 ms with the incremental sky staged, paired ratio 0.977; p95 15.34 ms at 2560×1440 High, budget 16.7; `perf/perf_wave4b_int_uw_sky_ab.md`). Evidence:
+`docs/run/evidence/g3_04/README.md`, `wave4b_int_gfx_polish_2.md`.
+
 ## Image pipeline (G1-06, post and anti-aliasing)
 
 MSAA 4× plus SMAA (`screen_space_aa = 2`); no tilt-shift pass (removed with
@@ -770,13 +1250,18 @@ runs, the cost breakdown and the frames.
 | `shaders/vegetation_shader.gdshader` | birch and spruce MultiMeshes (`Vegetation.gd`) |
 | `shaders/water_shader.gdshader` (+ `shaders/water/water_mirror.gdshaderinc`) | `WaterGrid` |
 | `shaders/water/wake_shader.gdshader` | `VesselWakes` ribbons |
-| `shaders/sky_shader.gdshader` | `WorldEnvironment` sky |
+| `shaders/sky_shader.gdshader` | `WorldEnvironment` sky (under the surface the water's linear light, REALTIME: G3-04) |
 | `shaders/water/water_mood.gdshaderinc` | the water: frost smoke, cloud shadows, pen lamps (G3-05) |
 | `shaders/mist_bank.gdshader` | `MistBanks` (low cloud on the walls, G3-05) |
 | `shaders/rain_streak.gdshader` | the rain particles (streaks along the wind, G3-05) |
 | `shaders/world_chip.gdshader` | `VesselChip` status pills |
-| `shaders/underwater_post.gdshader` | `UnderwaterCanvas` |
+| `shaders/underwater_lens.gdshader` | `UnderwaterCanvas` (the lens, G3-04) |
+| `shaders/water/water_underside.gdshader` | `WaterGrid` under the surface (G3-04) |
+| `shaders/include/underwater_light.gdshaderinc` (in `pen_net_shader`, `pen_collar_shader`, `salmon_school`) | the light at depth and the caustics (G3-04) |
+| `shaders/underwater/light_shaft.gdshader`, `shaders/underwater/marine_snow.gdshader` | `UnderwaterView`'s shafts and snow (G3-04) |
 | `shaders/pen_*.gdshader`, `salmon_skin.gdshader` | pen and fish assets |
 | `shaders/fish_school.gdshaderinc` (in `salmon_school`, `fish_shoal`) | the salmon schools (G3-01) |
 | `shaders/light_glow.gdshaderinc` (in `mooring_light_glow`, `vessel_light_glow`) | night lights and their glitter |
 | `shaders/site_float.gdshaderinc` (in `feed_hose`, `mooring_buoy`, `mooring_lamp`, `mooring_light_glow`, `mooring_rope`, `site_kit_float`) | the site's floating gear |
+| `shaders/facility_kit.gdshader`, `shaders/facility_kit_build.gdshader` (+ `shaders/include/facility_kit_body.gdshaderinc`) | the land kit (`LK_FacilityKit`; its double-sided twin `LK_FacilityKitBuild` for shells under construction, F2-20) |
+| `shaders/offshore_kit.gdshader` | the OF1-class unit's solids (`LK_OffshoreKit`, F2-26) |

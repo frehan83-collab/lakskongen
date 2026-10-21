@@ -215,7 +215,12 @@ static func _rail_tab(t: Theme, c: _Ctx) -> void:
 ## padded body), "CardPadded"/"CardCompact"/"Tile" pad their content.
 static func _panel_variations(t: Theme, c: _Ctx) -> void:
 	var md := float(c.space("md"))
-	var ink := palette(c.tokens, "ink")
+	# Glass, Rail, Chip and the toasts are Ink on every surface; high-contrast
+	# Ink (opaque, a hairline at least 3:1) on the high-contrast ones.
+	var ink := ink_palette_for(c.tokens, c.surface)
+	var edge_alpha := 1.0 if c.high_contrast else 0.8
+	var toast_alpha := 1.0 if c.high_contrast else 0.97
+	var toast_edge_alpha := 1.0 if c.high_contrast else 0.55
 	var add := func(name: String, sb: StyleBox) -> void:
 		t.set_type_variation(name, "PanelContainer")
 		t.set_stylebox("panel", name, sb)
@@ -250,7 +255,7 @@ static func _panel_variations(t: Theme, c: _Ctx) -> void:
 	add.call("Rail", rail)
 	add.call("Plain", _empty())
 	# A small Ink glass chip for hints drawn straight over the 3D world.
-	var chip := _bordered(ink["glass"], Color(ink["hairline"], 0.8), 1, c.radius("lg"), 5.0, 12.0)
+	var chip := _bordered(ink["glass"], Color(ink["hairline"], edge_alpha), 1, c.radius("lg"), 5.0, 12.0)
 	add.call("Chip", chip)
 	for tone in TONES:
 		var key: String = TONE_KEYS[tone]
@@ -270,7 +275,7 @@ static func _panel_variations(t: Theme, c: _Ctx) -> void:
 		add.call("Callout" + tone, callout)
 		# Toasts: raised Ink glass with a tone accent edge (Ink in both themes).
 		var toast_tone: Color = ink[key] if tone != "" else ink["info"]
-		var toast := _bordered(Color(ink["raised"], 0.97), Color(toast_tone, 0.55), 1, c.radius("md"), 10.0, 14.0)
+		var toast := _bordered(Color(ink["raised"], toast_alpha), Color(toast_tone, toast_edge_alpha), 1, c.radius("md"), 10.0, 14.0)
 		toast.border_width_left = 4
 		_shadow(toast, Color.BLACK, 0.35, 12, 4.0)
 		add.call("Toast" + tone, toast)

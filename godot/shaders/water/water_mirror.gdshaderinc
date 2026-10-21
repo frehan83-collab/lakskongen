@@ -62,11 +62,18 @@ vec4 planar_sample(vec3 flat_point, vec3 view_w, vec3 n, float roughness) {
 	r.y = max(r.y, 0.02);
 	vec2 uv_flat = planar_uv_of_point(flat_point);
 	vec2 uv = uv_flat + (planar_uv_of_dir(r) - uv_flat) * planar_distort;
+	// The mirror's view is the camera's, mirrored: it covers the screen
+	// exactly, so a lookup leaves it only where a ripple pushes it past a
+	// screen edge. There the edge's texels hold (the texture clamps), and the
+	// mirror fades out over PLANAR_EDGE beyond it (gfx-polish-1: the fade
+	// ran inside the edges, and calm water showed a strip of sky reflection
+	// down both sides of the screen, shot 18).
 	vec2 edge = min(uv, 1.0 - uv);
-	w *= smoothstep(0.0, PLANAR_EDGE, min(edge.x, edge.y));
+	w *= 1.0 - smoothstep(0.0, PLANAR_EDGE, -min(edge.x, edge.y));
 	if (w <= 0.0) {
 		return vec4(0.0);
 	}
+	uv = clamp(uv, vec2(0.0), vec2(1.0));
 	// A slightly rough surface smears the mirror, mostly along the view
 	// (vertical streaks on the screen): a short vertical tap row.
 	float spread = smoothstep(0.035, PLANAR_ROUGH_TO, roughness) * 0.025;

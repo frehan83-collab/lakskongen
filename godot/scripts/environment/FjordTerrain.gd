@@ -40,6 +40,9 @@ signal far_field_ready
 
 const BRIDGE_PATH := "res://scripts/environment/TerrainGeneratorBridge.cs"
 const TERRAIN_SHADER := "res://shaders/terrain_shader.gdshader"
+## The chunks' CUSTOM0 array (TerrainMesh.Chunk.Macro): four floats a vertex
+## (gfx-polish-1). ShaderPrewarm warms the terrain with the same format.
+const MACRO_FORMAT_FLAGS := Mesh.ARRAY_CUSTOM_RGBA_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM0_SHIFT
 ## Main-thread time per frame for chunk uploads (a chunk costs 0.2-1 ms on an
 ## idle M1 Pro, more under load).
 const CHUNK_FRAME_BUDGET_MS := 4.0
@@ -103,6 +106,16 @@ var _material: ShaderMaterial
 var _gen_thread: Thread = null
 var _water_bake_image: Image = null
 var _requested: Array[String] = []
+## F2-19: pad id -> state (0 heath, 1 blasted granite) for the shader's pad
+## splat; pads never set stay heath.
+var _pad_states: Dictionary = {}
+var _pad_cache: Array = []
+var _pad_blasts: Dictionary = {}
+## How many times the pads were computed (once per generation; the
+## presenter's checks hold it there).
+var pad_slot_computations := 0
+## Most pads the terrain shader paints (its pad_rects[] size).
+const MAX_SHADER_PADS := 4
 
 
 func _ready() -> void:
@@ -121,6 +134,7 @@ func generate_terrain() -> void:
 	_finish_thread()
 	if not _ensure_generator():
 		return
+	_pad_cache = []
 	_request_resources()
 	_gen_thread = Thread.new()
 	var err := _gen_thread.start(_thread_build)
@@ -344,8 +358,15 @@ func _chunk_instance(chunk: Dictionary, instance_name: String) -> MeshInstance3D
 	arrays[Mesh.ARRAY_TEX_UV] = chunk["uvs"]
 	arrays[Mesh.ARRAY_COLOR] = chunk["colors"]
 	arrays[Mesh.ARRAY_INDEX] = chunk["indices"]
+	# CUSTOM0: the ground's slope and cavity without the wall ledges'
+	# terraces and the ledges' strength (the terrain shader's masks where a
+	# terrace is small on screen, gfx-polish-1).
+	var flags := 0
+	if chunk.has("custom0"):
+		arrays[Mesh.ARRAY_CUSTOM0] = chunk["custom0"]
+		flags = MACRO_FORMAT_FLAGS
 	var mesh := ArrayMesh.new()
-	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays, [], {}, flags)
 	var instance := MeshInstance3D.new()
 	instance.name = instance_name
 	instance.mesh = mesh
@@ -403,7 +424,64 @@ func _create_terrain_material() -> Material:
 	else:
 		push_warning("[FjordTerrain] Missing terrain textures: %s — palette only" % ", ".join(missing))
 		_material.set_shader_parameter("use_textures", 0.0)
+	_apply_pads()
 	return _material
+
+
+## F2-19: the land pads' rectangles and states into the terrain shader (the
+## generator carves the same pads into the heightfield).
+func _apply_pads() -> void:
+	if _material == null:
+		return
+	# The pads are fixed for the generator's settings (and computing their
+	# intake reach walks the grid): read them once.
+	if _pad_cache.is_empty():
+		land_pad_slots()
+	var pads := _pad_cache
+	var rects := PackedVector4Array()
+	var states := PackedFloat32Array()
+	var blasts := PackedVector4Array()
+	var rim := 30.0
+	for pad: Dictionary in pads.slice(0, MAX_SHADER_PADS):
+		var c: Vector3 = pad["centre"]
+		var size: Vector2 = pad["size"]
+		rects.append(Vector4(c.x, c.z, size.x * 0.5, size.y * 0.5))
+		states.append(float(_pad_states.get(str(pad["id"]), 0.0)))
+		blasts.append(_pad_blasts.get(str(pad["id"]), Vector4.ZERO))
+		rim = float(pad.get("rim_m", rim))
+	while rects.size() < MAX_SHADER_PADS:
+		rects.append(Vector4.ZERO)
+		states.append(0.0)
+		blasts.append(Vector4.ZERO)
+	_material.set_shader_parameter("pad_rects", rects)
+	_material.set_shader_parameter("pad_state", states)
+	_material.set_shader_parameter("pad_blast", blasts)
+	_material.set_shader_parameter("pad_count", mini(pads.size(), MAX_SHADER_PADS))
+	_material.set_shader_parameter("pad_rim_m", rim)
+
+
+## F2-19: paint a land pad as heath (0, unbuilt), blasted granite (1) or the
+## blast spreading across it (between). F2-20: `blast` (x0, z0, x1, z1, world
+## metres) limits the granite to the ground a campus builds on; zero blasts
+## the whole pad. The heightfield never changes.
+func set_pad_state(pad_id: String, state: float, blast: Vector4 = Vector4.ZERO) -> void:
+	var s := clampf(state, 0.0, 1.0)
+	if _pad_states.has(pad_id) and is_equal_approx(float(_pad_states[pad_id]), s) \
+			and (_pad_blasts.get(pad_id, Vector4.ZERO) as Vector4).is_equal_approx(blast):
+		return
+	_pad_states[pad_id] = s
+	_pad_blasts[pad_id] = blast
+	_apply_pads()
+
+
+## The state a pad is painted with (0 heath .. 1 blasted granite).
+func get_pad_state(pad_id: String) -> float:
+	return float(_pad_states.get(pad_id, 0.0))
+
+
+## The rectangle a pad's blast is limited to (zero: the whole pad).
+func get_pad_blast(pad_id: String) -> Vector4:
+	return _pad_blasts.get(pad_id, Vector4.ZERO)
 
 
 ## Queue the shader and detail textures on the loader threads while the
@@ -479,11 +557,16 @@ func far_field_half_extent() -> float:
 
 
 ## The land pads reserved for land-based farms (farm-types spec §4): an Array
-## of {id, name, centre, size, lots, quay, intake_reach_m}.
+## of {id, name, centre, size, lots, quay, intake_reach_m}. Computed once per
+## generation (the intake reach walks the grid round each quay, ~21 ms) and
+## handed out as copies: the presenter and the shader read the same pads.
 func land_pad_slots() -> Array:
-	if _generator == null and not _ensure_generator():
-		return []
-	return _generator.call("LandPadSlots")
+	if _pad_cache.is_empty():
+		if _generator == null and not _ensure_generator():
+			return []
+		_pad_cache = _generator.call("LandPadSlots")
+		pad_slot_computations += 1
+	return _pad_cache.duplicate(true)
 
 
 ## The open-sea slots reserved for offshore units (spec §4): an Array of

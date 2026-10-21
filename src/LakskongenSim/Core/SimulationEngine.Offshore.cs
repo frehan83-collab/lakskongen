@@ -164,6 +164,18 @@ public partial class SimulationEngine
         string refusal = OffshoreBuildRefusal(plotId, type, equityShare, out var plot);
         if (refusal.Length > 0)
             return CommandResult.Fail(refusal, $"Cannot build a {type} unit on '{plotId}': {refusal}");
+        return ContractOffshoreUnit(plot!, type, contract, equityShare);
+    }
+
+    /// <summary>
+    /// The contract of an offshore unit whose plot, class, gates and award
+    /// have been checked (<see cref="BuildOffshoreUnit"/>; F2-20's QA staging
+    /// seam with the unlock gates waived): the signing payment, the site, the
+    /// construction project, the award's licences bound to it.
+    /// </summary>
+    private CommandResult ContractOffshoreUnit(SitePlot plot, OffshoreType type, ContractForm contract, double equityShare)
+    {
+        string plotId = plot.Id;
         var preview = PreviewOffshoreBuild(plotId, type, contract, equityShare);
         if (!preview.Affordable)
             return CommandResult.Fail(OffshoreReasons.InsufficientFunds,

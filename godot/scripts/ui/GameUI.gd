@@ -107,8 +107,12 @@ func _input(event: InputEvent) -> void:
 	if not visible:
 		return
 	
-	# ESC closes current panel, returns to Dashboard
+	# ESC closes current panel, returns to Dashboard. A card open over the 3D
+	# world (FacilityWorldCard) closes first: the topmost thing goes first.
 	if event.is_action_pressed("ui_cancel"):
+		if _close_world_card():
+			get_viewport().set_input_as_handled()
+			return
 		if _active_tab_id != "dashboard":
 			_switch_to_tab("dashboard")
 			get_viewport().set_input_as_handled()
@@ -130,6 +134,17 @@ func _input(event: InputEvent) -> void:
 				_focus_panel_for_keyboard(tab.id)
 				get_viewport().set_input_as_handled()
 				return
+
+## Close a card shown over the 3D world (FacilityWorldCard.WORLD_CARD_GROUP);
+## true when one was open. The world nodes sit before this UI in the tree,
+## so their own _input would see Esc only after GameUI had taken it.
+func _close_world_card() -> bool:
+	for node in get_tree().get_nodes_in_group(FacilityWorldCard.WORLD_CARD_GROUP):
+		var card := node as CanvasItem
+		if card != null and card.is_visible_in_tree() and card.has_method("close"):
+			card.call("close")
+			return true
+	return false
 
 # ── Tab Registration ──────────────────────────────────────────────────────────
 

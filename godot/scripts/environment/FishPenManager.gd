@@ -385,7 +385,7 @@ func _apply_site_data(pen_id: String, site: Dictionary) -> void:
 		farm.set_ghost(false)
 		_set_site_extras_visible(pen_id, true)
 	farm.label.text = _site_string(site, ["name", "pen_name", "id"], pen_id)
-	farm.set_lice_skirt(bool(site.get("has_skirt", false)))
+	farm.apply_site_kit(site)
 	var states := []
 	for k in farm.pen_count:
 		var pen := pen_payload(site, k, farm.pen_count)

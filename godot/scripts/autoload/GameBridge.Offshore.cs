@@ -116,7 +116,10 @@ public partial class GameBridge : Node
     /// window board, spec §6.5). Keys: "ok" (false for a site that is no
     /// offshore unit or before the game has an open sea), "site_id",
     /// "plot_id", "issued_day", "today" { "hs", "tp", "swell_hs",
-    /// "visibility_km", "wind_ms" }, "design_hs", "limits" { row → Hs limit in m,
+    /// "visibility_km", "wind_ms", and F2-21's split of today's sea as the
+    /// renderer draws it: "wind_sea_hs", "swell_total_hs" (background and
+    /// storm swell in energy; wind_sea_hs² + swell_total_hs² = hs²),
+    /// "swell_tp" }, "design_hs", "limits" { row → Hs limit in m,
     /// -1 when no sea state stops it }, "rows" (the board rows in order),
     /// "days" [ { "day", "lead", "hs_p10", "hs_p50", "hs_p90",
     /// "p_ok" { row → probability }, "unresolved" } ], "known_swell" [ {
@@ -132,6 +135,7 @@ public partial class GameBridge : Node
         result["ok"] = true;
         result["plot_id"] = view.PlotId;
         result["issued_day"] = view.IssuedDay;
+        var parts = SimulationEngine.OpenSeaPartsAt(view.SiteId);
         result["today"] = new Godot.Collections.Dictionary
         {
             ["hs"] = view.HsTodayM,
@@ -139,6 +143,9 @@ public partial class GameBridge : Node
             ["swell_hs"] = view.SwellHsTodayM,
             ["visibility_km"] = view.VisibilityKm,
             ["wind_ms"] = view.WindMs,
+            ["wind_sea_hs"] = parts?.WindSeaHsM ?? view.HsTodayM,
+            ["swell_total_hs"] = parts?.SwellHsM ?? 0.0,
+            ["swell_tp"] = parts?.SwellTpS ?? 0.0,
         };
         result["design_hs"] = view.DesignHsM;
         var limits = new Godot.Collections.Dictionary();

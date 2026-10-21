@@ -10,6 +10,9 @@ render_mode cull_back, diffuse_burley, specular_schlick_ggx;
 // water it draws the whole school at its true size. fish_shoal.gdshader is
 // the school seen through the surface.
 #include "res://shaders/fish_school.gdshaderinc"
+// Under the water (G3-04): the light of the fish's depth and the caustics'
+// moving network on its back and flanks.
+#include "res://shaders/include/underwater_light.gdshaderinc"
 
 uniform sampler2D skin : source_color, hint_default_white, filter_linear_mipmap_anisotropic;
 uniform float metallic_low : hint_range(0.0, 1.0) = 0.15;
@@ -47,7 +50,10 @@ void vertex() {
 
 void fragment() {
 	vec4 c = texture(skin, UV);
-	ALBEDO = c.rgb;
+	vec3 world = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	vec3 normal_world = normalize((INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz);
+	ALBEDO = c.rgb * uw_depth_light(world.y);
+	EMISSION = uw_caustic_light(world, normal_world, c.rgb);
 	METALLIC = mix(metallic_low, metallic_high, c.a);
 	ROUGHNESS = mix(roughness_high, roughness_low, c.a);
 	SPECULAR = 0.6;

@@ -39,9 +39,12 @@ const SALMON_LOD_SCENES := [
 const SCHOOL_MATERIAL := preload("res://assets/models/fish/salmon_school_material.tres")
 const SHOAL_MATERIAL := preload("res://assets/models/fish/fish_shoal_material.tres")
 ## Camera distance (m) where the solid school swaps LOD0 for LOD1, and where
-## the shoal swaps LOD1 fish for LOD2.
+## the shoal swaps LOD1 fish for LOD2. The shoal draws blurred dark shapes
+## under the water: at 30 m a fish is ~35 px long and 42 triangles hold its
+## outline (gfx-polish-1: within 90 m the LOD1 salmon, ~170 vertices a fish
+## and 4,000 fish a pen, cost ~1.5 ms at FARM for no visible difference).
 const LOD_SWITCH := 20.0
-const SHOAL_LOD_SWITCH := 90.0
+const SHOAL_LOD_SWITCH := 30.0
 ## Fish are drawn within this camera distance (m); the pen's water column
 ## (a stocked pen's colour) within COLUMN_RANGE_M.
 const FISH_RANGE_M := 400.0
@@ -106,6 +109,13 @@ const BODY_LENGTH_STEP_M := 0.005
 const BODY_STOCK_STEP := 0.01
 ## Writes of a school's body uniforms since launch (tests count them).
 static var body_writes := 0
+## Under the water (G3-04) a school is drawn only while the camera is within
+## underwater_reach_m of its pen: the distance at which the fog has an
+## optical depth of UNDERWATER_REACH_OPTICAL (e^-5: 0.7 % of a fish's light
+## left), plus the school's radius. sync() sets it from the fog the
+## director composed (above water it is FISH_RANGE_M).
+const UNDERWATER_REACH_OPTICAL := 5.0
+static var underwater_reach_m := FISH_RANGE_M
 
 static var _salmon_meshes: Dictionary = {}  # lod -> Mesh
 static var _shoal_meshes: Dictionary = {}  # lod -> ArrayMesh
@@ -392,7 +402,10 @@ static func animate(school: MultiMeshInstance3D, delta: float, cam: Camera3D) ->
 	st["near"] = near
 	var underwater := cam != null and cam.global_position.y < 0.0
 	var count: int = st["count"]
-	_set_visible(school.multimesh, (count if underwater else mini(JUMPERS, count)) if near else 0)
+	# Under the water (G3-04) the fog hides a school beyond the water's reach
+	# (underwater_reach_m): only the schools the camera can see are drawn.
+	var seen := near and (not underwater or dist < underwater_reach_m)
+	_set_visible(school.multimesh, (count if underwater else mini(JUMPERS, count)) if seen else 0)
 	var shoal := shoal_of(school)
 	if shoal != null:
 		_set_visible(shoal.multimesh, maxi(count, 1) if near else 1)
@@ -467,6 +480,7 @@ static func sync(water: ShaderMaterial, fog_density: float) -> void:
 	SHOAL_MATERIAL.set_shader_parameter("absorption", optics[0])
 	SHOAL_MATERIAL.set_shader_parameter("deep_scatter", optics[1])
 	SHOAL_MATERIAL.set_shader_parameter("fog_density", fog_density)
+	underwater_reach_m = minf(UNDERWATER_REACH_OPTICAL / maxf(fog_density, 1e-4) + SCHOOL_OUTER_M, FISH_RANGE_M)
 
 
 ## [absorption, deep scatter] of the water material now (the shader's

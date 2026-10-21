@@ -33,6 +33,8 @@ ToastNotification="*res://scripts/ui/ToastNotification.gd"
 LakskongenTheme="*res://theme/default_theme.gd"
 AudioController="*res://scripts/AudioController.gd"
 MusicLibrary="*res://scripts/MusicLibrary.gd"
+SettingsApplier="*res://scripts/autoload/SettingsApplier.gd"
+SaveThumbnails="*res://scripts/autoload/SaveThumbnails.gd"
 TutorialState="*res://scripts/autoload/TutorialState.gd"
 ConsequenceDirector="*res://scripts/ui/ConsequenceDirector.gd"
 AchievementManager="*res://scripts/autoload/AchievementManager.gd"
@@ -109,6 +111,12 @@ toggle_pause={
 ]
 }
 
+camera_bookmark={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":71,"key_label":0,"unicode":103,"location":0,"echo":false,"script":null)
+]
+}
+
 [internationalization]
 
 locale/translations=PackedStringArray("res://translations/translations.en.translation", "res://translations/translations.nb.translation")
@@ -168,4 +176,24 @@ lk_cloud_shadow_sun={
 lk_cloud_shadow_darken={
 "type": "float",
 "value": 0.0
+}
+lk_uw={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}
+lk_uw_sun={
+"type": "vec3",
+"value": Vector3(0, 1, 0)
+}
+lk_uw_light={
+"type": "vec3",
+"value": Vector3(0, 0, 0)
+}
+lk_uw_sigma={
+"type": "vec3",
+"value": Vector3(0.4, 0.09, 0.14)
+}
+lk_uw_caustics={
+"type": "sampler2DArray",
+"value": "res://assets/textures/water/caustics_frames.png"
 }

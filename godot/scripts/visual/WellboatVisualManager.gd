@@ -200,6 +200,10 @@ func _spawn_wellboat(job_id: String, site_id: String, kind: String, due_day: int
 	var chip := VesselChip.new()
 	parts.boat.add_child(chip)
 	chip.position = parts.boat.get_chip_anchor() if parts.boat.has_method("get_chip_anchor") else Vector3(0, 24, 0)
+	# Au2-01: the main engine, propeller and wash ride with the boat.
+	var audio := get_node_or_null("/root/AudioController")
+	if audio != null and audio.has_method("attach_loop"):
+		audio.attach_loop(parts.boat, "boat_engine")
 
 	_active_wellboats[job_id] = {
 		"boat": parts.boat,

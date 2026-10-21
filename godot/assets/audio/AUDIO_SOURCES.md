@@ -1,455 +1,141 @@
-# Audio Asset Sourcing Guide for Lakskongen
-
-**Project:** Lakskongen - Salmon Farming Simulator  
-**Engine:** Godot 4 + C#, .NET 8  
-**Task:** T65 - Audio Asset Sourcing  
-**Status:** Documentation Complete (27/27 assets sourced)  
-**Date:** 2026-03-15
-
----
-
-## Executive Summary
-
-All 27 required audio files have been sourced from free/CC0 libraries. This document provides direct download links, license information, and implementation guidance for the audio team.
-
-**Key Sources Used:**
-- **Kenney.nl** - CC0 UI sounds (comprehensive, Godot-optimized)
-- **Freesound.org** - CC0/CC-BY ambient and SFX
-- **Incompetech.com** - Royalty-free music by Kevin MacLeod
-- **Purple Planet Music** - Free royalty-free ambient music
-- **Mixkit.co** - CC0 alerts and notifications
-- **Sonniss GDC Bundles** - Professional game audio (7.47GB+ available)
-
----
-
-## 1. UI Sounds (6 files)
-
-### Source: Kenney.nl UI Audio Pack
-**License:** CC0 1.0 Universal (Public Domain)  
-**URL:** https://kenney.nl/assets/ui-audio  
-**Download:** https://kenney.nl/media/pages/assets/ui-audio/e19c9b1814-1677590494/kenney_ui-audio.zip  
-**Count:** 50 UI sound effects (WAV format)
-
-**Specific Files Needed:**
-1. **button_click.wav** - Available in pack (multiple variations)
-2. **button_hover.wav** - Available in pack (multiple variations)
-3. **notification.wav** - Available in pack
-4. **panel_open.wav** - Available in pack (switch/click sounds)
-5. **panel_close.wav** - Available in pack (switch/click sounds)
-6. **error.wav** - Available in pack (error/negative sounds)
-
-**Alternative Source:** Kenney Interface Sounds  
-**URL:** https://kenney.nl/assets/interface-sounds  
-**Download:** https://kenney.nl/media/pages/assets/interface-sounds/d23a84242e-1677589452/kenney_interface-sounds.zip  
-**Count:** 100 interface sound effects (OGG format)
-
-**Notes:**
-- Files are pre-converted to WAV for lower CPU usage in Godot
-- Kenney UI Audio pack is available as Godot Asset Library plugin: https://godotengine.org/asset-library/asset/796
-- All sounds normalized and game-ready
-- No attribution required (CC0)
-
----
-
-## 2. Alert SFX (5 files)
-
-### Primary Source: Mixkit + Freesound
-**License:** CC0 / Royalty-free  
-
-**Alert Sounds:**
-
-1. **lice_alert.wav**
-   - Source: Mixkit Alerts
-   - URL: https://mixkit.co/free-sound-effects/alerts/
-   - Suggested: "Urgent notification alert" or "Warning alert"
-   - License: Free for commercial use
-
-2. **disease_alert.wav**
-   - Source: Freesound.org (search: "alert warning")
-   - URL: https://freesound.org/browse/tags/alert/
-   - License: CC0/CC-BY (check individual files)
-   - Alternative: Mixkit "System alert notification"
-
-3. **harvest_stinger.wav** (U2-05; replaced harvest_ready.wav)
-   - Source: generated in the repository by `tools/gen_harvest_stinger.py`
-     (a rising D-major figure on a struck-wood voice, a low hull knock, a
-     ringing bell chord; sines and seeded noise, deterministic)
-   - License: original work of the project, no third-party material
-
-4. **financial_crisis.wav**
-   - Source: Mixkit Alerts
-   - URL: https://mixkit.co/free-sound-effects/alerts/
-   - Suggested: "Critical error alert" or "Emergency alarm"
-   - License: Free for commercial use
-
-5. **achievement_unlock.wav**
-   - Source: Freesound.org
-   - Search: "achievement unlock game"
-   - Example: https://freesound.org/ (search required)
-   - License: CC0/CC-BY
-   - Alternative: Mixkit "Success chime"
-
-**Additional Resource:**
-- ZapSplat UI Alerts: https://www.zapsplat.com/sound-effect-category/alerts-and-prompts/
-- 160,000+ free professional sounds
-
----
-
-## 3. Music (6 files)
-
-### Primary Sources: Incompetech + Purple Planet Music
-
-**License Notes:**
-- Incompetech: CC-BY 4.0 (requires attribution: "Music by Kevin MacLeod")
-- Purple Planet: Free for YouTube/social, commercial license available
-
-### 3.1 Main Theme
-
-**main_theme.ogg**
-- Source: Purple Planet Music
-- URL: https://www.purple-planet.com/
-- Category: Browse "Calm" or "Ambient" tracks
-- Suggested tracks: Search for "calm sea" or "ocean" themes
-- License: Free for YouTube/games with attribution
-- Format: Download as MP3, convert to OGG
-
-**Alternative:**
-- Incompetech - "With the Sea" (ISRC: USUAN1100008)
-- URL: https://incompetech.com/music/royalty-free/music.html
-- License: CC-BY 4.0
-
-### 3.2 Ambient Music
-
-**calm_sea.ogg**
-- Source: Purple Planet Music
-- Suggested: "Ocean" or "Water" category
-- License: Free with attribution
-- Alternative: Incompetech "Meditation" genre
-
-**spring.ogg, summer.ogg, autumn.ogg, winter.ogg**
-- Source: Incompetech (Kevin MacLeod)
-- URL: https://incompetech.com/music/royalty-free/music.html
-- Search by genre: "Ambient" or filter by "Calming" feel
-- URL (full catalog): https://incompetech.com/music/royalty-free/full_list.php
-
-**Suggested Incompetech Tracks:**
-- Spring: Search "Nature" or "Optimistic" ambient
-- Summer: Search "Bright" or "Relaxed" ambient
-- Autumn: Search "Mellow" or "Reflective" ambient
-- Winter: Search "Winter" or "Cold" - try "Winter Chimes" (USUAN1100009)
-
-**License:** CC-BY 4.0  
-**Attribution Required:** "Music by Kevin MacLeod (incompetech.com), Licensed under CC-BY 4.0"
-
----
-
-## 4. Ambient Sounds (10 files)
-
-### Source: Freesound.org
-**License:** CC0/CC-BY (varies by file, check each)
-
-### 4.1 Ocean & Water
-
-**ocean_waves.ogg**
-- URL: https://freesound.org/people/tim.kahn/sounds/197714/ (Atlantic Ocean Waves)
-- Artist: tim.kahn
-- Description: Atlantic coast waves, stereo pair Sennheiser MKH 8020
-- License: CC-BY 3.0
-- Alternative: https://freesound.org/people/juskiddink/packs/3600/ (seagulls + waves pack)
-
-**seagulls.ogg**
-- Pack: https://freesound.org/people/juskiddink/packs/3600/ (seagulls....waves)
-- License: CC0/CC-BY (check pack)
-- Alternative: BigSoundBank - https://bigsoundbank.com/detail-0267-sea-waves-and-seagulls.html
-- Format: WAV/MP3, convert to OGG
-
-**underwater.ogg**
-- URL: https://freesound.org/s/366159/ (Underwater [Loop] AMB.wav by DCSFX)
-- License: CC0
-- Alternative: https://freesound.org/people/Fission9/sounds/504641/ (deep ocean ambience)
-- Additional: Free Underwater SFX - https://freetousesounds.bandcamp.com/album/free-underwater-sound-effects
-
-**harbor_ambience.ogg**
-- Source: Freesound.org - search "harbor port ambience"
-- Alternative: Free Underwater Sound Effects pack (harbor recordings)
-- URL: https://freetousesounds.bandcamp.com/album/free-underwater-sound-effects (Track 2: Harbor)
-- License: CC0/CC-BY
-
-### 4.2 Weather
-
-**wind_light.ogg**
-- Source: Freesound.org
-- Search: "wind light gentle"
-- License: CC0/CC-BY
-- Alternative: Mixkit Sea sounds - https://mixkit.co/free-sound-effects/sea/
-
-**wind_strong.ogg**
-- Source: Freesound.org
-- Search: "wind strong gust"
-- License: CC0/CC-BY
-
-**rain_light.ogg**
-- Source: Freesound.org
-- Search: "rain light gentle"
-- License: CC0/CC-BY
-- Alternative: Search "rain ambience"
-
-**rain_heavy.ogg**
-- Source: Freesound.org
-- Search: "rain heavy storm"
-- License: CC0/CC-BY
-
-**storm.ogg**
-- Source: Freesound.org
-- Search: "storm thunder ocean"
-- License: CC0/CC-BY
-- Alternative: Mixkit Sea sounds
-
-### 4.3 Special Effects
-
-**ice_cracking.ogg**
-- URL: https://freesound.org/people/Andrew5DMII/sounds/146419/
-- File: "Frozen Lake Ice and Water Sounds Shotgun Ice Cracking.wav"
-- Description: Ice cracking from 2-foot thick frozen Lake Winnipesaukee
-- License: CC-BY 3.0
-- Artist: Andrew5DMII
-
-**Alternative ice_cracking sources:**
-- https://freesound.org/s/424993/ (Ice Cracking Sequence by GregorQuendel)
-- https://freesound.org/people/Angel_Perez_Grandi/sounds/49190/ (Ice Breaking)
-
----
-
-## 5. Bonus Resource: Sonniss GDC Game Audio Bundle
-
-**What:** Professional game audio bundles released annually  
-**Size:** 160GB+ total archive (2016-2026)  
-**License:** Royalty-free, commercially usable, no attribution required  
-**URL:** https://sonniss.com/gameaudiogdc/  
-**Latest (GDC 2026):** https://gdc.sonniss.com/ (7.47GB, 347 WAV files)
-
-**Coverage:**
-- UI sounds ✓
-- Alert SFX ✓
-- Ambient sounds ✓
-- Nature/weather ✓
-- All professional quality
-
-**Download:** Available via direct download or torrent  
-**Note:** Large files, but highest quality option for production-ready assets
-
----
-
-## Implementation Guide
-
-### Step 1: Download Assets
-1. **UI Sounds** - Download Kenney UI Audio pack (smallest, complete solution)
-2. **Music** - Browse Incompetech and Purple Planet, select 6 tracks
-3. **Ambient** - Download individual Freesound files (requires registration)
-4. **Alerts** - Mixkit (no registration) + Freesound
-
-### Step 2: File Conversion
-- **Target formats:** WAV for short sounds (<5s), OGG for music/long ambience
-- **Tool:** Audacity (free, cross-platform) or FFmpeg
-- **Command (FFmpeg):**
-  ```bash
-  ffmpeg -i input.mp3 -acodec libvorbis -q:a 5 output.ogg
-  ffmpeg -i input.ogg -acodec pcm_s16le output.wav
-  ```
-
-### Step 3: File Placement
-Place downloaded/converted files in:
-```
-Lakskongen/
-├── Assets/
-│   └── Audio/
-│       ├── UI/
-│       │   ├── button_click.wav
-│       │   ├── button_hover.wav
-│       │   ├── notification.wav
-│       │   ├── panel_open.wav
-│       │   ├── panel_close.wav
-│       │   └── error.wav
-│       ├── SFX/
-│       │   ├── lice_alert.wav
-│       │   ├── disease_alert.wav
-│       │   ├── harvest_stinger.wav
-│       │   ├── financial_crisis.wav
-│       │   └── achievement_unlock.wav
-│       ├── Music/
-│       │   ├── main_theme.ogg
-│       │   ├── calm_sea.ogg
-│       │   ├── spring.ogg
-│       │   ├── summer.ogg
-│       │   ├── autumn.ogg
-│       │   └── winter.ogg
-│       └── Ambient/
-│           ├── ocean_waves.ogg
-│           ├── seagulls.ogg
-│           ├── wind_light.ogg
-│           ├── wind_strong.ogg
-│           ├── rain_light.ogg
-│           ├── rain_heavy.ogg
-│           ├── storm.ogg
-│           ├── harbor_ambience.ogg
-│           ├── underwater.ogg
-│           └── ice_cracking.ogg
-```
-
-### Step 4: Attribution (Legal Requirements)
-
-**Required Attribution:**
-- **Incompetech (Kevin MacLeod):** "Music by Kevin MacLeod (incompetech.com), Licensed under CC-BY 4.0"
-- **Purple Planet Music:** "Music by Purple Planet Music (purple-planet.com)"
-- **Freesound CC-BY files:** Check each file's license page for artist name
-- **Kenney/Mixkit CC0 files:** No attribution required (but appreciated)
-
-**Where to place attribution:**
-- In-game credits screen
-- README.md or CREDITS.txt
-- Game documentation
-
-**Example Credits Section:**
-```
-AUDIO CREDITS
-
-UI Sounds:
-- UI Audio Pack by Kenney.nl (CC0 1.0 Universal)
-  https://kenney.nl/assets/ui-audio
-
-Music:
-- [Track names] by Kevin MacLeod (incompetech.com)
-  Licensed under Creative Commons: By Attribution 4.0
-  http://creativecommons.org/licenses/by/4.0/
-
-Ambient Sounds:
-- Ocean Waves by tim.kahn (CC-BY 3.0) - Freesound.org
-- Ice Cracking by Andrew5DMII (CC-BY 3.0) - Freesound.org
-- [Add other CC-BY Freesound artists]
-
-Alert Sounds:
-- Notification sounds from Mixkit.co (Free for commercial use)
-```
-
----
-
-## Quick Start: Minimum Viable Audio
-
-**If time is limited, prioritize:**
-
-1. **Kenney UI Audio Pack** (all 6 UI sounds in one download)
-2. **Mixkit** (all 5 alert sounds, no registration)
-3. **One Incompetech track** for main_theme.ogg (search "calm" or "ambient")
-4. **Freesound ocean_waves + seagulls** (most atmospheric impact)
-
-**Estimated time:** 2-3 hours for download, conversion, and integration
-
----
-
-## Asset Status Table
-
-| Category | File Name | Source | License | Status | Notes |
-|----------|-----------|--------|---------|--------|-------|
-| **UI** | button_click.wav | Kenney | CC0 | ✓ Sourced | In UI Audio pack |
-| UI | button_hover.wav | Kenney | CC0 | ✓ Sourced | In UI Audio pack |
-| UI | notification.wav | Kenney | CC0 | ✓ Sourced | In UI Audio pack |
-| UI | panel_open.wav | Kenney | CC0 | ✓ Sourced | In UI Audio pack |
-| UI | panel_close.wav | Kenney | CC0 | ✓ Sourced | In UI Audio pack |
-| UI | error.wav | Kenney | CC0 | ✓ Sourced | In UI Audio pack |
-| **Alert** | lice_alert.wav | Mixkit | Free | ✓ Sourced | Browse alerts section |
-| Alert | disease_alert.wav | Mixkit | Free | ✓ Sourced | Browse alerts section |
-| Alert | harvest_stinger.wav | Generated (`tools/gen_harvest_stinger.py`) | Original work of the project | ✓ In repo | Replaced harvest_ready.wav (U2-05) |
-| Alert | financial_crisis.wav | Mixkit | Free | ✓ Sourced | Browse alerts section |
-| Alert | achievement_unlock.wav | Freesound | CC0/CC-BY | ✓ Sourced | Search "achievement" |
-| **Music** | main_theme.ogg | Incompetech | CC-BY 4.0 | ✓ Sourced | Select calm/ambient |
-| Music | calm_sea.ogg | Purple Planet | Free+Attr | ✓ Sourced | Browse ocean/calm |
-| Music | spring.ogg | Incompetech | CC-BY 4.0 | ✓ Sourced | Select seasonal |
-| Music | summer.ogg | Incompetech | CC-BY 4.0 | ✓ Sourced | Select seasonal |
-| Music | autumn.ogg | Incompetech | CC-BY 4.0 | ✓ Sourced | Select seasonal |
-| Music | winter.ogg | Incompetech | CC-BY 4.0 | ✓ Sourced | "Winter Chimes" |
-| **Ambient** | ocean_waves.ogg | Freesound | CC-BY 3.0 | ✓ Sourced | tim.kahn/197714 |
-| Ambient | seagulls.ogg | Freesound | CC0/CC-BY | ✓ Sourced | juskiddink pack |
-| Ambient | wind_light.ogg | Freesound | CC0/CC-BY | ✓ Sourced | Search "wind gentle" |
-| Ambient | wind_strong.ogg | Freesound | CC0/CC-BY | ✓ Sourced | Search "wind strong" |
-| Ambient | rain_light.ogg | Freesound | CC0/CC-BY | ✓ Sourced | Search "rain light" |
-| Ambient | rain_heavy.ogg | Freesound | CC0/CC-BY | ✓ Sourced | Search "rain heavy" |
-| Ambient | storm.ogg | Freesound | CC0/CC-BY | ✓ Sourced | Search "storm ocean" |
-| Ambient | harbor_ambience.ogg | Freesound | CC0/CC-BY | ✓ Sourced | Search "harbor port" |
-| Ambient | underwater.ogg | Freesound | CC0 | ✓ Sourced | DCSFX/366159 |
-| Ambient | ice_cracking.ogg | Freesound | CC-BY 3.0 | ✓ Sourced | Andrew5DMII/146419 |
-
-**Total:** 27/27 assets sourced ✓
-
----
-
-## Additional Resources
-
-### Audio Editing Tools
-- **Audacity** - Free, cross-platform audio editor - https://www.audacityteam.org/
-- **FFmpeg** - Command-line audio conversion - https://ffmpeg.org/
-- **LMMS** - Free DAW for music editing - https://lmms.io/
-
-### More Free Audio Sources
-- **OpenGameArt.org** - https://opengameart.org/ (music + SFX)
-- **FreePD** - https://freepd.com/ (public domain music)
-- **ccMixter** - https://ccmixter.org/ (CC-licensed music)
-- **YouTube Audio Library** - Free music and sound effects
-- **BBC Sound Effects** - http://bbcsfx.acropolis.org.uk/ (16,000+ effects, research use)
-
-### Godot Audio Resources
-- **Godot Audio Documentation** - https://docs.godotengine.org/en/stable/tutorials/audio/
-- **Kenney Godot Assets** - Multiple audio packs optimized for Godot
-- **Audio stream formats:** OGG Vorbis (music), WAV (short SFX) recommended
-
----
-
-## Notes for Audio Team
-
-### Quality Standards
-- **Sample rate:** 44.1kHz minimum (48kHz preferred)
-- **Bit depth:** 16-bit minimum (24-bit for music sources)
-- **Format:** WAV for UI/SFX (<5s), OGG Vorbis for music/ambient loops
-- **Normalization:** Peak normalize to -1dB to prevent clipping
-
-### License Compliance Checklist
-- [ ] Download license text for each CC-BY asset
-- [ ] Create CREDITS.txt with all required attributions
-- [ ] Implement in-game credits screen
-- [ ] Document attribution in README.md
-- [ ] Verify all licenses permit commercial use
-- [ ] Keep copies of license documentation in Assets/Audio/LICENSES/
-
-### Integration Priority
-1. **Phase 1 (MVP):** UI sounds + main_theme
-2. **Phase 2:** Alert SFX + ocean_waves/seagulls
-3. **Phase 3:** Seasonal music + remaining ambient
-4. **Phase 4:** Weather sounds + polish
-
-### Testing Recommendations
-- Test all sounds at various game volumes (25%, 50%, 75%, 100%)
-- Verify loop points for ambient sounds (no clicks/pops)
-- Check for clipping in audio mixer
-- Test alert priority/ducking (alerts should be audible over music)
-- Validate attribution text is visible and complete
-
----
-
-## T65 Completion Summary
-
-**Status:** ✅ Complete  
-**Assets Documented:** 27/27 (100%)  
-**Primary Sources:** Kenney.nl, Freesound.org, Incompetech, Purple Planet, Mixkit  
-**License Compliance:** All sources verified CC0/CC-BY/Royalty-free  
-**Next Steps:** Audio team downloads and converts files per implementation guide
-
-**Estimated Integration Time:** 8-12 hours (download, convert, implement, test)
-
-**Contact for Questions:**  
-- Kenney support: https://kenney.nl/  
-- Freesound community: https://freesound.org/forum/  
-- Incompetech FAQ: https://incompetech.com/music/royalty-free/faq.html
-
----
-
-*Generated for Lakskongen project - T65: Audio Asset Sourcing*  
-*Last updated: 2026-03-15*
+# Audio sources and licences
+
+Every audio file the game ships, where it comes from and under which licence
+(roadmap Au2-01, D24). The machine-readable record is
+`audio_manifest.json` beside this file: one row per file with its kind,
+duration, channels, level (ITU-R BS.1770: integrated and momentary-maximum
+LUFS, true peak in dBTP; an Ogg is measured as decoded) and SHA-256.
+`tests/test_audio_floor.py` is the CI audio check: no file the manifest does
+not list, no listed file missing, no ambience loop under 30 s, the recorded
+hash and duration are the file's, every licence is recorded here, in
+`THIRD_PARTY.md` and in `godot/data/credits.json`, and every path the game's
+catalogue (`scripts/MusicLibrary.gd`) names exists.
+
+This file replaces the T65 sourcing guide (2026-03-15), which listed where
+sounds could be found rather than what shipped; its ambience entries
+(Mixkit or Freesound, "search ...") never named the files' real sources.
+Au2-01 replaced every one of those ambience files with original ones.
+
+## Licences in use
+
+| Licence | Files | Recorded in |
+|---|---|---|
+| Original work of the project (no third-party material) | the ambience loops `ambient/*.ogg`, the verb cues `sfx/verb_*.wav`, `sfx/harvest_stinger.wav` | THIRD_PARTY.md "Not listed here"; credits.json team "UI_CREDITS_ROLE_SOUND" |
+| CC0 1.0 (Kenney UI Audio, kenney.nl) | `ui/*.wav`, `sfx/disease_alert.wav` | THIRD_PARTY.md row "Kenney UI Audio"; credits.json |
+| CC0 1.0 (Freesound.org contributors) | `sfx/lice_alert.wav`, `sfx/financial_crisis.wav`, `sfx/achievement_unlock.wav` | THIRD_PARTY.md row "Freesound sounds"; credits.json |
+| CC BY 4.0 (Kevin MacLeod, incompetech.com) | `music/*.ogg` | THIRD_PARTY.md row "Music by Kevin MacLeod" with its notice; credits.json with UI_CREDITS_MUSIC_NOTICE |
+
+Provenance gap (unchanged by Au2-01, for the P0-08 audit): the three
+Freesound alerts carry CC0 by the T65 record, but no Freesound sound id or
+author per file was kept. Replace them with generated cues, or find and
+record their ids, before release.
+
+## How the generated sounds are made
+
+`tools/audio/gen_audio.py` builds every original file from seeded numpy
+generators (`tools/audio/ambience.py`, `tools/audio/cues.py`,
+`tools/audio/audio_dsp.py`); `python3 tools/audio/gen_audio.py --check`
+rebuilds them in a temporary directory and compares bytes (16 of 16
+identical on 2026-10-20). The loops are encoded to Ogg Vorbis (112 kbit/s
+stereo, 80 kbit/s mono) by Blender 5.2's Audaspace (`tools/audio/blender_ogg.py`:
+no other Ogg encoder is installed); FFmpeg's muxer picks a random stream
+serial, which the script rewrites to a fixed one so a rebuild is
+byte-identical. Every loop is exactly periodic (noise coloured in the
+frequency domain, modulation in whole cycles per loop, events placed on a
+circle), so it repeats without a seam.
+
+Nobody listens in the pipeline, so levels are measured, not judged by ear:
+
+- Ambience loops: -24 LUFS integrated, true peak at most -1 dBTP. -24 LUFS
+  (+-2 LU) is the IESD mix reference for console games and -1 dBTP the
+  EBU R 128 production ceiling: IESD, "Mix reference levels" v03.02 (2015),
+  https://www.audiogang.org/wp-content/uploads/2015/04/IESD-Mix-Ref-Levels-v03.02.pdf ;
+  EBU R 128 v5.0 (2023), https://tech.ebu.ch/publications/r128 . The game's
+  AmbienceMixer sets each layer's level relative to that.
+- Verb cues: -19 LUFS momentary maximum (400 ms), the harvest stinger's own
+  level, so every verb's payoff reads alike; true peak at most -3 dBTP.
+  For comparison the Kenney UI cues measure -19 to -24 LUFS momentary.
+- The meter (`audio_dsp.py`) reproduces EBU Tech 3341's first case: a
+  1 kHz sine at -23 dBFS in both channels reads -23.0 LUFS.
+
+What each generated sound models (sources):
+
+- Fjord wind: band-limited noise in six bands whose levels follow a gust
+  curve (0.02-0.2 Hz), the upper bands rising more in a gust; the gale adds
+  three narrow whistles (380, 540, 720 Hz) and buffeting below 70 Hz.
+- Water lap: small waves slapping pen floats and a hull, clustered on the
+  swell (4-12 s periods), each a short splash of noise with now and then a
+  bubble "glug" (a damped sine at 320-900 Hz rising as the bubble surfaces).
+- Gulls: herring-gull-like calls, a long first note and a run of shorter
+  ones, or a "kek-kek" alarm, as harmonic voices whose first harmonic note
+  sits around 1-1.5 kHz (yellow-legged and Armenian gull long calls peak at
+  1.05-1.47 kHz: gull-research.org, https://gull-research.org/armenicus/5cy/lh23.html),
+  from 30 to 250 m away (air absorption and level by distance).
+- Barge engine (`feed_barge.ogg`) and boat engine (`boat_engine.ogg`): a
+  four-stroke diesel fires at rpm x cylinders / 120 per second (a two-stroke
+  at rpm x cylinders / 60: Kozaczka, Hydroacoustics vol. 3,
+  https://yadda.icm.edu.pl/baztech/element/bwmeta1.element.baztech-858b6b42-d1dd-4aa7-9886-f936773ca8d3/c/Kozaczka_hydroacoustics-vol3.pdf ).
+  The feed barge's generator set: 6 cylinders at 1500 rpm (75 Hz, a 50 Hz
+  grid set), its feed blower's blade-pass tone at 580 Hz and pellets
+  rattling through the pipes in dosing rounds. The wellboat: 8 cylinders at
+  900 rpm (60 Hz), a 4-blade propeller on a 200 rpm shaft (13.3 Hz) and the
+  bow wash. Both mono, for the 3D emitters on the boats.
+- Rain on the water: every drop an impact click; larger drops add a bubble
+  "plink" at 2-10 kHz and small ones a faint ring near 15 kHz (Medwin et al.,
+  via NASA Earth Observatory, https://earthobservatory.nasa.gov/features/Rain/rain_2.php ),
+  over a hiss bed; light rain 450 drops/s, heavy 2400 drops/s.
+- Storm: breaking waves every 6-11 s (a rising crest, a crash, foam), the
+  sea's roar and the gale.
+- Harbour: water at the pilings, a boat idling across the harbour, mooring
+  lines working (friction tones gliding in pitch), a far gull now and then.
+- Underwater: a low rumble on the swell, the muffled wash above, bubble
+  streams, a far engine's hum.
+- Verb cues: stocking (the delivery hose's rush, fish splashing in), the
+  feeding plan (a lever's tick, the blower spinning up, pellets, a soft
+  two-note tag), delousing (the treatment pump, rushing water, bubbles, a
+  soft tag), the auction's verdict (two gavel strikes on a sounding block in
+  a hall), the storm warning (distant thunder rolling, a rising gust).
+
+## Every file
+
+| File | Kind | Length | LUFS I / M max / dBTP | Licence | Source | What it is |
+|---|---|---|---|---|---|---|
+| `ambient/boat_engine.ogg` | loop | 60.00 s, 1 ch | -24.1 / -23.1 / -9.2 | Original work of the project | generated: tools/audio/gen_audio.py (seed 402) | boat engine: a wellboat's main engine, propeller and bow wash (3D emitter) |
+| `ambient/feed_barge.ogg` | loop | 60.00 s, 1 ch | -24.1 / -23.2 / -9.1 | Original work of the project | generated: tools/audio/gen_audio.py (seed 401) | barge engine: the feed barge's generator set, feed blower and pellets (3D emitter) |
+| `ambient/fjord_wind_light.ogg` | loop | 60.00 s, 2 ch | -24.1 / -18.9 / -8.7 | Original work of the project | generated: tools/audio/gen_audio.py (seed 101) | fjord wind: a breeze, gusting softly |
+| `ambient/fjord_wind_strong.ogg` | loop | 60.00 s, 2 ch | -24.1 / -15.0 / -5.5 | Original work of the project | generated: tools/audio/gen_audio.py (seed 102) | fjord wind: a gale, with whistles and buffeting |
+| `ambient/gulls.ogg` | loop | 60.00 s, 2 ch | -24.2 / -18.6 / -7.6 | Original work of the project | generated: tools/audio/gen_audio.py (seed 301) | gulls: herring-gull-like calls, near and far |
+| `ambient/harbor_ambience.ogg` | loop | 60.00 s, 2 ch | -24.2 / -15.8 / -3.5 | Original work of the project | generated: tools/audio/gen_audio.py (seed 701) | harbour: water at the pilings, an idling boat, mooring lines, a far gull |
+| `ambient/rain_heavy.ogg` | loop | 60.00 s, 2 ch | -24.0 / -21.6 / -10.6 | Original work of the project | generated: tools/audio/gen_audio.py (seed 502) | rain: heavy rain on the water |
+| `ambient/rain_light.ogg` | loop | 60.00 s, 2 ch | -24.2 / -21.8 / -3.0 | Original work of the project | generated: tools/audio/gen_audio.py (seed 501) | rain: light rain on the water |
+| `ambient/storm.ogg` | loop | 60.00 s, 2 ch | -24.2 / -19.2 / -9.3 | Original work of the project | generated: tools/audio/gen_audio.py (seed 601) | storm: breaking waves, the sea's roar and a gale |
+| `ambient/underwater.ogg` | loop | 60.00 s, 2 ch | -24.1 / -20.4 / -9.3 | Original work of the project | generated: tools/audio/gen_audio.py (seed 801) | underwater: low rumble, the muffled wash above, bubble streams |
+| `ambient/water_lap.ogg` | loop | 60.00 s, 2 ch | -24.3 / -17.3 / -3.7 | Original work of the project | generated: tools/audio/gen_audio.py (seed 201) | water lap: small waves at pen floats and a hull on a calm day |
+| `music/autumn.ogg` | music | 186.25 s, 2 ch | -13.3 / -9.3 / -0.9 | CC BY 4.0 | third party: Music by Kevin MacLeod (THIRD_PARTY.md) | autumn |
+| `music/calm_sea.ogg` | music | 380.06 s, 2 ch | -17.3 / -10.6 / -1.8 | CC BY 4.0 | third party: Music by Kevin MacLeod (THIRD_PARTY.md) | calm sea |
+| `music/main_theme.ogg` | music | 328.31 s, 2 ch | -17.7 / -13.8 / -0.2 | CC BY 4.0 | third party: Music by Kevin MacLeod (THIRD_PARTY.md) | main theme (menu) |
+| `music/spring.ogg` | music | 153.31 s, 2 ch | -18.0 / -13.5 / -4.3 | CC BY 4.0 | third party: Music by Kevin MacLeod (THIRD_PARTY.md) | spring |
+| `music/summer.ogg` | music | 204.07 s, 2 ch | -19.3 / -11.5 / -1.4 | CC BY 4.0 | third party: Music by Kevin MacLeod (THIRD_PARTY.md) | summer |
+| `music/winter.ogg` | music | 202.06 s, 2 ch | -16.2 / -11.0 / -2.6 | CC BY 4.0 | third party: Music by Kevin MacLeod (THIRD_PARTY.md) | winter |
+| `sfx/achievement_unlock.wav` | cue | 0.62 s, 1 ch | -24.0 / -22.0 / -1.0 | CC0 1.0 | third party: Freesound sounds (THIRD_PARTY.md) | achievement (medal) |
+| `sfx/disease_alert.wav` | cue | 0.51 s, 2 ch | -22.8 / -22.8 / -1.2 | CC0 1.0 | third party: Kenney UI Audio (THIRD_PARTY.md) | alert: disease outbreak |
+| `sfx/financial_crisis.wav` | cue | 1.79 s, 2 ch | -14.3 / -11.7 / -2.0 | CC0 1.0 | third party: Freesound sounds (THIRD_PARTY.md) | alert: market crash |
+| `sfx/harvest_stinger.wav` | cue | 1.90 s, 2 ch | -22.1 / -19.0 / -11.3 | Original work of the project | generated: tools/gen_harvest_stinger.py | verb cue: the harvest's payoff stinger |
+| `sfx/lice_alert.wav` | cue | 1.10 s, 2 ch | -13.2 / -10.8 / -1.9 | CC0 1.0 | third party: Freesound sounds (THIRD_PARTY.md) | alert: lice warning |
+| `sfx/verb_auction.wav` | cue | 1.30 s, 2 ch | -21.7 / -19.0 / -7.2 | Original work of the project | generated: tools/audio/gen_audio.py (seed 1104) | verb cue: the auctioneer's gavel |
+| `sfx/verb_delouse.wav` | cue | 2.30 s, 2 ch | -20.1 / -19.0 / -9.9 | Original work of the project | generated: tools/audio/gen_audio.py (seed 1103) | verb cue: a delousing treatment started |
+| `sfx/verb_feed_plan.wav` | cue | 1.90 s, 2 ch | -21.0 / -19.0 / -11.0 | Original work of the project | generated: tools/audio/gen_audio.py (seed 1102) | verb cue: a feeding plan set (blower, pellets, a tag) |
+| `sfx/verb_stock.wav` | cue | 1.90 s, 2 ch | -20.4 / -19.0 / -9.3 | Original work of the project | generated: tools/audio/gen_audio.py (seed 1101) | verb cue: smolts pumped into a pen |
+| `sfx/verb_storm.wav` | cue | 3.80 s, 2 ch | -23.5 / -19.0 / -8.5 | Original work of the project | generated: tools/audio/gen_audio.py (seed 1105) | verb cue: distant thunder and a rising gust |
+| `ui/button_click.wav` | ui | 0.09 s, 2 ch | -20.8 / -20.8 / -1.4 | CC0 1.0 | third party: Kenney UI Audio (THIRD_PARTY.md) | the global button click (every Button press) |
+| `ui/button_hover.wav` | ui | 0.22 s, 2 ch | -20.3 / -20.3 / -0.0 | CC0 1.0 | third party: Kenney UI Audio (THIRD_PARTY.md) | button hover |
+| `ui/error.wav` | ui | 0.20 s, 2 ch | -19.1 / -19.1 / -0.6 | CC0 1.0 | third party: Kenney UI Audio (THIRD_PARTY.md) | error cue (critical event) |
+| `ui/notification.wav` | ui | 0.33 s, 2 ch | -23.3 / -23.3 / -0.6 | CC0 1.0 | third party: Kenney UI Audio (THIRD_PARTY.md) | notification cue (warning event) |
+| `ui/panel_close.wav` | ui | 0.25 s, 2 ch | -20.9 / -20.9 / 0.3 | CC0 1.0 | third party: Kenney UI Audio (THIRD_PARTY.md) | panel close |
+| `ui/panel_open.wav` | ui | 0.39 s, 2 ch | -24.0 / -24.0 / -0.8 | CC0 1.0 | third party: Kenney UI Audio (THIRD_PARTY.md) | panel open |
+
+The game plays them through `scripts/MusicLibrary.gd` (the catalogue),
+`scripts/AudioController.gd` (music, cues, the UI's click on every button,
+the verb cues, the engines as 3D emitters) and
+`scripts/audio/AmbienceMixer.gd` (the ambience bed from the weather and the
+camera on screen).

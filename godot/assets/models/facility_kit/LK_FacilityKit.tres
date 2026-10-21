@@ -19,4 +19,3 @@ shader_parameter/plain_wall = 0.0
 shader_parameter/leg_scale = 1.0
 shader_parameter/rotor_turns_per_s = 0.5
 shader_parameter/use_instance_custom = false
-shader_parameter/build_height_m = 13.0

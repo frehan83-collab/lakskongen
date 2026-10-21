@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://lakskongen.local/schemas/terrain/meta.schema.json",
+  "title": "Baked terrain region meta.json: the farm-type geometry",
+  "description": "F2-19 (docs/FARM_TYPES_SPEC.md section 4): a baked real region (G2-01) names its land pads and offshore slots here, the single geometric source for the site-plot catalogue (ISitePlotGeometry) in place of the procedural layout (TerrainGenerator.LandPadSlots / OffshoreSlots). World metres in the terrain's frame (X and Z horizontal, the sea level at y = 0). Field names are the snake_case of LandPadSlot and OffshoreSlot (src/LakskongenSim/Environment/SitePlotGeometry.cs). A pad's intake reach is computed from the terrain (TerrainGenerator.IntakeReachM), never authored, so the field is not allowed. The bake's other keys (G2-01) are outside this schema.",
+  "type": "object",
+  "required": ["land_pads", "offshore_slots"],
+  "properties": {
+    "land_pads": {
+      "type": "array",
+      "description": "The land pads in catalogue order (site_plots.json's land pads by id).",
+      "items": {"$ref": "#/$defs/land_pad"}
+    },
+    "offshore_slots": {
+      "type": "array",
+      "description": "The offshore slots in catalogue order.",
+      "items": {"$ref": "#/$defs/offshore_slot"}
+    }
+  },
+  "$defs": {
+    "land_pad": {
+      "type": "object",
+      "description": "A flat shore pad, an axis-aligned rectangle round its centre carved to pad_height_m, its quay on the side that faces the channel.",
+      "additionalProperties": false,
+      "required": ["id", "name", "centre_x", "centre_z", "width_m", "depth_m", "lots", "pad_height_m", "quay_x", "quay_z"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+        "name": {"type": "string", "minLength": 1},
+        "centre_x": {"type": "number"},
+        "centre_z": {"type": "number"},
+        "width_m": {"type": "number", "exclusiveMinimum": 0, "description": "Extent along X."},
+        "depth_m": {"type": "number", "exclusiveMinimum": 0, "description": "Extent along Z."},
+        "lots": {"type": "integer", "minimum": 1, "maximum": 4, "description": "Grow-out lots the pad holds (spec section 5.1)."},
+        "pad_height_m": {"type": "number", "minimum": 3.3, "maximum": 3.9, "description": "The plan level above the sea (3.6 +- 0.3 m, the F2-19 tolerance)."},
+        "quay_x": {"type": "number", "description": "The quay's point on the pad's water-facing edge."},
+        "quay_z": {"type": "number"}
+      }
+    },
+    "offshore_slot": {
+      "type": "object",
+      "description": "An open-sea slot outside the play area's water bake.",
+      "additionalProperties": false,
+      "required": ["id", "name", "x", "z", "exposure", "water_depth_m"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+        "name": {"type": "string", "minLength": 1},
+        "x": {"type": "number"},
+        "z": {"type": "number"},
+        "exposure": {"type": "number", "minimum": 0, "maximum": 1, "description": "Open-sea exposure at the slot (1 outside the bake)."},
+        "water_depth_m": {"type": "number", "exclusiveMinimum": 0}
+      }
+    }
+  }
+}

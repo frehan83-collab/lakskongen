@@ -341,9 +341,10 @@ static func _rich_text(t: Theme, c: _Ctx) -> void:
 
 
 static func _tooltips_and_windows(t: Theme, c: _Ctx) -> void:
-	# Tooltips are always Ink, whatever surface the hovered control sits on.
-	var ink := palette(c.tokens, "ink")
-	var tip := _bordered(Color(ink["raised"], 0.97), ink["hairline"], 1, c.radius("sm"), 8.0, 10.0)
+	# Tooltips are always Ink, whatever surface the hovered control sits on
+	# (high-contrast Ink, opaque, on the high-contrast surfaces).
+	var ink := ink_palette_for(c.tokens, c.surface)
+	var tip := _bordered(Color(ink["raised"], 1.0 if c.high_contrast else 0.97), ink["hairline"], 1, c.radius("sm"), 8.0, 10.0)
 	_shadow(tip, Color.BLACK, 0.35, 8, 3.0)
 	t.set_stylebox("panel", "TooltipPanel", tip)
 	t.set_color("font_color", "TooltipLabel", ink["text"])

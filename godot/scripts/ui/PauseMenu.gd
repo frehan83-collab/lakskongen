@@ -70,6 +70,8 @@ var quit_override: Callable = Callable()
 var _sim: Node = null
 var _open: bool = false
 var _leave: Leave = Leave.NONE
+## True while "Lagre og avslutt" waits for the save's picture: the guard holds.
+var _saving_to_leave: bool = false
 var _return_focus: Button = null
 var _fade: Tween = null
 
@@ -92,6 +94,11 @@ func _ready() -> void:
 	UIPolish.link_vertical_focus(btn_resume.get_parent())
 	UIPolish.attach_press_feedback(_panel)
 	hide()
+
+## The language changed (Innstillinger > Spill > Språk, U2-08): redraw at once.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_TRANSLATION_CHANGED and is_node_ready():
+		_apply_texts()
 
 func _apply_texts() -> void:
 	_overline.text = tr("UI_PAUSE_OVERLINE")
@@ -247,6 +254,8 @@ func _ask(leave: Leave) -> void:
 	guard_save.grab_focus.call_deferred()
 
 func _cancel_guard() -> void:
+	if _saving_to_leave:
+		return
 	guard.hide()
 	_leave = Leave.NONE
 	_center.show()
@@ -254,14 +263,28 @@ func _cancel_guard() -> void:
 		_return_focus.grab_focus.call_deferred()
 
 ## Save to the quick-save slot, then leave; a failed save stays here and says
-## why (leaving would lose the game).
+## why (leaving would lose the game). The save's picture is rendered from the
+## game's world over the next frames (SaveThumbnails): the menu waits for it
+## (at most SaveThumbnails.WAIT_TIMEOUT_MS) before the scene changes or the
+## game quits, or the slot would show the main menu's fjord or no picture.
 func _save_and_leave() -> void:
+	if _saving_to_leave:
+		return
 	var ok: bool = _sim != null and _sim.quick_save()
 	if not ok:
 		var reason: String = _sim.get_last_save_error() if _sim != null else ""
 		_guard_error.text = tr("UI_GUARD_SAVE_FAILED") % reason
 		_guard_error.show()
 		return
+	var thumbs := get_node_or_null("/root/SaveThumbnails")
+	if thumbs != null and thumbs.has_method("is_busy") and thumbs.is_busy():
+		_saving_to_leave = true
+		for b: Button in [guard_save, guard_discard, guard_cancel]:
+			b.disabled = true
+		await thumbs.wait_until_written()
+		for b: Button in [guard_save, guard_discard, guard_cancel]:
+			b.disabled = false
+		_saving_to_leave = false
 	_leave_now()
 
 func _leave_now() -> void:

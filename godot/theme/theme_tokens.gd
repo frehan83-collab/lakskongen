@@ -9,9 +9,21 @@ const CHART_THEME_PATH := "res://theme/lakskongen_chart_theme.tres"
 const FONT_DIR := "res://theme/fonts"
 const BUILDER_PATH := "res://theme/theme_builder.gd"
 
+## The high-contrast variant of each surface (roadmap D21, U2-08): opaque,
+## every text colour at least 7:1, borders and focus rings that stand out.
+## Saved beside the normal themes; LakskongenTheme.set_high_contrast() merges
+## them into the live themes.
+const HC_THEME_PATH := "res://theme/lakskongen_theme_hc.tres"
+const HC_CHART_THEME_PATH := "res://theme/lakskongen_chart_theme_hc.tres"
+
 const SURFACE_INK := "ink"
 const SURFACE_CHART := "chart"
-const SURFACES: Array[String] = ["ink", "chart"]
+const SURFACE_INK_HC := "ink-hc"
+const SURFACE_CHART_HC := "chart-hc"
+const SURFACES: Array[String] = ["ink", "chart", "ink-hc", "chart-hc"]
+## Focus ring width (px): the high-contrast surfaces draw a wider ring.
+const FOCUS_RING_PX := 2
+const FOCUS_RING_HC_PX := 3
 
 ## Metadata keys stamped into the generated themes (checked by sync_tokens.py).
 const META_TOKENS_SHA := "tokens_sha256"
@@ -106,8 +118,17 @@ static func palette(tokens: Dictionary, surface: String) -> Dictionary:
 	p["salmon_hover"] = Color(str(brand.get("salmon-hover", "#F59C83")))
 	p["salmon_pressed"] = Color(str(brand.get("salmon-pressed", "#E97A5E")))
 	p["salmon_deep"] = Color(str(brand.get("salmon-deep", "#D9583B")))
-	p["on_salmon"] = Color(str(brand.get("on-salmon", "#0B2A3A")))
+	# A surface may name its own text on salmon (the high-contrast ones: black,
+	# at least 7:1 on every salmon state).
+	p["on_salmon"] = Color(str(src.get("on-salmon", brand.get("on-salmon", "#0B2A3A"))))
 	return p
+
+
+## The Ink palette that goes with `surface`: the HUD glass, rails, chips,
+## toasts and tooltips are Ink on every surface, and high-contrast Ink when the
+## surface is a high-contrast one (U2-08 review: they stayed translucent).
+static func ink_palette_for(tokens: Dictionary, surface: String) -> Dictionary:
+	return palette(tokens, SURFACE_INK_HC if surface.ends_with("-hc") else SURFACE_INK)
 
 
 static func font_size(tokens: Dictionary, key: String) -> int:
@@ -184,13 +205,15 @@ class _Ctx:
 	var fonts: Dictionary
 	var p: Dictionary
 	var ink: bool
+	var high_contrast: bool
 
 	func _init(p_tokens: Dictionary, p_surface: String, p_fonts: Dictionary, p_palette: Dictionary) -> void:
 		tokens = p_tokens
 		surface = p_surface
 		fonts = p_fonts
 		p = p_palette
-		ink = p_surface == "ink"
+		ink = p_surface.begins_with("ink")
+		high_contrast = p_surface.ends_with("-hc")
 
 	func col(key: String) -> Color:
 		return p.get(key, Color.MAGENTA)

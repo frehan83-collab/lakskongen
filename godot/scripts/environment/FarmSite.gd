@@ -37,6 +37,16 @@ const CLICK_HEIGHT_M := 4.0
 ## hang 38 m, the masts stand 7.5 m (m).
 const PEN_BOX_DEPTH_M := 45.0
 const PEN_BOX_HEIGHT_M := 15.0
+## The net condition (NetIntegrityPct) at and below which the nets read
+## fully fouled (G3-04, net_fouling_for).
+const FOULED_AT_INTEGRITY := 60.0
+## The fouling the nets show moves in steps of this (the growth reads no
+## finer): the sim's net condition moves 0.5 % a day while it is repaired,
+## so a day's sync touches the nets about every fourth day, not every day
+## (measured: every day cost the 30x UI side 1 ms a day, RUN_LOG §7).
+const FOULING_STEP := 0.05
+## Fouling writes to the nets since start (tests read it, as FishSchool.body_writes).
+static var fouling_writes := 0
 ## Pen LOD states.
 enum Lod { NEAR, MID, FAR }
 
@@ -61,6 +71,7 @@ var _rides_uploaded := -1  # the pens' ride counts the uploaded poses saw
 var _ghost := false
 var _band := Color(0, 0, 0, 0)
 var _net_opacity := 1.0
+var _net_fouling := 0.0
 var _skirt := false
 var _bird_net: int = PenCage.BirdNet.TENT
 var _health_rings := true
@@ -164,6 +175,43 @@ func half_extent() -> Vector2:
 
 
 # === Variants (per site: every pen of a site is the same kit) ===
+
+## The site's kit as the sim reports it (GetSeaSiteDetails): the lice skirt
+## (has_skirt) and the nets' fouling (G3-04, net_fouling_for).
+func apply_site_kit(site: Dictionary) -> void:
+	set_lice_skirt(bool(site.get("has_skirt", false)))
+	set_net_fouling(net_fouling_for(site))
+
+
+## The nets' fouling (0 clean .. 1 heavily grown) for the sim's net
+## condition: NetIntegrityPct (net_integrity, 0-100), which storms wear and
+## the ROV's cleaning restores ("nøtene er renset", SimulationEngine): fully
+## fouled at FOULED_AT_INTEGRITY and below. The sim has no fouling of its
+## own; the shader's growth reads its net condition (RUN_LOG §7, G3-04).
+static func net_fouling_for(site: Dictionary) -> float:
+	var integrity = site.get("net_integrity", 100.0)
+	if not (integrity is float or integrity is int):
+		return 0.0
+	return clampf((100.0 - float(integrity)) / (100.0 - FOULED_AT_INTEGRITY), 0.0, 1.0)
+
+
+## The nets' fouling (pen_net_shader net_fouling, in FOULING_STEP steps) on
+## every pen of the site and its LOD MultiMeshes.
+func set_net_fouling(value: float) -> void:
+	var v := snappedf(clampf(value, 0.0, 1.0), FOULING_STEP)
+	if is_equal_approx(v, _net_fouling):
+		return
+	_net_fouling = v
+	fouling_writes += 1
+	for cage in cages:
+		cage.set_net_fouling(v)
+	for level in _lod_parts:
+		for part in _lod_parts[level]:
+			if part in PenCage.NET_PARTS:
+				(_lod_parts[level][part] as MultiMeshInstance3D).set_instance_shader_parameter("net_fouling", v)
+
+func get_net_fouling() -> float:
+	return _net_fouling
 
 func set_lice_skirt(on: bool) -> void:
 	if on == _skirt:
@@ -401,6 +449,7 @@ func _apply_part_visibility() -> void:
 				mmi.set_instance_shader_parameter("band_color", _band)
 			if part in PenCage.NET_PARTS:
 				mmi.set_instance_shader_parameter("net_opacity", _net_opacity)
+				mmi.set_instance_shader_parameter("net_fouling", _net_fouling)
 			if not _part_shown(part):
 				mmi.visible = false
 			elif pens_in_lod(level) > 0:
