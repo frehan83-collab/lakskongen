@@ -9,7 +9,8 @@ render_mode world_vertex_coords, cull_front, depth_draw_opaque, unshaded, fog_di
 // keeps a simple underside of its own). The surface is the same: the
 // vertex stage below is water_shader.gdshader's, line for line
 // (tests/test_underwater.py compares them), with the same wave uniforms,
-// which the director copies over every frame.
+// which the director copies over every frame, the open sea's swell
+// (F2-21, water/water_swell.gdshaderinc) included.
 //
 // Looking up from the water (unshaded: everything here is the light that
 // reaches the camera):
@@ -87,6 +88,8 @@ const float RIPPLE_FROM_BELOW = 0.25;
 
 varying vec3 v_world;
 varying vec2 v_p0;
+// F2-21: the open sea's swell slope per vertex (water_swell.gdshaderinc).
+varying vec3 v_swell;
 
 // ── Vertex: water_shader.gdshader's, line for line ──
 vec4 bake_at(vec2 xz) {
@@ -116,8 +119,11 @@ float wave_phase(vec4 wk, vec4 wa, vec2 p) {
 	return fract((dot(wk.xy, p) - wa.z) * INV_TAU) * TAU_;
 }
 
+#include "res://shaders/water/water_swell.gdshaderinc"
+
 // The components are ordered longest first (EnvironmentDirector), so a loop
-// can stop at the first one too short to draw.
+// can stop at the first one too short to draw. The open sea's swell (F2-21)
+// rides on top.
 vec3 displacement(vec2 p, float exposure, float depth, float grid_spacing) {
 	vec3 d = vec3(0.0);
 	for (int i = 0; i < WAVES; i++) {
@@ -135,7 +141,7 @@ vec3 displacement(vec2 p, float exposure, float depth, float grid_spacing) {
 		d.y += a * sin(ph);
 		d.xz += wk.w * a * (wk.xy / wk.z) * cos(ph);
 	}
-	return d;
+	return d + swell_displacement(p, exposure, depth, grid_spacing);
 }
 
 void vertex() {
@@ -158,17 +164,20 @@ void vertex() {
 	float d_grid = max(abs(p0.x - origin.x), abs(p0.y - origin.z));
 	float grid_spacing = grid_base_spacing * max(1.0, 2.0 * d_grid / (grid_half_units * grid_base_spacing));
 	vec3 disp;
+	vec4 b = bake_at(p0);
 	if (stitch.x + stitch.y > 0.0) {
 		vec4 ba = bake_at(p0 - stitch);
 		vec4 bb = bake_at(p0 + stitch);
 		disp = 0.5 * (displacement(p0 - stitch, ba.b, ba.r, grid_spacing) + displacement(p0 + stitch, bb.b, bb.r, grid_spacing));
 	} else {
-		vec4 b = bake_at(p0);
 		disp = displacement(p0, b.b, b.r, grid_spacing);
 	}
 	// Flat beyond the displaced levels: the far skirt and the last level's
 	// edge meet without a crack.
-	disp *= 1.0 - smoothstep(0.75 * displaced_extent, displaced_extent, d_grid);
+	float far_fade = 1.0 - smoothstep(0.75 * displaced_extent, displaced_extent, d_grid);
+	disp *= far_fade;
+	// F2-21: the swell's slope at the vertex (the bake read once).
+	v_swell = swell_slope(p0, b.b, b.r) * far_fade;
 	VERTEX = vec3(p0.x, origin.y, p0.y) + disp;
 	v_world = VERTEX;
 	v_p0 = p0;
@@ -177,8 +186,9 @@ void vertex() {
 // ── Fragment: looking up ──
 
 // The surface's normal (up), band-limited to the pixel's footprint as the
-// water shader's, with the wind's ripples.
-vec3 surface_normal(vec2 p0, float exposure, float depth, float footprint) {
+// water shader's, with the open sea's swell (its per-vertex slope, F2-21)
+// and the wind's ripples.
+vec3 surface_normal(vec2 p0, float exposure, float depth, float footprint, vec3 swell) {
 	vec3 n = vec3(0.0, 1.0, 0.0);
 	float keep_from = 2.0 * footprint;
 	float keep_scale = 1.0 / (4.0 * footprint);
@@ -196,6 +206,7 @@ vec3 surface_normal(vec2 p0, float exposure, float depth, float footprint) {
 			n.y -= keep * wk.w * wk.z * a * sin(ph);
 		}
 	}
+	n -= swell * swell_keep(footprint);
 	n = normalize(n);
 	vec2 q = vec2(dot(p0, sea_direction), dot(p0, vec2(-sea_direction.y, sea_direction.x)));
 	mat2 to_sea = mat2(vec2(sea_direction.x, sea_direction.y), vec2(-sea_direction.y, sea_direction.x));
@@ -233,7 +244,7 @@ void fragment() {
 	vec4 bake = bake_at(v_p0);
 	float pixel_angle = 2.0 / (abs(PROJECTION_MATRIX[1][1]) * VIEWPORT_SIZE.y);
 	float footprint = dist * pixel_angle / max(abs(view_w.y), 0.12) + 1e-4;
-	vec3 n = surface_normal(v_p0, bake.b, bake.r, footprint);
+	vec3 n = surface_normal(v_p0, bake.b, bake.r, footprint, v_swell);
 	// The ray from the camera up to the surface, and the surface's normal
 	// facing down into the water.
 	vec3 d = -view_w;

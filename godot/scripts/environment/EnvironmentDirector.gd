@@ -172,9 +172,10 @@ const UW_AMBIENT := 1.0
 ## under the wave troughs; across the crossing the water material's own
 ## underside draws both faces.
 const UNDERSIDE_FROM_M := 0.6
-## What the underside material takes from the water material every frame.
-const UNDERSIDE_COPIED := ["wave_k", "wave_amp", "ripple_strength", "sea_direction", "sea_time",
-	"water_bake", "bake_origin", "bake_spacing", "bake_texels", "has_bake", "whitecaps"]
+## What the underside material takes from the water material every frame
+## (the open sea's swell, F2-21, included: the vertex stages are one).
+const UNDERSIDE_COPIED := ["wave_k", "wave_amp", "swell_k", "swell_amp", "swell_peak", "ripple_strength",
+	"sea_direction", "sea_time", "water_bake", "bake_origin", "bake_spacing", "bake_texels", "has_bake", "whitecaps"]
 ## Seen through Snell's window: the fjord's walls round its rim (a share of
 ## the horizon's light), the sun's disc (as sky_shader.gdshader draws it:
 ## 60 x its light).
