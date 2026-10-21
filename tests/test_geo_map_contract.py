@@ -293,3 +293,211 @@ def test_the_ui_layer_names_no_real_brand_spelling_of_the_rival():
     lint = (REPO / "godot" / "tests" / "TextLint.gd").read_text(encoding="utf-8")
     allowed = lint[lint.index("const ALLOWED_TOKENS"):lint.index("]", lint.index("const ALLOWED_TOKENS"))]
     assert f'"{brand}"' not in allowed
+
+
+# ── Track D: the region and site levels (add-only) ────────────────────────────
+# godot/scripts/ui/map/GeoRegionMath.gd, GeoRegionData.gd, GeoRegionView.gd,
+# GeoSiteCard.gd, ..., godot/shaders/map_suitability.gdshader and
+# godot/tests/GeoRegionChecks.gd.
+
+import math  # noqa: E402
+
+from test_geodata import utm33  # noqa: E402
+
+SHADER = REPO / "godot" / "shaders" / "map_suitability.gdshader"
+REGION_MATH = MAP_SCRIPTS / "GeoRegionMath.gd"
+REGION_DATA = MAP_SCRIPTS / "GeoRegionData.gd"
+REGION_CHECKS = REPO / "godot" / "tests" / "GeoRegionChecks.gd"
+TRACK_D_SCRIPTS = [MAP_SCRIPTS / f"{n}.gd" for n in (
+    "GeoRegionMath", "GeoRegionData", "GeoRegionBridge", "GeoRegionOverlay", "GeoRegionView",
+    "GeoSiteCard", "MapBreadcrumbs", "RivalPresenceList", "GeoRegionDetail", "GeoDrillStack",
+    "GeoRegionIcons", "GeoRegionRivals")]
+## Keys built at run time (a prefix plus an id), listed so each one is pinned.
+DYNAMIC_KEYS = (
+    [f"MAP_REGION_REASON_{c}" for c in [*range(0, 14), *range(16, 25)]]
+    + [f"MAP_REGION_CHIP_{g}" for g in ("HEAT", "RESTRICTIONS", "SITES", "CANDIDATES")]
+    + [f"MAP_REGION_CHIP_{g}_TIP" for g in ("HEAT", "RESTRICTIONS", "SITES", "CANDIDATES")]
+    + [f"MAP_REGION_LEGEND_{g}{t}" for g in ("CLOSED", "YOURS", "OFFSHORE") for t in ("", "_TIP")]
+    + [f"MAP_REGION_STATE_{s}" for s in ("FREE", "SUGGESTED", "TAKEN", "YOURS")]
+    + [f"MAP_SITE_TERM_{t}" for t in ("DEPTH", "EXCHANGE", "FARM_DISTANCE", "TEMPERATURE", "CURRENT",
+                                       "WAVES", "OXYGEN", "RIVER", "STAGE", "NONE")]
+    + [f"MAP_SITE_KIND_{k}" for k in ("SEA_SALMONID", "LAND_SALMONID", "OFFSHORE_SALMONID", "OTHER")]
+    + [f"MAP_SITE_STAGE_{s.upper()}" for s in ("tilradning_2019", "anbefaling_2022",
+                                                "konsekvensvurdering_2024", "kan_utlyses_2026")]
+    + [f"MAP_SITE_LOCALITY_STAGE_{s}" for s in ("GROWOUT", "SMOLT", "BROODSTOCK", "RANCHING", "NURSERY", "OTHER")]
+)
+
+
+def _translation_rows() -> tuple[list[str], dict[str, list[str]]]:
+    with TRANSLATIONS.open(encoding="utf-8", newline="") as f:
+        rows = list(csv.reader(f))
+    return rows[0], {r[0]: r for r in rows[1:]}
+
+
+def _gd_const_in(path: Path, name: str) -> object:
+    text = path.read_text(encoding="utf-8")
+    m = re.search(rf"^const {name} := (\[.*?\]|\{{.*?^\}})", text, flags=re.MULTILINE | re.DOTALL)
+    assert m, f"{path.name} has no const {name}"
+    return ast.literal_eval(m.group(1))
+
+
+def test_map_region_and_site_keys_exist_in_en_and_no():
+    header, table = _translation_rows()
+    en, no = header.index("en"), header.index("no")
+    used: set[str] = set(DYNAMIC_KEYS)
+    for path in [*TRACK_D_SCRIPTS, MAP_PANEL, REGION_CHECKS]:
+        used |= set(re.findall(r'"(MAP_(?:REGION|SITE)_[A-Z0-9_]+)"', path.read_text(encoding="utf-8")))
+    # A prefix completed at run time ("MAP_SITE_TERM_") is not a key itself.
+    used = {k for k in used if not k.endswith("_")}
+    missing = sorted(k for k in used if k not in table or not table[k][en].strip() or not table[k][no].strip())
+    assert not missing, missing
+    assert len(used) >= 140, len(used)
+
+
+def test_the_region_keys_sit_sorted_in_the_tail():
+    header, table = _translation_rows()
+    keys = list(table)
+    tail = keys[keys.index("CAPACITY_REASON_SITE_NOT_FOUND") + 1:]
+    assert tail == sorted(tail)
+    assert all(k in tail for k in keys if k.startswith(("MAP_REGION_", "MAP_SITE_")))
+
+
+def test_map_suitability_shader_samples_the_raw_grid_nearest():
+    text = SHADER.read_text(encoding="utf-8")
+    assert text.startswith("shader_type canvas_item;")
+    sampler = re.search(r"uniform sampler2D suit_tex\s*:\s*([^;]+);", text)
+    assert sampler, "no suit_tex sampler"
+    hints = {h.strip() for h in sampler.group(1).split(",")}
+    assert "filter_nearest" in hints and "repeat_disable" in hints
+    assert not any("mipmap" in h or "linear" in h for h in hints), hints
+    for uniform in ("map_size", "suit_scale", "suit_offset"):
+        assert re.search(rf"uniform vec2 {uniform}\b", text), uniform
+    assert "UV * map_size * suit_scale + suit_offset" in text
+
+
+def _shader_vec(text: str, name: str) -> list[float]:
+    m = re.search(rf"const vec[34] {name} = vec[34]\(([^)]*)\);", text)
+    assert m, name
+    return [float(v) for v in m.group(1).split(",")]
+
+
+def _shader_float(text: str, name: str) -> float:
+    m = re.search(rf"const float {name} = ([0-9.]+);", text)
+    assert m, name
+    return float(m.group(1))
+
+
+def _gd_colors(text: str, name: str) -> list[list[float]]:
+    m = re.search(rf"^const {name}[^=]*= \[(.*?)^\]", text, flags=re.MULTILINE | re.DOTALL)
+    assert m, name
+    return [[float(v) for v in c.split(",")] for c in re.findall(r"Color\(([^)]*)\)", m.group(1))]
+
+
+def test_the_shader_heat_equals_geo_region_math():
+    shader = SHADER.read_text(encoding="utf-8")
+    gd = REGION_MATH.read_text(encoding="utf-8")
+    stops = [float(v) for v in re.search(r"const RAMP_STOPS: Array\[float\] = \[([^\]]*)\]", gd).group(1).split(",")]
+    assert stops == [_shader_float(shader, f"STOP{i}") for i in range(3)] + [1.0]
+    assert _gd_colors(gd, "RAMP_COLORS") == [_shader_vec(shader, f"RAMP{i}") for i in range(4)]
+    for gd_name, sh_name in (("HEAT_ALPHA_LOW", "ALPHA_LOW"), ("HEAT_ALPHA_HIGH", "ALPHA_HIGH")):
+        assert float(re.search(rf"const {gd_name} := ([0-9.]+)", gd).group(1)) == _shader_float(shader, sh_name)
+    for gd_name, sh_name in (("HATCH_COLOR", "HATCH"), ("HATCH_QUIET_COLOR", "HATCH_QUIET")):
+        gd_col = [float(v) for v in re.search(rf"const {gd_name} := Color\(([^)]*)\)", gd).group(1).split(",")]
+        assert gd_col == _shader_vec(shader, sh_name), gd_name
+    # The codes the hatch covers are the same on both sides.
+    assert "g >= 4 && g <= 12" in shader and "g == 13" in shader
+    assert "const HATCH_FIRST := 4" in gd and "const HATCH_LAST := 12" in gd
+    assert "const CODE_OUTSIDE_PLANNING := 13" in gd
+
+
+def test_geo_region_data_reads_the_geo_files_only_through_geodata():
+    shader_preload = 'preload("res://shaders/map_suitability.gdshader")'
+    for path in TRACK_D_SCRIPTS:
+        code = "\n".join(_strip_comments(ln) for ln in path.read_text(encoding="utf-8").splitlines())
+        assert not RESOURCE_LOAD.search(code.replace(shader_preload, "")), path.name
+        assert "FileAccess" not in code and "load_png_from_buffer" not in code, path.name
+        assert "localities.geojson" not in code, f"{path.name}: localities come from the sim's packed arrays"
+    assert "GeoData.read_json(" in REGION_DATA.read_text(encoding="utf-8")
+
+
+def test_suit_uv_puts_every_open_pen_candidate_in_its_own_cell():
+    """The transform GeoRegionMath gives the shader (base-map pixel -> grid UV),
+    recomputed in Python's float64: every candidate's UV lands in the cell
+    test_geodata's (x - ox) // 500 lookup reads, and that cell is scored."""
+    maps = load("basemap.json")["images"]
+    grids = load("suitability.json")["grids"]
+    decoded: dict[int, tuple] = {}
+    n = 0
+    for s in load("candidates.json")["sites"]:
+        if s["type"] != "open_pen":
+            continue
+        n += 1
+        po = s["po"]
+        m, g = maps[f"po{po:02d}"], grids[str(po)]
+        bx0, _, _, by1 = m["bounds_25833"]
+        res, (ox, oy), w, h = m["res_m"], g["origin_25833"], g["width"], g["height"]
+        px, py = (s["x"] - bx0) / res, (by1 - s["y"]) / res
+        u = px * res / (500 * w) + (bx0 - ox) / (500 * w)
+        v = py * res / (500 * h) + (oy - by1) / (500 * h)
+        cell = (math.floor(u * w), math.floor(v * h))
+        assert cell == ((s["x"] - ox) // 500, (oy - s["y"]) // 500), s["id"]
+        if po not in decoded:
+            decoded[po] = decode_png(GEO / g["file"])
+        rows = decoded[po][3]
+        assert rows[cell[1]][cell[0] * 3] > 0, f"{s['id']}: its cell is not scored"
+    assert n == 156
+
+
+def _overlay_counts(po: int) -> dict[str, int]:
+    """GeoRegionData's features per layer in an area: the base map's bounds,
+    each feature's projected extent (fairway buffer, point radius) meeting them."""
+    info = load("basemap.json")["images"][f"po{po:02d}"]
+    x0, _, _, y1 = info["bounds_25833"]
+    res, w, h = info["res_m"], info["width"], info["height"]
+
+    def ring(coords):
+        out = []
+        for lon, lat in coords:
+            x, y = utm33(lon, lat)
+            out.append(((x - x0) / res, (y1 - y) / res))
+        return out
+
+    def meets(points, grow=0.0):
+        xs, ys = [p[0] for p in points], [p[1] for p in points]
+        return not (min(xs) - grow >= w or max(xs) + grow <= 0 or min(ys) - grow >= h or max(ys) + grow <= 0)
+
+    kinds = load("constraint_points.geojson")["meta"]["kinds"]
+    files = {"locality_areas": "locality_areas.geojson", "mooring_areas": "mooring_areas.geojson",
+             "fairways": "fairways.regional.geojson", "exclusions": "exclusions.regional.geojson",
+             "constraint_points": "constraint_points.geojson"}
+    counts = {}
+    for layer, rel in files.items():
+        n = 0
+        for f in load(rel)["features"]:
+            g, p = f["geometry"], f["properties"]
+            if g["type"] == "Point":
+                r = kinds.get(p["kind"], {}).get("radius_m", 0.0) / res
+                x, y = (p["x"] - x0) / res, (y1 - p["y"]) / res
+                n += -r <= x < w + r and -r <= y < h + r
+            elif g["type"] == "LineString":
+                line = ring(g["coordinates"])
+                n += len(line) >= 2 and meets(line, (p.get("buffer_m") or 0.0) / res)
+            else:
+                polys = [g["coordinates"]] if g["type"] == "Polygon" else g["coordinates"]
+                outer = []
+                for poly in polys:
+                    r = ring(poly[0]) if poly else []
+                    if len(r) > 1 and r[0] == r[-1]:
+                        r = r[:-1]
+                    if len(r) >= 3:
+                        outer.extend(r)
+                n += bool(outer) and meets(outer)
+        counts[layer] = n
+    return counts
+
+
+def test_the_pinned_overlay_counts_equal_the_reference_projection():
+    pinned = _gd_const_in(REGION_CHECKS, "OVERLAY_COUNTS")
+    assert sorted(pinned) == [3, 6]
+    for po, want in pinned.items():
+        assert _overlay_counts(po) == want, po

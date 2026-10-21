@@ -182,6 +182,7 @@ func _run() -> void:
 	await preload("res://tests/GeoBridgeChecks.gd").new().run(self)
 	await preload("res://tests/GeoExpansionChecks.gd").new().run(self)
 	await preload("res://tests/GeoMapChecks.gd").new().run(self)
+	await preload("res://tests/GeoRegionChecks.gd").new().run(self)
 
 	_clear_test_saves()
 	CampaignProgress.reset()

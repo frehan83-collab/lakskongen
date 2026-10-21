@@ -484,8 +484,33 @@ GIS package).
   outlines (`exclusions.regional`), river and coral points with their radii,
   and the area's 12 candidates with tooltips (score, binding, depth, nearest
   farm, `near`).
+  Status (geo D, 2026-10-20, branch `geo/map-region`): built as
+  `godot/scripts/ui/map/GeoRegionView.gd` and friends, reached by
+  `MapPanel.drill_into(area)` (a double-click on an area, 'Utforsk området').
+  `GeoRegionMath.suit_uv` maps a base-map pixel to the grid's UV (the
+  numbers `godot/shaders/map_suitability.gdshader` takes: nearest, no
+  mipmaps); the ramp's stops sit on the scored cells' spread (0.5, 0.7, 0.85,
+  1.0) and its opacity rises with the score; codes 4-12 hatch, 13 hatches
+  quieter, 1-3 stay clear. `GeoRegionData` caches each area's five vector
+  layers in base-map pixels on the first drill (a repeat drill parses
+  nothing); a feature is kept when it meets the base map's bounds. Rivals in
+  owner bands (A's `get_geo_sites`), the company's sites (B's
+  `get_player_site_locations`), the 12 candidates as stars and as keyboard
+  buttons (B's `get_sea_candidates`), the Havbruk til havs hexagons with
+  hav_1's filled, a legend in the layer chips and a hover readout (score,
+  why, depth) from the CPU grid. Until A and B merge, their reads go through
+  the marked stub adapter `GeoRegionBridge.gd`. Checked by
+  `godot/tests/GeoRegionChecks.gd` and `tests/test_geo_map_contract.py`.
 - **Local site view**: the existing 3D fjord scene; the candidate or site
   position, depth and `ocean` values seed it.
+  Status (geo D, 2026-10-20): the site level is a 2D card
+  (`GeoSiteCard.gd`) over a 4x crop of the area's base map (the heat's 500 m
+  cells, site and mooring polygons, a 2.5 km ring and the river mouths' 5 km
+  rings): a candidate's 'why here' with 'Bygg her' (the build dialog at the
+  candidate) or 'Søk vekstlisens' (naming the zone's licence), a company
+  site's 'Vis i 3D' (the existing single fjord, with the site selected), a
+  rival's owner, kind, stage and MTB, and hav_1's 'Bygg her (hav)'. Seeding
+  the 3D scene from a candidate stays G2-01 phase 2.
 - Style: Kyst & Stål. The base maps already use the cool landscape palette
   (`design/tokens.json` "landscape"); keep saturation for icons and signals
   (buoy yellow for offshore, salmon for candidates, orange for land sites).
