@@ -479,6 +479,7 @@ UI_CREW_EMPTY,"No staff — press ""Hire"" (50k signing fee)",Ingen ansatte — 
 UI_BUTTON_MODS,Mods,Mods
 UI_NOTIFY_CLEAR_ALL,Clear,Tøm
 UI_NOTIFY_GROUP_CRITICAL,Critical,Kritisk
+UI_NOTIFY_GROUP_HISTORY,Earlier,Tidligere
 UI_NOTIFY_GROUP_WARNING,Warning,Advarsel
 UI_NOTIFY_GROUP_INFO,Info,Info
 ENUM_WEATHER_CALM,Calm,Rolig

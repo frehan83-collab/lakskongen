@@ -39,6 +39,21 @@ public partial class GameBridge
     public int GameEventGeneration => SimulationEngine?.GameEvents?.Generation ?? 0;
 
     /// <summary>
+    /// Last day each live event key was reported: {key: day}. The inbox keeps
+    /// an entry under "Kritisk"/"Advarsel" only while its key is current
+    /// (SHIP_PLAN cycle 2: blooms from day 176 were still "critical" on day 337).
+    /// </summary>
+    public Godot.Collections.Dictionary GetEventKeysLastSeen()
+    {
+        var result = new Godot.Collections.Dictionary();
+        var bus = SimulationEngine?.GameEvents;
+        if (bus == null) return result;
+        foreach (var kv in bus.LastSeenDays())
+            result[kv.Key] = kv.Value;
+        return result;
+    }
+
+    /// <summary>
     /// A condition the snapshot layer sees (SimState reports each one while it
     /// holds). <paramref name="typeId"/> is a catalog id ("lice_above_limit"),
     /// <paramref name="severity"/> "" (the type's own), "info", "warning" or

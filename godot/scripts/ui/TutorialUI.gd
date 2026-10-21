@@ -384,7 +384,7 @@ func _place() -> void:
 	var card_size := get_combined_minimum_size()
 	var avoid: Array[Rect2] = []
 	if _highlight != null and _highlight.is_pointing():
-		avoid.append(_highlight.ring_rect().grow(RING_CLEARANCE))
+		avoid.append(_highlight.keep_clear_rect().grow(RING_CLEARANCE))
 	var drawer := _drawer_rect()
 	if drawer.has_area():
 		avoid.append(drawer)

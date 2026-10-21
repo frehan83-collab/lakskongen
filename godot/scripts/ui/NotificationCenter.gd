@@ -35,6 +35,15 @@ const TOAST_GAP := 12.0
 const TOAST_LIFT := 112.0
 
 # Lower rank = higher priority. Entries are grouped/sorted critical → warning → info.
+## A warning or critical counts as "now" while its event key was reported
+## within this many days (a bloom or lice over the limit is reported every
+## day it lasts); older entries are history ("Tidligere"), muted and outside
+## the badge. Before, every entry stayed "Kritisk"/"Advarsel" until cleared:
+## the first season ended with 2 critical and 18-23 warnings, mostly long
+## over (SHIP_PLAN cycle 2: alarm fatigue).
+const LIVE_DAYS := 2
+## The history group's rank: after Kritisk, Advarsel and Info.
+const HISTORY_RANK := 3
 const SEVERITY_RANK := {
 	"critical": 0,
 	"warning":  1,
@@ -73,6 +82,9 @@ func _ready() -> void:
 	_theme = get_node_or_null("/root/LakskongenTheme")
 	if _sim and _sim.has_signal("game_event_raised"):
 		_sim.game_event_raised.connect(_on_game_event)
+	# Entries age into history as days pass, with no new event to redraw them.
+	if _sim and _sim.has_signal("day_advanced"):
+		_sim.day_advanced.connect(_on_day_advanced)
 	# A new or loaded game starts with an empty inbox (the bus starts empty too).
 	var bridge := get_node_or_null("/root/GameBridge")
 	if bridge != null:
@@ -194,17 +206,59 @@ func add_entry(icon: String, title: String, description: String,
 
 ## Unread warnings and criticals (the HUD bell's badge).
 func unread_count() -> int:
+	var seen := _last_seen()
 	var n := 0
 	for e in _entries:
-		if bool(e.get("unread", false)):
+		if bool(e.get("unread", false)) and _is_live(e, seen):
 			n += 1
 	return n
 
 func has_unread_critical() -> bool:
+	var seen := _last_seen()
 	for e in _entries:
-		if bool(e.get("unread", false)) and str(e.get("severity", "")) == "critical":
+		if bool(e.get("unread", false)) and str(e.get("severity", "")) == "critical" and _is_live(e, seen):
 			return true
 	return false
+
+
+## {event key: last day reported} from the engine's bus ({} without one).
+func _last_seen() -> Dictionary:
+	var bridge := get_node_or_null("/root/GameBridge")
+	if bridge == null or not bridge.has_method("GetEventKeysLastSeen"):
+		return {}
+	return bridge.GetEventKeysLastSeen()
+
+
+func _today() -> int:
+	var bridge := get_node_or_null("/root/GameBridge")
+	if bridge != null:
+		return int(bridge.CurrentDay)
+	return int(_sim.get("current_day")) if _sim != null else 0
+
+
+## Whether `entry` still needs the player: info is the log (never "now");
+## a warning or critical is live while its key was reported within LIVE_DAYS
+## (its own day when the bus has forgotten the key, or for hand-made entries).
+func _is_live(entry: Dictionary, seen: Dictionary) -> bool:
+	var sev := str(entry.get("severity", "info"))
+	if sev != "warning" and sev != "critical":
+		return false
+	var key := str(entry.get("key", ""))
+	var last := int(seen.get(key, entry.get("day", 0))) if key != "" else int(entry.get("day", 0))
+	return _today() - last <= LIVE_DAYS
+
+
+## The group an entry is listed under: its severity's while live, history after.
+func _group_rank(entry: Dictionary, seen: Dictionary) -> int:
+	var rank := _severity_rank(str(entry.get("severity", "info")))
+	if rank <= 1 and not _is_live(entry, seen):
+		return HISTORY_RANK
+	return rank
+
+
+func _on_day_advanced(_day: int = 0, _season: String = "") -> void:
+	_rebuild_list()
+	_emit_unread()
 
 ## An event the player has seen elsewhere (its critical card).
 func mark_read(event_id: String) -> void:
@@ -397,30 +451,32 @@ func _rebuild_now() -> void:
 		UIPolish.show_empty_state_localized(entry_list, tr("UI_NOTIFY_EMPTY"), 12, "", _theme)
 		return
 
+	var seen := _last_seen()
 	var ordered: Array = []
 	for i in _entries.size():
-		ordered.append({"entry": _entries[i], "index": i})
-	# Group by severity (critical → warning → info); newest first within a group.
+		ordered.append({"entry": _entries[i], "index": i, "rank": _group_rank(_entries[i], seen)})
+	# Group: what needs the player now (critical → warning), the log (info),
+	# then history (warnings and criticals that are over); newest first within.
 	ordered.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
-		var ra := _severity_rank(str(a["entry"].get("severity", "info")))
-		var rb := _severity_rank(str(b["entry"].get("severity", "info")))
-		if ra != rb:
-			return ra < rb
+		if int(a["rank"]) != int(b["rank"]):
+			return int(a["rank"]) < int(b["rank"])
 		return int(a["index"]) < int(b["index"])
 	)
 	var counts := {}
-	for e in _entries:
-		var r := _severity_rank(str(e.get("severity", "info")))
-		counts[r] = int(counts.get(r, 0)) + 1
+	for o in ordered:
+		counts[int(o["rank"])] = int(counts.get(int(o["rank"]), 0)) + 1
 
 	var last_rank := -1
 	for i in ordered.size():
 		var entry: Dictionary = ordered[i]["entry"]
-		var rank := _severity_rank(str(entry.get("severity", "info")))
+		var rank := int(ordered[i]["rank"])
 		if rank != last_rank:
 			entry_list.add_child(_build_group_header(rank, int(counts.get(rank, 0))))
 			last_rank = rank
-		entry_list.add_child(_build_entry_node(entry, int(ordered[i]["index"])))
+		var node := _build_entry_node(entry, int(ordered[i]["index"]))
+		if rank == HISTORY_RANK:
+			node.modulate.a = 0.62   # over: still readable, no longer a call to act
+		entry_list.add_child(node)
 
 	if scroll_container:
 		scroll_container.scroll_vertical = 0
@@ -556,6 +612,14 @@ func _rank_to_severity(rank: int) -> String:
 
 ## "KRITISK · 2"
 func _build_group_header(rank: int, count: int) -> Control:
+	if rank == HISTORY_RANK:
+		var past := Label.new()
+		past.name = "Group_history"
+		past.text = "%s · %d" % [tr("UI_NOTIFY_GROUP_HISTORY"), count]
+		past.theme_type_variation = &"OverlineMuted"
+		past.uppercase = true
+		past.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		return past
 	var sev := _rank_to_severity(rank)
 	var lbl := Label.new()
 	lbl.name = "Group_" + sev
