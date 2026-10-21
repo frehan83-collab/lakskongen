@@ -5669,6 +5669,7 @@ func _test_inbox_lists_what_happened() -> void:
 	await get_tree().create_timer(0.3).timeout
 	var past_head: Label = center.entry_list.find_child("Group_history", true, false)
 	_check(not center._is_live(aging, center._last_seen()) and past_head != null
+			and tr("UI_NOTIFY_GROUP_HISTORY") != "UI_NOTIFY_GROUP_HISTORY"
 			and past_head.text.begins_with(tr("UI_NOTIFY_GROUP_HISTORY")),
 		"inbox: %d days later, unreported, it is under Tidligere (%s) and out of the badge" % [LIVE_AGE_DAYS, past_head.text if past_head else "missing"])
 	center.hide_panel()
