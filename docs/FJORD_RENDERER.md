@@ -960,7 +960,7 @@ totally reflected outside 48.6 degrees (the water's own light below: the
 window's tinted ring), mixed by Fresnel taken on the air side, foam lighter,
 the water between dimming it at 0.45 of the fog's attenuation (a bright
 source keeps its shape through forward scattering). 11c measures the window
-at 2.38-2.42× the surface outside it, the TIR ring green over red.
+at 2.37-2.42× the surface outside it, the TIR ring green over red.
 
 **On the net, the collar and the fish** (`shaders/include/underwater_light.gdshaderinc`,
 globals `lk_uw*` in `project.godot`, written only by the director):
@@ -1008,7 +1008,7 @@ crosses the surface; it reads no screen texture.
 
 **The fish** under water show within 5 optical depths of the fog plus the
 school's ring (`FishSchool.underwater_reach_m`, 40 m in 11's water): the
-schools beyond it are not drawn. 11's school changes 3.0-3.3 % of the frame.
+schools beyond it are not drawn. 11's school changes 2.9-3.3 % of the frame.
 
 **The shots** (`--only=underwater`, `UnderwaterShots.gd`, a JSON report
 `11_underwater.json`): 11 (noon, clear, the first stocked pen), 11c (tilted

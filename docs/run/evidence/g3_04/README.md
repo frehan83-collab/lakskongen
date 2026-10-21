@@ -22,10 +22,10 @@ content checks passed (`"failures": []`).
 | Check | Bar | Measured |
 |---|---|---|
 | 11: the camera 3-8 m down inside the net | depth 3-8, < 24.95 m from the centre | 5.0 m, 17.96 m |
-| 11c: Snell's window over the TIR ring, tinted | ≥ 1.8×, green over red | 2.42× (2.38 in earlier runs), g 0.299 > r 0.054 |
+| 11c: Snell's window over the TIR ring, tinted | ≥ 1.8×, green over red | 2.42× (2.37-2.42 over the runs: the waves move the window), g 0.299 > r 0.054 |
 | 11b: the bloom's fog over the clear water's | shorter visibility, denser fog | 2.35 m / 0.839 against 11.53 m / 0.269 |
-| 11: fish | ≥ 1 % of the frame | 3.31 % (2.97-3.29 in earlier runs) |
-| 11d: the caustics animate on the net (time stopped, 0.5 s on their clock) | clean ≥ 0.002, fouled ≥ 0.005, held off ≤ 0.0005 | clean 0.0039 (p99 4.2, max 12 levels on 18 % of the frame), fouled 0.0086 (p99 8.2, max 30 on 32 %), held off 0.0000; the same in three runs |
+| 11: fish | ≥ 1 % of the frame | 3.31 % (2.92-3.31 over the runs) |
+| 11d: the caustics animate on the net (time stopped, 0.5 s on their clock) | clean ≥ 0.002, fouled ≥ 0.005, held off ≤ 0.0005 | clean 0.0039 (p99 4.2, max 12 levels on 18 % of the frame), fouled 0.0086 (p99 8.2, max 30 on 32 %), held off 0.0000; 0.00389-0.00393 / 0.00854-0.00859 / 0 over the frozen runs |
 | 11e: the fouling uniform reads | ≥ 10 % of the frame | 40.9 % |
 
 The first version measured two real-time frames 0.5 s apart against a twin
