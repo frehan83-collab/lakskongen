@@ -1,8 +1,9 @@
 # AGENTS.md — LakskongenSim Agent Instructions
 
 > **Start here:** read `docs/HANDOFF.md` first. It says which branch to build on
-> (`main`; PR #5 merged waves 1-3 on 2026-10-20), where wave 4 stopped, and the rules: wait for
-> the owner's go, and align with GitHub before changing anything.
+> (`main`; PRs #5-#9 merged waves 1-3, wave 4's headless part, the look-dev and geo stage 1 on
+> 2026-10-20), where the integration branches stand (`wave4b/int` closed 2026-10-21, `geo/int`),
+> and the rules: wait for the owner's go, and align with GitHub before changing anything.
 
 ## Project Overview
 LakskongenSim is a realistic Norwegian salmon-farming simulation with Godot 4.7.2 (Mono) frontend and C# .NET 10 backend. The engine is deterministic, save/load round-trips exactly, and all subsystems implement `ITickSystem` + `ISnapshotable`.
@@ -52,8 +53,11 @@ dotnet test src/LakskongenSim.Tests
 # Run specific test filter
 dotnet test src/LakskongenSim.Tests --filter "FullyQualifiedName~LicenseAuctionTests"
 
-# Capture screenshots (visual regression)
+# Capture screenshots (visual regression): the harness, then one run per QA scene
+# in godot/qa/shots.json (ShowcaseCapture's 34_teaser alone: -- --only 34_teaser).
+# Never visual_qa.capture or baseline_update: the owner promotes baselines.
 ./tools/capture_screenshots.sh
+./tools/capture_screenshots.sh --scene res://qa/scenes/FacilityPresenterCapture.tscn
 
 # Godot headless (for bridge contract tests)
 cd godot && dotnet run -- --headless --quit
@@ -418,6 +422,7 @@ func my_bridge_method(arg: String) -> Dictionary: return _proxies.my_bridge_meth
 - Partials: `GameBridge.Core.cs`, `GameBridge.Farm.cs`, `GameBridge.Market.cs`, `GameBridge.Depth.cs`, `GameBridge.Economy.cs`, `GameBridge.Licence.cs`, `GameBridge.Content.cs`, `GameBridge.Events.cs` (the `GameEventRaised` signal of the typed event bus), `GameBridge.Clock.cs` (the game clock: speeds, holds, pacing, `ClockChanged`), `GameBridge.LandSites.cs` / `GameBridge.Offshore.cs` (F2-03: the land and sea lanes' slices, one marked append block each)
 - `InternalsVisibleTo("LakskongenSim.Tests")` in `SaveJson.cs` allows tests to call `internal` methods (`TickLicenseAuctions`, `DrainDayNotes`, etc.)
 - `Nullable enable`, `ImplicitUsings`, `TreatWarningsAsErrors` in csproj
+- A mesh rebuilt from `surface_get_arrays` must pass the source surface's custom formats: `add_surface_from_arrays(primitive, arrays, [], {}, surface_format & custom bits)` (`LandKitPreview.custom_formats`). The terrain chunks carry CUSTOM0 as RGBA float since gfx-polish-1; without the flags the rebuild fails ("Invalid array format for surface") and the mesh draws nothing (found at the wave-4b close; `GfxPolishChecks` carves a real chunk)
 
 ## Debugging Tips
 - **Determinism failure**: Run `EngineTwinRunDeterminismTests` or `ExactSaveHashTests` — they print divergent stream positions
