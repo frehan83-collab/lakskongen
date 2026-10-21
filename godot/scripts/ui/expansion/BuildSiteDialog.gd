@@ -29,6 +29,9 @@ signal closed
 const CARD_IDS := {"sjo": "sea", "land": "land", "hav": "offshore"}
 ## The fjord variant this dialog builds (the closed pen is an upgrade on the pen card).
 const SEA_BUILD := "open_pen"
+## The entrance: a fade and a rise of this many px (JuiceEffects.panel_enter's).
+const ENTER_SECONDS := 0.28
+const ENTER_RISE_PX := 14.0
 
 @onready var _dialog: PanelContainer = %Dialog
 @onready var _overline: Label = %Overline
@@ -81,6 +84,8 @@ var _mitigations: Array = []
 var _choosing_family := false
 ## Land permits filed or a unit contracted by the last confirm ("" none).
 var _done_kind := ""
+## The entrance's tween (see _enter).
+var _slide: Tween = null
 
 var _catalog: Dictionary = {}
 var _starts: Dictionary = {}
@@ -903,15 +908,32 @@ func _focus_plot() -> void:
 	_confirm_btn.grab_focus()
 
 
-## The entrance slide, then the centre sorts the panel again. The slide ends
-## where the panel stood when it began, so a refresh during it (a choice made
-## at once, a dialog opened at another size) left the panel off centre with
-## the confirm below the window (captain's merge of track B, seen at 1280x720).
+## The entrance: a fade, and a rise into the place the centre gives the panel
+## at its size now. A fit grows the panel while it slides in (Sjø's places),
+## and a rise towards where the panel stood at the start held it, and its
+## confirm, below the window for the slide's 0.28 s (GEO-VIS close: U2-01's
+## auction test clicked past it; the merge of track B saw it at 1280x720).
+## The centre sorts the panel again at the end.
 func _enter() -> void:
-	var slide := JuiceEffects.panel_enter(_dialog)
+	if _slide != null and _slide.is_valid():
+		_slide.kill()
+	_dialog.modulate.a = 0.0
+	_slide = _dialog.create_tween()
+	_slide.set_ease(Tween.EASE_OUT)
+	_slide.set_trans(Tween.TRANS_CUBIC)
+	_slide.set_parallel(true)
+	_slide.tween_property(_dialog, "modulate:a", 1.0, ENTER_SECONDS)
+	_slide.tween_method(_rise_into_place, ENTER_RISE_PX, 0.0, ENTER_SECONDS)
 	var centre := _dialog.get_parent() as Container
-	if slide != null and centre != null:
-		slide.finished.connect(centre.queue_sort)
+	if centre != null:
+		_slide.finished.connect(centre.queue_sort)
+
+
+## The panel `offset` px below the place its centre gives it now.
+func _rise_into_place(offset: float) -> void:
+	var centre := _dialog.get_parent() as Control
+	if centre != null:
+		_dialog.position.y = floorf((centre.size.y - _dialog.get_combined_minimum_size().y) * 0.5) + offset
 
 
 ## Fit at the end of this frame and once more on the next, when rebuilt steps
