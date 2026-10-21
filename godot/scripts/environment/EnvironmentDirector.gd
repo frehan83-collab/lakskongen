@@ -125,8 +125,9 @@ const SUN_SCATTER := 0.25
 const ABOVE_SEA_FOG_VISIBILITY_M := 15000.0
 const SEA_FOG_TOP_M := 45.0
 const SEA_FOG_HEIGHT_DENSITY := 0.045
-## Underwater: fjord water seen through a camera at a few metres' depth.
-const UNDERWATER_VISIBILITY_M := 30.0
+## Underwater (G3-04): the fog is the sim's water (UnderwaterOptics: the
+## photopic attenuation of the site's visibility), its colour the water's
+## own light at the camera's depth; see _compose_underwater.
 ## Readability (G3-05): in a storm the sim's visibility drops to 1.5-2 km,
 ## where the drawn fog (now the sky's true luminance) would bury the
 ## player's own farm at the default zoom and every wall behind it. The drawn
@@ -139,7 +140,57 @@ const READABLE_SOFT_M := 2000.0
 ## MIST_CLEAR_FROM_M over the cloud base and is gone MIST_CLEAR_TO_M over it.
 const MIST_CLEAR_FROM_M := 150.0
 const MIST_CLEAR_TO_M := 550.0
-const UNDERWATER_FOG_COLOR := Color(0.012, 0.055, 0.07)
+
+# ── Underwater (G3-04) ────────────────────────────────────────────────────────
+## The sky's diffuse light that passes the surface (1 - the hemispherical
+## mean of Fresnel for water, about 0.066) and the extra path a diffuse ray
+## takes to a depth (its mean slant, 1 / cos ~ 1.2).
+const UW_SKY_TRANSMISSION := 0.934
+const UW_DIFFUSE_PATH := 1.2
+## The sky's irradiance per unit of its zenith and horizon radiance (pi for
+## a uniform sky, split between the overhead and the low sky).
+const UW_SKY_ZENITH_SHARE := 1.9
+const UW_SKY_HORIZON_SHARE := 1.24
+## Snell's window seen from below: the sky through the surface, as much of
+## it as the water above lets through (its own colour kept).
+const UW_WINDOW_GAIN := 1.0
+## The sun's forward-scattered glow under the water, round its refracted
+## direction, as a share of the sunlight at depth (the sky's underwater light).
+const UW_SUN_GLOW := 0.05
+## Under the water the eye adapts to the light at its depth: by
+## (light just under the surface / light here)^UW_ADAPTATION, at most
+## UW_MAX_ADAPT times brighter than the day above.
+const UW_ADAPTATION := 0.7
+const UW_MAX_ADAPT := 6.0
+## Ambient light under the water: the water's own light field (the sky's
+## underwater gradient, its radiance map) at this energy.
+const UW_AMBIENT := 1.0
+## The grid wears the underside material once the camera is this deep (m):
+## under the wave troughs; across the crossing the water material's own
+## underside draws both faces.
+const UNDERSIDE_FROM_M := 0.6
+## What the underside material takes from the water material every frame.
+const UNDERSIDE_COPIED := ["wave_k", "wave_amp", "ripple_strength", "sea_direction", "sea_time",
+	"water_bake", "bake_origin", "bake_spacing", "bake_texels", "has_bake", "whitecaps"]
+## Seen through Snell's window: the fjord's walls round its rim (a share of
+## the horizon's light), the sun's disc (as sky_shader.gdshader draws it:
+## 60 x its light).
+const UNDERSIDE_LAND := 0.18
+const UNDERSIDE_SUN_DISC := 60.0
+## The veil over the surface seen from below: this share of the fog's
+## attenuation (a bright extended source keeps its shape through forward
+## scattering far longer than a dark object keeps its contrast).
+const UNDERSIDE_VEIL := 0.45
+## The underwater globals (include/underwater_light.gdshaderinc), in
+## _apply_underwater_globals' order: on/depth/caustics/clock, the refracted
+## sun, the sunlight at depth, the water's attenuation.
+const UW_GLOBALS := ["lk_uw", "lk_uw_sun", "lk_uw_light", "lk_uw_sigma"]
+## The caustics: none with the sun under CAUSTIC_SUN_DEG.x, full over .y;
+## gone as the cloud closes (CAUSTIC_CLOUD); and they need the wind's
+## ripples (CAUSTIC_RIPPLE: the water shader's ripple strength).
+const CAUSTIC_SUN_DEG := Vector2(4.0, 18.0)
+const CAUSTIC_CLOUD := Vector2(0.35, 0.85)
+const CAUSTIC_RIPPLE := Vector2(0.02, 0.1)
 
 # ── Tonemap and glow (D13 Vestland Light) ─────────────────────────────────────
 const AGX_WHITE := 6.0
@@ -284,6 +335,13 @@ const LAND_SHADOW_GLOBALS := ["lk_cloud_shadow_map", "lk_cloud_shadow_origin", "
 
 var _water_temperature_c := 8.0
 var _algae := 0.0
+## The water the camera is in (G3-04, set_underwater_water).
+var _uw_visibility := UnderwaterOptics.FALLBACK_VISIBILITY_M
+var _uw_chlorophyll := 0.0
+## The caustics' clock (s) and whether the underwater globals are on (tests
+## read it).
+var _caustic_time := 0.0
+var uw_globals_on := false
 ## The ground (G2-02): fresh snow and wet ground, eased toward the weather.
 var _fresh_snow := 0.0
 var _wetness := 0.0
@@ -504,6 +562,14 @@ func set_water_state(temperature_c: float, algae01: float) -> void:
 	_algae = clampf(algae01, 0.0, 1.0)
 
 
+## The water the camera is in (G3-04, UnderwaterView from the sim's site
+## details): its horizontal visibility (m) and a bloom's chlorophyll a
+## (ug/L). The underwater fog, light and colour follow it.
+func set_underwater_water(visibility_m: float, chlorophyll_ug_l: float) -> void:
+	_uw_visibility = maxf(visibility_m, 0.1)
+	_uw_chlorophyll = maxf(chlorophyll_ug_l, 0.0)
+
+
 ## Staging (the harness's goldens): put the clouds' drift (km, the sky's
 ## cloud_offset) at a fixed point, so a golden's clouds and their shadows do
 ## not depend on how long the run has played.
@@ -565,6 +631,9 @@ func compose(delta: float, snap: bool = false) -> void:
 	_apply_moon(sun_elev, cloud, c)
 	var snowfall := weather_system.get_snow() if weather_system else 0.0
 	_measure_sky(sun_dir, cloud, density, sea_fog, snowfall, c)
+	# G3-04: under the surface the light, the fog and the sky are the water's.
+	_compose_underwater(sun_dir, underwater, c)
+	_apply_underwater_globals(delta, sun_elev, cloud, underwater, c)
 	# Behind an opaque panel the sky holds still: an unchanged sky material
 	# re-renders no radiance map (set_world_visible). A snap (staging) still
 	# writes it.
@@ -716,6 +785,15 @@ func _apply_sky(delta: float, sun_elev: float, cloud: float, density: float, vis
 		var mirror_sky := i > 0
 		mat.set_shader_parameter("sky_pass", MIRROR_SKY_PASS if mirror_sky else 0)
 		mat.set_shader_parameter("sky_pass_aurora", mirror_sky)
+		# G3-04: under the surface the main sky is the water's own light.
+		var uw: Dictionary = c.get("uw", {})
+		var water_sky := not mirror_sky and not uw.is_empty()
+		mat.set_shader_parameter("underwater", 1.0 if water_sky else 0.0)
+		if water_sky:
+			mat.set_shader_parameter("uw_horizontal", uw["horizontal"])
+			mat.set_shader_parameter("uw_nadir", uw["nadir"])
+			mat.set_shader_parameter("uw_sun_dir", uw["sun_dir"])
+			mat.set_shader_parameter("uw_sun_glow", uw["sun_glow"])
 	sky_updates += 1
 	c["aurora_intensity"] = _aurora
 	c["haze_amount"] = haze
@@ -783,6 +861,125 @@ func _measure_sky(sun_dir: Vector3, cloud: float, density: float, sea_fog: float
 	c["scene_key"] = key
 
 
+# ── Underwater (G3-04) ────────────────────────────────────────────────────────
+
+## Under the surface the light, the fog and the sky are the water's
+## (UnderwaterOptics): the sunlight refracted into the water and filtered by
+## the water over the camera (Beer-Lambert with the water shader's own
+## attenuation, a bloom's included), the sky's light through the surface,
+## and the water's own light, which the fog, the sky's underwater gradient
+## (the background, the fog's aerial perspective, the ambient light and what
+## a fish's silver flank mirrors) and the eye's adaptation are made of.
+## Composed into c["uw"]; _apply_sky, _apply_fog, _apply_image and
+## _apply_water write it. The sun and the moon light the water from their
+## refracted directions. Above the water c["uw"] is empty.
+func _compose_underwater(sun_dir: Vector3, underwater: bool, c: Dictionary) -> void:
+	c["uw"] = {}
+	if not underwater:
+		return
+	var water_y := terrain.water_level if terrain != null else 0.0
+	var depth := maxf(water_y - camera.global_position.y, 0.0) if camera != null else 0.0
+	var uw := underwater_profile(sun_dir, depth, float(c.get("sun_energy", 0.0)), c.get("sun_color", Color.WHITE),
+		c.get("sky_zenith", Vector3(0.05, 0.1, 0.25)), c.get("horizon_color", Color(0.4, 0.5, 0.6)), _uw_chlorophyll)
+	uw["visibility_m"] = _uw_visibility
+	uw["fog_density"] = UnderwaterOptics.fog_density(_uw_visibility)
+	# The eye adapts to the light at its depth (against the light just under
+	# the surface), from the day's exposure up.
+	var just_under := UnderwaterOptics.luminance(uw["down_surface"])
+	var here := UnderwaterOptics.luminance(uw["down"])
+	uw["adapt"] = clampf(pow(just_under / maxf(here, 1e-5), UW_ADAPTATION), 1.0, UW_MAX_ADAPT) if here > 0.0 else UW_MAX_ADAPT
+	c["uw"] = uw
+	if sun_light != null:
+		# The light carries the sunlight at the camera's depth: its hue as
+		# the colour (sRGB-encoded), its luminance as the energy (as _apply_sun).
+		_point_light(sun_light, uw["sun_dir"])
+		var at: Vector3 = uw["sun_at_depth"]
+		var peak := maxf(at.x, maxf(at.y, at.z))
+		sun_light.light_color = Color(at.x / peak, at.y / peak, at.z / peak).linear_to_srgb() if peak > 0.0 else Color.BLACK
+		var energy := UnderwaterOptics.luminance(at)
+		sun_light.light_energy = energy / sun_color_luminance(sun_light.light_color)
+		c["uw_sun_energy"] = energy
+	if moon_light != null:
+		_point_light(moon_light, UnderwaterOptics.refracted_sun(_moon_dir))
+		moon_light.light_energy = float(c.get("moon_energy", 0.0)) * UnderwaterOptics.luminance(uw["sun_filter"])
+
+
+## The light under the surface for the net, the collar and the fish
+## (include/underwater_light.gdshaderinc, project.godot [shader_globals]):
+## on or off, the camera's depth, the caustics' strength and clock, the
+## refracted sun, the sunlight at the camera's depth and the water's
+## attenuation. Written while the camera is under the surface; once, off,
+## on the way up. The caustics need a sun high enough to cast them, a broken
+## sky at most, and waves to gather the light (a mirror-calm surface spreads
+## it evenly).
+func _apply_underwater_globals(delta: float, sun_elev: float, cloud: float, underwater: bool, c: Dictionary) -> void:
+	var uw: Dictionary = c.get("uw", {})
+	if not underwater or uw.is_empty():
+		c["caustic_strength"] = 0.0
+		if uw_globals_on:
+			RenderingServer.global_shader_parameter_set(UW_GLOBALS[0], Vector4.ZERO)
+			uw_globals_on = false
+		return
+	_caustic_time += delta
+	var wind := weather_system.get_wind_speed_ms() if weather_system else 4.0
+	var strength := smoothstep(CAUSTIC_SUN_DEG.x, CAUSTIC_SUN_DEG.y, sun_elev) \
+		* (1.0 - smoothstep(CAUSTIC_CLOUD.x, CAUSTIC_CLOUD.y, cloud)) \
+		* smoothstep(CAUSTIC_RIPPLE.x, CAUSTIC_RIPPLE.y, ripple_strength_for(wind))
+	RenderingServer.global_shader_parameter_set(UW_GLOBALS[0], Vector4(1.0, float(uw["depth_m"]), strength, _caustic_time))
+	RenderingServer.global_shader_parameter_set(UW_GLOBALS[1], uw["sun_dir"])
+	RenderingServer.global_shader_parameter_set(UW_GLOBALS[2], uw["sun_at_depth"])
+	RenderingServer.global_shader_parameter_set(UW_GLOBALS[3], uw["sigma"])
+	uw_globals_on = true
+	c["caustic_strength"] = strength
+	c["caustic_time"] = _caustic_time
+
+
+## The water's light at `depth` metres for a sun direction, the sun's energy
+## and colour (sRGB-encoded, as the light has it), the sky's zenith and
+## horizon radiance (linear) and a bloom's chlorophyll a (ug/L): the
+## refracted sun and its filter, the downwelling light here and just under
+## the surface, and the water's radiance horizontally, straight down and up
+## through Snell's window. Pure (the tests drive it).
+static func underwater_profile(sun_dir: Vector3, depth: float, sun_energy: float, sun_color: Color,
+		sky_zenith: Vector3, horizon: Color, chlorophyll_ug_l: float) -> Dictionary:
+	var bloom := UnderwaterOptics.bloom_of(chlorophyll_ug_l)
+	var sigma := UnderwaterOptics.attenuation_rgb(bloom)
+	var sun_w := UnderwaterOptics.refracted_sun(sun_dir)
+	var t_surf := UnderwaterOptics.surface_transmission(sun_dir)
+	var lin := sun_color.srgb_to_linear()
+	var lum := maxf(UnderwaterOptics.luminance(Vector3(lin.r, lin.g, lin.b)), 1e-4)
+	var sun_in := Vector3(lin.r, lin.g, lin.b) / lum * maxf(sun_energy, 0.0) * t_surf
+	var filt := UnderwaterOptics.sun_filter(sigma, depth, sun_w)
+	var sky_e := sky_zenith * UW_SKY_ZENITH_SHARE + Vector3(horizon.r, horizon.g, horizon.b) * UW_SKY_HORIZON_SHARE
+	var sky_in := sky_e * UW_SKY_TRANSMISSION
+	var diffuse := UnderwaterOptics.transmittance(sigma, depth * UW_DIFFUSE_PATH)
+	var down := _mul3(sun_in, filt) * sun_w.y + _mul3(sky_in, diffuse)
+	var down_surface := sun_in * sun_w.y + sky_in
+	var horizontal := UnderwaterOptics.horizontal_radiance(down, bloom)
+	# Snell's window overhead: the zenith sky, radiance n^2 denser under the
+	# surface, through the water over the camera.
+	var window := _mul3(sky_zenith * (UnderwaterOptics.IOR_WATER * UnderwaterOptics.IOR_WATER), diffuse) * UW_WINDOW_GAIN
+	return {
+		"depth_m": depth,
+		"bloom": bloom,
+		"sigma": sigma,
+		"sun_dir": sun_w,
+		"surface_transmission": t_surf,
+		"sun_filter": filt,
+		"sun_at_depth": _mul3(sun_in, filt),
+		"down": down,
+		"down_surface": down_surface,
+		"horizontal": horizontal,
+		"nadir": horizontal * UnderwaterOptics.NADIR_SHARE,
+		"window": window,
+		"sun_glow": _mul3(sun_in, filt) * UW_SUN_GLOW,
+	}
+
+
+static func _mul3(a: Vector3, b: Vector3) -> Vector3:
+	return Vector3(a.x * b.x, a.y * b.y, a.z * b.z)
+
+
 ## Clear-sky scene key for a sun direction (the exposure reference).
 static func clear_key(sun_dir: Vector3, sun_energy: float, moon_energy: float) -> float:
 	var zenith := sky_radiance(Vector3.UP, sun_dir, 6) + twilight_radiance(Vector3.UP, sun_dir) + NIGHT_SKY_ZENITH
@@ -823,12 +1020,17 @@ func _apply_fog(sun_elev: float, cloud: float, visibility: float, sea_fog: float
 	env.fog_enabled = true
 	env.fog_mode = Environment.FOG_MODE_EXPONENTIAL
 	if underwater:
-		var day := smoothstep(-8.0, 20.0, sun_elev) * lerpf(1.0, 0.4, cloud)
-		env.fog_density = KOSCHMIEDER / UNDERWATER_VISIBILITY_M
-		env.fog_light_color = UNDERWATER_FOG_COLOR * lerpf(0.15, 1.0, day)
+		# G3-04: the water's attenuation at the site's visibility; a line of
+		# sight fades into the water's own light in its direction (aerial
+		# perspective from the sky's underwater gradient: brighter toward the
+		# surface, darker down), and the background is that gradient itself.
+		var uw: Dictionary = c.get("uw", {})
+		var horizontal: Vector3 = uw.get("horizontal", Vector3(0.01, 0.03, 0.03))
+		env.fog_density = float(uw.get("fog_density", UnderwaterOptics.fog_density(_uw_visibility)))
+		env.fog_light_color = encoded(Color(horizontal.x, horizontal.y, horizontal.z))
 		env.fog_light_energy = 1.0
-		env.fog_aerial_perspective = 0.0
-		env.fog_sky_affect = 1.0
+		env.fog_aerial_perspective = 1.0
+		env.fog_sky_affect = 0.0
 		env.fog_sun_scatter = 0.0
 		env.fog_height_density = 0.0
 		c["fog_density"] = env.fog_density
@@ -884,6 +1086,10 @@ func _apply_image(sun_elev: float, distance: float, underwater: bool, c: Diction
 		var key: float = c["scene_key"]
 		var exposure := clampf(pow(_key_ref / maxf(key, 1e-5), ADAPTATION), 1.0, MAX_EXPOSURE) \
 			* pow(2.0, float(mood.get("exposure_ev", 0.0)))
+		var uw: Dictionary = c.get("uw", {})
+		if not uw.is_empty():
+			# G3-04: the eye adapts to the light at its depth.
+			exposure = minf(exposure * float(uw.get("adapt", 1.0)), MAX_EXPOSURE)
 		env.tonemap_mode = Environment.TONE_MAPPER_AGX
 		env.tonemap_agx_white = AGX_WHITE
 		env.tonemap_agx_contrast = AGX_CONTRAST
@@ -894,6 +1100,13 @@ func _apply_image(sun_elev: float, distance: float, underwater: bool, c: Diction
 		env.ambient_light_color = encoded(c["horizon_color"])
 		# The night boost only once the sky is dark: twilight lights the walls itself.
 		env.ambient_light_energy = lerpf(AMBIENT_DAY, AMBIENT_NIGHT, smoothstep(-6.0, -14.0, sun_elev))
+		if not uw.is_empty():
+			# Under the water the water's own light (the sky's underwater
+			# gradient) lights everything: the ambient colour is its horizon.
+			var horizontal: Vector3 = uw["horizontal"]
+			env.ambient_light_sky_contribution = 1.0
+			env.ambient_light_color = encoded(Color(horizontal.x, horizontal.y, horizontal.z))
+			env.ambient_light_energy = UW_AMBIENT
 		var zoom := zoom_settings(distance)
 		env.ssao_enabled = bool(quality.knobs["ssao"])
 		env.ssao_radius = zoom.y
@@ -1030,6 +1243,14 @@ func _ensure_mirror_sky(env: Environment) -> Sky:
 func _refresh_probe(delta: float, snap: bool, sun_elev: float, cloud: float, sea_fog: float) -> void:
 	if reflection_probe == null:
 		return
+	# G3-04: under the surface nothing mirrors the fjord above it (the probe's
+	# capture): the fish and the nets mirror the water's own light (the sky's
+	# underwater gradient). No capture is taken while the sky is the water's;
+	# a change of sky meanwhile is caught on the way up.
+	var under := _is_underwater()
+	reflection_probe.visible = not under
+	if under:
+		return
 	_probe_timer += delta
 	var terrain_ready := terrain == null or not terrain.has_method("is_ready") or terrain.is_ready()
 	var terrain_arrived := terrain_ready and not _terrain_was_ready
@@ -1093,12 +1314,51 @@ func _apply_water(delta: float, c: Dictionary) -> void:
 	mat.set_shader_parameter("sea_time", _sea_time)
 	mat.set_shader_parameter("temperature_factor", clampf((_water_temperature_c - 2.0) / 18.0, 0.0, 1.0))
 	mat.set_shader_parameter("algae_density", _algae)
-	# Seen from below, Snell's window shows the day's sky light.
+	# Seen from below, Snell's window shows the day's sky light (under the
+	# surface, the sky as the water over the camera lets it through).
 	var horizon: Color = c.get("horizon_color", Color(0.5, 0.6, 0.7))
 	var day := smoothstep(-8.0, 20.0, float(c.get("sun_elevation", 30.0)))
-	mat.set_shader_parameter("underside_light", Vector3(horizon.r, horizon.g, horizon.b) * lerpf(0.05, 0.9, day))
+	var uw: Dictionary = c.get("uw", {})
+	mat.set_shader_parameter("underside_light", uw["window"] if not uw.is_empty() \
+		else Vector3(horizon.r, horizon.g, horizon.b) * lerpf(0.05, 0.9, day))
 	c["sea_hs_sheltered"] = sea_state["sheltered_hs"]
 	c["sea_hs_exposed"] = sea_state["exposed_hs"]
+	_apply_underside(mat, c)
+
+
+## G3-04: under the waves the grid wears the underside material
+## (water/water_underside.gdshader): the same surface (its wave, bake and
+## grid uniforms copied from the water material) seen from below, with
+## Snell's window on the day's sky, total internal reflection outside it and
+## the water between veiling it in the water's own light.
+func _apply_underside(mat: ShaderMaterial, c: Dictionary) -> void:
+	if water_grid == null:
+		return
+	var uw: Dictionary = c.get("uw", {})
+	var under := not uw.is_empty() and float(uw.get("depth_m", 0.0)) > UNDERSIDE_FROM_M
+	water_grid.set_underside(under)
+	c["underside"] = water_grid.is_underside()
+	var side := water_grid.underside_material
+	if not under or side == null:
+		return
+	for key in UNDERSIDE_COPIED:
+		side.set_shader_parameter(key, mat.get_shader_parameter(key))
+	var lin := (c.get("sun_color", Color.WHITE) as Color).srgb_to_linear()
+	var sun_lum := maxf(_luminance(Vector3(lin.r, lin.g, lin.b)), 1e-4)
+	var sun_rgb := Vector3(lin.r, lin.g, lin.b) / sun_lum * float(c.get("sun_energy", 0.0))
+	var horizon: Color = c.get("horizon_color", Color(0.4, 0.5, 0.6))
+	var horizon_v := Vector3(horizon.r, horizon.g, horizon.b)
+	side.set_shader_parameter("underside_zenith", c.get("sky_zenith", horizon_v))
+	side.set_shader_parameter("underside_horizon", horizon_v)
+	side.set_shader_parameter("underside_land", horizon_v * UNDERSIDE_LAND)
+	side.set_shader_parameter("underside_sun_dir", c.get("sun_direction", Vector3.UP))
+	side.set_shader_parameter("underside_sun", sun_rgb * UNDERSIDE_SUN_DISC)
+	side.set_shader_parameter("underside_horizontal", uw["horizontal"])
+	side.set_shader_parameter("underside_nadir", uw["nadir"])
+	side.set_shader_parameter("underside_glow_dir", uw["sun_dir"])
+	side.set_shader_parameter("underside_glow", uw["sun_glow"])
+	side.set_shader_parameter("underside_absorption", uw["sigma"])
+	side.set_shader_parameter("underside_attenuation", float(uw["fog_density"]) * UNDERSIDE_VEIL)
 
 
 ## A pen's collar and net damp the sea inside it: the water breaks no

@@ -74,9 +74,35 @@ const EDGE_MARGIN := 300.0
 ## and never closer than this to the far field's outer edge.
 const FAR_FIELD_MARGIN := 2000.0
 const IDLE_ORBIT_DELAY := 30.0
-const UNDERWATER_DEPTH := 8.0
-const UNDERWATER_LOOK_DEPTH := 6.0
+## G3-04 UNDERWATER: the camera hangs this deep (m; the roadmap's 3-8 m),
+## clear of the seabed by UNDERWATER_SEABED_CLEARANCE.
+const UNDERWATER_DEPTH := 5.0
+const UNDERWATER_MIN_DEPTH := 3.0
+const UNDERWATER_MAX_DEPTH := 8.0
 const UNDERWATER_SEABED_CLEARANCE := 4.0
+## Inside a pen (underwater_anchor): the camera stands this share of the
+## net's radius out from the pen's centre, inside the school's ring, and
+## looks across the pen, turned UNDERWATER_TURN_DEG off its centre (the fish
+## swim across the view, the net wall shows at one side) and tilted
+## UNDERWATER_PITCH_DEG up (the surface's bright window at the top). Q/E,
+## right-drag and the pan keys turn it round the pen and tilt it.
+const UNDERWATER_RING := 0.72
+const UNDERWATER_TURN_DEG := 45.0
+const UNDERWATER_PITCH_DEG := 16.0
+const UNDERWATER_PITCH_LIMIT_DEG := 60.0
+const UNDERWATER_FOV_DEG := 64.0
+## The dive: the camera crosses the surface inside the collar. It first flies
+## to DIVE_HOVER_M over its place in the pen (within DIVE_ENTRY_M of it),
+## then goes straight down; leaving, it rises straight up through the
+## surface before it flies out. Looking down on the way in.
+const DIVE_HOVER_M := 7.0
+const DIVE_ENTRY_M := 1.5
+const DIVE_LOOK_DOWN_DEG := -55.0
+## How fast the view turns while it dives or surfaces (1/s): the orbit's
+## look-at and the pen's view differ there, and the turn is eased.
+const DIVE_TURN_RATE := 6.0
+## Underwater, the up and down pan keys tilt the view this fast (deg/s).
+const UNDERWATER_TILT_SPEED := 30.0
 
 @export_group("Movement")
 ## Pan speed as a fraction of the zoom distance per second.
@@ -98,6 +124,11 @@ const UNDERWATER_SEABED_CLEARANCE := 4.0
 var input_enabled: bool = true
 ## Where Home recentres (the presenter sets it to the first pen).
 var home_focus: Vector3 = Vector3.ZERO
+## G3-04: the pen the UNDERWATER view dives into. The presenter sets it to a
+## Callable(point: Vector3) -> Dictionary: {"center": the pen's centre on the
+## water, "radius": its net's radius (m)} for the pen nearest a world point,
+## or {} when no pen is near (the view then stays in open water).
+var underwater_anchor: Callable = Callable()
 
 var _focus_target := Vector3.ZERO
 var _focus := Vector3.ZERO
@@ -110,6 +141,13 @@ var _pitch_offset: float = 0.0
 var _top_down := false
 var _top_down_blend: float = 0.0
 var _underwater := false
+## The pen the underwater view stands in ({} in open water), looked up when
+## the focus moves (not every frame).
+var _anchor := {}
+var _anchor_key := Vector3.INF
+## True while the view eases between the orbit and the underwater view (it
+## turns smoothly there instead of snapping to a look-at).
+var _turning := false
 var _rig_position := Vector3.ZERO
 var _user_rotated := false
 var _idle_time: float = 0.0
@@ -140,10 +178,37 @@ func set_zoom_level(level: ZoomLevel) -> void:
 	_underwater = level == ZoomLevel.UNDERWATER
 	_distance_target = ZOOM_DISTANCE[level]
 	_update_zoom_band(level)
+	if _underwater != was_underwater:
+		# The view turns between the orbit's look-at and the pen's view.
+		_turning = true
+		_pitch_offset_target = 0.0
 	if _underwater and not was_underwater:
 		entered_underwater.emit()
 	elif was_underwater and not _underwater:
 		exited_underwater.emit()
+
+
+## True in the UNDERWATER view (the camera may still be on its way down).
+func is_underwater_view() -> bool:
+	return _underwater
+
+
+## The pen the underwater view stands in for a focus point ({} in open
+## water): {"center", "radius"} from underwater_anchor.
+func underwater_anchor_for(focus: Vector3) -> Dictionary:
+	return _anchor_for(focus)
+
+
+## The underwater view's direction for a focus, a yaw (radians) and a tilt
+## (degrees, as the pitch offset): across the pen from the camera's place in
+## it, turned UNDERWATER_TURN_DEG off the pen's centre, or at the focus in
+## open water; UNDERWATER_PITCH_DEG up plus the tilt.
+func underwater_forward(focus: Vector3, yaw: float, tilt_deg: float) -> Vector3:
+	var across := Vector3(-sin(yaw), 0.0, -cos(yaw))
+	if not _anchor_for(focus).is_empty():
+		across = across.rotated(Vector3.UP, deg_to_rad(UNDERWATER_TURN_DEG))
+	var pitch := deg_to_rad(clampf(UNDERWATER_PITCH_DEG + tilt_deg, -UNDERWATER_PITCH_LIMIT_DEG, UNDERWATER_PITCH_LIMIT_DEG))
+	return (across * cos(pitch) + Vector3.UP * sin(pitch)).normalized()
 
 
 ## Focus a world position at a zoom level (eased by the rig's damping).
@@ -251,7 +316,13 @@ func hold_view(focus: Vector3, yaw: float, distance: float, pitch_offset_deg: fl
 
 ## Tilt the view relative to the distance table (degrees, positive looks
 ## up), as a right-drag does. Photo mode and the aurora shot use it.
+## Underwater it tilts the view from UNDERWATER_PITCH_DEG, within
+## +-UNDERWATER_PITCH_LIMIT_DEG of the horizontal.
 func set_pitch_offset(degrees: float) -> void:
+	if _underwater:
+		_pitch_offset_target = clampf(degrees, -UNDERWATER_PITCH_LIMIT_DEG - UNDERWATER_PITCH_DEG,
+			UNDERWATER_PITCH_LIMIT_DEG - UNDERWATER_PITCH_DEG)
+		return
 	_pitch_offset_target = clampf(degrees, -40.0, 15.0)
 
 
@@ -354,7 +425,7 @@ func _process(delta: float) -> void:
 		_process_keys(delta)
 		_process_idle_orbit(delta)
 	_damp(delta)
-	_apply_transform()
+	_apply_transform(delta)
 
 
 func _damp(delta: float) -> void:
@@ -368,21 +439,61 @@ func _damp(delta: float) -> void:
 	var view := view_for_distance(_distance)
 	var pitch := clampf(view.x + _pitch_offset, MIN_PITCH_DEG, MAX_PITCH_DEG)
 	pitch = lerpf(pitch, TOP_DOWN_PITCH_DEG, _top_down_blend)
-	var target := solve_rig(_focus, _yaw, _distance, pitch)
+	var target := _dive_path(solve_rig(_focus, _yaw, _distance, pitch))
 	_rig_position = _approach_v(_rig_position, target, k)
-	var fov_target := 70.0 if _underwater else view.y
+	var fov_target := UNDERWATER_FOV_DEG if _underwater else view.y
 	fov = _approach(fov, fov_target, k)
 
 
-func _apply_transform() -> void:
-	var look := _focus
+## The way into and out of the water (G3-04): the camera crosses the surface
+## inside the pen's collar, never through its side. Diving, it flies to
+## DIVE_HOVER_M over its place in the pen first, then goes straight down;
+## leaving, it rises straight up out of the water before it flies off.
+func _dive_path(target: Vector3) -> Vector3:
+	var water_y := _water_level()
 	if _underwater:
-		look.y = _water_level() - UNDERWATER_LOOK_DEPTH
-	if (_rig_position - global_position).length_squared() > 0.0000001 or not _settled:
-		global_position = _rig_position
-		if Vector2(look.x - _rig_position.x, look.z - _rig_position.z).length() > 0.01:
-			look_at(look, Vector3.UP)
-		_settled = true
+		if _rig_position.y > water_y - 0.2 and not _anchor.is_empty() \
+				and Vector2(target.x - _rig_position.x, target.z - _rig_position.z).length() > DIVE_ENTRY_M:
+			return Vector3(target.x, water_y + DIVE_HOVER_M, target.z)
+		return target
+	if _rig_position.y < water_y + 0.5:
+		return Vector3(_rig_position.x, water_y + 2.0, _rig_position.z)
+	return target
+
+
+func _apply_transform(delta: float = 0.0) -> void:
+	var moved := (_rig_position - global_position).length_squared() > 0.0000001
+	# Underwater the tilt turns the view without moving the camera.
+	if not moved and _settled and not _turning and not _underwater:
+		return
+	global_position = _rig_position
+	var water_y := _water_level()
+	var wanted := Basis.IDENTITY
+	var has_wanted := false
+	if _underwater or _rig_position.y < water_y + 0.5:
+		# The underwater view (and on the way out, until the camera is in the
+		# air): across the pen; looking down at the water while it dives.
+		var tilt := _pitch_offset
+		var above := clampf((_rig_position.y - water_y) / DIVE_HOVER_M, 0.0, 1.0)
+		if above > 0.0:
+			tilt = lerpf(tilt, DIVE_LOOK_DOWN_DEG - UNDERWATER_PITCH_DEG, smoothstep(0.0, 1.0, above))
+		wanted = Basis.looking_at(underwater_forward(_focus, _yaw, tilt), Vector3.UP)
+		has_wanted = true
+	elif Vector2(_focus.x - _rig_position.x, _focus.z - _rig_position.z).length() > 0.01:
+		wanted = Basis.looking_at(_focus - _rig_position, Vector3.UP)
+		has_wanted = true
+	if has_wanted:
+		if _turning and _settled and delta > 0.0:
+			var current := global_transform.basis.orthonormalized()
+			var eased := current.slerp(wanted, 1.0 - exp(-DIVE_TURN_RATE * delta))
+			global_transform = Transform3D(eased, _rig_position)
+			# Done once the view has turned and the camera is out of the dive.
+			if rad_to_deg(eased.z.angle_to(wanted.z)) < 0.2 and (_underwater == (_rig_position.y < water_y)):
+				_turning = false
+		else:
+			global_transform = Transform3D(wanted, _rig_position)
+			_turning = _turning and not _settled
+	_settled = true
 
 
 func _snap() -> void:
@@ -392,9 +503,10 @@ func _snap() -> void:
 	_pitch_offset = _pitch_offset_target
 	_top_down_blend = 1.0 if _top_down else 0.0
 	var view := view_for_distance(_distance)
-	fov = 70.0 if _underwater else view.y
+	fov = UNDERWATER_FOV_DEG if _underwater else view.y
 	_rig_position = solve_rig(_focus, _yaw, _distance, clampf(view.x, MIN_PITCH_DEG, MAX_PITCH_DEG))
 	_settled = false
+	_turning = false
 	_apply_transform()
 
 
@@ -427,14 +539,35 @@ func _required_height(focus: Vector3, pos: Vector3, water_y: float) -> float:
 	return need
 
 
+## Underwater (G3-04): inside the pen nearest the focus (underwater_anchor),
+## UNDERWATER_RING of the net's radius out from its centre on the yaw's
+## side, UNDERWATER_DEPTH down; in open water `distance` from the focus.
+## Clear of the seabed in shallow water.
 func _solve_underwater(focus: Vector3, yaw: float, distance: float) -> Vector3:
 	var water_y := _water_level()
 	var dir := Vector3(sin(yaw), 0.0, cos(yaw))
-	var pos := focus + dir * distance
+	var anchor := _anchor_for(focus)
+	var pos: Vector3
+	if anchor.is_empty():
+		pos = focus + dir * distance
+	else:
+		var centre: Vector3 = anchor["center"]
+		pos = Vector3(centre.x, 0.0, centre.z) + dir * float(anchor["radius"]) * UNDERWATER_RING
 	pos.y = water_y - UNDERWATER_DEPTH
 	var seabed := _ground(pos.x, pos.z)
 	pos.y = maxf(pos.y, minf(seabed + UNDERWATER_SEABED_CLEARANCE, water_y - 1.0))
 	return pos
+
+
+## The pen underwater_anchor gives for a focus point, cached per point.
+func _anchor_for(focus: Vector3) -> Dictionary:
+	if not underwater_anchor.is_valid():
+		return {}
+	if focus != _anchor_key:
+		_anchor_key = focus
+		var found: Variant = underwater_anchor.call(focus)
+		_anchor = found if found is Dictionary else {}
+	return _anchor
 
 
 func _ground(x: float, z: float) -> float:
@@ -543,7 +676,7 @@ func _handle_mouse_button(event: InputEventMouseButton) -> void:
 		MOUSE_BUTTON_MIDDLE:
 			_panning = event.pressed
 		MOUSE_BUTTON_LEFT:
-			if event.pressed and event.double_click:
+			if event.pressed and event.double_click and not _underwater:
 				var hit := pick_ground(event.position)
 				if hit.is_finite():
 					fly_to_position(hit, current_zoom, 0.6)
@@ -552,10 +685,18 @@ func _handle_mouse_button(event: InputEventMouseButton) -> void:
 func _handle_orbit(event: InputEventMouseMotion) -> void:
 	_user_rotated = true
 	_yaw_target -= event.relative.x * orbit_speed
+	if _underwater:
+		_pitch_offset_target = clampf(_pitch_offset_target - event.relative.y * orbit_speed * 30.0,
+			-UNDERWATER_PITCH_LIMIT_DEG - UNDERWATER_PITCH_DEG, UNDERWATER_PITCH_LIMIT_DEG - UNDERWATER_PITCH_DEG)
+		return
 	_pitch_offset_target = clampf(_pitch_offset_target - event.relative.y * orbit_speed * 30.0, -40.0, 15.0)
 
 
 func _handle_drag_pan(event: InputEventMouseMotion) -> void:
+	if _underwater:
+		# Inside the pen there is nowhere to pan to: a drag looks round.
+		_handle_orbit(event)
+		return
 	var viewport_h := maxf(get_viewport().get_visible_rect().size.y, 1.0)
 	var metres_per_px := 2.0 * _distance * tan(deg_to_rad(fov) * 0.5) / viewport_h
 	var move := Vector2(-event.relative.x, -event.relative.y).rotated(-_yaw) * metres_per_px
@@ -586,7 +727,13 @@ func _process_keys(delta: float) -> void:
 	if _arrow_keys_allowed():
 		pan.x += float(Input.is_physical_key_pressed(KEY_RIGHT)) - float(Input.is_physical_key_pressed(KEY_LEFT))
 		pan.y += float(Input.is_physical_key_pressed(KEY_DOWN)) - float(Input.is_physical_key_pressed(KEY_UP))
-	if pan != Vector2.ZERO:
+	if pan != Vector2.ZERO and _underwater:
+		# Inside the pen the pan keys look round: left and right turn the
+		# view round the pen, up and down tilt it.
+		rotate += pan.x
+		_pitch_offset_target = clampf(_pitch_offset_target - pan.y * UNDERWATER_TILT_SPEED * delta,
+			-UNDERWATER_PITCH_LIMIT_DEG - UNDERWATER_PITCH_DEG, UNDERWATER_PITCH_LIMIT_DEG - UNDERWATER_PITCH_DEG)
+	elif pan != Vector2.ZERO:
 		var move := pan.normalized().rotated(-_yaw) * pan_speed * _distance_target * delta
 		_set_focus_target(_focus_target + Vector3(move.x, 0.0, move.y))
 		_cancel_fly()

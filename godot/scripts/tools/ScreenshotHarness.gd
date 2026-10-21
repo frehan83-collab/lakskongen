@@ -182,7 +182,7 @@ func _ready() -> void:
 ## (the game boots once for every group but the menu). `mirror` (18) and
 ## `moods` (20) were the first single-shot modes (wave 3).
 const ONLY_GROUPS := ["menu", "fjord_day", "fjord_farm", "feeding", "night_lights", "storm",
-	"mirror", "shore_foam", "moods", "aurora"]
+	"underwater", "mirror", "shore_foam", "moods", "aurora"]
 const ONLY_LIVE_SETTLE_S := 15.0
 
 
@@ -280,6 +280,7 @@ func _run_only(groups: PackedStringArray) -> void:
 			"feeding": await _capture_fjord_farm_feeding()
 			"night_lights": await _capture_fjord_night_lights()
 			"storm": await _capture_fjord_storm()
+			"underwater": await _capture_fjord_underwater()
 			"mirror": await _capture_fjord_calm_dusk()
 			"shore_foam": await _capture_fjord_shore_foam()
 			"moods": await _capture_mood_goldens()
@@ -1062,14 +1063,22 @@ func _capture_fjord_storm() -> void:
 	await _shoot("10_fjord_storm", true)
 
 
+## G3-04: shot 11 and its variants from inside the first stocked pen
+## (UnderwaterShots: staging, the content checks, a JSON report).
 func _capture_fjord_underwater() -> void:
-	_configure_env(0.5, 12.0, WEATHER_CLEAR, ZOOM_UNDERWATER)
-	var cam = _env.get("camera") if _env != null else null
-	if cam != null:
-		cam.set("auto_orbit_enabled", false)
-		cam.set("global_position", Vector3(0.0, -60.0, 0.0))
-	await _wait(2.6)
-	_check_not_black("11_fjord_underwater", await _shoot("11_fjord_underwater", true))
+	if _env == null or not is_instance_valid(_env):
+		_content_failures.append("11_fjord_underwater: the fjord scene is incomplete")
+		return
+	_hide_ui()
+	var shots := UnderwaterShots.new()
+	await shots.capture(self, _env, _game)
+	_content_failures.append_array(shots.failures)
+	var first: Dictionary = shots.report.get("shots", {}).get("11_fjord_underwater", {})
+	if not first.is_empty():
+		_check_not_black("11_fjord_underwater", Image.load_from_file(_project_dir_abs.path_join("11_fjord_underwater.png")))
+	# The shots after it frame the fjord again from above.
+	_configure_env(0.5, 12.0, WEATHER_CLEAR, ZOOM_FARM)
+	await _wait(1.0)
 
 
 # ── G3-05 moods: eight goldens from one camera (MoodGoldens) ──────────────────

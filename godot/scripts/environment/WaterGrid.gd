@@ -21,6 +21,9 @@ extends Node3D
 
 ## The water material (shared by every grid piece).
 @export var material: ShaderMaterial
+## The surface seen from below (G3-04, water/water_underside.gdshader): the
+## pieces wear it while the camera is under the waves (set_underside).
+@export var underside_material: ShaderMaterial
 ## Vertex spacing of the finest level (metres).
 @export var base_spacing: float = 2.0
 ## Quads across each level (level 0 spans base_spacing * grid_quads).
@@ -43,11 +46,28 @@ const CULL_HEIGHT_M := 12.0
 const RENDER_LAYER := 1 << 19
 
 var _pieces: Array[MeshInstance3D] = []
+var _underside := false
 
 
 func _ready() -> void:
 	_build()
 	_follow()
+
+
+## Draw the surface as seen from below (G3-04): the pieces wear
+## underside_material instead of the water material (the director, while
+## the camera is under the waves). Without an underside material: no change.
+func set_underside(on: bool) -> void:
+	var wanted := on and underside_material != null
+	if wanted == _underside:
+		return
+	_underside = wanted
+	for piece in _pieces:
+		piece.material_override = underside_material if wanted else material
+
+
+func is_underside() -> bool:
+	return _underside
 
 
 func _process(_delta: float) -> void:
@@ -126,17 +146,18 @@ func _build() -> void:
 	skirt.custom_aabb = AABB(Vector3(-ocean_extent, -CULL_HEIGHT_M, -ocean_extent), Vector3(ocean_extent + inner, 2.0 * CULL_HEIGHT_M, ocean_extent - inner))
 	for turn in 4:
 		_add_piece("Skirt_%d" % turn, skirt, turn, 1.0)
-	if material != null:
-		material.set_shader_parameter("grid_half_units", float(grid_quads / 2))
-		material.set_shader_parameter("grid_base_spacing", base_spacing)
-		material.set_shader_parameter("displaced_extent", displaced_extent())
+	for mat in [material, underside_material]:
+		if mat != null:
+			(mat as ShaderMaterial).set_shader_parameter("grid_half_units", float(grid_quads / 2))
+			(mat as ShaderMaterial).set_shader_parameter("grid_base_spacing", base_spacing)
+			(mat as ShaderMaterial).set_shader_parameter("displaced_extent", displaced_extent())
 
 
 func _add_piece(piece_name: String, mesh: Mesh, turn: int, spacing: float) -> void:
 	var piece := MeshInstance3D.new()
 	piece.name = piece_name
 	piece.mesh = mesh
-	piece.material_override = material
+	piece.material_override = underside_material if _underside else material
 	piece.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	piece.layers = RENDER_LAYER
 	piece.transform = Transform3D(Basis(Vector3.UP, turn * PI * 0.5).scaled(Vector3(spacing, spacing, spacing)), Vector3.ZERO)

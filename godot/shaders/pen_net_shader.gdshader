@@ -12,6 +12,14 @@ render_mode cull_disabled, depth_draw_always, alpha_to_coverage_and_one, diffuse
 // close.
 //
 // UV is in metres (u round the pen, v down the net) on the Blender meshes.
+//
+// Under the surface (G3-04, include/underwater_light.gdshaderinc) the net
+// takes the light of its depth and the caustics' moving network, and its
+// growth reads the site's net condition (net_fouling, an instance uniform:
+// the sim's NetIntegrityPct, which the ROV's cleaning restores): a fouled
+// net is greener, its threads thick with growth further down.
+#include "res://shaders/include/underwater_light.gdshaderinc"
+
 uniform vec3 albedo_color : source_color = vec3(0.10, 0.13, 0.15);
 uniform sampler2D net_texture : hint_default_white, source_color, filter_linear_mipmap_anisotropic, repeat_enable;
 // Metres of net per texture tile (the tile holds 2 x 2 diamonds).
@@ -27,6 +35,15 @@ uniform float fouling_depth = 4.0;
 uniform float fouling_amount : hint_range(0.0, 1.0) = 0.45;
 // Per-pen visibility (rival pens are drawn quieter, roadmap G1-07).
 instance uniform float net_opacity = 1.0;
+// The site's net fouling, 0 clean .. 1 heavily grown (FarmSite.set_net_fouling,
+// from the site's net condition): the growth reaches down the net and
+// thickens, past the clean net's band at the surface.
+instance uniform float net_fouling = 0.0;
+// How far a fully fouled net's growth reaches (m), its colour and how much
+// it thickens the threads.
+uniform float fouled_depth = 18.0;
+uniform vec3 fouled_color : source_color = vec3(0.20, 0.22, 0.12);
+uniform float fouled_thicken : hint_range(0.0, 1.0) = 0.55;
 
 // Tiles per pixel past which the pattern gives way to its mean.
 const float FADE_FWIDTH = 0.35;
@@ -53,8 +70,18 @@ void fragment() {
 	float cover = mix(texture(net_texture, uv).a, mean_coverage(), fade);
 	cover = min(cover * mix(1.0, far_boost, fade), 1.0);
 	float foul = fouling_amount * (1.0 - smoothstep(0.0, fouling_depth, -model_y)) * step(model_y, 0.3);
-	ALBEDO = mix(albedo_color, fouling_color, foul);
+	// The site's fouling: growth further down and thicker, patchy round the net.
+	float patch = 0.6 + 0.4 * sin(UV.x * 0.9 + sin(UV.y * 0.5) * 2.0);
+	float fouled = net_fouling * (1.0 - smoothstep(0.0, fouled_depth * mix(0.3, 1.0, net_fouling), -model_y)) * patch;
+	vec3 albedo = mix(mix(albedo_color, fouling_color, foul), fouled_color, clamp(fouled, 0.0, 1.0));
+	vec3 world = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	// The threads are thin cords: their tops catch the light from above
+	// whichever way the net's sheet faces.
+	vec3 sheet = normalize((INV_VIEW_MATRIX * vec4(FRONT_FACING ? NORMAL : -NORMAL, 0.0)).xyz);
+	vec3 normal_world = normalize(mix(sheet, vec3(0.0, 1.0, 0.0), 0.7));
+	ALBEDO = albedo * uw_depth_light(world.y);
+	EMISSION = uw_caustic_light(world, normal_world, albedo);
 	ROUGHNESS = 0.9;
 	SPECULAR = 0.2;
-	ALPHA = clamp(cover * thread_alpha * (1.0 + 0.4 * foul) * net_opacity, 0.0, 1.0);
+	ALPHA = clamp(cover * thread_alpha * (1.0 + 0.4 * foul + fouled_thicken * fouled) * net_opacity, 0.0, 1.0);
 }

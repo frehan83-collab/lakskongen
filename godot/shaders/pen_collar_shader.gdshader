@@ -18,6 +18,9 @@ uniform float wet_roughness : hint_range(0.0, 1.0) = 0.32;
 // Baked ambient occlusion in the vertex colour (Blender bake, A2-01). Meshes
 // without vertex colours read white, which means "no occlusion".
 uniform float ao_light_affect : hint_range(0.0, 1.0) = 0.35;
+// Under the water (G3-04): the light of the part's depth (the collar's
+// underside, the sinker tube, the ropes, the feed spreader) and the caustics.
+#include "res://shaders/include/underwater_light.gdshaderinc"
 
 varying float model_y;
 
@@ -27,7 +30,11 @@ void vertex() {
 
 void fragment() {
 	float wet = 1.0 - smoothstep(waterline_height - waterline_blend, waterline_height + waterline_blend, model_y);
-	ALBEDO = mix(albedo_color, waterline_color, wet * 0.8);
+	vec3 albedo = mix(albedo_color, waterline_color, wet * 0.8);
+	vec3 world = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	vec3 normal_world = normalize((INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz);
+	ALBEDO = albedo * uw_depth_light(world.y);
+	EMISSION = uw_caustic_light(world, normal_world, albedo);
 	METALLIC = metallic;
 	ROUGHNESS = mix(roughness, wet_roughness, wet);
 	AO = COLOR.r;
