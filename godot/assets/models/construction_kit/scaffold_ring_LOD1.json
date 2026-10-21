@@ -1,0 +1,42 @@
+{
+  "asset": "scaffold_ring",
+  "atlas": "godot/assets/models/facility_kit/textures/facility_atlas.png",
+  "bbox_size": [
+    29.5,
+    13.0,
+    29.5
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "height_m": 13.0,
+    "inner_clear_diameter_m": 28.96,
+    "inner_inscribed_diameter_m": 28.404,
+    "lifts": 2.0,
+    "outer_diameter_m": 29.5
+  },
+  "file": "scaffold_ring_LOD1.glb",
+  "lod": "LOD1",
+  "material_count": 1,
+  "materials": [
+    "LK_FacilityKit"
+  ],
+  "part_strips": {
+    "Boards": "grating",
+    "Rails": "steel",
+    "Standards": "steel"
+  },
+  "parts": {
+    "Boards": 64,
+    "Rails": 64,
+    "Standards": 64
+  },
+  "surfaces": 1,
+  "swatches": {
+    "Standards": {
+      "hex": "#8B9197",
+      "spec": "#8A9096",
+      "strip": "steel"
+    }
+  },
+  "tri_count": 128
+}

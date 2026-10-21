@@ -94,6 +94,9 @@ STRIPS = [
     ("safety", "#E8B92A", 0.55, "flat", 0.0, 0.0),
     # Lookdev wave 4: milky polycarbonate roof lights on the hall roofs.
     ("skylight", "#C3CDD1", 0.38, "seam", 1.0, 0.07),
+    # F2-28 construction kit (blender/build_construction_kit.py shares this
+    # atlas): the temporary saturation of a building site, spec section 5.3.
+    ("crane_yellow", "#E6BE2E", 0.50, "flat", 0.0, 0.0),
 ]
 STRIP_INDEX = {s[0]: i for i, s in enumerate(STRIPS)}
 

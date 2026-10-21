@@ -1117,6 +1117,114 @@
         0.6534,
         3.96
       ]
+    },
+    "tower_crane_LOD0": {
+      "path": "godot/assets/models/construction_kit/tower_crane_LOD0.glb",
+      "sha256": "81ccc6427413bb01437bf437a250ad7d9f9d2c0fda78a5e93cefad9312512eab",
+      "size": 140692,
+      "tri_count": 1620,
+      "material_count": 1,
+      "bbox_size": [
+        67.37,
+        60.35,
+        7.0
+      ]
+    },
+    "tower_crane_LOD1": {
+      "path": "godot/assets/models/construction_kit/tower_crane_LOD1.glb",
+      "sha256": "0f10a0ecc0db0653917149f66b891cd83e6dada5201d9a2b507828e54d9f58f8",
+      "size": 24908,
+      "tri_count": 274,
+      "material_count": 1,
+      "bbox_size": [
+        67.0155,
+        60.4,
+        7.0
+      ]
+    },
+    "tower_crane_LOD2": {
+      "path": "godot/assets/models/construction_kit/tower_crane_LOD2.glb",
+      "sha256": "07c63175875b27c4df4c7283147b9754067709f5a00c40ddec4ef879b55e189a",
+      "size": 4320,
+      "tri_count": 34,
+      "material_count": 1,
+      "bbox_size": [
+        67.0,
+        59.3,
+        7.0
+      ]
+    },
+    "scaffold_ring_LOD0": {
+      "path": "godot/assets/models/construction_kit/scaffold_ring_LOD0.glb",
+      "sha256": "16ca319ab09a2d59ee6e91fbb64f8c1270dd7459ec81851902a61068485e0205",
+      "size": 76296,
+      "tri_count": 1000,
+      "material_count": 1,
+      "bbox_size": [
+        29.5,
+        13.0,
+        29.5
+      ]
+    },
+    "scaffold_ring_LOD1": {
+      "path": "godot/assets/models/construction_kit/scaffold_ring_LOD1.glb",
+      "sha256": "0410ba42158a83d509a393f8c645d25879a55bf25d18319ed40cbfd44bd460fe",
+      "size": 9928,
+      "tri_count": 128,
+      "material_count": 1,
+      "bbox_size": [
+        29.5,
+        13.0,
+        29.5
+      ]
+    },
+    "excavator_LOD0": {
+      "path": "godot/assets/models/construction_kit/excavator_LOD0.glb",
+      "sha256": "217f2b191d96de545af2a1a5f5d76f8f304504e5ff43df89a373c248fb006bad",
+      "size": 49640,
+      "tri_count": 662,
+      "material_count": 1,
+      "bbox_size": [
+        3.5,
+        3.5,
+        10.0
+      ]
+    },
+    "excavator_LOD1": {
+      "path": "godot/assets/models/construction_kit/excavator_LOD1.glb",
+      "sha256": "a29e0c89edd9a5a5dc97acd431f63fc438cb72630594621828bdaf4d254c8733",
+      "size": 12548,
+      "tri_count": 130,
+      "material_count": 1,
+      "bbox_size": [
+        3.4,
+        3.5,
+        10.0
+      ]
+    },
+    "blast_mats_LOD0": {
+      "path": "godot/assets/models/construction_kit/blast_mats_LOD0.glb",
+      "sha256": "c93f5f7078eddc7c1cea19069bfc2142add518a47e203bd34a60afbaee23f40e",
+      "size": 24024,
+      "tri_count": 264,
+      "material_count": 1,
+      "bbox_size": [
+        12.0,
+        0.24,
+        8.0
+      ]
+    },
+    "blast_mats_LOD1": {
+      "path": "godot/assets/models/construction_kit/blast_mats_LOD1.glb",
+      "sha256": "cacf29beae5084a46bf53671b0dc6ed22fbda60b5a2af8c0d0fdcb7ddb8645a2",
+      "size": 5616,
+      "tri_count": 50,
+      "material_count": 1,
+      "bbox_size": [
+        12.0,
+        0.24,
+        8.0
+      ]
     }
   }
 }

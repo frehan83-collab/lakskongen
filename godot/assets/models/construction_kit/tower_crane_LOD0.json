@@ -1,0 +1,67 @@
+{
+  "asset": "tower_crane",
+  "atlas": "godot/assets/models/facility_kit/textures/facility_atlas.png",
+  "bbox_size": [
+    67.37,
+    60.35,
+    7.0
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "counter_jib_length_m": 17.07,
+    "jib_length_m": 50.042,
+    "mast_height_m": 50.04,
+    "mast_width_m": 1.92,
+    "overall_height_m": 60.035
+  },
+  "file": "tower_crane_LOD0.glb",
+  "lod": "LOD0",
+  "material_count": 1,
+  "materials": [
+    "LK_FacilityKit"
+  ],
+  "part_strips": {
+    "Ballast": "concrete",
+    "Base": "concrete",
+    "Cab": "crane_yellow",
+    "CabGlass": "conveyor",
+    "Cathead": "crane_yellow",
+    "CounterJib": "crane_yellow",
+    "Hook": "steel",
+    "Jib": "crane_yellow",
+    "Lights": "lamp",
+    "Mast": "crane_yellow",
+    "Slewing": "crane_yellow",
+    "Ties": "steel",
+    "Trolley": "crane_yellow"
+  },
+  "parts": {
+    "Ballast": 80,
+    "Base": 10,
+    "Cab": 20,
+    "CabGlass": 4,
+    "Cathead": 32,
+    "CounterJib": 240,
+    "Hook": 32,
+    "Jib": 436,
+    "Lights": 24,
+    "Mast": 688,
+    "Slewing": 10,
+    "Ties": 32,
+    "Trolley": 12
+  },
+  "surfaces": 1,
+  "swatches": {
+    "Jib": {
+      "hex": "#E7BF2E",
+      "spec": "#E6BE2E",
+      "strip": "crane_yellow"
+    },
+    "Mast": {
+      "hex": "#E7BF2E",
+      "spec": "#E6BE2E",
+      "strip": "crane_yellow"
+    }
+  },
+  "tri_count": 1620
+}
