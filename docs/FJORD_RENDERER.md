@@ -861,6 +861,22 @@ longer has (a cancelled build) is freed, and nothing else moves.
   its build progress is drawn with `LK_FacilityKitBuild`
   (`facility_kit_build.gdshader`: the kit's body, double-sided, the inner
   face the wall swatch × 0.72), so the inside of its far wall shows.
+- **Construction props** (the F2-28 kit; `ConstructionKitVisual`, a child of
+  the campus, its nodes made on first use): while the site works blast the
+  pad (their first 60 %) an excavator beside a blanket of blast mats stands in
+  the middle of the blasted ground, where the camera frames the campus; through
+  the tank rings a scaffold ring wears each grow-out tank (a MultiMesh per LOD
+  band on the tanks' own bands, so none beyond 1,200 m), revealed by the
+  tank's `INSTANCE_CUSTOM.r` and struck when the phase ends, because its top
+  lift stands in the height band of the tank's walkway; through a lot's
+  treatment hall a tower crane stands at the lot's inland end, its jib 60 deg
+  off the lot's axis so the framing, which looks in from the quay edge, sees it
+  side-on (none on a post-smolt site, nor where a short pad leaves no room
+  behind the lot). They follow the phase keys alone, so the first-sight
+  timelapse plays them; they draw in the kit's own LODs (the crane's LOD2 is
+  a mark on the skyline at the home view) and only the near band casts a
+  shadow. The ring's LOD1 is thickened so that it reads from the 350 m it is
+  drawn from.
 - **An offshore unit** is an `OffshoreUnitVisual`: yard contract, four
   yellow survey buoys at the slot; hull, the pre-laid moorings' eight pick-up
   buoys; voyage, the unit coming in from 2.6 km behind a tug; tow, three

@@ -148,7 +148,8 @@ Every item names where to start. Take one item, finish it, and verify it.
 
 | Item | Size | Start here; done when |
 |---|---|---|
-| ~~F2-28 Construction kit (tower crane 50 m, scaffold ring Ø29.5 m, per-phase sets)~~ | M | **Done 2026-10-21** on `art/construction-kit`: 4 assets, 9 LODs, 53 tests, evidence `docs/run/evidence/f2_28_construction_kit.md`, RUN_LOG §7 F2-28 row. Drawing the kit in the presenter is not assigned to any spec row (the next presenter item) |
+| ~~F2-28 Construction kit (tower crane 50 m, scaffold ring Ø29.5 m, per-phase sets)~~ | M | **Done 2026-10-21** on `art/construction-kit`: 4 assets, 9 LODs, 53 tests, evidence `docs/run/evidence/f2_28_construction_kit.md`, RUN_LOG §7 F2-28 row. Drawn on the campus by the next row |
+| ~~Draw the construction kit on the land campus (no spec row owned it): excavator and mats in the blast, scaffold rings in the tank rings, a crane in the treatment hall~~ | M | **Done 2026-10-21** on `gfx/construction-kit-draw`: `ConstructionKitVisual` (a child of `LandCampusBuilder`), frames per phase in `docs/run/evidence/construction_kit_presenter.md`, RUN_LOG §7 row. Still unowned: the blast-day dust puff (a particle effect) |
 | F2-29 Havfarm-class unit (385 × 59.5 m, 6 wells) + mooring line kit (8/11 lines) | M | Spec row F2-29; `blender/build_offshore.py`, `offshore_designs.py`; `tests/test_offshore_assets.py` |
 | F2-30 Closed-pen kit (Donut 22,000 m³, Globe 3,500 m³, skirt 13 m) | M | Spec row F2-30; new `blender/build_closed_pens.py`; new tests |
 | Art notes: navy hall cladding; OF1 yellow reads mustard in low winter sun | S | `blender/lk_trim_atlas.py` swatches; render with `blender/render_*_preview.py`; compare with `docs/art/OWNER_REFERENCE_BRIEF.md` |

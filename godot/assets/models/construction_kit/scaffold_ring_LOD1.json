@@ -2,9 +2,9 @@
   "asset": "scaffold_ring",
   "atlas": "godot/assets/models/facility_kit/textures/facility_atlas.png",
   "bbox_size": [
-    29.5,
+    30.1,
     13.0,
-    29.5
+    30.1
   ],
   "blender_version": "5.2.2 LTS",
   "dimensions": {
@@ -12,7 +12,7 @@
     "inner_clear_diameter_m": 28.96,
     "inner_inscribed_diameter_m": 28.404,
     "lifts": 2.0,
-    "outer_diameter_m": 29.5
+    "outer_diameter_m": 30.1
   },
   "file": "scaffold_ring_LOD1.glb",
   "lod": "LOD1",

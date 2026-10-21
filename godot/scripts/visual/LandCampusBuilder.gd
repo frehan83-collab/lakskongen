@@ -141,6 +141,10 @@ var pad: Dictionary = {}
 var tanks: Array = []
 ## Building groups: name -> {"pieces": [[asset, xform]], "rects": [[row, lo, hi]], "nodes": [MeshInstance3D]}.
 var groups: Dictionary = {}
+## The (u, v) centre of each lot (a post-smolt module) in layout order.
+var lot_uv: Array[Vector2] = []
+## F2-28: the crane, scaffold rings, excavator and blast mats while it is built.
+var construction: ConstructionKitVisual = null
 
 var _tank_mm := {}   # "asset|band" -> MultiMeshInstance3D (whole tanks)
 var _build_mm := {}  # "asset|band" -> MultiMeshInstance3D (tanks under construction, double-sided)
@@ -182,10 +186,11 @@ static func kit_paths() -> PackedStringArray:
 
 ## The single mesh of a kit glb (each LOD is one mesh with one surface); a
 ## glb the presenter requested in the background is taken from that load.
-static func kit_mesh(asset: String, lod: String) -> Mesh:
+## `dir` is the land kit's folder, or the construction kit's (F2-28).
+static func kit_mesh(asset: String, lod: String, dir: String = KIT_DIR) -> Mesh:
 	var key := asset + "_" + lod
 	if not _mesh_cache.has(key):
-		var path := KIT_DIR + key + ".glb"
+		var path := dir + key + ".glb"
 		var scene: PackedScene = null
 		if ResourceLoader.load_threaded_get_status(path) != ResourceLoader.THREAD_LOAD_INVALID_RESOURCE:
 			scene = ResourceLoader.load_threaded_get(path) as PackedScene
@@ -221,6 +226,9 @@ func build(unit_view: Dictionary, pad_slot: Dictionary) -> void:
 	lights = CampusLights.new()
 	add_child(lights)
 	lights.build(self)
+	construction = ConstructionKitVisual.new()
+	add_child(construction)
+	construction.build(self)
 	apply_state(unit_view)
 
 
@@ -232,6 +240,7 @@ func plan(unit_view: Dictionary, pad_slot: Dictionary) -> void:
 	_make_frame()
 	tanks.clear()
 	groups.clear()
+	lot_uv.clear()
 	_footprint = Rect2()
 	_has_footprint = false
 	if str(view.get("variant", "")) == "post_smolt":
@@ -331,6 +340,7 @@ func _lot(slot: int, lot: Dictionary, u: float, v: float) -> void:
 	var row_len := LOT_TANKS_PER_ROW * GROWOUT_D + (LOT_TANKS_PER_ROW - 1) * LOT_TANK_GAP
 	var u0 := u - LOT_SIZE.x * 0.5 + GROWOUT_D * 0.5
 	var group := "lot%d" % slot
+	lot_uv.append(Vector2(u, v))
 	_grow_footprint(Vector2(u, v) - LOT_SIZE * 0.5, 0.0)
 	_grow_footprint(Vector2(u, v) + LOT_SIZE * 0.5, 0.0)
 	if template == "ras_hall":
@@ -505,6 +515,8 @@ func _layout_post_smolt() -> void:
 	for m in modules.size():
 		var lot: Dictionary = modules[m]
 		var v := v0 + MODULE_PITCH * m
+		# A module's centre: between its two tanks and the bay behind them.
+		lot_uv.append(Vector2(9.0, v + MODULE_TANK_PITCH * 0.5))
 		for k in (lot.get("tanks", []) as Array).size():
 			# Pipes (model -Z) toward the bay behind the tanks (-u).
 			_add_tank("tank_pregrow", world_xform(20.0, v + MODULE_TANK_PITCH * k, 0.0, PI * 0.5), m, lot, k)
@@ -800,6 +812,9 @@ func apply_state(unit_view: Dictionary) -> void:
 		_last_cam = Vector3(INF, INF, INF)
 		_bands.fill(-1)
 		refresh_lods(_camera_position(), true)
+	# F2-28: the crane, rings, excavator and mats follow the same phases.
+	if construction != null:
+		construction.apply_state()
 
 
 ## A group shown to `share` of its rise (0 hidden, 1 whole).
@@ -833,6 +848,11 @@ func blast_state() -> float:
 ## Build progress of tank `index`'s walls (0-1).
 func tank_progress_of(index: int) -> float:
 	return _progress[index] if index >= 0 and index < _progress.size() else 0.0
+
+
+## The LOD band tank `index` is drawn in now (0 near .. 2 far; -1 not placed yet).
+func tank_band_of(index: int) -> int:
+	return _bands[index] if index >= 0 and index < _bands.size() else -1
 
 
 ## Re-bucket the tanks into their LOD bands for a camera at `cam_pos` and
@@ -881,6 +901,9 @@ func _upload() -> void:
 		var mmi: MultiMeshInstance3D = _feeder_mm[band]
 		MultiMeshPack.upload(mmi.multimesh, xforms, [], customs)
 		mmi.visible = not xforms.is_empty()
+	# F2-28: the scaffold rings re-bucket with their tanks.
+	if construction != null:
+		construction.refresh_rings()
 
 
 ## Tanks drawn now (any part standing) per asset, every band: the presenter's counts.
