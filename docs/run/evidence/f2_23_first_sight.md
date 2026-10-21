@@ -8,7 +8,9 @@ towed past the mouth once (the demo's wishlist hook). Campuses light up at
 dusk. Frames are 1280 px downscales in `f2_23/` from one windowed run of all
 22 ShowcaseCapture shots (1920 x 1080, `po3_red_sone` seed 20261012 with the
 QA facility set; the teaser's four shots in their own run in `forste_sesong`,
-no farm-type unit), numbers in `f2_23_showcase_metrics.json`; the behaviour
+no farm-type unit), numbers in `f2_23_showcase_metrics.json` (re-recorded on
+`wave4b/int` after the merge, where gfx-polish-1's light moves some of them:
+`wave4b_int_gfx_farm_2.md`; the numbers below are the stage's); the behaviour
 runs headless in the UI flow suite (`godot/tests/FirstSightChecks.gd` 21
 checks, `godot/tests/TeaserChecks.gd` 24) and pytest
 (`tests/test_showcase_shots.py` 8). The owner's references L1, L2, O2 and O3

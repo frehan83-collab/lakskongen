@@ -921,7 +921,13 @@ counts measured at the wave-4b merge are regression ceilings. Evidence
   sea only (sheltered amplitude 0; its slope per vertex, the `v_swell`
   varying) and `WaveField` carries it, so the units heave on it. A new
   target eases in at 0.6/s; with none the coast is the wind model's and has
-  no swell. The director is the only writer of `swell_k` and `swell_amp`.
+  no swell. The director is the only writer of `swell_k`, `swell_amp` and
+  `swell_peak` (the largest exposed amplitude): a vertex where exposure ×
+  `swell_peak` is under 0.1 mm skips the swell's loops (`swell_skips`, the
+  components' own skip made early), so a game without an offshore unit pays
+  nothing for it (the loops cost +0.2-0.5 ms p50 at 1080p High with every
+  amplitude 0) and one with a unit +0.32-0.36 ms (wave4b int, paired A/B in
+  `docs/run/evidence/f2_21_camera_sea.md`).
 - **The Hs chip.** Each offshore unit carries an Ink chip with the engine's
   forecast ("Hs 2,4 m · Tp 10 s · i morgen 3,1 m · behandlingsvindu om 3 d")
   within 1,000 m and wherever fog or sea fog hides it (spec §5.5 rule 2), its
@@ -936,7 +942,14 @@ counts measured at the wave-4b merge are regression ceilings. Evidence
   camera's own framing, then the card ("Lagre bilde", "Fortsett"). Esc or a
   click skips it; a repeat gets a toast; reduced motion gets a still and a
   2 s cross-fade. `CinematicStage` holds the clock and pins the hour, the
-  weather and the mood (`set_mood_hook`), and gives them back.
+  weather and the mood (`set_mood_hook`), and gives them back as they were
+  (the weather from its snapshot, at once). A sequence waits for an open
+  card or menu (the critical event card, the briefing, the pause menu, the
+  end screen, the inbox: `CinematicStage.blocker`) and for the other
+  cinematic; one that comes up while it plays holds it still, its overlay
+  aside; the overlay holds the game's own keys back as a card does. The
+  presenter's first sync of a new or loaded game is no completion
+  (`SimBridge.get_game_generation`). "Lagre bilde" confirms on the card.
 - **The teaser** (`TeaserDirector`, Første sesong only): once after day 150,
   while no tutorial step asks anything of the player, a parody rival's OF1-
   class hull at its transit draft is towed by three anchor tugs past the

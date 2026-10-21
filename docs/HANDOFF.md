@@ -152,7 +152,7 @@ The stage branches' finished heads above exist only in this checkout's local bra
 **Still deferred (they need windows, so they wait for the owner's OK):**
 - `wave4/gfx-farm-1` (F2-19 carved shore pads, F2-20 facility presenter): finished on `wave4b/gfx-farm-1` and merged into `wave4b/int` (`5d7f18a`, 2026-10-21) with its review handled there (pad_b's layout, Esc and the hidden card, the build stall, the land card's waiting line; `docs/run/evidence/wave4b_int_gfx_farm_1.md`, `f2_19_pads.md`, `f2_20_presenter.md`; remainder in RUN_LOG §8).
 - `wave4/gfx-polish-1` (the §5.3 polish list, idle-machine perf, chip clipping, whitecaps inside pens): finished on `wave4b/gfx-polish-1` and merged into `wave4b/int` (`480ae51`, 2026-10-21) with its review handled there (the merged grid lost F2-19's pads: one carved ground for the grid and `HeightAt`; 18's gain is the mirror's own structure; the menu keeps the tier's clouds, -2.3 ms; the ledge, sun and `--only` checks; `docs/run/evidence/wave4b_int_gfx_polish_1.md`; remainder in RUN_LOG §8: 08a, per-pixel cloud contours at Ultra, P0-04 at 1440p).
-- `wave4/gfx-farm-2` (F2-21 camera bookmarks and offshore swell, F2-23 first-sight sequence and showcase shots): not started.
+- `wave4/gfx-farm-2` (F2-21 camera targets, G bookmarks, the open sea's swell and Hs chip; F2-23 first sight, teaser, night lights, showcase shots): finished on `wave4b/gfx-farm-2` and merged into `wave4b/int` (`940f0f9`, 2026-10-21) with its review handled there (cinematics wait for an open card or menu and stand still under one; a save loaded in the game is no completion; the swell's loops skipped without a swell; the weather, a held drag and the saved picture come back right; the drawn uniforms and the hand-back checked; `docs/run/evidence/wave4b_int_gfx_farm_2.md`, `f2_21_camera_sea.md`, `f2_23_first_sight.md`; remainder in RUN_LOG §8).
 - Deferred visual checks of the merged stages (no frame was rendered or looked at on any of them):
   - F2-31: the build dialog in each state (family cards, catalogue bars, locked gates, Land preview with permits and runway, Hav preview with licence line and consortium, the new Hav licence step and its filed-case result), the ghost in 3D on `pad_a` and `off_1`, and the runway chart, at 1280x720 at 100 % and 125 % against the owner refs (RUN_LOG §8, "Remainder (F2-31)").
   - U2-02: the ten `43_first_season_*` shots in `godot/qa/shots.json`, played by `qa/scenes/FirstSeasonCapture.tscn` (input season seed 7, skip seed 23).
@@ -165,7 +165,7 @@ The stage branches' finished heads above exist only in this checkout's local bra
 
 **Next, in order:**
 1. Merge the wave-4 PR once GitHub CI is green (the owner merges).
-2. With the owner's OK to open windows (given 2026-10-20): gfx-farm-1 and gfx-polish-1 are merged on `wave4b/int`; run the deferred visual checks above, then gfx-farm-2.
+2. With the owner's OK to open windows (given 2026-10-20): gfx-farm-1, gfx-polish-1 and gfx-farm-2 are merged on `wave4b/int`; run the deferred visual checks above.
 3. **Deferred:** G3-04 underwater view, U2-08 settings that apply, Au2-01 audio floor.
 4. **Then:**
    - the rest of the farm types: F2-10/F2-11, F2-16/17, F2-22/24, F2-27-30, F2-32-35 (F2-32/F2-33 are the land and offshore boards on the bridge reads F2-13/F2-15 and F2-08/F2-09 already expose, and the development-round panel);
