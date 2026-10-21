@@ -73,6 +73,26 @@ func ring_rect() -> Rect2:
 	return _target.get_global_rect().grow(RING_GAP)
 
 
+## Where the guide card must keep clear (Rect2() when not pointing): the ring
+## now or, while the target lies outside its scroll list's visible part, the
+## spot it comes into view at. ensure_control_visible ("Vis meg", a click that
+## scrolls first) scrolls the least, so a control below the list lands on its
+## bottom edge and one above on its top edge. The card re-docks once per
+## frame, so avoiding only the ring left it one frame over a target that had
+## just scrolled in under it (SHIP_PLAN cycle 2; the playtest's presses at
+## steps 2 and 13 landed on the card).
+func keep_clear_rect() -> Rect2:
+	if not is_pointing():
+		return Rect2()
+	var r := _target.get_global_rect()
+	var clip := _clip_rect()
+	if clip.has_area():
+		r.position = Vector2(
+			clampf(r.position.x, clip.position.x, maxf(clip.position.x, clip.end.x - r.size.x)),
+			clampf(r.position.y, clip.position.y, maxf(clip.position.y, clip.end.y - r.size.y)))
+	return r.grow(RING_GAP)
+
+
 ## True when the target lies outside its scroll list's visible part.
 func is_scrolled_away() -> bool:
 	var clip := _clip_rect()

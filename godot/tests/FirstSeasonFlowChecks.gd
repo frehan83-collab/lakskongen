@@ -28,6 +28,13 @@ const GAME_SCENE := "res://scenes/GameScene.tscn"
 const WIN_SEED := 7
 ## Real seconds the input player may take for the whole season.
 const WIN_TIMEOUT_S := 300.0
+
+## SHIP_PLAN cycle 2: scrolls that brought the pointed-at control into view,
+## and those where it came in under the card (the card's rect BEFORE the
+## scroll against the control's after it: a press in the scroll's own frame
+## hits exactly that, whatever the engine's frame order).
+var _scrolled_in: Array = []
+var _covered_on_arrival: Array = []
 const SETTLE_S := 0.25
 ## Wheel ticks per scroll attempt.
 const WHEEL_TICKS := 3
@@ -257,6 +264,8 @@ func _a_player_using_only_input_wins_the_first_season(seed: int = WIN_SEED) -> v
 	var seen := {}            # step number -> what the step looked like when it came up
 	var unreached := []       # steps whose pointer did not ring a visible control
 	var funding_route := []   # what the pointer ringed while the funding step waited
+	_scrolled_in.clear()
+	_covered_on_arrival.clear()
 	var loans_before := (t._sim.get_active_loans() as Array).size()
 	var deadline := Time.get_ticks_msec() + int(WIN_TIMEOUT_S * 1000.0)
 	var actions := 0
@@ -325,6 +334,8 @@ func _a_player_using_only_input_wins_the_first_season(seed: int = WIN_SEED) -> v
 		"input season: the funding step waited for cash (%.0f of %.0f NOK)" % [float(funding.get("cash", 0.0)), float(funding.get("goal", 0.0))])
 	_check(funding_route == ["Tab_finance", "BtnTakeLoan"] and loans == loans_before + 1,
 		"input season: the pointer led to «Økonomi» and the loan, and the click on it was the step (route %s, %d loan(s))" % [str(funding_route), loans - loans_before])
+	_check(not _scrolled_in.is_empty() and _covered_on_arrival.is_empty(),
+		"input season: the card already stood clear of where each scrolled-in target came into view (scrolled in %s, covered %s)" % [str(_scrolled_in), str(_covered_on_arrival)])
 	print("[U2-02] input season: won=%s day=%d actions=%d steps=%s" % [str(won), int(t._sim.current_day), actions, str(seen)])
 	await _free(scene)
 
@@ -380,12 +391,32 @@ func _follow_pointer(card: Control) -> void:
 		await _frames(2)
 		return
 	if h.is_scrolled_away():
-		await _click(card.show_me_button)
-		await _frames(2)
+		await _show_me(card)
 		return
-	if await _wheel_into_view(h.target()):
+	var target := h.target()
+	var card_at := card.get_global_rect()
+	if await _wheel_into_view(target):
+		_note_arrival(target, card_at)
 		return
-	await _click(h.target())
+	await _click(target)
+
+
+## "Vis meg" on a scrolled-away target, noting where it came into view.
+func _show_me(card: Control) -> void:
+	var target: Control = card.highlight().target()
+	var card_at := card.get_global_rect()
+	await _click(card.show_me_button)
+	await _frames(2)
+	_note_arrival(target, card_at)
+
+
+func _note_arrival(target: Control, card_at: Rect2) -> void:
+	if target == null or not is_instance_valid(target) or not target.is_visible_in_tree():
+		return
+	_scrolled_in.append(str(target.name))
+	if card_at.intersects(target.get_global_rect()):
+		_covered_on_arrival.append({"step": int(t._sim.tutorial_step_number), "target": str(target.name),
+			"card": card_at, "at": target.get_global_rect()})
 
 
 ## Scroll the list around `control` with the mouse wheel until the control is
@@ -429,7 +460,7 @@ func _feed_plan_by_input(scene: Node, card: Control) -> void:
 		return
 	var h: TutorialHighlight = card.highlight()
 	if h.is_scrolled_away():
-		await _click(card.show_me_button)
+		await _show_me(card)
 		return
 	if not plan.apply_button().disabled:
 		await _follow_pointer(card)   # the pointer has moved to "Bruk på …"

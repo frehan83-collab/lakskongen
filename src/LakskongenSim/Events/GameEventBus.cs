@@ -197,6 +197,16 @@ namespace LakskongenSim.Events
             return new GameEventPublishResult(GameEventOutcome.Delivered, delivered);
         }
 
+        /// <summary>
+        /// The last day each live key was reported (read-only; keys pruned
+        /// out of the dedupe window are gone). A condition the game keeps
+        /// reporting (a bloom, lice over the limit) stays current; a one-off
+        /// event ages. The inbox reads it to tell what needs the player now
+        /// from history (SHIP_PLAN cycle 2: alarm fatigue).
+        /// </summary>
+        public IReadOnlyDictionary<string, int> LastSeenDays()
+            => _keys.ToDictionary(kv => kv.Key, kv => kv.Value.LastSeenDay, StringComparer.Ordinal);
+
         /// <summary>Days with a report of this key in its current run (0 when unknown).</summary>
         public int Occurrences(string key) => _keys.TryGetValue(key, out var s) ? s.Occurrences : 0;
 

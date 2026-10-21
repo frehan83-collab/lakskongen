@@ -17,6 +17,8 @@ const SCENARIO_ID := "forste_sesong"
 ## (it follows the project name) and would wipe each other's saves.
 var TEST_ROOT := "user://ci_ui_tests/%d/" % absi(ProjectSettings.globalize_path("res://").hash())
 var TEST_SAVE_DIR := TEST_ROOT + "saves/"
+## Days without a report after which an inbox entry is history (NotificationCenter.LIVE_DAYS + 1).
+const LIVE_AGE_DAYS := 3
 var ESCAPE_SAVE := TEST_ROOT + "escape.json"
 
 var _checks: int = 0
@@ -5647,6 +5649,30 @@ func _test_inbox_lists_what_happened() -> void:
 		verb.pressed.emit()
 		await get_tree().create_timer(0.4).timeout
 	_check(ui.get_active_tab() == "telemetry" and not center.is_open(), "inbox: the verb opens telemetry (%s)" % ui.get_active_tab())
+	# SHIP_PLAN cycle 2 (alarm fatigue): an entry counts as "now" while its
+	# event key is still reported; once it is not, it ages into "Tidligere",
+	# muted and outside the badge (the first season ended with blooms from
+	# day 176 still listed as critical on day 337).
+	center.clear_all()
+	_sim.publish_condition_event("temperature_high", "warning", "", "CI: sjøtemperatur 18,4 °C")
+	var aging: Dictionary = center._entries[0] if not center._entries.is_empty() else {}
+	center.show_panel()
+	await get_tree().create_timer(0.3).timeout
+	var now_head: Label = center.entry_list.find_child("Group_warning", true, false)
+	_check(not aging.is_empty() and center._is_live(aging, center._last_seen()) and now_head != null
+			and center.entry_list.find_child("Group_history", true, false) == null,
+		"inbox: a warning reported today is listed under Advarsel, not history")
+	center.hide_panel()
+	_sim.advance_days(LIVE_AGE_DAYS)
+	await get_tree().process_frame
+	center.show_panel()
+	await get_tree().create_timer(0.3).timeout
+	var past_head: Label = center.entry_list.find_child("Group_history", true, false)
+	_check(not center._is_live(aging, center._last_seen()) and past_head != null
+			and tr("UI_NOTIFY_GROUP_HISTORY") != "UI_NOTIFY_GROUP_HISTORY"
+			and past_head.text.begins_with(tr("UI_NOTIFY_GROUP_HISTORY")),
+		"inbox: %d days later, unreported, it is under Tidligere (%s) and out of the badge" % [LIVE_AGE_DAYS, past_head.text if past_head else "missing"])
+	center.hide_panel()
 	# A new game starts with an empty inbox, and keeps its own first events
 	# even when they arrive before GameStarted reaches the inbox.
 	_sim.start_qa_scenario("po3_red_sone", 91)
