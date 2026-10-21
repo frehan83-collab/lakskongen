@@ -60,13 +60,13 @@ On `b1951e8` (the commit after it adds documents, frames and the
 re-recorded showcase metrics only):
 
 - `dotnet build LakskongenSim.sln` and `godot/LakskongenGame.csproj`: 0 errors.
-- `dotnet test LakskongenSim.sln`: LakskongenSim.Tests 2015 passed, 3
-  skipped, 1 failed of 2019 (int's 2004 + the stage's 12 `OpenSeaSwellTests`),
-  in two runs; the failure both times
-  `SoakLongRunTests.ThreeYearResourceRentSoak_StaysSane_AndFast`, 24 s and
-  18 s against its 10 s budget, while other agents' test suites held the
-  load at 109-122; alone it takes 0.84 s (load 24). 31, 4, 5, 10 and 25 in
-  the other projects.
+- `dotnet test LakskongenSim.sln`: LakskongenSim.Tests 2016 passed, 3
+  skipped, 0 failed of 2019 (int's 2004 + the stage's 12 `OpenSeaSwellTests`)
+  on `b63bad2`, the code of `b1951e8` (load 37 -> 22, started once no other
+  agent's suite ran); 31, 4, 5, 10 and 25 in the other projects. The two
+  runs before it, beside other agents' test suites at load 109-122, failed
+  only `SoakLongRunTests.ThreeYearResourceRentSoak_StaysSane_AndFast` (24 s
+  and 18 s against its 10 s budget); alone it takes 0.84 s (load 24).
 - `python3.12 -m pytest tests/ -q`: 889 passed, 1 skipped (872 + the stage's
   15 + the merge's 2; two assertions replaced by stronger ones).
 - `tools/validate_scenes.sh`: 86 scenes (85 tracked and the captain's
@@ -123,7 +123,7 @@ RUN_LOG §8, "Remainder (wave4b int, gfx-farm-2 merge)": the swell's 0.3-0.4
 ms with a unit (one loop for the displacement and the slope could take part
 of it back); 33's thin margin over 1.5 %; a card that comes up under a
 cinematic reads "Spillet går videre" while the cinematic holds the clock;
-the soak budget under other agents' load; the quiet "Bilde lagret" line;
+the soak budget beside other agents' suites; the quiet "Bilde lagret" line;
 the stage's own remainder (the teaser's Leksikon and locked card F2-35,
 offshore wakes, the storm's whitecap patches, telephoto cloud steps, the
 Havfarm-class first sight F2-29).
