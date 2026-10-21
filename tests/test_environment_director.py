@@ -21,6 +21,8 @@ SKY_UNIFORMS = (
     "sky_time", "cloud_coverage", "cloud_density", "cloud_offset", "aurora_intensity",
     "aurora_offset_km", "aurora_kp", "moon_direction", "moon_illumination", "haze_color",
     "haze_amount", "sky_energy",
+    # G3-04: under the surface the sky is the water's own light.
+    "underwater", "uw_horizontal", "uw_nadir", "uw_sun_dir", "uw_sun_glow",
 )
 WATER_WAVE_UNIFORMS = (
     "wave_amplitude", "wave_speed", "wave_frequency", "wave_steepness", "wind_strength",
@@ -28,6 +30,10 @@ WATER_WAVE_UNIFORMS = (
     # G1-05: the sea state (SeaStateModel), its phases and the water bake.
     "wave_k", "wave_amp", "whitecaps", "whitecap_threshold", "ripple_strength",
     "sea_height", "sea_peak", "sea_direction", "sea_time", "underside_light", "water_bake", "has_bake",
+    # G3-04: the surface seen from below (water_underside.gdshader).
+    "underside_zenith", "underside_horizon", "underside_land", "underside_sun_dir", "underside_sun",
+    "underside_horizontal", "underside_nadir", "underside_glow_dir", "underside_glow",
+    "underside_absorption", "underside_attenuation",
 )
 
 # Each category: patterns that write it. "= " but not "==".

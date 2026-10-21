@@ -40,6 +40,13 @@ const PEN_BOX_HEIGHT_M := 15.0
 ## The net condition (NetIntegrityPct) at and below which the nets read
 ## fully fouled (G3-04, net_fouling_for).
 const FOULED_AT_INTEGRITY := 60.0
+## The fouling the nets show moves in steps of this (the growth reads no
+## finer): the sim's net condition moves 0.5 % a day while it is repaired,
+## so a day's sync touches the nets about every fourth day, not every day
+## (measured: every day cost the 30x UI side 1 ms a day, RUN_LOG §7).
+const FOULING_STEP := 0.05
+## Fouling writes to the nets since start (tests read it, as FishSchool.body_writes).
+static var fouling_writes := 0
 ## Pen LOD states.
 enum Lod { NEAR, MID, FAR }
 
@@ -188,16 +195,20 @@ static func net_fouling_for(site: Dictionary) -> float:
 	return clampf((100.0 - float(integrity)) / (100.0 - FOULED_AT_INTEGRITY), 0.0, 1.0)
 
 
-## The nets' fouling (pen_net_shader net_fouling) on every pen of the site
-## and its LOD MultiMeshes.
+## The nets' fouling (pen_net_shader net_fouling, in FOULING_STEP steps) on
+## every pen of the site and its LOD MultiMeshes.
 func set_net_fouling(value: float) -> void:
-	var v := clampf(value, 0.0, 1.0)
+	var v := snappedf(clampf(value, 0.0, 1.0), FOULING_STEP)
 	if is_equal_approx(v, _net_fouling):
 		return
 	_net_fouling = v
+	fouling_writes += 1
 	for cage in cages:
 		cage.set_net_fouling(v)
-	_apply_part_visibility()
+	for level in _lod_parts:
+		for part in _lod_parts[level]:
+			if part in PenCage.NET_PARTS:
+				(_lod_parts[level][part] as MultiMeshInstance3D).set_instance_shader_parameter("net_fouling", v)
 
 func get_net_fouling() -> float:
 	return _net_fouling

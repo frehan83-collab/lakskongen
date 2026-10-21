@@ -1,0 +1,165 @@
+{
+	"failures": [],
+	"pen": {
+		"pen": 0,
+		"site_id": "po3_nord"
+	},
+	"shots": {
+		"11_fjord_underwater": {
+			"camera": [
+				-86.2372,
+				-5.0,
+				-1154.766
+			],
+			"caustic_strength": 1.0,
+			"depth_m": 5.0,
+			"exposure": 1.489,
+			"fish_fraction": 0.0297,
+			"fog_density": 0.2686,
+			"from_pen_centre_m": 17.96,
+			"horizontal": [
+				0.0055,
+				0.0593,
+				0.0516
+			],
+			"shaft_count": 93,
+			"shafts": true,
+			"site_water": {
+				"chlorophyll_ug_l": 0.0,
+				"site_id": "po3_nord",
+				"visibility_m": 11.5282258064516
+			},
+			"snow": true,
+			"sun_at_depth": [
+				0.2207,
+				1.1771,
+				0.8043
+			],
+			"underside": true,
+			"visibility_m": 11.53
+		},
+		"11b_underwater_bloom": {
+			"camera": [
+				-86.2372,
+				-5.0,
+				-1154.766
+			],
+			"caustic_strength": 1.0,
+			"depth_m": 5.0,
+			"exposure": 1.9,
+			"fog_density": 0.8391,
+			"from_pen_centre_m": 17.96,
+			"horizontal": [
+				0.0041,
+				0.0465,
+				0.0096
+			],
+			"shaft_count": 93,
+			"shafts": true,
+			"site_water": {
+				"chlorophyll_ug_l": 16.0,
+				"site_id": "po3_nord",
+				"visibility_m": 2.35463359768474
+			},
+			"snow": true,
+			"sun_at_depth": [
+				0.1076,
+				0.8989,
+				0.2089
+			],
+			"underside": true,
+			"visibility_m": 2.35
+		},
+		"11c_underwater_window": {
+			"camera": [
+				-86.2372,
+				-5.0,
+				-1154.766
+			],
+			"caustic_strength": 1.0,
+			"depth_m": 5.0,
+			"exposure": 1.489,
+			"fog_density": 0.2686,
+			"from_pen_centre_m": 17.96,
+			"horizontal": [
+				0.0055,
+				0.0593,
+				0.0516
+			],
+			"shaft_count": 93,
+			"shafts": true,
+			"site_water": {
+				"chlorophyll_ug_l": 0.0,
+				"site_id": "po3_nord",
+				"visibility_m": 11.5282258064516
+			},
+			"snow": true,
+			"sun_at_depth": [
+				0.2207,
+				1.1771,
+				0.8043
+			],
+			"underside": true,
+			"visibility_m": 11.53,
+			"window": {
+				"ratio": 2.38,
+				"tir_mean": 0.2487,
+				"tir_n": 31479,
+				"tir_rgb": [
+					0.0563,
+					0.3029,
+					0.2786
+				],
+				"tir_tinted": true,
+				"window_mean": 0.5921,
+				"window_n": 53012
+			}
+		},
+		"11d_underwater_net": {
+			"camera": [
+				-58.2301,
+				-4.0,
+				-1171.816
+			],
+			"caustic_change_off": 0.00498,
+			"caustic_change_on": 0.02046,
+			"caustic_strength": 1.0,
+			"clean_rgb": [
+				0.0547,
+				0.2678,
+				0.2571
+			],
+			"depth_m": 4.0,
+			"exposure": 1.364,
+			"fog_density": 0.2686,
+			"fouled_rgb": [
+				0.0806,
+				0.2847,
+				0.2596
+			],
+			"fouled_share": 0.4081,
+			"from_pen_centre_m": 22.35,
+			"horizontal": [
+				0.0087,
+				0.0659,
+				0.0608
+			],
+			"net_mask_share": 0.2491,
+			"shaft_count": 89,
+			"shafts": true,
+			"site_water": {
+				"chlorophyll_ug_l": 0.0,
+				"site_id": "po3_nord",
+				"visibility_m": 11.5282258064516
+			},
+			"snow": true,
+			"sun_at_depth": [
+				0.3459,
+				1.3023,
+				0.9413
+			],
+			"underside": true,
+			"visibility_m": 11.53
+		}
+	}
+}

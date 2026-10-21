@@ -10,7 +10,9 @@ extends Node
 ##   view (the fjord axis toward the mouth) over the segment, the HUD on the
 ##   Fjord tab as the player sees it;
 ## - panel: the finance tab open, an opaque full-screen panel over the world
-##   (shot 06), the camera at the FJORD default.
+##   (shot 06), the camera at the FJORD default;
+## - underwater (G3-04, only when --segments names it): the UNDERWATER view in
+##   the first pen (FjordCamera's dive), its yaw swept 50 degrees round the pen.
 ##
 ## Per frame: wall-clock frame time (vsync off, no fps cap), the viewport's
 ## GPU and CPU render time (RenderingServer timestamps), the script process
@@ -29,7 +31,8 @@ extends Node
 ##   --seconds=S        recorded seconds per segment (default 10)
 ##   --warmup=S         settle time before each segment (default 2)
 ##   --segments=LIST    comma list of farm,fjord,coast,panel (default all),
-##                      plus land and hav with --facilities
+##                      plus underwater (EXTRA_SEGMENTS) and land and hav
+##                      with --facilities
 ##   --variants=LIST    ';' list of variants; each is a preset name and
 ##                      optional knob overrides: "high,sky_res=full,ssao=false"
 ##                      (default: the director's default preset)
@@ -76,6 +79,8 @@ const SPIKE_MS := 50.0
 ## Boot frames recorded (from the scene entering the tree).
 const BOOT_FRAMES := 900
 const SEGMENT_NAMES := ["farm", "fjord", "coast", "panel"]
+## Segments run only when --segments names them (not in the default run).
+const EXTRA_SEGMENTS := ["underwater"]
 ## F2-20 segments (with --facilities): the camera on a facility's framing.
 const FACILITY_SEGMENTS := ["land", "hav"]
 ## The farm-type set --facilities builds: grow-out lots, post-smolt modules,
@@ -91,7 +96,9 @@ const TIERS := ["low", "medium", "high", "ultra"]
 const ZOOM_COAST := 0
 const ZOOM_FJORD := 1
 const ZOOM_FARM := 2
-const SEGMENT_ZOOM := {"farm": ZOOM_FARM, "fjord": ZOOM_FJORD, "coast": ZOOM_COAST, "panel": ZOOM_FJORD}
+const ZOOM_UNDERWATER := 3
+const SEGMENT_ZOOM := {"farm": ZOOM_FARM, "fjord": ZOOM_FJORD, "coast": ZOOM_COAST, "panel": ZOOM_FJORD,
+	"underwater": ZOOM_UNDERWATER}
 ## WeatherController.WeatherState ordinals.
 const WEATHER := {"clear": 0, "overcast": 1, "rain": 2, "snow": 3, "storm": 4, "fog": 5}
 
@@ -264,7 +271,7 @@ func _run() -> void:
 			order.append(v)
 	for r in repeats:
 		for seg in segments:
-			if not seg in SEGMENT_NAMES and not (seg in FACILITY_SEGMENTS and _facility_ids.has(seg)):
+			if not seg in SEGMENT_NAMES and not seg in EXTRA_SEGMENTS and not (seg in FACILITY_SEGMENTS and _facility_ids.has(seg)):
 				push_warning("PerfHarness: unknown segment '%s'" % seg)
 				continue
 			for i in order.size():

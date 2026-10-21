@@ -108,6 +108,8 @@ func _run() -> void:
 	await WeatherDramaChecks.new().run(self)
 	# gfx-polish-1: clouds, ripples, pen calm, chips, terrain macro, shoal LOD.
 	await GfxPolishChecks.new().run(self)
+	# G3-04: the underwater view (UnderwaterChecks.gd).
+	await UnderwaterChecks.new().run(self)
 	await _test_theme_and_contrast_on_every_screen()
 	_test_formatters_speak_the_locale()
 	await _test_dashboard_title_names_the_company()

@@ -81,11 +81,13 @@ const UNDERWATER_MIN_DEPTH := 3.0
 const UNDERWATER_MAX_DEPTH := 8.0
 const UNDERWATER_SEABED_CLEARANCE := 4.0
 ## Inside a pen (underwater_anchor): the camera stands this share of the
-## net's radius out from the pen's centre, inside the school's ring, and
-## looks across the pen, turned UNDERWATER_TURN_DEG off its centre (the fish
-## swim across the view, the net wall shows at one side) and tilted
-## UNDERWATER_PITCH_DEG up (the surface's bright window at the top). Q/E,
-## right-drag and the pan keys turn it round the pen and tilt it.
+## net's radius out from the pen's centre (18 m of 24.95: in the school's
+## band, which circles out to FishSchool.SCHOOL_OUTER_M, 22.5 m) and looks
+## across the pen, turned UNDERWATER_TURN_DEG off its centre (the school
+## passes through one side of the view, the net wall and its ropes show at
+## the other) and tilted UNDERWATER_PITCH_DEG up (the surface's bright window
+## at the top). Q/E, right-drag and the pan keys turn it round the pen and
+## tilt it.
 const UNDERWATER_RING := 0.72
 const UNDERWATER_TURN_DEG := 45.0
 const UNDERWATER_PITCH_DEG := 16.0

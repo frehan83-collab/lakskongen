@@ -2867,6 +2867,90 @@ seed 7; a real player who reads the planner's "2, 4, 8 weeks" columns can
 wait and may not need the loan. The season takes about 22 s of real time
 headless at 30×.
 
+## 1ab. G3-04: the water the camera dives into (2026-10-21, branch `wave4b/gfx-polish-2`)
+
+The underwater view's fog is the sim's water: `Environment/WaterClarity.cs`
+(pure: no saved state, no RNG stream, read through
+`SimulationEngine.WaterClarityOf(site)` and `GetSeaSiteDetails`'
+`water_visibility_m` and `bloom_chlorophyll_ug_l`). No other system reads it,
+so no career, save or golden trace moves (the gate's report:
+`docs/run/evidence/g3_04_golden_diff.md`).
+
+### The measure
+
+The horizontal sighting range of a black target, y = 4.8 / α, with α the
+photopic beam attenuation (Zaneveld & Pegau 2003, "Robust underwater
+visibility parameter", Optics Express 11(23):2997-3009,
+https://doi.org/10.1364/OE.11.002997; the constant is Davies-Colley's 1988
+black-disk one, within 10 % over coastal, estuarine and inland waters). The
+view's fog density is that α (drawn with a camera's contrast stretch, below).
+
+### The season (no bloom)
+
+A fjord's Secchi depth Z_SD through the year, the three-month running mean of
+the 2024 monthly means at OH-10 in Hardangerfjorden (Statsforvalteren i
+Vestland / Rambøll, "Overvåkingsprogram for Hardangerfjorden 2024-2026,
+årsrapport 2024", Vedlegg 5, 2025,
+https://inte.statsforvalteren.no/contentassets/1356d24c117846cfafa805b2b4376446/overvakingsprogram-hardangerfjorden-arsrapport-2024-med-vedlegg.pdf;
+cross-check: ØKOKYST Nordsjøen sør, Miljødirektoratet M-1604|2020, summer
+7.7-9.7 m in the Ryfylke fjords 2016-2019), converted by y = 0.75 Z_SD
+(derived: y / Z_SD = 4.8 (1 + K_d/α) / Γ with Γ = 8 and K_d/α = 0.25; Γ over
+6-9 and K_d/α over 0.15-0.35 keep it within 0.6-1.0). Values at mid-month,
+interpolated between (across the new year):
+
+| Month | Z_SD (m) | Visibility y (m) | α (1/m) | Fog drawn (1/m) | Full bloom (m) |
+|---|---|---|---|---|---|
+| Jan | 15.7 | 11.8 | 0.41 | 0.26 | 2.13 |
+| Feb | 14.3 | 10.7 | 0.45 | 0.29 | 2.10 |
+| Mar | 11.3 | 8.5 | 0.57 | 0.36 | 1.99 |
+| Apr | 8.3 | 6.2 | 0.77 | 0.46 | 1.84 |
+| May | 7.0 | 5.2 | 0.91 | 0.53 | 1.74 |
+| Jun | 7.3 | 5.5 | 0.88 | 0.51 | 1.77 |
+| Jul | 8.2 | 6.1 | 0.78 | 0.47 | 1.83 |
+| Aug | 7.8 | 5.8 | 0.82 | 0.49 | 1.80 |
+| Sep | 7.2 | 5.4 | 0.89 | 0.52 | 1.76 |
+| Oct | 6.0 | 4.5 | 1.07 | 0.59 | 1.65 |
+| Nov | 9.0 | 6.8 | 0.71 | 0.43 | 1.88 |
+| Dec | 12.3 | 9.2 | 0.52 | 0.33 | 2.03 |
+
+Winter water is 1.8-2.6 times as clear as summer's (`WaterClarityTests`
+holds winter 10-13 m, summer 5-7 m and > 1.8×).
+The zone plankton model (`Biology.PlanktonBloom`) is not read: its intensity
+is a bloom-risk index that stays at 0.7-0.8 through the winter (po3_red_sone,
+seed 20261012: 0.77 on 1 January of the second year), when the water is at
+its clearest.
+
+### A bloom at the site
+
+A live "algae" `BloomEvent` at the site (the worst one) adds chlorophyll a
+of 20 µg/L × its severity (game estimate: a dense flagellate bloom, twice the
+plankton model's seasonal bloom at capacity; the 1988 Chrysochromulina
+polylepis bloom's 1e8 cells/L at about 0.2 pg chlorophyll a a cell is
+20 µg/L: Dundas et al. 1989, Oceanography 2(1),
+https://tos.org/oceanography/assets/docs/2-1_dundas.pdf), and chlorophyll
+adds Δα = 0.334 Chl^0.57 (Voss 1992, Limnol. Oceanogr. 37(3):501-509: c(490)
+− c_w = 0.39 Chl^0.57, × 0.952 to 532 nm, × 0.9 to photopic α). A severity of
+0.8 (16 µg/L, the harness's 11b) adds 1.62 /m: the QA day's 11.5 m water
+reads 2.35 m. A full bloom (20 µg/L, +1.84 /m) leaves 1.65-2.13 m through the
+year (the table's last column).
+
+### Drawn
+
+The view draws the fog at 4.8 / sqrt((1.5 y)^2 + 4.5^2) (`UnderwaterOptics`:
+a camera's contrast stretch of 1.5 and a readable floor of 4.5 m), so
+January reads 0.26 /m and a full bloom no denser than 0.93 /m: the net beside
+the camera stays readable. Art direction, logged in RUN_LOG §7.
+
+### The nets' fouling
+
+The sim has no fouling: the net shader's growth reads the site's net
+condition (`NetIntegrityPct`, which storms wear and the ROV's "+15 renset"
+restores): fouling = (100 − integrity) / 40, fully fouled at 60 % and below
+(`FarmSite.net_fouling_for`). A fully fouled tile covers 2.35× the clean
+tile's 0.15 (0.35; Gansel et al. 2015, PLoS One 10(7) e0131051,
+https://pmc.ncbi.nlm.nih.gov/articles/PMC4495041: a 0.20 net reached 0.50 in
+ten weeks; NS 9415 designs for a 50 % solidity increase).
+
 ## 2. Key economic knobs
 
 | Knob | Current | Real reference | Source | Recommended playtest band |
