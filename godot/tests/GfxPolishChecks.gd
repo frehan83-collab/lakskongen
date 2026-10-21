@@ -7,7 +7,8 @@ extends RefCounted
 ## every pen's collar while caps break, none in a calm); vessel chips keep
 ## their whole pill on screen and hide when their boat leaves it; the
 ## terrain chunks carry, in CUSTOM0, the slope and cavity of the ground
-## without the wall ledges' terraces and the ledges' strength; the shoal's
+## without the wall ledges' terraces and the ledges' strength, and keep it
+## when the land-kit preview's carve rebuilds one (wave-4b close); the shoal's
 ## fish use the light salmon beyond 30 m; and the screenshot harness's
 ## single-shot and quality arguments parse. Pixel results (the clouds' steps,
 ## the walls' stripes, the moods, 18's mirror) are the screenshot harness's.
@@ -51,6 +52,7 @@ func run(tests: Node) -> void:
 	director.set_quality("high")
 	_check_terrain_macro(terrain)
 	_check_prewarm_matches_the_chunks(terrain)
+	_check_carved_chunk_keeps_custom0(terrain)
 	await _check_pen_calm(env, director, cam, pens)
 	await _check_shoal_lod(cam, pens)
 	await _check_vessel_chips(env, cam, pens)
@@ -228,6 +230,44 @@ func _check_prewarm_matches_the_chunks(terrain: FjordTerrain) -> void:
 	var chunk := (chunks[0].mesh as ArrayMesh).surface_get_format(0) & mask if not chunks.is_empty() else -1
 	t._check(warm == chunk and warm == (Mesh.ARRAY_FORMAT_CUSTOM0 | FjordTerrain.MACRO_FORMAT_FLAGS),
 		"terrain: the warm-up triangle carries the chunks' CUSTOM0 as RGBA float (%d vs %d)" % [warm, chunk])
+
+
+## LandKitPreview's carve (the 39_landkit_* frames' stand-in for F2-19's pads)
+## rebuilds terrain chunks from their arrays: a carved chunk keeps one surface
+## with its RGBA-float CUSTOM0, value for value, and its vertices over the
+## floor come down to it. Found at the wave-4b close: the rebuild dropped the
+## custom formats, failed, and the carved chunks drew nothing.
+func _check_carved_chunk_keeps_custom0(terrain: FjordTerrain) -> void:
+	var preview: GDScript = load("res://scripts/qa/LandKitPreview.gd")
+	var chunks := terrain.get_chunk_meshes()
+	var ok := false
+	var detail := "no chunk"
+	for chunk in chunks:
+		var src := chunk.mesh as ArrayMesh
+		var box := chunk.transform * chunk.get_aabb()
+		if src == null or box.size.y < 20.0:
+			continue
+		var floor_y := box.position.y + box.size.y * 0.5
+		# The whole footprint and a metre round it (Rect2.has_point leaves out
+		# the far edges).
+		var rects: Array[Rect2] = [Rect2(box.position.x - 1.0, box.position.z - 1.0, box.size.x + 2.0, box.size.z + 2.0)]
+		var carved: ArrayMesh = preview.carve_chunk(src, chunk.transform, rects, floor_y)
+		var mask := Mesh.ARRAY_FORMAT_CUSTOM_MASK << Mesh.ARRAY_FORMAT_CUSTOM0_SHIFT
+		var surfaces := carved.get_surface_count() if carved != null else -1
+		var kept := false
+		var top := INF
+		if surfaces == 1:
+			var before: PackedFloat32Array = src.surface_get_arrays(0)[Mesh.ARRAY_CUSTOM0]
+			var after := carved.surface_get_arrays(0)
+			kept = (carved.surface_get_format(0) & mask) == (src.surface_get_format(0) & mask) \
+				and after[Mesh.ARRAY_CUSTOM0] is PackedFloat32Array and after[Mesh.ARRAY_CUSTOM0] == before
+			top = -INF
+			for v: Vector3 in after[Mesh.ARRAY_VERTEX]:
+				top = maxf(top, (chunk.transform * v).y)
+		ok = surfaces == 1 and kept and top <= floor_y + 0.01
+		detail = "%d surface(s), CUSTOM0 kept %s, top %.2f m over a floor at %.2f m" % [surfaces, kept, top, floor_y]
+		break
+	t._check(ok, "terrain: a chunk the land-kit preview carves keeps its RGBA-float CUSTOM0 and draws (%s)" % detail)
 
 
 ## In a storm the water breaks no whitecap inside a pen: the director hands
