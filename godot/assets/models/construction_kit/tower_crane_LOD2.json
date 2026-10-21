@@ -1,0 +1,53 @@
+{
+  "asset": "tower_crane",
+  "atlas": "godot/assets/models/facility_kit/textures/facility_atlas.png",
+  "bbox_size": [
+    67.0,
+    59.3,
+    7.0
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "counter_jib_length_m": 17.0,
+    "jib_length_m": 50.0,
+    "mast_height_m": 50.0,
+    "mast_width_m": 1.7,
+    "overall_height_m": 60.0
+  },
+  "file": "tower_crane_LOD2.glb",
+  "lod": "LOD2",
+  "material_count": 1,
+  "materials": [
+    "LK_FacilityKit"
+  ],
+  "part_strips": {
+    "Base": "concrete",
+    "Cathead": "crane_yellow",
+    "CounterJib": "crane_yellow",
+    "Jib": "crane_yellow",
+    "Mast": "crane_yellow",
+    "Slewing": "crane_yellow"
+  },
+  "parts": {
+    "Base": 2,
+    "Cathead": 2,
+    "CounterJib": 6,
+    "Jib": 6,
+    "Mast": 8,
+    "Slewing": 10
+  },
+  "surfaces": 1,
+  "swatches": {
+    "Jib": {
+      "hex": "#E7BF2E",
+      "spec": "#E6BE2E",
+      "strip": "crane_yellow"
+    },
+    "Mast": {
+      "hex": "#E7BF2E",
+      "spec": "#E6BE2E",
+      "strip": "crane_yellow"
+    }
+  },
+  "tri_count": 34
+}

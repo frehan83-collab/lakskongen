@@ -1,0 +1,61 @@
+{
+  "asset": "excavator",
+  "atlas": "godot/assets/models/facility_kit/textures/facility_atlas.png",
+  "bbox_size": [
+    3.5,
+    3.5,
+    10.0
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "height_m": 3.5,
+    "length_m": 10.0,
+    "width_m": 3.5
+  },
+  "file": "excavator_LOD0.glb",
+  "lod": "LOD0",
+  "material_count": 1,
+  "materials": [
+    "LK_FacilityKit"
+  ],
+  "part_strips": {
+    "Boom": "crane_yellow",
+    "Bucket": "steel",
+    "Cab": "crane_yellow",
+    "CabGlass": "conveyor",
+    "Cylinders": "steel",
+    "Exhaust": "steel",
+    "House": "crane_yellow",
+    "Stick": "crane_yellow",
+    "Tracks": "fender",
+    "Undercarriage": "steel",
+    "Wheels": "steel"
+  },
+  "parts": {
+    "Boom": 8,
+    "Bucket": 70,
+    "Cab": 20,
+    "CabGlass": 6,
+    "Cylinders": 48,
+    "Exhaust": 8,
+    "House": 30,
+    "Stick": 8,
+    "Tracks": 220,
+    "Undercarriage": 20,
+    "Wheels": 224
+  },
+  "surfaces": 1,
+  "swatches": {
+    "House": {
+      "hex": "#E7BF2E",
+      "spec": "#E6BE2E",
+      "strip": "crane_yellow"
+    },
+    "Tracks": {
+      "hex": "#1C1E20",
+      "spec": "#1C1E20",
+      "strip": "fender"
+    }
+  },
+  "tri_count": 662
+}
