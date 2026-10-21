@@ -83,7 +83,11 @@ autoloads (`SimBridge`, `GameBridge`, `TutorialState`, …) are live.
 - **Fjord state** uses the `FjordEnvironment` API: `set_season`, `set_time`,
   `set_weather`; the aurora is set on the sky `ShaderMaterial`; underwater moves
   the `FjordCamera` into the first stocked pen and checks the frames
-  (`UnderwaterShots.gd`; the report `11_underwater.json`).
+  (`UnderwaterShots.gd`; the report `11_underwater.json`). The underwater group
+  also steps a dive at 60 Hz (the frames after the crossing against the
+  settled view) and hides the terrain and the meshes past the fog's reach in
+  11's framing (the fogged world must vanish into the water); neither saves a
+  shot (wave4b int, the gfx-polish-2 review).
 - Capture uses `get_viewport().get_texture().get_image().save_png(...)`, waiting on
   `RenderingServer.frame_post_draw` so a fully drawn frame is grabbed.
 

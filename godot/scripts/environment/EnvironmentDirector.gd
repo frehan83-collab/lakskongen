@@ -373,7 +373,8 @@ var uw_globals_on := false
 var caustics_staged_off := false
 var caustic_clock_staged := -1.0
 ## The sky's process mode (wave4b int review, _apply_sky_mode): the scene's
-## own above the surface, REALTIME under it; switches counted for the tests.
+## own above the surface, REALTIME under it; the switches are counted (each
+## one rebuilds the radiance map whole: a probe can count them).
 var sky_mode_switches := 0
 var _sky_mode_above := -1
 ## Staging (the REALTIME sky's cost, an in-run A/B): the mode under the

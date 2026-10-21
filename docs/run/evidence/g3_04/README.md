@@ -10,7 +10,7 @@ content checks passed (`"failures": []`).
 | `g3_04_sheet.jpg` | The old 11 (a blue overlay over a net) against the five new frames |
 | `11_fjord_underwater.jpg` | 5.0 m down, 17.96 m from the pen's centre (net 24.95 m): Snell's window at the top, shafts, snow, the school (3.3 % of the frame), the net's ropes |
 | `11c_underwater_window.jpg` | Tilted 45° up: the window 2.42× as bright as the surface outside it (TIR ring rgb 0.054, 0.299, 0.275: the water's own tint), the sun and its glow, a cloud through the window |
-| `11b_underwater_bloom.jpg` | A QA bloom of 0.8 at the site: 2.35 m water (fog 0.839 /m against the clear 11.53 m, 0.269 /m), olive-green |
+| `11b_underwater_bloom.jpg` | A QA bloom of 0.8 at the site: 2.35 m water (fog 0.839 /m against the clear 11.53 m, 0.269 /m), a deep green (hue 133 degrees; "olive-green" here was corrected at the merge: `../wave4b_int_gfx_polish_2.md`, review finding 8) |
 | `11d_underwater_net.jpg` | 2.6 m from the net at 4 m, the sun behind the camera: the net, the shafts converging below |
 | `11e_underwater_net_fouled.jpg` | 11d with the site's nets fully fouled (41 % of the frame changes) |
 | `11e_fouling_crop.jpg` | The same 640 x 360 crop of 11d and 11e at 1:1: ragged olive growth closing the mesh |

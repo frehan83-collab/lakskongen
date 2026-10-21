@@ -2961,6 +2961,14 @@ a camera's contrast stretch of 1.5 and a readable floor of 4.5 m), so
 January reads 0.26 /m and a full bloom no denser than 0.93 /m: the net beside
 the camera stays readable. Art direction, logged in RUN_LOG §7.
 
+### Offshore units (wave4b int, the gfx-polish-2 review)
+
+`WaterClarityOf` reads any sea site, and since the merge the underwater view
+reads an offshore unit's (`GetAllSeaSiteDetails`, round the unit's plot's
+slot) instead of the 6 m fallback. Its season is still the fjord's (OH-10):
+open coastal water is usually clearer than a fjord's, but no open-sea Secchi
+climatology is sourced yet. An open-sea profile is a sim item (RUN_LOG §8).
+
 ### The nets' fouling
 
 The sim has no fouling: the net shader's growth reads the site's net
