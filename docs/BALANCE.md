@@ -3046,8 +3046,8 @@ a changed word needs this check and a re-pin with a RUN_LOG §7 row.
 | encyclopedia "Ocean Farm (Havfarm)" | Nordlaks' Havfarm is a 385m ship-shaped structure. | A ship-shaped ocean farm is a 385m structure. |
 
 Old saves keep their stored names (no load-time rewrite); 'Nordlaks' joins
-BRANDS and D17_BRANDS. MapPanel.gd's REGIONS keeps "NordLaks Nord AS" until
-track C retires it.
+BRANDS and D17_BRANDS. Track C retired MapPanel.gd's REGIONS, the last
+"NordLaks Nord AS", and added 'NordLaks' to both lists (geo int C2).
 
 ## 2. Key economic knobs
 
@@ -3280,3 +3280,4 @@ S1-01 / S1-02 guards (§1d):
 | 2026-10-14 | wave2/sim-b-3 (S2-04, F270) | Harvest pipeline (calibration v1.0.8 `harvest`, save v6): fish sold as gutted kilos (yield 0.84) at the reference price × size class (HOG ladder, Kontali) × grade (superior/ordinary/production by cause, Fiskehelserapporten 2024) − the harvest cost (5.0 NOK/kg HOG, COGS, F270 closed); fasting in degree-days, wellboat slot, slaughterhouse capacity 150 t HOG/day, partial and per-pen orders, land hall / offshore routes. Player-path EBIT/kg HOG median 18.19 (11.07-23.23, 10 seeds); po3 careers +14.75M to +19.90M (were +23.49M to +31.76M); forste_sesong 36,000 fish and 4M (6/6 seeds win); rent base excludes the harvest cost (§1h). |
 | 2026-10-20 | wave4/ui-core-1 (U2-02, D19) | The first season advances on real events only and runs only in Første sesong (§1aa): the funding step waits for the second site's price + 3 months of its running cost (7.06 MNOK) and teaches the bank's loan where the cash is short; the minimal player wins 6 of 6 seeds on days 283-318 (seeds 7 and 21 with the loan, lowest cash 0.19M), the input-only UI player wins seed 7 on day 294 with the loan. No calibration number changed. |
 | 2026-10-21 | geo/int captain (geo A2/A3 merge, OD10) | §1ab reviewed before merging track A: the word lists approved with "Tare" replaced by "Stortare" (a hyphen-joined token of one registry holder's name; 4 independents renamed, no owner or site moved; 0 registry matches under whitespace and hyphen tokenisation, offline, counts only); the rename "Kongsemne Havbruk AS" approved; the rival layout's signature now names every input (names, home areas, exact MAB, anchors). No calibration number, traced field or RNG stream changes; golden 27 of 27 identical. |
+| 2026-10-21 | geo/int captain (geo stages 2-3, integration close) | §1ab's 'nearest open-sea area' is now shown: in the six home areas with no Havbruk til havs area of their own (PO1, 4, 5, 7, 9, 10) hav_1's lens says 'Nærmeste havområde' (the bridge's additive `home_po`; found in the GEO-VIS review). The REGIONS note above is brought up to date. No number, traced field or RNG stream changes; the golden traces were re-recorded once at the close: 27 of 27 games identical to origin/main, save drift only from the rename. |

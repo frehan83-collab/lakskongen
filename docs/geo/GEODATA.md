@@ -273,6 +273,18 @@ GIS package).
 
 ## 7. Integration guide (next stage)
 
+Status (geo stages 2-3, integration close, 2026-10-21): all four tracks
+(A sim, B candidates, C national map, D region and site) are merged on
+`geo/int`, with the captain's review fixes; the per-track lines below say
+what each built. The windowed review GEO-VIS judged every level, the 'why
+here', the Hav lens and the 3D rival order at 1280x720 and 1920x1080, 100 %
+and 125 % (`docs/run/evidence/geo_vis_review.md`) and fixed three things
+(below); the close's gate runs found a fourth, the build dialog's entrance
+(track B's lines). The golden traces were re-recorded once: 27 of 27 games
+identical to `origin/main`, save drift only from the D17 rename
+(`docs/run/evidence/geo_stage23_golden_diff.md`). The PR to `main` is the
+owner's next step; nothing under `godot/data/geo` changed after P0.
+
 ### 7.1 Loading
 
 - Read JSON/GeoJSON with `FileAccess` + `JSON.parse_string` (GDScript) or
@@ -380,6 +392,10 @@ GIS package).
   catalogue (Reset), and `GetGeoOffshoreCandidates` works in a game with no
   home area (`distance_km` -1, measured as the binding measures it
   otherwise).
+  GEO-VIS (integration close): `GetGeoPlotBinding` adds `home_po`, the
+  area the binding is measured from; in the six home areas with no Havbruk
+  til havs area of their own (PO1, 4, 5, 7, 9, 10) the lens names the
+  borrowed area 'Nærmeste havområde' (BALANCE §1ab).
   Status (geo B, 2026-10-20, `geo/sea-candidates`): the build dialog's Sjø
   step lists the area's 12 open-pen candidates by rank
   (`SimulationEngine.GetSeaCandidates`, bridge `get_sea_candidates`) with
@@ -403,6 +419,11 @@ GIS package).
   without a place and says so. The list's last column is 'Trekker ned'
   (the binding term), and the dialog re-centres after its entrance slide
   and fits once laid out, so the places and the confirm stay in view.
+  Integration close (`88f2954`): the places grow the panel while it slides
+  in, and the slide held the confirm below the window for 0.28 s (U2-01's
+  auction test clicked past it in 2 of 3 UI runs). The entrance now rises
+  into the place the centre gives the panel at its size now
+  (`godot/tests/GeoVisChecks.gd`).
 - **Rival farms**: `localities.geojson` sea and land salmonid sites, with
   `mtb_t` and `po`, give the real distribution of competitors per area; give
   them generated parody company names (D17: the data has none, by design).
@@ -477,6 +498,14 @@ GIS package).
     with the UI at 100 %, the badges and their grid grow by 1.5.
   Pinned by `godot/tests/GeoMapHitChecks.gd` and `GeoMapReviewChecks.gd`.
   Judged frames are in `docs/run/evidence/geo_int_c2/`.
+  GEO-VIS (integration close, judged windowed at 1280x720 and 1920x1080,
+  100 % and 125 %): the grown badges stacked over each other and the city
+  names, and the plates' anchor diamonds sat on numerals.
+  `GeoClusterer.declutter` now merges clusters until no badge covers another
+  badge or a single site (101 → 47 clusters at 1920x1080), and a plate whose
+  anchor lies on a badge lets the badge mark it (no diamond, the stem from
+  the rim).
+  Pinned by `GeoMapReviewChecks.gd`; frames in `docs/run/evidence/geo_vis/`.
 - **Regional (PO) view**: `basemap/poNN.jpg` with the suitability heat from
   `suitability/poNN.png` (R through a cool-to-gold ramp, hard exclusions from
   G as a muted hatch, the planning-area limit quieter still), site polygons
@@ -535,6 +564,10 @@ GIS package).
   site's 'Vis i 3D' (the existing single fjord, with the site selected), a
   rival's owner, kind, stage and MTB, and hav_1's 'Bygg her (hav)'. Seeding
   the 3D scene from a candidate stays G2-01 phase 2.
+  GEO-VIS (integration close): hav_1's 'Bygg her (hav)' opened the Hav
+  family with no unit chosen, so its lens stayed hidden and choosing a unit
+  dropped hav_1; it now opens on the first unit the company may start with
+  hav_1 chosen and its lens in view (`godot/tests/GeoVisChecks.gd`).
 - Style: Kyst & Stål. The base maps already use the cool landscape palette
   (`design/tokens.json` "landscape"); keep saturation for icons and signals
   (buoy yellow for offshore, salmon for candidates, orange for land sites).

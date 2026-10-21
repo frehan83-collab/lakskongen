@@ -65,7 +65,7 @@ The fixes were made in two commits, each with checks and killed mutants:
 |---|---|
 | `geovis_hav_far_lens_1280x720` | Pass after `7c5666a`. 'Nærmeste havområde: Indrebakken (PO 3)', 249 km, as BALANCE §1ab asks; it said 'Havområde' before. |
 | `geovis_hav_far_lens_1920x1080` | Pass. |
-| `geovis_hav_far_ghost_1280x720` | Pass. The OF1 ghost ring and its mooring footprint float on open sea at Z -9000, with no seabed or terrain near; distant islands stand on the horizon. |
+| `geovis_hav_far_ghost_1280x720` | Pass. The OF1 ghost ring and its mooring footprint float on open sea at Z -9000, with no seabed or terrain near; distant islands stand on the horizon. The three toasts are the game's own: the capture hides the UI layer, not the toast layer. |
 | `geovis_hav_far_ghost_1920x1080` | Pass. |
 
 ### 3D fjord: the rivals in GetCompetitorCompanies' order (the first rival takes the far slot, nearest this camera; 620 m)
