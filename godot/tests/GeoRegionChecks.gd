@@ -35,6 +35,7 @@ extends RefCounted
 ## 9. Lints: the region view and the site card at 1280x720, 100 % and 125 %:
 ##    layout, theme, contrast and Norwegian text; every button answers.
 ## 10. The captain's review checks (GeoRegionReviewChecks.gd).
+## 11. The captain's GEO-VIS checks at the integration close (GeoVisChecks.gd).
 ##
 ## Tracks A and B are merged: every read goes through the map's one adapter
 ## (GeoBridgeAdapter), and the checks compare with the same adapter's reads.
@@ -77,6 +78,8 @@ func run(runner: Node) -> void:
 		await _flows(scene)
 		scene.queue_free()
 		await t.get_tree().process_frame
+	# The captain's integration close: what the GEO-VIS frames showed off.
+	await preload("res://tests/GeoVisChecks.gd").new().run(t)
 	OS.remove_logger(_log)
 	print("  geo D checks took %d ms" % (Time.get_ticks_msec() - started))
 

@@ -857,15 +857,20 @@ func _focus_after_open() -> void:
 		card.choose_button().grab_focus()
 
 
-## Geo B: a Sjø build opens on its places (the open pen is chosen; the
-## variants stay a scroll above).
-func _show_places() -> void:
+## The plot step in view once laid out, the variants a scroll above: a Sjø
+## build opens on its places (Geo B), the map's hav_1 card on hav_1's lens
+## (GEO-VIS). `family` "" means whichever family is chosen by then.
+func show_plot_step(family: String = "") -> void:
 	await get_tree().process_frame
 	_fit()   # again, once the strip and the header wrap at their real width
 	for i in 2:
 		await get_tree().process_frame
-	if visible and _family == "sjo" and _plot_host.visible:
+	if visible and (family == "" or _family == family) and _plot_host.visible:
 		_scroll.scroll_vertical = int(_plot_header.position.y)
+
+
+func _show_places() -> void:
+	await show_plot_step("sjo")
 
 
 func _focus_variant() -> void:

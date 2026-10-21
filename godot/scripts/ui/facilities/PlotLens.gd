@@ -145,8 +145,12 @@ func _fill_facts(p: Dictionary) -> void:
 		_facts.add_child(hint)
 		return
 	if _geo_note.visible:
-		# Geo B: hav_1 lies in a real Havbruk til havs area (display only).
-		_fact("GEO_PLOT_AREA", tr("GEO_PLOT_AREA_VALUE") % [str(geo.get("area", "")), int(geo.get("po", 0))])
+		# Geo B: hav_1 lies in a real Havbruk til havs area (display only). A
+		# home area with none of its own borrows the nearest (BALANCE §1ab):
+		# the row says so (GEO-VIS).
+		var po := int(geo.get("po", 0))
+		var borrowed := int(geo.get("home_po", po)) != po
+		_fact("GEO_PLOT_AREA_NEAREST" if borrowed else "GEO_PLOT_AREA", tr("GEO_PLOT_AREA_VALUE") % [str(geo.get("area", "")), po])
 		_fact("GEO_PLOT_STAGE", tr("GEO_PLOT_STAGE_" + str(geo.get("stage", "")).to_upper()))
 		_fact("BUILD_PLOT_DISTANCE", tr("GEO_PLOT_DISTANCE_VALUE") % SimFormatters.num(float(geo.get("distance_km", 0.0)), 0))
 	else:

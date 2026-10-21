@@ -131,7 +131,7 @@ GEO_KEYS = {
     "GetGeoProductionAreas": ("id", "code", "name", "official_traffic_light", "tint", "area_km2", "sea_area_km2",
                               "label_x", "label_y"),
     "GetGeoPlotBinding": ("bound", "plot_id", "candidate_id", "area", "stage", "stage_factor", "po", "depth_m",
-                          "score", "binding", "distance_km", "x", "y", "lon", "lat", "near"),
+                          "score", "binding", "distance_km", "x", "y", "lon", "lat", "near", "home_po"),
     "GetGeoOffshoreCandidates": ("id", "candidate_id", "area", "stage", "stage_factor", "po", "depth_m", "score",
                                  "binding", "x", "y", "lon", "lat", "near", "bound_plot_id"),
     "GetGeoSites": ("signature", "ids", "x", "y", "kind", "po", "mtb_t", "owner", "owners", "kinds"),

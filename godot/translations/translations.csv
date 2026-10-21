@@ -2364,6 +2364,7 @@ GAME_EVENT_LICENCE_OUTBID,Outbid in the licence auction,Overbudt i lisensauksjon
 GAME_EVENT_LIQUIDITY_WARNING,Liquidity warning,Likviditetsvarsel
 GAME_EVENT_RESCUE_LOAN_TAKEN,Rescue loan taken,Redningslån tatt opp
 GEO_PLOT_AREA,Open-sea area,Havområde
+GEO_PLOT_AREA_NEAREST,Nearest open-sea area,Nærmeste havområde
 GEO_PLOT_AREA_VALUE,%s (PO %d),%s (PO %d)
 GEO_PLOT_CLIMATE_NOTE,"A Havbruk til havs area from the government's planning work. The sea state and the lice band here are the game's calibrated open-sea climate, not measurements from this area.","Et område for havbruk til havs fra myndighetenes planarbeid. Sjøtilstanden og lusebåndet her er spillets kalibrerte havklima, ikke målinger fra dette området."
 GEO_PLOT_DISTANCE_VALUE,%s km in a straight line from your production area,%s km i luftlinje fra produksjonsområdet ditt

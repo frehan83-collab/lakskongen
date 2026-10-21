@@ -424,13 +424,19 @@ func _crossfade(node: CanvasItem) -> void:
 	_fades[node] = fade
 
 
+## hav_1's 'Bygg her (hav)': the Hav family with the first offshore unit the
+## company may start chosen (as the Hav card chooses it) and hav_1 under it,
+## its lens in view. Opened on the family alone, the dialog chose no unit, so
+## the lens stayed hidden and choosing a unit dropped hav_1 (GEO-VIS).
 func _open_hav() -> void:
 	if _panel == null:
 		return
 	_panel.call("open_build_family", "hav")
 	var dialog: Variant = _panel.call("build_dialog")
 	if dialog != null:
-		dialog.call("choose_plot", "hav_1")
+		dialog.call("choose_family", "hav")
+		dialog.call("choose_plot", GeoOverlayLayer.HAV_PLOT)
+		dialog.call("show_plot_step", "hav")
 
 
 func _call_panel(method: String, args: Array) -> void:

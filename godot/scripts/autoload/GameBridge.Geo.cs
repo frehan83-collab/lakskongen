@@ -86,12 +86,15 @@ public partial class GameBridge : Node
     /// off_2, the pads, an unknown id or a game on the default catalogue),
     /// plot_id, and when bound: candidate_id, area, stage, stage_factor, po,
     /// depth_m, score, binding, distance_km (from the home area's label point),
-    /// x, y (EPSG:25833 m), lon, lat, near.
+    /// x, y (EPSG:25833 m), lon, lat, near, home_po (the home area measured
+    /// from: a po other than home_po is the nearest open-sea area of a home
+    /// area with none of its own, which the lens says).
     /// </summary>
     public Godot.Collections.Dictionary GetGeoPlotBinding(string plotId)
     {
-        var binding = SimulationEngine?.State != null ? SimulationEngine.GeoBindingOf(plotId ?? "") : null;
-        if (binding == null)
+        var engine = SimulationEngine;
+        var binding = engine?.State != null ? engine.GeoBindingOf(plotId ?? "") : null;
+        if (binding == null || engine?.State == null)
             return new Godot.Collections.Dictionary { ["bound"] = false, ["plot_id"] = plotId ?? "" };
         return new Godot.Collections.Dictionary
         {
@@ -111,6 +114,7 @@ public partial class GameBridge : Node
             ["lon"] = binding.Lon,
             ["lat"] = binding.Lat,
             ["near"] = binding.Near,
+            ["home_po"] = engine.State.HomeProductionArea,
         };
     }
 
