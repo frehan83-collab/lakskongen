@@ -46,6 +46,32 @@ sun −3.5°) adds 1,421 lit pixels with the lights on (A/B), sky hue 0.600;
 shot 35 the drawn open sea at Hs 4.8 m with 2.81 m of swell, the chip red
 with its square; at dusk the campus burns 79 lamps and 4 pools, by day none.
 
+## Gates, golden traces, perf
+
+- On `8c5e5ae`'s tree: `dotnet test LakskongenSim.sln` 2,075 tests (2,072
+  passed, 3 skipped); pytest 870 passed, 1 skipped; `validate_scenes.sh`
+  passed; `run_ui_flow_tests.sh` 1,863 of 1,863 (MIN_CHECKS 1778 → 1863), 369 s
+  at load 5-20 (other agents).
+- Golden traces, `--base 1bea464`: 27 of 27 identical, math fingerprints equal
+  (`f2_21_f2_23_golden_diff.md`).
+- Perf, windowed 1920 x 1080, the farm-type set and 12 sea sites, the
+  presenter shown vs hidden (`hide.FarmFacilityVisualManager`), paired, 3
+  repeats, load 4-6 (`perf/perf_f2_21_23_presenter_ab.{json,md}`):
+
+| Segment | p95 shown | p95 hidden | Δ p95 | p50 ratio hidden/shown | Draws (shadow) shown / hidden |
+|---|---|---|---|---|---|
+| fjord (12 sites, the P0-04 view) | 15.90 | 15.83 | +0.07 | 0.990 | 514 (63) / 481 (63) |
+| land (the campus framing, sweep) | 13.53 | 13.09 | +0.44 | 0.966 | 191 (31) / 162 (27) |
+| hav (the OF1 framing, sweep) | 13.39 | 13.03 | +0.36 | 0.965 | 178 (37) / 126 (6) |
+
+  F2-20's budget still holds with F2-21/F2-23 in the presenter (added p95
+  ≤ 1.5 ms at FJORD, absolute p95 ≤ 16.7 ms). The open sea's swell is drawn in
+  both variants (the director keeps the target while the presenter is
+  hidden), so its cost is not in these deltas. At the hav framing the camera
+  now looks in toward the coast (F2-21), so its sweep sees more terrain than
+  F2-20's run (178/37 against 166/27 draws there): a different view, not a
+  comparison.
+
 ## Art checklist
 
 Against `docs/art/OWNER_REFERENCE_BRIEF.md` (the owner's words; no photo).

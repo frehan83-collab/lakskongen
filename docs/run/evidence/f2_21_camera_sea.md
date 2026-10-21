@@ -38,7 +38,7 @@ at Hs 4.8 m.
 | 4 | At target Hs 4 m, Σa² = Hs²/8 ± 10 % across the wind and swell bands; swell energy at 150-300 m | Drawn: Σa² 2.000 m² (Hs²/8 = 2.000). The swell's 0.781 m² all in components at 152-295 m. xUnit at Tp 9-14 s: the swell bands' Σa² = Hs²/8 to 1e-9, both bands (280, 160 m) at 150-300 m and beyond the wind sea's 128 m; pytest: the detuned components at 152-295 m and the shader's component count = bands × 2 | Pass |
 | 5 | Chip Hs = `GetSeaStateForecast(site).today.hs` ± 0.05 m | Chip "Hs 1,3 m" for the engine's 1.27 m (the open sea draws the same 1.27 m); the bridge's split adds up in energy to 1.271 m | Pass |
 | 6 | G cycles Fjord → Land → Hav by UI input | The key pressed as a player does: Land (the company's campus, "Land · Storholmen"), Hav ("Hav · Ytre kyst"), Fjord ("Fjord · hjemmevisning", the home view at the FJORD default 900 m whatever framing G left); the caption stands above the camera hint at the bottom of the screen (windowed: `f2_21/hint_g*.jpg`); G typed into a text field stays text; G behind an opaque panel leaves the camera alone | Pass |
-| — | Graphics leave the games identical | `qa_state_digest` unchanged by the framings, bookmarks, the open sea and the chip (UI check); golden traces: see `f2_21_f2_23_golden_diff.md` | Pass |
+| — | Graphics leave the games identical | `qa_state_digest` unchanged by the framings, bookmarks, the open sea and the chip (UI check); `record_golden_traces.sh --base 1bea464` on `8c5e5ae`: 27 of 27 traces identical, math fingerprints equal (`f2_21_f2_23_golden_diff.md`) | Pass |
 
 The units ride the swell: the CPU field's height adds the shader's swell term
 (−0.109 m against −0.109 m expected at the probe); the sheltered fjord gets
