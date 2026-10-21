@@ -62,7 +62,7 @@ save-compat and the calibration SSOT. The sim is the moat; this plan protects it
 Each cycle ends in a build someone played. Steps:
 
 1. **Sync** main, build windowed.
-2. **Play** — `godot/qa/PlaytestHarness.gd` runs a per-scenario act list with real input at human
+2. **Play** — `bash tools/playtest.sh <acts> <out>` runs `godot/qa/PlaytestHarness.gd` in an isolated user dir (never the player's saves) with a per-scenario act list with real input at human
    pacing, captures frames on a cadence and on every dialog/toast, and writes crash-safe evidence
    (frames + `timeline.jsonl` + `summary.json`). The owner plays whenever available; the agent plays
    every cycle.

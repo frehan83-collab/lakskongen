@@ -6,10 +6,9 @@ extends Node
 ## every window/dialog/toast that appears, and leaves crash-safe evidence
 ## (frames + timeline.jsonl + summary.json) for a judging agent.
 ##
-## Run windowed from the repo root:
-##   env GODOT_MCP_TOKEN_PATH=$(mktemp -d)/t godot-mono --path godot \
-##       res://qa/scenes/PlaytestSession.tscn -- \
-##       --acts=res://qa/playtests/smoke.json --out=/abs/evidence/dir \
+## Run windowed from the repo root, ALWAYS through the wrapper (it isolates
+## the Godot user dir so a session never touches the player's saves):
+##   bash tools/playtest.sh res://qa/playtests/smoke.json /abs/evidence/dir \
 ##       [--turbo] [--max-min=30] [--w=1280 --h=720]
 ##
 ## Contract and edge cases:
@@ -37,6 +36,9 @@ const FRAME_BUDGET := 400         # unpinned frames beyond this are evicted
 const MAX_FRAME_W := 1280
 const DEFAULT_TIMEOUT_SEC := 20.0 # per act unless the act sets its own
 const INPUT_HOLD_MS := 40         # press -> release gap
+const PLAYTEST_USER_DIR := "LakskongenPlaytest"  # see tools/playtest.sh
+const BLANK_SPREAD := 0.02        # luminance spread under which a frame is blank
+const BLANK_STREAK_FINDING := 3   # blank frames in a row that make one finding
 
 var _out_dir := ""
 var _acts: Array = []
@@ -51,11 +53,19 @@ var _capturing := false
 var _idle_accum := 0.0
 var _hard_stop_ms := 0
 var _headless_noted := false
+var _blank_streak := 0
 
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	var args := _parse_args(OS.get_cmdline_user_args())
+	# Never play inside the player's own user dir: the game writes saves,
+	# settings, language and campaign progress there. tools/playtest.sh sets
+	# up the isolated dir; running the scene any other way is refused.
+	if not OS.get_user_data_dir().ends_with(PLAYTEST_USER_DIR) and not args.has("allow-shared-userdir"):
+		push_error("PlaytestHarness: refusing to run in %s; use tools/playtest.sh" % OS.get_user_data_dir())
+		get_tree().quit(1)
+		return
 	_turbo = args.has("turbo")
 	_hard_stop_ms = Time.get_ticks_msec() + int(float(args.get("max-min", "30")) * 60_000.0)
 	if args.has("w") and args.has("h"):
@@ -81,7 +91,7 @@ func _ready() -> void:
 		_finish("harness_error", 1)
 		return
 	get_tree().node_added.connect(_on_node_added)
-	if not _boot_game():
+	if not await _boot_game():
 		_finish("harness_error", 1)
 		return
 	await _session()
@@ -120,7 +130,7 @@ func _notification(what: int) -> void:
 
 # --- boot ------------------------------------------------------------------
 
-func _boot_game() -> bool:
+func _boot_game() -> Variant:
 	var main_path := String(ProjectSettings.get_setting("application/run/main_scene", ""))
 	if main_path.is_empty():
 		_finding("harness_error", "project has no main scene setting", {})
@@ -131,10 +141,21 @@ func _boot_game() -> bool:
 		return false
 	var game: Node = (packed as PackedScene).instantiate()
 	game.name = "GameUnderTest"
-	get_tree().root.add_child(game)
+	# The root is still setting up its children while this scene's _ready runs,
+	# so a direct add_child is refused (the first real session played an empty
+	# grey window and reported a clean run). Defer it, then VERIFY it landed.
+	get_tree().root.add_child.call_deferred(game)
+	for i in 30:
+		await get_tree().process_frame
+		if game.is_inside_tree():
+			break
+	if not game.is_inside_tree():
+		_finding("harness_error", "main scene never entered the tree: " + main_path, {})
+		game.free()
+		return false
 	# Much project code assumes it is the current scene (reload, change_scene).
-	get_tree().set_deferred("current_scene", game)
-	_log("boot", {"main_scene": main_path})
+	get_tree().current_scene = game
+	_log("boot", {"main_scene": main_path, "children": game.get_child_count()})
 	return true
 
 
@@ -213,7 +234,18 @@ func _click_control(c: Control, label: String) -> void:
 		_finding("ui_vanished", "'%s' disappeared before the click landed" % label, {})
 		return
 	get_window().grab_focus()
-	var center := c.get_global_rect().get_center()
+	# Injected events arrive in WINDOW pixels and the window maps them through
+	# the content stretch; control rects are in viewport units. The first real
+	# session (1920x1080 base in a 1280x720 window) clicked 1.5x too far down
+	# and hit the wrong menu button. Map viewport -> window first.
+	var center := get_viewport().get_final_transform() * c.get_global_rect().get_center()
+	# Prove the press landed: a button that does not emit `pressed` was
+	# covered, moved, or the mapping is wrong — a finding, never silent.
+	var landed := [false]
+	var on_press := func() -> void: landed[0] = true
+	var is_button := c is BaseButton   # read now: the press may free `c`
+	if is_button:
+		(c as BaseButton).pressed.connect(on_press, CONNECT_ONE_SHOT)
 	var down := InputEventMouseButton.new()
 	down.button_index = MOUSE_BUTTON_LEFT
 	down.button_mask = MOUSE_BUTTON_MASK_LEFT
@@ -230,6 +262,13 @@ func _click_control(c: Control, label: String) -> void:
 	Input.parse_input_event(up)
 	_log("click", {"text": label, "path": String(c.get_path()), "at": center})
 	await _sleep(0.4)                 # let the UI react before judging
+	if is_button:
+		# A press that opened another scene may have freed the button; the
+		# flag was set before that, so it still counts as landed.
+		if not landed[0]:
+			_finding("click_missed", "'%s' did not receive the press at window %s" % [label, str(center)], {})
+		if is_instance_valid(c) and (c as BaseButton).pressed.is_connected(on_press):
+			(c as BaseButton).pressed.disconnect(on_press)
 	await _capture("click_" + _safe(label), true)
 
 
@@ -365,6 +404,7 @@ func _capture(tag: String, pinned: bool) -> String:
 			_headless_noted = true
 			_finding("headless_no_frames", "no frames available (headless or hidden window)", {})
 		return ""
+	_note_blankness(img, tag)
 	if img.get_width() > MAX_FRAME_W:
 		var s := float(MAX_FRAME_W) / float(img.get_width())
 		img.resize(MAX_FRAME_W, int(round(img.get_height() * s)), Image.INTERPOLATE_LANCZOS)
@@ -377,6 +417,30 @@ func _capture(tag: String, pinned: bool) -> String:
 	_evict_frames()
 	_log("frame", {"tag": tag, "file": path.get_file(), "pinned": pinned})
 	return path
+
+
+## A frame whose 12x8 luminance samples span less than BLANK_SPREAD is blank
+## (a clear colour, a stuck loading screen, a scene that never booted). Three
+## blank frames in a row are one finding per streak, so an empty window can
+## never pass for a clean session.
+func _note_blankness(img: Image, tag: String) -> void:
+	var lo := 1.0
+	var hi := 0.0
+	var w := img.get_width()
+	var h := img.get_height()
+	for gy in 8:
+		for gx in 12:
+			var c := img.get_pixel(int((gx + 0.5) * w / 12.0), int((gy + 0.5) * h / 8.0))
+			var lum := c.get_luminance()
+			lo = minf(lo, lum)
+			hi = maxf(hi, lum)
+	if hi - lo < BLANK_SPREAD:
+		_blank_streak += 1
+		if _blank_streak == BLANK_STREAK_FINDING:
+			_finding("blank_screen", "%d frames in a row show a uniform screen (spread %.3f) up to '%s'"
+					% [BLANK_STREAK_FINDING, hi - lo, tag], {})
+	else:
+		_blank_streak = 0
 
 
 func _evict_frames() -> void:
