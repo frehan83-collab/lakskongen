@@ -21,6 +21,12 @@ extends RefCounted
 ## 4. Another scenario (po3_red_sone) never plays it.
 ## 5. With reduced motion it is a still: the frame cross-fades for 2 s, the
 ##    camera holds, the card; a click skips it.
+## 6. Wave4b int review: due under an open critical event card it waits (the
+##    card's Esc answers the card) and plays once the card has closed; a card
+##    that comes up while it plays holds it still, its overlay aside.
+## 7. Wave4b int review: a save of another Første sesong game loaded on day
+##    160 over a game armed on day 100 is a new timeline, first seen after
+##    day 150: it never plays.
 
 const SCENARIO := "forste_sesong"
 const SEED := 42
@@ -43,6 +49,8 @@ func run(runner: Node) -> void:
 	await _first_seen_late()
 	await _other_scenario()
 	await _reduced()
+	await _waits_for_an_open_card()
+	await _a_loaded_game_is_a_new_timeline()
 	MotionPrefs.force(null)
 	TeaserDirector.force_auto_play(null)
 
@@ -229,6 +237,88 @@ func _reduced() -> void:
 	_check(not teaser.playing and not sim.is_clock_held(TeaserDirector.CLOCK_HOLD) and sim.qa_state_digest() == digest,
 		"F2-23 teaser: a click skips the still, and it changed nothing in the engine")
 	MotionPrefs.force(false)
+	scene.queue_free()
+	await t.get_tree().process_frame
+
+
+# ── 6. An open card ──────────────────────────────────────────────────────────
+
+func _waits_for_an_open_card() -> void:
+	var sim: Node = t._sim
+	MotionPrefs.force(false)
+	GameplayPrefs.force_auto_pause(true)
+	_check(sim.start_qa_scenario(SCENARIO, SEED), "F2-23 teaser: %s starts (a card open when it is due)" % SCENARIO)
+	sim.set_paused(true)
+	sim.skip_tutorial()
+	var scene := await _scene()
+	var manager: FarmFacilityVisualManager = scene.get_node("FjordEnvironment/FarmFacilityVisualManager")
+	var teaser: TeaserDirector = manager.teaser
+	var card: Control = scene.get_node("%CriticalEventCard")
+	var ui: CanvasLayer = scene.get_node("UILayer")
+	(scene.get_node("FjordEnvironment/FjordCamera") as FjordCamera).auto_orbit_enabled = false
+	await _advance(sim, 150)
+	await t._drain_cards(card)
+	# A critical event's card is up as day 151 makes it due.
+	sim.publish_condition_event("oxygen_critical", "critical", "", "CI: oksygen kritisk lavt 3,1 mg/L")
+	await _advance(sim, 1)
+	for i in 3:
+		await t.get_tree().process_frame
+	_check(card.is_open() and sim.current_day == 151 and not teaser.playing and teaser.plays == 0 and teaser.overlay == null and ui.visible,
+		"F2-23 teaser: due on day %d under an open critical event card, it waits (the UI as it was)" % sim.current_day)
+	await t._press_key(KEY_ESCAPE)
+	for i in 3:
+		await t.get_tree().process_frame
+	_check(not card.is_open() and teaser.playing and teaser.plays == 1,
+		"F2-23 teaser: Esc answers the card, and the teaser plays once it has closed")
+	# A card that comes up while it plays holds it still, its overlay aside.
+	sim.publish_condition_event("nets_critical", "critical", "", "CI: nøter kritisk slitt 31 %")
+	await t.get_tree().process_frame
+	await t.get_tree().process_frame
+	var held_at := teaser.time
+	for i in 4:
+		await t.get_tree().process_frame
+	var stood: bool = card.is_open() and teaser.playing and teaser.overlay != null and not teaser.overlay.visible \
+		and is_equal_approx(teaser.time, held_at) and sim.is_clock_held(TeaserDirector.CLOCK_HOLD)
+	await t._press_key(KEY_ESCAPE)
+	for i in 3:
+		await t.get_tree().process_frame
+	_check(stood and not card.is_open() and teaser.playing and teaser.overlay.visible and teaser.time > held_at,
+		"F2-23 teaser: a card that comes up while it plays holds it still (%.2f s), overlay aside, until Esc answers the card" % held_at)
+	teaser.skip()
+	await t._drain_cards(card)
+	GameplayPrefs.force_auto_pause(null)
+	scene.queue_free()
+	await t.get_tree().process_frame
+
+
+# ── 7. A save of another game loaded ─────────────────────────────────────────
+
+func _a_loaded_game_is_a_new_timeline() -> void:
+	var sim: Node = t._sim
+	MotionPrefs.force(false)
+	# Another Første sesong game, saved on day 160.
+	_check(sim.start_qa_scenario(SCENARIO, 7), "F2-23 teaser: another %s game starts" % SCENARIO)
+	sim.set_paused(true)
+	sim.skip_tutorial()
+	sim.advance_days(160)
+	var saved := bool(sim.save_game("teaser_other_game"))
+	# The game the player is in, seen from its start: armed, not played by day 100.
+	_check(sim.start_qa_scenario(SCENARIO, SEED), "F2-23 teaser: %s starts (the load case)" % SCENARIO)
+	sim.set_paused(true)
+	var scene := await _scene()
+	var teaser: TeaserDirector = (scene.get_node("FjordEnvironment/FarmFacilityVisualManager") as FarmFacilityVisualManager).teaser
+	await _advance(sim, 100)
+	var armed_before := teaser.armed and not teaser.played
+	var loaded := bool(sim.load_game(str(t._find_save("teaser_other_game").get("file", ""))))
+	for i in 3:
+		await t.get_tree().process_frame
+	sim.skip_tutorial()
+	await _advance(sim, 3)
+	_check(saved and loaded and armed_before and sim.current_day >= 160 and not teaser.armed and not teaser.playing and teaser.plays == 0,
+		"F2-23 teaser: another game's save loaded on day %d over one armed on day 100 is first seen after day 150: it never plays" % sim.current_day)
+	if teaser.playing:
+		teaser.skip()
+	t._clear_test_saves()
 	scene.queue_free()
 	await t.get_tree().process_frame
 

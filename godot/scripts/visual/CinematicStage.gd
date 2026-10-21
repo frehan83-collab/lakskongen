@@ -13,6 +13,19 @@ extends RefCounted
 ## the sim day and every stream stand where they stood (UiFlowTests).
 
 const CELESTIAL_BRIDGE_PATH := "res://scripts/environment/CelestialBridge.cs"
+## The game scene's cards and menus that own the screen and its input while
+## they are up ([reason, node path under the game scene]): a cinematic waits
+## for them to close, and stands still under one that comes up while it
+## plays, its overlay hidden (wave4b int review: a first sight that started
+## under an open critical event card played behind its scrim, and the card's
+## Esc and buttons skipped the sequence instead of answering the card).
+const MODALS := [
+	["critical_event", "EventLayer/CriticalEventCard"],
+	["briefing", "EventLayer/BriefingCard"],
+	["pause_menu", "MenuLayer/PauseMenu"],
+	["end_screen", "ScenarioEndScreen"],
+	["inbox", "AttentionInbox"],
+]
 
 var manager: FarmFacilityVisualManager = null
 ## The SimBridge clock-hold reason ("first_sight", "teaser").
@@ -145,6 +158,39 @@ func hour_for_sun(latitude: float, day: int, elevation_deg: float, rising := fal
 
 func _sun_elevation(latitude: float, day: int, hour: float) -> float:
 	return float((_celestial.call("Sky", latitude, day, hour) as Dictionary).get("sun_elevation", 0.0))
+
+
+# ── What holds a cinematic back ──────────────────────────────────────────────
+
+## The card or menu that is up over the game now (MODALS' reason: the
+## critical event card, the new game's briefing, the pause menu, the end
+## screen, the attention inbox), "" when none is.
+func modal() -> String:
+	var root := scene_root()
+	if root == null:
+		return ""
+	for entry: Array in MODALS:
+		var node := root.get_node_or_null(NodePath(str(entry[1])))
+		if node == null:
+			continue
+		var up: bool = node.call("is_open") if node.has_method("is_open") else bool(node.get("visible"))
+		if up:
+			return str(entry[0])
+	return ""
+
+
+## Why the cinematic may not start now ("" when it may): an open card or
+## menu (modal), or the other cinematic playing (the first sight and the
+## teaser never overlap).
+func blocker() -> String:
+	var up := modal()
+	if up != "":
+		return up
+	if hold_reason != FirstSightDirector.CLOCK_HOLD and manager.first_sight != null and manager.first_sight.playing:
+		return FirstSightDirector.CLOCK_HOLD
+	if hold_reason != TeaserDirector.CLOCK_HOLD and manager.teaser != null and manager.teaser.playing:
+		return TeaserDirector.CLOCK_HOLD
+	return ""
 
 
 # ── Nodes of the game scene ──────────────────────────────────────────────────

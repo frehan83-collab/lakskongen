@@ -42,8 +42,11 @@ extends Node3D
 signal facility_clicked(unit_id: String, tank_index: int, at: Vector3)
 ## F2-23: a unit the engine had under construction came into operation
 ## (`first`: the company's first of its variant; a loaded or staged unit that
-## starts in operation is no completion).
+## starts in operation is no completion). FirstSightDirector plays on it.
 signal unit_completed(unit_id: String, variant: String, first: bool)
+## F2-23: the views now belong to another game (a new game, a save loaded in
+## the running scene): nothing in them came into operation now.
+signal new_game_seen()
 
 ## The presenter's group (the camera hint names a bookmark's place through it).
 const GROUP := "farm_facilities"
@@ -163,6 +166,9 @@ var _seas_dirty := true
 var _target_names: Dictionary = {}
 var _sea_timer := 0.0
 var _target_timer := 0.0
+## F2-23: the game the views belong to (SimBridge.get_game_generation, which
+## every new and loaded game changes; -1 before the first sync).
+var _generation := -1
 
 
 func _ready() -> void:
@@ -215,7 +221,13 @@ func _on_state_updated() -> void:
 		if not plot_names.has(str(row.get("plot_id", ""))):
 			_refresh_plot_names(sim)
 			break
-	sync_units(rows)
+	# A new or loaded game: its first sync is a baseline (wave4b int review: a
+	# save loaded from the pause menu replayed the first sight of a unit long
+	# in operation, its id the same as a unit the old game was building).
+	var generation: int = sim.get_game_generation() if sim.has_method("get_game_generation") else _generation
+	var baseline := generation != _generation
+	_generation = generation
+	sync_units(rows, baseline)
 	_seas_dirty = true
 
 
@@ -229,8 +241,12 @@ func _refresh_plot_names(sim: Node) -> void:
 
 ## Bring the 3D world in line with the engine's units (rows of
 ## get_facility_visuals): build the new, update the known, free the gone.
-func sync_units(rows: Array) -> void:
+## `baseline`: the rows are another game's (new or loaded); none of its units
+## came into operation now.
+func sync_units(rows: Array, baseline: bool = false) -> void:
 	var started := Time.get_ticks_usec()
+	if baseline:
+		new_game_seen.emit()
 	var seen := {}
 	# F2-23: units that came into operation since the last sync, and how many
 	# of each variant were in operation before it (a variant's first is the
@@ -249,7 +265,7 @@ func sync_units(rows: Array) -> void:
 			# The unit grew (a lot or a module more) or changed shape: lay it out again.
 			_remove(id)
 		var was: Dictionary = views.get(id, {})
-		if not was.is_empty() and not bool(was.get("operational", false)) and bool(row.get("operational", false)):
+		if not baseline and not was.is_empty() and not bool(was.get("operational", false)) and bool(row.get("operational", false)):
 			completed.append(id)
 		views[id] = row
 		if _unsupported.has(id):
@@ -279,8 +295,6 @@ func sync_units(rows: Array) -> void:
 		var first := int(running.get(variant, 0)) == 0
 		running[variant] = int(running.get(variant, 0)) + 1
 		unit_completed.emit(id, variant, first)
-		if first_sight != null:
-			first_sight.on_unit_completed.call_deferred(id, first)
 
 
 ## What a unit's layout depends on: its plot, kind and lots. A row whose key

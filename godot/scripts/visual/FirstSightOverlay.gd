@@ -11,7 +11,9 @@ extends CanvasLayer
 ## Input: while it is up it takes Esc and a click anywhere but the card's
 ## buttons (skip_requested), before the game's UI sees them (the director
 ## adds it as the last child of the game scene: the last node takes input
-## first).
+## first), and the game's own keys wait as they do under a card (Space, the
+## speeds, N, I: the hidden HUD would change the clock the sequence holds,
+## the inbox would open over it).
 
 signal skip_requested()
 signal save_requested()
@@ -19,6 +21,9 @@ signal continue_requested()
 
 ## Draw order: over the HUD (2), the event cards (4) and the menus (5).
 const LAYER := 6
+## The game's keys that wait while it is up (CriticalEventCard's list).
+const BLOCKED_ACTIONS := [&"toggle_pause", &"toggle_notifications", &"toggle_attention_inbox",
+	&"next_event", &"speed_1", &"speed_2", &"speed_3", &"speed_4"]
 ## Letterbox bars, each this share of the frame's height.
 const BAR_SHARE := 0.085
 ## The end card's lockup: left margin and lift over the bottom bar (px).
@@ -195,6 +200,10 @@ func _input(event: InputEvent) -> void:
 		skip_requested.emit()
 		get_viewport().set_input_as_handled()
 		return
+	for action: StringName in BLOCKED_ACTIONS:
+		if InputMap.has_action(action) and event.is_action(action):
+			get_viewport().set_input_as_handled()
+			return
 	var mb := event as InputEventMouseButton
 	if mb != null and mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT:
 		for b: Button in offered_buttons():

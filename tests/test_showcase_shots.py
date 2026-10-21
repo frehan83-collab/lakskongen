@@ -81,8 +81,18 @@ def _calls(src: str) -> set[str]:
 
 def test_the_teaser_reads_the_game_and_never_offers_a_build():
     """§6.1 item 1: presentation only; it never offers a build and never
-    changes engine state (the state hash: TeaserChecks)."""
-    assert _calls(TEASER_SRC) == {"get_active_scenario_id", "get_tutorial_status", "has_signal", "day_advanced"}
+    changes engine state (the state hash: TeaserChecks). Replaced by a
+    stronger one at the wave4b int merge (RUN_LOG §7): the reads gain the
+    game's generation (a new or loaded game is a new timeline), a pure read
+    of the event bus's counter (test_facility_presenter's
+    test_the_game_generation_read_is_the_event_bus_counter), asked for by
+    has_method only; and both cinematics wait for an open card, a menu or
+    each other (CinematicStage.blocker)."""
+    assert _calls(TEASER_SRC) == {"get_active_scenario_id", "get_tutorial_status", "get_game_generation",
+                                  "has_method", "has_signal", "day_advanced"}
+    assert re.findall(r'\bsim\.has_method\("([a-z_]+)"\)', TEASER_SRC) == ["get_game_generation"]
+    for src in (TEASER_SRC, FIRST_SIGHT_SRC):
+        assert "stage().blocker()" in src and "_under_modal()" in src
     assert _calls(STAGE_SRC) == {"has_method", "hold_clock", "release_clock"}
     # No other way into the engine or the build flow.
     for src in (TEASER_SRC, STAGE_SRC):

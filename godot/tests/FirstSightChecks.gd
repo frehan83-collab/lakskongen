@@ -16,6 +16,13 @@ extends RefCounted
 ##    frame cross-fades for 2 s, the camera does not move; a click skips it.
 ## 5. Night lighting: at dusk the kits' lights, the lids' work-light pools
 ##    and the yard's lamps and pools are on; by day they are off.
+## 6. Wave4b int review: a unit that comes into operation under an open
+##    critical event card waits for it (the card's Esc answers the card);
+##    the sequence plays once it has closed; a card that comes up while it
+##    plays holds it still, its overlay aside, until it closes.
+## 7. Wave4b int review: a save loaded in the running game, its unit long in
+##    operation, over a session that was still building a unit of that id,
+##    plays nothing.
 
 const SCENARIO := "po3_red_sone"
 const SEED := 91
@@ -76,6 +83,15 @@ func run(runner: Node) -> void:
 	_check(sim.is_clock_held(FirstSightDirector.CLOCK_HOLD), "F2-23: the sequence holds the clock")
 	var ui: CanvasLayer = scene.get_node("UILayer")
 	_check(not ui.visible and director.overlay != null, "F2-23: the game's UI steps aside for the sequence")
+	# The game's own keys wait while it plays, as under a card (wave4b int):
+	# I opens no inbox over it, 4 leaves the clock's speed (the hidden HUD
+	# still hears its keys).
+	var inbox: CanvasLayer = scene.get_node("AttentionInbox")
+	var speed_before: float = sim.get_time_speed()
+	await t._press_key(KEY_I)
+	await t._press_key(KEY_4)
+	_check(director.playing and not inbox.visible and is_equal_approx(sim.get_time_speed(), speed_before),
+		"F2-23: the game's own keys wait while it plays (I opens no inbox over it, 4 leaves the speed at %.0fx)" % sim.get_time_speed())
 	director.manual = true
 	var campus := manager.visual_of(land_id) as LandCampusBuilder
 	director.seek(0.0)
@@ -185,6 +201,127 @@ func run(runner: Node) -> void:
 	_check(manager.light_level() > 0.9 and kit_night > 0.5 and campus.lights.lit_lamps() > 0 and campus.lights.lit_pools() > 0,
 		"F2-23: at dusk (%.1f h) the windows, lids and yard are lit (level %.2f, kit %.2f, %d lamps, %d pools)"
 		% [hour, manager.light_level(), kit_night, campus.lights.lit_lamps(), campus.lights.lit_pools()])
+	MotionPrefs.force(null)
+	FirstSightDirector.force_auto_play(null)
+	scene.queue_free()
+	await t.get_tree().process_frame
+	await _waits_for_an_open_card()
+	await _a_loaded_game_is_no_completion()
+
+
+# ── 6. An open card ──────────────────────────────────────────────────────────
+
+func _waits_for_an_open_card() -> void:
+	var sim: Node = t._sim
+	FirstSightDirector.force_auto_play(true)
+	MotionPrefs.force(false)
+	# "Pause ved kritiske hendelser" off: the clock runs at 1x under the card.
+	GameplayPrefs.force_auto_pause(false)
+	var scene: Node = await t._spawn_po3_scene(SEED)
+	var card: Control = scene.get_node("%CriticalEventCard")
+	await t._drain_cards(card)
+	var env: Node = scene.get_node("FjordEnvironment")
+	var manager: FarmFacilityVisualManager = env.get_node("FarmFacilityVisualManager")
+	var director: FirstSightDirector = manager.first_sight
+	var bridge := t.get_node("/root/GameBridge")
+	var ui: CanvasLayer = scene.get_node("UILayer")
+	(env.get_node("FjordCamera") as FjordCamera).auto_orbit_enabled = false
+	var contracted: Dictionary = bridge.QaContractOffshore("off_1", "of1")
+	var off_id := str(contracted.get("unit_id", ""))
+	bridge.QaStageConstruction(off_id, "commissioning", 0.9)
+	sim.state_updated.emit()
+	for i in 3:
+		await t.get_tree().process_frame
+	# One refresh brings a critical event and the unit's completion.
+	sim.publish_condition_event("oxygen_critical", "critical", "", "CI: oksygen kritisk lavt 3,1 mg/L")
+	bridge.QaStageConstruction(off_id, "operational", 1.0)
+	sim.state_updated.emit()
+	for i in 6:
+		await t.get_tree().process_frame
+	_check(card.is_open() and not director.playing and director.overlay == null and director.queue.size() == 1
+			and director.queue[0] == off_id and ui.visible,
+		"F2-23: a unit that comes into operation under an open critical event card waits (card open, %s queued, the UI as it was)" % off_id)
+	# The card's own Esc answers the card, not a sequence; then the sequence plays.
+	await t._press_key(KEY_ESCAPE)
+	for i in 3:
+		await t.get_tree().process_frame
+	_check(not card.is_open() and director.playing and director.unit_id == off_id and director.queue.is_empty(),
+		"F2-23: Esc answers the card, and the first sight plays once it has closed (%s)" % director.unit_id)
+	# A card that comes up while it plays (an event between ticks): it stands
+	# still, its overlay aside, and the card takes the keys.
+	director.manual = false
+	sim.publish_condition_event("nets_critical", "critical", "", "CI: nøter kritisk slitt 31 %")
+	await t.get_tree().process_frame
+	await t.get_tree().process_frame
+	var held_at := director.time
+	for i in 4:
+		await t.get_tree().process_frame
+	var stood: bool = card.is_open() and director.playing and director.overlay != null and not director.overlay.visible \
+		and is_equal_approx(director.time, held_at) and sim.is_clock_held(FirstSightDirector.CLOCK_HOLD)
+	await t._press_key(KEY_ESCAPE)
+	for i in 3:
+		await t.get_tree().process_frame
+	_check(stood and not card.is_open() and director.playing and director.overlay.visible and director.time > held_at,
+		"F2-23: a card that comes up while it plays holds it still (%.2f s), overlay aside, until Esc answers the card" % held_at)
+	director.skip()
+	await t._drain_cards(card)
+	GameplayPrefs.force_auto_pause(null)
+	MotionPrefs.force(null)
+	FirstSightDirector.force_auto_play(null)
+	scene.queue_free()
+	await t.get_tree().process_frame
+
+
+# ── 7. A save loaded in the running game ─────────────────────────────────────
+
+func _a_loaded_game_is_no_completion() -> void:
+	var sim: Node = t._sim
+	FirstSightDirector.force_auto_play(false)
+	MotionPrefs.force(false)
+	_check(sim.start_qa_scenario(SCENARIO, SEED), "F2-23: seeded scenario starts (a save loaded in the game)")
+	sim.set_paused(true)
+	var scene: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+	t.add_child(scene)
+	for i in 5:
+		await t.get_tree().process_frame
+	sim.set_paused(true)
+	var env: Node = scene.get_node("FjordEnvironment")
+	var manager: FarmFacilityVisualManager = env.get_node("FarmFacilityVisualManager")
+	var director: FirstSightDirector = manager.first_sight
+	var bridge := t.get_node("/root/GameBridge")
+	(env.get_node("FjordCamera") as FjordCamera).auto_orbit_enabled = false
+	# The land family opened (as in 1-5: a post-smolt site commissioned at once).
+	bridge.QaPlaceFarmTypeSet(0, 2, 0)
+	var started: Dictionary = bridge.QaStartLandBuild("pad_a", "hfs_lot")
+	var id := str(started.get("unit_id", ""))
+	sim.state_updated.emit()
+	for i in 3:
+		await t.get_tree().process_frame
+	var building := not bool(manager.views.get(id, {}).get("operational", true))
+	var saved := bool(sim.save_game("first_sight_building"))
+	bridge.QaStageConstruction(id, "operational", 1.0)
+	sim.state_updated.emit()
+	for i in 3:
+		await t.get_tree().process_frame
+	saved = saved and bool(sim.save_game("first_sight_running"))
+	# The session where the unit is still being built ...
+	var loaded := bool(sim.load_game(str(t._find_save("first_sight_building").get("file", ""))))
+	for i in 3:
+		await t.get_tree().process_frame
+	var back := not bool(manager.views.get(id, {}).get("operational", true))
+	# ... then, in the player's own game, the save where it has long been running.
+	FirstSightDirector.force_auto_play(true)
+	loaded = loaded and bool(sim.load_game(str(t._find_save("first_sight_running").get("file", ""))))
+	for i in 3:
+		await t.get_tree().process_frame
+	_check(building and saved and loaded and back and bool(manager.views.get(id, {}).get("operational", false)),
+		"F2-23: the load case stands (%s building in one save, in operation in the other)" % id)
+	_check(not director.playing and not director.played.has(id) and director.queue.is_empty()
+			and not sim.is_clock_held(FirstSightDirector.CLOCK_HOLD),
+		"F2-23: a save loaded in the running game, its %s long in operation, plays no first sight over a session that was building it" % id)
+	if director.playing:
+		director.skip()
+	t._clear_test_saves()
 	MotionPrefs.force(null)
 	FirstSightDirector.force_auto_play(null)
 	scene.queue_free()

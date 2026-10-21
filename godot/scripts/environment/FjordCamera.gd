@@ -210,11 +210,6 @@ func unregister_focus_target(id: String) -> void:
 	_focus_targets.erase(id)
 
 
-## Every registered target id.
-func focus_target_ids() -> Array:
-	return _focus_targets.keys()
-
-
 ## F2-21: the bookmark `slot` ("land" or "hav") flies to focus target
 ## `target_id` ("" clears it; a cleared or unregistered slot is skipped).
 func set_bookmark(slot: String, target_id: String) -> void:

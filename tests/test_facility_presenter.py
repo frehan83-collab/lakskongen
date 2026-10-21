@@ -213,7 +213,8 @@ def test_the_of1_unit_reads_as_hull_yellow_where_it_stands(metrics):
 
 def test_the_presenter_only_reads_the_engine():
     """The presenter calls no SimBridge or GameBridge verb but its reads."""
-    reads = {"get_facility_visuals", "get_land_plots", "get_offshore_plots", "get_sea_state_forecast"}
+    reads = {"get_facility_visuals", "get_land_plots", "get_offshore_plots", "get_sea_state_forecast",
+             "get_game_generation"}
     for path in PRESENTER:
         text = path.read_text()
         for verb in QA_VERBS:
@@ -231,8 +232,11 @@ def test_the_presenter_only_reads_the_engine():
 SIM_BINDING = re.compile(r'(?:var\s+)?([A-Za-z_]\w*)\s*(?::\s*[A-Za-z_]\w*\s*)?:?=\s*get_node(?:_or_null)?\(\s*"/root/SimBridge"\s*\)')
 SIM_SAFE_MEMBERS = {"has_method", "has_signal"}
 # F2-21 adds the sea at an offshore unit (the engine's cached forecast and
-# its split of today's sea; test_the_sea_read_is_the_engines_pure_forecast).
-SIM_READS = {"get_facility_visuals", "get_land_plots", "get_offshore_plots", "get_sea_state_forecast"}
+# its split of today's sea; test_the_sea_read_is_the_engines_pure_forecast);
+# the wave4b int review the game's generation, which tells a new or loaded
+# game (test_the_game_generation_read_is_the_event_bus_counter).
+SIM_READS = {"get_facility_visuals", "get_land_plots", "get_offshore_plots", "get_sea_state_forecast",
+             "get_game_generation"}
 
 
 def _code_only(text: str) -> str:
@@ -428,3 +432,23 @@ def test_the_cards_text_is_one_sorted_block_of_keys_that_exist():
         assert f"BUILD_SEA_PHASE_{phase.upper()}" in keys, phase
     for reason in ["tow", "sheltering", "funds", "closed_season"]:
         assert f"FACILITY_CARD_WAITING_{reason.upper()}" in keys, reason
+
+
+def test_the_game_generation_read_is_the_event_bus_counter():
+    """F2-23, wave4b int review (RUN_LOG §7): the presenter's fifth read,
+    get_game_generation (a sync on a new or loaded game is a baseline, no unit
+    in it came into operation then), forwards to SimProxies, which reads only
+    the bridge's GameEventGeneration: a getter of the engine's event-bus
+    counter, which only Clear() moves (a new or loaded game). Reading it
+    changes nothing."""
+    facade = (GODOT / "scripts" / "SimBridge.gd").read_text()
+    assert re.search(r"(?m)^func get_game_generation\(\) -> int: return _proxies\.get_game_generation\(\)$", facade)
+    proxies = (GODOT / "scripts" / "bridge" / "SimProxies.gd").read_text()
+    body = re.search(r"(?m)^func get_game_generation\(\) -> int:\n((?:\t.*\n)+)", proxies)
+    assert body and body.group(1).strip() == "return int(game_bridge.GameEventGeneration) if game_bridge else 0", body
+    events = (GODOT / "scripts" / "autoload" / "GameBridge.Events.cs").read_text()
+    assert "public int GameEventGeneration => SimulationEngine?.GameEvents?.Generation ?? 0;" in events
+    bus = (REPO / "src" / "LakskongenSim" / "Events" / "GameEventBus.cs").read_text()
+    assert "public int Generation { get; private set; }" in bus
+    assert len(re.findall(r"\bGeneration\s*(?:\+\+|\+=|=[^=])", bus)) == 1, "only Clear() moves the generation"
+    assert re.search(r"public void Clear\(\)\s*\{[^}]*\bGeneration\+\+;", bus)

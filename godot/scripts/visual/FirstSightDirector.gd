@@ -88,6 +88,8 @@ var _wellboat_to := Vector3.ZERO
 ## to light the whole campus (m).
 var _wave_origin := Vector2.ZERO
 var _wave_reach := 800.0
+## True while the overlay stands aside for a card or menu (_under_modal).
+var _stepped_aside := false
 
 
 static func force_auto_play(value: Variant) -> void:
@@ -107,6 +109,11 @@ func _ready() -> void:
 	var parsed = JSON.parse_string(text)
 	data = parsed if parsed is Dictionary else {}
 	set_process(false)
+	if manager != null:
+		# Deferred: the presenter's sync (and the tick that brought it) ends
+		# first, so a card that tick opened is up when the sequence would start.
+		manager.unit_completed.connect(_on_unit_completed, CONNECT_DEFERRED)
+		manager.new_game_seen.connect(on_new_game)
 
 
 ## The family a variant's sequence is ("land" or "hav").
@@ -114,20 +121,48 @@ static func family_of(row: Dictionary) -> String:
 	return "land" if str(row.get("family", "")) == "land" else "hav"
 
 
-## A unit came into operation (the presenter's sync saw it): `first` plays
-## the sequence (or queues it), a repeat shows the toast.
+## A unit came into operation (the presenter's unit_completed): `first`
+## plays the sequence, a repeat shows the toast. The sequence waits its
+## turn behind another one, an open card or menu (the critical event card,
+## the briefing, the pause menu, the end screen, the inbox: CinematicStage
+## blocker) and starts when it closes (wave4b int review).
 func on_unit_completed(id: String, first: bool) -> void:
 	if not auto_play():
 		return
 	if not first:
 		_toast(id)
 		return
+	queue.append(id)
+	_start_queued()
+
+
+func _on_unit_completed(id: String, _variant: String, first: bool) -> void:
+	on_unit_completed(id, first)
+
+
+## A new or loaded game (the presenter saw the game change): the sequences
+## waiting belong to the game that went, and one playing gives the world back.
+func on_new_game() -> void:
+	queue.clear()
 	if playing:
-		queue.append(id)
+		_finish(true)
+
+
+## Start the next sequence waiting, unless one plays or a card or menu is up
+## (then it is polled every frame until that closes).
+func _start_queued() -> void:
+	if playing:
 		return
-	if not play(id):
+	while not queue.is_empty():
+		if stage().blocker() != "":
+			set_process(true)
+			return
+		var id: String = queue.pop_front()
+		if play(id):
+			return
 		# No unit to show yet (the Havfarm-class hull is F2-29's): the toast.
 		_toast(id)
+	set_process(false)
 
 
 ## Play the sequence of unit `id`; false when it cannot (no data, no unit drawn).
@@ -146,6 +181,7 @@ func play(id: String) -> bool:
 	playing = true
 	time = 0.0
 	played.append(id)
+	_stepped_aside = false
 	_build_overlay(row)
 	if reduced:
 		overlay.set_still(_grab_frame())
@@ -166,7 +202,14 @@ func skip() -> void:
 
 
 func _process(delta: float) -> void:
-	if not playing or manual:
+	if not playing:
+		_start_queued()
+		return
+	# A card or menu came up over the sequence (an event between ticks, the
+	# window's close button): the sequence stands still and steps aside (its
+	# overlay hidden, so the card takes the keys and clicks; the clock still
+	# held) until it closes.
+	if _under_modal() or manual:
 		return
 	seek(time + delta)
 	if time >= duration:
@@ -189,6 +232,17 @@ func seek(t: float) -> void:
 	_camera(time)
 	_wellboat_at(time)
 	_overlay_at(time)
+
+
+## True while a card or menu is up over the playing sequence: the overlay
+## steps aside for it (and comes back when it closes; only then is its
+## visibility touched).
+func _under_modal() -> bool:
+	var under := stage().modal() != ""
+	if under != _stepped_aside and overlay != null:
+		overlay.visible = not under
+	_stepped_aside = under
+	return under
 
 
 # ── Environment ──────────────────────────────────────────────────────────────
@@ -233,8 +287,7 @@ func _finish(skipped: bool) -> void:
 	set_process(false)
 	var id := unit_id
 	finished.emit(id, skipped)
-	if not queue.is_empty():
-		play(queue.pop_front())
+	_start_queued()
 
 
 ## The hour of today when the sun, going down after noon, stands at
@@ -551,7 +604,7 @@ func save_picture() -> void:
 		path = "%s/first_sight_%s.png" % [SCREENSHOT_DIR, unit_id.validate_filename()]
 		img.save_png(ProjectSettings.globalize_path(path))
 	if overlay != null:
-		overlay.visible = true
+		overlay.visible = not _stepped_aside
 	var toast := get_node_or_null("/root/ToastNotification")
 	if toast != null and path != "":
 		toast.call("show_toast", tr("FIRST_SIGHT_PICTURE_SAVED") % path.get_file(), "SUCCESS", 3.0)

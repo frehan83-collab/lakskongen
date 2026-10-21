@@ -19,7 +19,12 @@ extends Node
 ## director arms when it sees the game at or before day 150 (a new game, or
 ## a save loaded from before it) and plays at most once on that timeline, so
 ## a save loaded after the teaser does not play it again and a game first
-## seen after day 150 never does (a load of an earlier day arms it again).
+## seen after day 150 never does (a load of an earlier day arms it again; a
+## new or loaded game is a new timeline whatever its day: the game's
+## generation, SimBridge.get_game_generation). A due teaser waits for an open
+## card or menu (the critical event card, the briefing, the pause menu, the
+## end screen, the inbox) or the first sight to close (CinematicStage
+## blocker), and stands still under a card that comes up while it plays.
 ##
 ## Its timeline is the "teaser" section of godot/data/first_sight.json; the
 ## state at a time t is a pure function of t (seek), as the first sight's.
@@ -77,6 +82,10 @@ var tow: Node3D = null
 
 var _seen := false
 var _last_day := -1
+## The game of the timeline it watches (SimBridge.get_game_generation).
+var _generation := -1
+## Due, waiting for a card, a menu or the first sight to close (polled).
+var _pending := false
 var _rival: OffshoreUnitModel = null
 var _tugs: Array[Node3D] = []
 var _lines: Array[MeshInstance3D] = []
@@ -85,6 +94,8 @@ var _path: Array[Vector3] = []
 var _path_span := Vector2(0.0, 13.0)
 var _keys: Array = []
 var _stage: CinematicStage = null
+## True while the overlay stands aside for a card or menu (_under_modal).
+var _stepped_aside := false
 
 
 static func force_auto_play(value: Variant) -> void:
@@ -132,28 +143,49 @@ func stage() -> CinematicStage:
 
 
 ## Every state refresh: a new timeline arms the teaser (or not), a due one
-## plays it on the next frame.
+## plays it on the next frame, once nothing holds it back.
 func _on_day(day: int, _season: String) -> void:
-	if not _seen or day < _last_day:
-		# A new game, or a save of an earlier day loaded: this timeline's
-		# teaser has not played; it can only if the timeline starts in time.
+	var sim := get_node_or_null("/root/SimBridge")
+	var generation: int = sim.get_game_generation() if sim != null and sim.has_method("get_game_generation") else _generation
+	if not _seen or day < _last_day or generation != _generation:
+		# A new game, a save loaded, or a save of an earlier day loaded: this
+		# timeline's teaser has not played; it can only if the timeline
+		# starts in time.
 		_seen = true
+		_generation = generation
 		armed = day <= int(data.get("after_day", 150))
 		played = false
+		_pending = false
 	_last_day = day
-	if playing or not auto_play() or manager == null:
+	if playing or not auto_play() or manager == null or sim == null:
 		return
-	if manager.first_sight != null and manager.first_sight.playing:
-		return
-	var sim := get_node_or_null("/root/SimBridge")
-	if sim == null:
-		return
-	var verdict := due(data, str(sim.get_active_scenario_id()), day, sim.get_tutorial_status(), armed, played)
+	var verdict := _verdict(sim, day)
 	if verdict == Due.PLAY:
-		# Deferred: the refresh that made it due finishes first.
-		play.call_deferred()
+		# On the next frame (the refresh that made it due finishes first), or
+		# once a card, a menu or the first sight has closed.
+		_pending = true
+		set_process(true)
 	elif verdict == Due.NEVER and armed and day >= int(data.get("skip_from_day", 300)):
 		armed = false
+
+
+func _verdict(sim: Node, day: int) -> Due:
+	return due(data, str(sim.get_active_scenario_id()), day, sim.get_tutorial_status(), armed, played)
+
+
+## A due teaser starts when nothing holds it back (CinematicStage blocker),
+## if it is still due then.
+func _start_pending() -> void:
+	if not _pending:
+		set_process(false)
+		return
+	if stage().blocker() != "":
+		return
+	_pending = false
+	set_process(false)
+	var sim := get_node_or_null("/root/SimBridge")
+	if sim != null and auto_play() and _verdict(sim, _last_day) == Due.PLAY:
+		play()
 
 
 ## Play the teaser now; false when it cannot (no data, no camera, playing).
@@ -167,6 +199,7 @@ func play() -> bool:
 	reduced = MotionPrefs.reduced_motion()
 	playing = true
 	time = 0.0
+	_stepped_aside = false
 	_build_overlay()
 	if reduced:
 		overlay.set_still(_grab_frame())
@@ -187,7 +220,13 @@ func skip() -> void:
 
 
 func _process(delta: float) -> void:
-	if not playing or manual:
+	if not playing:
+		_start_pending()
+		return
+	# A card or menu came up over it (an event between ticks, the window's
+	# close button): the teaser stands still and steps aside (its overlay
+	# hidden, the clock still held) until it closes.
+	if _under_modal() or manual:
 		return
 	seek(time + delta)
 	if time >= duration:
@@ -221,6 +260,17 @@ func _finish(skipped: bool) -> void:
 	playing = false
 	set_process(false)
 	finished.emit(skipped)
+
+
+## True while a card or menu is up over the playing teaser: the overlay
+## steps aside for it (and comes back when it closes; only then is its
+## visibility touched).
+func _under_modal() -> bool:
+	var under := stage().modal() != ""
+	if under != _stepped_aside and overlay != null:
+		overlay.visible = not under
+	_stepped_aside = under
+	return under
 
 
 # ── The tow ───────────────────────────────────────────────────────────────────
