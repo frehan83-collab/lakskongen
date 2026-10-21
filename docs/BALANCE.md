@@ -2853,6 +2853,202 @@ seed 7; a real player who reads the planner's "2, 4, 8 weeks" columns can
 wait and may not need the loan. The season takes about 22 s of real time
 headless at 30×.
 
+## 1ab. Geo stages 2-3: the rival layout, parody names and hav_1's open-sea binding (2026-10-20, branch `geo/sim-data-2`)
+
+Track A of `docs/geo/STAGE23_PLAN.md` owns this section (plan §4, hot-file
+rules). Nothing here changes a calibration number, a traced field, an RNG
+stream or a `GameState` field: the binding, the anchors and the layout are
+display only (rulings OD3 and OD4), and the 27 golden games are identical
+(`docs/run/evidence/geo_sim_data_golden_diff.md`).
+
+### hav_1's open-sea binding (rulings OD1 and OD2; `Environment/Geo/GeoSitePlotGeometry.cs`)
+
+Each game's plot catalogue is the default one with hav_1 bound to the
+Havbruk til havs (HTH) candidate nearest its home area's label point: the
+minimal integer squared EPSG:25833 distance, ties to the higher score, then
+the lower rank, then the ordinal id. hav_1 keeps its id, Hs100 13 m, HsScale
+2.4, lice band, exposure, name and `real_distance_km`; its display X, Z and
+water depth change. off_1, off_2, the pads and the overflow rows are the
+file's. The catalogue is a pure function of the saved home area, so nothing
+is saved.
+
+| Constant (`[GameBalance]`) | Value | Why |
+|---|---|---|
+| `ReferenceZM` | 5,200 m | site_plots.json hav_1 z: the distance below stands for this depth seaward |
+| `ReferenceDistanceKm` | 83 km | site_plots.json hav_1 real_distance_km (45 nm, O:R58) |
+| `MinZM` | 4,600 m | seaward of off_2 (3,400 m), open sea in the seed-42 far field |
+| `MaxZM` | 9,000 m | a 250 km binding still draws well inside the ±16 km far field |
+| `ReferenceX` | 0 m | the file's: the fjord's seaward axis |
+
+Z = -clamp(5200 × km / 83, 4600, 9000), with km = √(dx² + dy²) / 1000 (exact
+in IEEE 754 on every platform). At every bound position the seed-42 far
+field has no seabed above -40 m within 600 m (`GeoSitePlotGeometryTests`).
+
+| Home area | Bound candidate | HTH area (its PO) | Depth | Distance | Z |
+|---|---|---|---|---|---|
+| PO1 | HTH02-02 | Norskerenna sør (PO2) | 270 m | 262.6 km | -9,000 |
+| PO2 | HTH13-03 | Indrebakken (PO3) | 253 m | 69.2 km | -4,600 |
+| PO3 | HTH13-02 | Indrebakken (PO3) | 252 m | 84.6 km | -5,300 |
+| PO4 | HTH13-02 | Indrebakken (PO3) | 252 m | 248.5 km | -9,000 |
+| PO5 | HTH10-03 | Frøyabanken sør (PO6) | 223 m | 146.9 km | -9,000 |
+| PO6 | HTH10-02 | Frøyabanken sør (PO6) | 213 m | 61.6 km | -4,600 |
+| PO7 | HTH01-01 | Sklinnabanken (PO8) | 293 m | 108.2 km | -6,778 |
+| PO8 | HTH01-01 | Sklinnabanken (PO8) | 293 m | 94.3 km | -5,909 |
+| PO9 | HTH05-03 | Trænabanken (PO8) | 256 m | 254.8 km | -9,000 |
+| PO10 | HTH21-02 | Fugløybanken (PO11) | 200 m | 117.2 km | -7,345 |
+| PO11 | HTH21-02 | Fugløybanken (PO11) | 200 m | 55.3 km | -4,600 |
+| PO12 | HTH23-01 | Lopphavet (PO12) | 200 m | 117.2 km | -7,341 |
+| PO13 | HTH27-02 | Vardø (PO13) | 200 m | 59.8 km | -4,600 |
+
+Six areas have no HTH candidate of their own (PO1, 4, 5, 7, 9, 10) and bind
+the nearest one in a neighbouring area; the lens must say "nearest open-sea
+area" with its own PO (track B). PO4's and PO9's labels lie 250 km from any
+HTH area, so their games (barekraft_mester, ressursrente, lofoten_eventyr,
+algekatastrofe) show a distant open-sea area at the far clamp.
+
+### Scenario anchors (ruling OD9; `Environment/Geo/ScenarioGeoAnchors.cs`)
+
+Where the map draws the player's own farm. Each is a producing sea grow-out
+locality in its area, distinct within its scenario, chosen for the story:
+
+| Scenario | Zone (PO) | Locality | Municipality | MTB | Why |
+|---|---|---|---|---|---|
+| forste_sesong | fjord_west (3) | 12128 Dyrnes | Kvinnherad | 780 t | grandfather's one-licence farm in Hardanger (OD9) |
+| lofoten_eventyr | fjord_north (9) | 13291 Soløya | Flakstad | 3,120 t | the exposed outer Lofoten coast |
+| laksebaronene | fjord_west (6) | 12370 Måøydraga | Frøya | 2,340 t | in the rivals' Trøndelag heartland |
+| krise_manager | fjord_north (12) | 15461 Storvika | Nordkapp | 1,800 t | a small, struggling Finnmark site |
+| barekraft_mester | fjord_west (4) | 11700 Storeneset | Gulen | 3,120 t | an established Vestland site |
+| po3_red_sone | po3_nord / po3_sor (3) | 20115 Skjerholmen N / 18217 Kvaløy Ø | Øygarden / Karmøy | 3,120 t each | north and south of the area |
+| isa_utbrudd | isa_kjerne / isa_nord / isa_sor (6) | 29116 Reiråklakken / 45129 Kvitholmen / 39217 Hårkallbåen | Smøla | 6,240 / 6,240 / 3,120 t | a core with neighbours 2.3 km north and 3.7 km south |
+| algekatastrofe | alge_sor / alge_midt / alge_indre (9) | 13931 Hjartøy Ø / 45014 Nordfoldleira I / 33457 Ånderbakk | Steigen | 5,460 / 3,120 / 3,900 t | outer south, middle, inner sheltered in one fjord |
+| ressursrente | vest_1 / vest_2 / vest_3 (4) | 15403 Olderøy / 11786 Høyvika / 13340 Leiholmane | Solund / Askvoll / Gulen | 3,900 / 3,120 / 5,460 t | main site west, growth north, expansion south |
+
+A catalogue zone takes the first producing grow-out locality by id in its
+own area and its municipality, where "its municipality" is the name itself,
+the part before " I <county>" (Sande → Sande I Møre Og Romsdal, 45135
+Voravika), one part of a two-language name, or the municipality a pre-2020
+one merged into (Finnøy → Stavanger, 10110 Djupevik; Vikna → Nærøysund,
+10256 Bondøya). Everything else (po13_lebesby, whose Lebesby localities are
+all PO12; mod and free-text zones) takes the area's producing locality with
+the smallest `StableHash.Of("geo_anchor\u0001" + zoneId, localityId)`
+(po13_lebesby: 13865 Spergittklubben, Sør-Varanger).
+
+### The rival layout (rulings OD4 and OD10; `Finance/RivalLayout.cs`)
+
+A static, seed-independent owner for every pool locality, rebuilt only when
+its signature changes: each major's id, exact MAB, home areas and name, or
+the game's anchors (the captain's review made the signature name every input
+of the layout: a stored name from an older save, or a share step inside one
+tonne, deals a different layout):
+
+1. Pool: the 994 producing sea grow-out localities, the 309 land salmonid
+   sites and the offshore locality 45196 (1,304), minus the game's anchors.
+2. Each major gets round(TotalMABTonnes / 1,250,000 × 994) sea sites and
+   round(TotalMABTonnes / 1,250,000 × 309) land sites, drafted round-robin
+   in roster order; each takes its most preferred free site: its home areas
+   first (headquarters town: Bergen → PO3 and PO4, Frøya → PO6, Trondheim →
+   PO6, Stokmarknes → PO9), then `StableHash.Of("rival_layout\u0001" + id,
+   localityId)`.
+3. 45196 goes to Offshore Optimists, or after a merger removed it to the
+   largest surviving major (by MAB, then roster order).
+4. The rest go to independents grouped by (area, municipality), each group
+   split evenly into owners of at most 6 sites, ids `ind_<po2>_<nnn>`.
+
+Measured on the starting roster (no anchors excluded):
+
+| Major (home) | MAB | Sea sites (share) | Land sites (share) | Sea sites by area |
+|---|---|---|---|---|
+| Mowier ASA (PO3, 4) | 250,000 t | 199 (199) | 62 (62) | PO3 58, PO4 45, PO8-PO10 17 each, PO12 13, PO7 9, PO11 8, PO2 6, PO5 3, PO1/PO13 2, PO6 1 |
+| SalMax Group ASA (PO6) | 170,000 t | 135 (135) | 42 (42) | PO6 114, 1-3 in every other area but PO3/PO4 |
+| Herøy Seafood AS (PO3, 4) | 130,000 t | 103 (103) | 32 (32) | PO4 56, PO3 46, PO8 1 |
+| Greed Gregarious ASA (PO3, 4) | 80,000 t | 64 (64) | 20 (20) | PO4 33, PO3 31 |
+| Offshore Optimists AS (PO6) | 15,000 t | 12 (12) | 4 (4) | PO6 12, plus 45196 |
+| Kongsemne Havbruk AS (PO9) | 55,000 t | 44 (44) | 14 (14) | PO9 44 |
+
+The majors hold 557 of the 994 sea sites (56 %, their share of the national
+MTB); 162 independents hold the rest: PO1 13, PO2 16, PO5 18, PO7 16, PO8
+27, PO9 16, PO10 16, PO11 13, PO12 14, PO13 4 and 9 for the 21 localities
+with no area. Every area has at least 2 owners (PO13 6, PO8 30).
+
+Observation for the owner: the strict home preference saturates the home
+areas. The three Bergen majors want 366 sea sites against the 281 producing
+sites of PO3 and PO4, and SalMax and Offshore Optimists 147 against PO6's
+131, so PO3, PO4 and PO6 have no independent farmer (3 owners each). This is
+the plan's rule; a softer one (a major takes at most a share of a home area
+before drafting nationally) is a follow-up if the owner wants independents
+on the west coast. It moves nothing in the simulation.
+
+### Parody names for the independents (rulings OD8 and OD10; `Finance/ParodyNames.cs`), for review
+
+A name is a coast or nature word, a farming-trade word and "AS"
+("Krykkje Merdlag AS"). Names are dealt in one global order (ordinal =
+index × 14 + area, areas 0-13), each by `StableHash.Of("parody_name",
+ordinal)` into the 1,120 combinations with linear probing past names
+already dealt, so every (area, index) has one name in every process and no
+two are equal. A combination holding any token of a locality's or a
+municipality's name is rejected (none of the curated words is one).
+
+Coast and nature words (112): birds Skarv, Ærfugl, Måke, Terne, Lunde,
+Alke, Teist, Lomvi, Krykkje, Havhest, Tjeld, Svartbak, Gråmåke, Havørn,
+Storlom, Smålom, Siland, Laksand, Havelle, Sjøorre, Gråhegre, Strandsnipe,
+Rødstilk, Steinvender, Fiskeørn, Havsule, Polarmåke, Fjellvåk, Sandlo,
+Myrsnipe; sea life Stortare, Blæretang, Sukkertare, Krill, Raudåte, Brisling,
+Sild, Makrell, Sei, Lyr, Hyse, Kveite, Breiflabb, Steinbit, Rognkjeks,
+Leppefisk, Berggylt, Grønngylt, Sjøstjerne, Kråkebolle, Manet, Krabbe, Reke,
+Sjøpølse, Sjøanemone, Taskekrabbe, Strandsnegl, Albueskjell; sea and weather
+Bølge, Dønning, Brenning, Fjære, Kuling, Bris, Skodde, Morild, Havgule,
+Nordavind, Sønnavind, Vestavind, Austavind, Havdis, Solgangsvind, Flomål,
+Springflo, Fjærestein, Bårebrott, Kvitskavl; gear and the working shore
+Anker, Kjøl, Spant, Seil, Åre, Garn, Fyrlykt, Bøye, Pullert, Trosse, Vaier,
+Fortøyning, Notbøter, Merdring, Fôrflåte, Naust, Rorbu, Kaipåle, Hiveline;
+shore plants Lyng, Einer, Rogn, Multe, Tyttebær, Krekling, Røsslyng,
+Strandkål, Strandrug, Strandvindel, Rosenrot, Fjæresauløk, Sølvbunke,
+Marehalm, Tiriltunge.
+
+Trade words (10): Sjøbruk, Kystbruk, Merdbruk, Laksebruk, Havgård, Merdlag,
+Havlag, Kystlag, Notlag, Oppdrettslag.
+
+Checks: `ParodyNamesTests` checks every name a game can show against BRANDS
+(read from `tests/test_text_correctness.py`), every locality and
+municipality token, and TextLint's enum, id, format, raw and English-word
+rules (read from `godot/tests/TextLint.gd`); `GeoBridgeChecks` runs TextLint
+itself over all 168 owners. The curation was checked offline against the
+raw registry's 579 holder names (`~/.cache/lakskongen-geo`, never
+committed or printed): three coast words (and six common trade words) that
+appear in a holder's name were dropped first; then all 1,120 combinations
+and the rename below gave **0 exact matches, 0 first-word token matches and
+0 names contained in a holder name**.
+
+Captain's review (ruling OD10, geo/int, 2026-10-21): approved, with one
+word replaced. The track tokenised holder names on whitespace only; split on
+hyphens too, "Tare" equals a hyphen-joined token of one holder's name, so
+its 10 combinations shared a first word with a holder. "Stortare" (the
+coast's dominant kelp, *Laminaria hyperborea*) takes its place at the same
+list position, which keeps every other name dealt: four independents are
+renamed (ind_05_005, ind_08_022, ind_11_002, ind_13_002 become "Stortare
+<trade> AS"), and no owner or site moves. Re-checked offline: 0 exact
+matches, 0 first words equal to a holder token, 0 generated names inside a
+holder name and 0 holder names inside a generated name, under whitespace
+and hyphen tokenisation alike. Kept after review: Tjeld, Lyng, Reke and
+Kråkebolle begin a longer word in a holder's name or a municipality
+(Tjeldsund, Lyngen), but none equals a token, which is the plan's rule for
+places too; they read as the bird, the heather, the shrimp and the urchin.
+`ParodyNamesTests.TheVocabulary_IsTheReviewedOne` pins the reviewed lists;
+a changed word needs this check and a re-pin with a RUN_LOG §7 row.
+
+### The D17 rename (ruling OD8: a clearly different parody, not a near-miss)
+
+| Where | Was | Now |
+|---|---|---|
+| CompetitorAI roster `nordlaks_nord` (id unchanged) | NordLaks Nord AS | Kongsemne Havbruk AS ("the pretender": its tagline is "Arctic Excellence, Royal Ambitions") |
+| MarketIntelligence producer | NordLaks | Kongsemne |
+| InvestmentManager `acq_nordlaks` (dead code) | Acquire NordLaks Nord AS | Acquire Kongsemne Havbruk AS |
+| encyclopedia "Ocean Farm (Havfarm)" | Nordlaks' Havfarm is a 385m ship-shaped structure. | A ship-shaped ocean farm is a 385m structure. |
+
+Old saves keep their stored names (no load-time rewrite); 'Nordlaks' joins
+BRANDS and D17_BRANDS. Track C retired MapPanel.gd's REGIONS, the last
+"NordLaks Nord AS", and added 'NordLaks' to both lists (geo int C2).
+
 ## 2. Key economic knobs
 
 | Knob | Current | Real reference | Source | Recommended playtest band |
@@ -3083,3 +3279,5 @@ S1-01 / S1-02 guards (§1d):
 | 2026-10-14 | wave1/sim-2 (S1-03, D16) | Achievement and tutorial reward cash removed (medals); per-scenario bankruptcy floors in calibration v1.0.5 from measured harvest-only troughs (po3 -15M, isa -24M, algae -26.5M, krise -4.5M, lofoten -2M, default -1M) with a three-rung warning ladder; resource-rent tax on by default (family farm pays 0, a six-site career 11-30M over three years). SimProbe medians unchanged; tutorial still 6 of 6, four seeds finish later (§1e). |
 | 2026-10-14 | wave2/sim-b-3 (S2-04, F270) | Harvest pipeline (calibration v1.0.8 `harvest`, save v6): fish sold as gutted kilos (yield 0.84) at the reference price × size class (HOG ladder, Kontali) × grade (superior/ordinary/production by cause, Fiskehelserapporten 2024) − the harvest cost (5.0 NOK/kg HOG, COGS, F270 closed); fasting in degree-days, wellboat slot, slaughterhouse capacity 150 t HOG/day, partial and per-pen orders, land hall / offshore routes. Player-path EBIT/kg HOG median 18.19 (11.07-23.23, 10 seeds); po3 careers +14.75M to +19.90M (were +23.49M to +31.76M); forste_sesong 36,000 fish and 4M (6/6 seeds win); rent base excludes the harvest cost (§1h). |
 | 2026-10-20 | wave4/ui-core-1 (U2-02, D19) | The first season advances on real events only and runs only in Første sesong (§1aa): the funding step waits for the second site's price + 3 months of its running cost (7.06 MNOK) and teaches the bank's loan where the cash is short; the minimal player wins 6 of 6 seeds on days 283-318 (seeds 7 and 21 with the loan, lowest cash 0.19M), the input-only UI player wins seed 7 on day 294 with the loan. No calibration number changed. |
+| 2026-10-21 | geo/int captain (geo A2/A3 merge, OD10) | §1ab reviewed before merging track A: the word lists approved with "Tare" replaced by "Stortare" (a hyphen-joined token of one registry holder's name; 4 independents renamed, no owner or site moved; 0 registry matches under whitespace and hyphen tokenisation, offline, counts only); the rename "Kongsemne Havbruk AS" approved; the rival layout's signature now names every input (names, home areas, exact MAB, anchors). No calibration number, traced field or RNG stream changes; golden 27 of 27 identical. |
+| 2026-10-21 | geo/int captain (geo stages 2-3, integration close) | §1ab's 'nearest open-sea area' is now shown: in the six home areas with no Havbruk til havs area of their own (PO1, 4, 5, 7, 9, 10) hav_1's lens says 'Nærmeste havområde' (the bridge's additive `home_po`; found in the GEO-VIS review). The REGIONS note above is brought up to date. No number, traced field or RNG stream changes; the golden traces were re-recorded once at the close: 27 of 27 games identical to origin/main, save drift only from the rename. |

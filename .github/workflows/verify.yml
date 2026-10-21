@@ -11,7 +11,9 @@ permissions:
 jobs:
   dotnet:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # 45, not 30 (geo stages 2-3 ruling OD15, RUN_LOG §7): PRs #5 and #6 took
+    # 26:14 and 27:21, so any added test risked a timeout that reads as a failure.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1

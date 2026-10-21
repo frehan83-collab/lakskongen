@@ -1,6 +1,12 @@
 # Lakskongen Enhanced Map System
 ## Environmental Data Layer Implementation
 
+> **Superseded (geo stages 2-3, Track C, 2026-10-20).** Nothing described
+> here ships: `MapPanelEnhanced.gd` and its scene were never in the game, and
+> the map tab is now the national map built from the real geo data
+> (`godot/scripts/ui/map/`, `docs/geo/GEODATA.md` §7.3,
+> `docs/geo/STAGE23_PLAN.md` Track C). Kept as history only.
+
 ---
 
 ## Overview

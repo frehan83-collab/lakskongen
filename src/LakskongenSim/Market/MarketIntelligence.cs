@@ -292,7 +292,7 @@ namespace LakskongenSim.Market
             {
                 new CompetitorProducer { Name = "Mowier ASA", Country = "Norway", BaseWeeklyHarvestTonnes = 8500, WeeklyHarvestTonnes = 8500 },
                 new CompetitorProducer { Name = "SalMax", Country = "Norway", BaseWeeklyHarvestTonnes = 6200, WeeklyHarvestTonnes = 6200 },
-                new CompetitorProducer { Name = "NordLaks", Country = "Norway", BaseWeeklyHarvestTonnes = 3800, WeeklyHarvestTonnes = 3800 },
+                new CompetitorProducer { Name = "Kongsemne", Country = "Norway", BaseWeeklyHarvestTonnes = 3800, WeeklyHarvestTonnes = 3800 },
                 new CompetitorProducer { Name = "Kermak", Country = "Norway/Chile", BaseWeeklyHarvestTonnes = 4500, WeeklyHarvestTonnes = 4500 },
                 new CompetitorProducer { Name = "Multiport Foods", Country = "Chile", BaseWeeklyHarvestTonnes = 3200, WeeklyHarvestTonnes = 3200 },
                 new CompetitorProducer { Name = "Bakkafrysk", Country = "Faroe Islands", BaseWeeklyHarvestTonnes = 2800, WeeklyHarvestTonnes = 2800 },

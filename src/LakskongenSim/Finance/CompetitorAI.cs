@@ -419,7 +419,7 @@ namespace LakskongenSim.Finance
                 new CompetitorCompany
                 {
                     Id = "nordlaks_nord",
-                    Name = "NordLaks Nord AS",
+                    Name = "Kongsemne Havbruk AS",
                     ParodyOf = "the northern regional farmer",
                     Tagline = "Arctic Excellence, Royal Ambitions",
                     Headquarters = "Stokmarknes, Nordland",

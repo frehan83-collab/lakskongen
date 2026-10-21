@@ -54,6 +54,7 @@ namespace LakskongenSim.Core
             StormEscapeEvents = 0.0;
             _lastWeatherState = LakskongenSim.Environment.WeatherState.Calm;
             _stormEpisodePeakSeverity = 0.0;
+            PlotCatalog = SitePlotCatalog.Default;   // a game's plot catalogue is its own: StartScenario and a load choose it again
             Time.Reset();
         }
 

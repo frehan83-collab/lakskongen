@@ -314,7 +314,7 @@ func _lint_dialog(dialog: BuildSiteDialog, where: String) -> void:
 		win.content_scale_factor = scale
 		await t.get_tree().create_timer(0.3).timeout
 		var label := "%s at %dx%d %d %%" % [where, LINT_SIZE.x, LINT_SIZE.y, int(round(scale * 100.0))]
-		var problems := DialogLayoutLint.problems(dialog)
+		var problems: PackedStringArray = await DialogLayoutLint.settled_problems(dialog, t.get_tree())
 		_check(problems.is_empty(), "build flow: nothing overlaps, is cut or leaves the screen: %s %s" % [label, str(problems.slice(0, 4))])
 		await t._lint_screen("build dialog " + label)
 	win.content_scale_factor = old_scale
