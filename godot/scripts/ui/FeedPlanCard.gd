@@ -68,6 +68,13 @@ func apply_button() -> Button:
 	return _btn_apply
 
 
+## U2-02: the "Moderat" ration stop, the concrete first choice the guide points
+## at while nothing differs from the running plan (cycle 1 playtest: a ring on
+## the whole card left a new player hunting for "30 dager" in a dropdown).
+func moderate_stop() -> Button:
+	return _stop_buttons[1]
+
+
 ## Show `site_id`'s plan (a new site drops any unsaved edit).
 func show_site(site_id: String, site_name: String) -> void:
 	if site_id != _site_id:
@@ -236,9 +243,18 @@ func _update_status() -> void:
 	_btn_apply.set_meta(&"enabled_tooltip", tr("FEEDPLAN_APPLY_TIP"))
 	UIPolish.set_available(_btn_apply, "" if _differs_from_running(chosen_plan()) else tr("FEEDPLAN_WHY_IN_USE"))
 	var sites: int = (_sim.sea_sites as Array).size() if _sim and "sea_sites" in _sim else 0
-	_btn_apply_all.text = tr("FEEDPLAN_APPLY_ALL") % sites
+	_btn_apply_all.text = tr("FEEDPLAN_APPLY_ALL_ONE") if sites == 1 else tr("FEEDPLAN_APPLY_ALL") % sites
 	_btn_apply_all.set_meta(&"enabled_tooltip", tr("FEEDPLAN_APPLY_ALL_TIP"))
-	UIPolish.set_available(_btn_apply_all, "" if sites > 0 else tr("FEEDPLAN_WHY_NO_SITES"))
+	# With one site "for all" IS this site: it obeys the same rule as "Bruk på".
+	# Before, it stayed pressable with nothing to change, toasted "satt" and
+	# changed nothing (cycle 1 playtest: the first season's step 2 never
+	# completed for a player who pressed it).
+	var why_all := ""
+	if sites <= 0:
+		why_all = tr("FEEDPLAN_WHY_NO_SITES")
+	elif sites == 1 and not _differs_from_running(chosen_plan()):
+		why_all = tr("FEEDPLAN_WHY_IN_USE")
+	UIPolish.set_available(_btn_apply_all, why_all)
 	UIPolish.set_available(_btn_reset, tr("FEEDPLAN_WHY_STANDARD") if standard else "")
 
 

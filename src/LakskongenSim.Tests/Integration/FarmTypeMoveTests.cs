@@ -218,6 +218,31 @@ public class FarmTypeMoveTests
     /// exact: the save written back with nothing changed is the save itself,
     /// byte for byte.
     /// </summary>
+    /// <summary>
+    /// The save as an engine before SHIP_PLAN cycle 1 wrote it: the analytics'
+    /// MortalityRate back on its old definition, the day's drop in fish count
+    /// over the previous snapshot's (cycle 1 counts the ledger's deaths, so a
+    /// harvest is no longer "100 % mortality"). Every snapshot since the
+    /// game's first day is in the save (3650 are kept), so the old values are
+    /// recomputed exactly; nothing else may differ.
+    /// </summary>
+    internal static string AsBeforeShipC1Wrote(string savedJson)
+    {
+        var root = JsonNode.Parse(savedJson)!.AsObject();
+        Assert.Equal(savedJson, root.ToJsonString(SaveJson.Options));
+        var snaps = Assert.IsType<JsonArray>(root["DailySnapshots"]);
+        int prev = -1;
+        foreach (var node in snaps)
+        {
+            var snap = node!.AsObject();
+            int count = snap["FishCount"]!.GetValue<int>();
+            double old = prev > 0 && count < prev ? (double)(prev - count) / prev : 0.0;
+            snap["MortalityRate"] = old;
+            prev = count;
+        }
+        return root.ToJsonString(SaveJson.Options);
+    }
+
     internal static string AsBeforeU2_02Wrote(string savedJson, string variant, int day)
     {
         var root = JsonNode.Parse(savedJson)!.AsObject();
@@ -232,6 +257,18 @@ public class FarmTypeMoveTests
         root["CompletedTutorialStepIds"] = new JsonArray(OldTrackSteps.Take(index).Select(id => (JsonNode)JsonValue.Create(id)!).ToArray());
         return root.ToJsonString(SaveJson.Options);
     }
+
+    /// <summary>
+    /// The continuations once SHIP_PLAN cycle 1 put the analytics' mortality on
+    /// the ledger's deaths. With <see cref="AsBeforeShipC1Wrote"/> each is
+    /// <see cref="U2_02F2_15F2_08Recording"/> exactly (RUN_LOG §7).
+    /// </summary>
+    private static readonly IReadOnlyDictionary<string, string> ShipC1Recording = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["as-saved/events"] = "aa9da6de67fdbf44",
+        ["as-saved/no-events"] = "5b0f6137003f5508",
+        ["contained/events"] = "cb5aa90131d27768",
+    };
 
     /// <summary>
     /// The same continuations on the wave-4 integration's engine once U2-02
@@ -561,13 +598,14 @@ public class FarmTypeMoveTests
     /// <see cref="UnmovedByF2_08DayText"/>; <c>UnitDraws</c> counts the offshore
     /// unit's own day-stream draws over the run.
     /// </summary>
-    private static (string Hash, string BeforeU2_02Hash, string F2_12Hash, string SeaLaneHash, string UnmovedHash, ulong UnitDraws, SimulationEngine Engine, int RedCreditDays, string UnmovedBy08Hash) RecordContinuation(string variant)
+    private static (string Hash, string BeforeU2_02Hash, string F2_12Hash, string SeaLaneHash, string UnmovedHash, ulong UnitDraws, SimulationEngine Engine, int RedCreditDays, string UnmovedBy08Hash, string BeforeShipC1Hash) RecordContinuation(string variant)
     {
         var engine = Resume(variant);
         string unitId = engine.OffshoreUnits.Single().Id;
         string unitStream = SimRngStreams.OffshoreFarm + "/" + unitId;
         ulong unitStreamAtLoad = engine.Rng.CaptureStates()[SimRngStreams.OffshoreFarm + "\u0001" + unitId];
         var sb = new StringBuilder();
+        var sbBeforeC1 = new StringBuilder();
         var sbBeforeU2_02 = new StringBuilder();
         var sbF2_12 = new StringBuilder();
         var sbF2_07 = new StringBuilder();
@@ -581,6 +619,7 @@ public class FarmTypeMoveTests
             state = GoldenTraceState.Capture(engine);
             string dayHash = state.DayHash();
             sb.Append(dayHash).Append('\n');
+            sbBeforeC1.Append(dayHash).Append('\n');
             sbBeforeU2_02.Append(dayHash).Append('\n');
             sbF2_12.Append(dayHash).Append('\n');
             sbF2_07.Append(dayHash).Append('\n');
@@ -590,9 +629,11 @@ public class FarmTypeMoveTests
             if (day % SnapshotEveryDays == 0 || day == ContinuationDays)
             {
                 string save = SaveStateComparer.Normalize(SaveStateComparer.Serialize(engine));
-                string beforeU2_02 = AsBeforeU2_02Wrote(save, variant, day);
+                string beforeC1 = AsBeforeShipC1Wrote(save);
+                string beforeU2_02 = AsBeforeU2_02Wrote(beforeC1, variant, day);
                 string asF2_12 = AsF2_12Wrote(beforeU2_02);
                 sb.Append(GoldenTraceState.Hex(save, 8)).Append('\n');
+                sbBeforeC1.Append(GoldenTraceState.Hex(beforeC1, 8)).Append('\n');
                 sbBeforeU2_02.Append(GoldenTraceState.Hex(beforeU2_02, 8)).Append('\n');
                 sbF2_12.Append(GoldenTraceState.Hex(asF2_12, 8)).Append('\n');
                 sbF2_07.Append(GoldenTraceState.Hex(AsF2_07Wrote(asF2_12), 8)).Append('\n');
@@ -601,7 +642,7 @@ public class FarmTypeMoveTests
         static string Hash(StringBuilder text) =>
             Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text.ToString())), 0, 8).ToLowerInvariant();
         ulong unitDraws = GoldenTraceState.DrawsBetween(unitStreamAtLoad, state!.Streams[unitStream]);
-        return (Hash(sb), Hash(sbBeforeU2_02), Hash(sbF2_12), Hash(sbF2_07), Hash(sbUnmoved), unitDraws, engine, redCreditDays, Hash(sbUnmoved08));
+        return (Hash(sb), Hash(sbBeforeU2_02), Hash(sbF2_12), Hash(sbF2_07), Hash(sbUnmoved), unitDraws, engine, redCreditDays, Hash(sbUnmoved08), Hash(sbBeforeC1));
     }
 
     /// <summary>
@@ -630,7 +671,7 @@ public class FarmTypeMoveTests
     [MemberData(nameof(Variants))]
     public void PreF2FacilitiesSave_Runs365Days_ExactlyAsBeforeTheMove(string variant)
     {
-        var (hash, beforeU2_02Hash, f2_12Hash, seaLaneHash, unmovedHash, unitDraws, engine, redCreditDays, unmoved08) = RecordContinuation(variant);
+        var (hash, beforeU2_02Hash, f2_12Hash, seaLaneHash, unmovedHash, unitDraws, engine, redCreditDays, unmoved08, beforeC1Hash) = RecordContinuation(variant);
         var ras = engine.RASFacilities.Single(f => f.Kind == LandSiteKind.GrowOut);
         var postSmolt = engine.RASFacilities.Single(f => f.Kind == LandSiteKind.PostSmolt);
         var unit = engine.OffshoreUnits.Single();
@@ -697,7 +738,11 @@ public class FarmTypeMoveTests
             _output.WriteLine("not enforced here: this platform's math library differs from the recording's");
             return;
         }
-        Assert.Equal(U2_02F2_15F2_08Recording[variant], hash);
+        // SHIP_PLAN cycle 1 (RUN_LOG §7): the continuation with the analytics'
+        // mortality on the ledger's deaths; with it written back on the old
+        // definition the save is the wave-4 recording exactly.
+        Assert.Equal(ShipC1Recording[variant], hash);
+        Assert.Equal(U2_02F2_15F2_08Recording[variant], beforeC1Hash);
         Assert.Equal(F2_15F2_08Recording[variant], beforeU2_02Hash); // U2-02 changes no facility day: only the save's tutorial fields (D19)
         Assert.NotEqual(F2_15F2_08Recording[variant], hash);       // ... which the whole save does carry
         Assert.NotEqual(U2_02Recording[variant], hash);             // the wave-4 lanes run the unit in its sea and add the land sites' fields, on purpose

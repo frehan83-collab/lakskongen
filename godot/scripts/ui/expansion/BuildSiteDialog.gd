@@ -387,6 +387,10 @@ func _refresh() -> void:
 	_diagnosis.show_diagnosis(_sim.get_build_diagnosis())
 	var done := _built_site_id != "" or _done_kind != ""
 	_result_box.visible = done
+	# The binding constraint is advice for choosing; on the result it read as
+	# a red alarm about land and offshore capital over a sea site just built
+	# (SHIP_PLAN cycle 1 playtest, the first season's step 16).
+	_diagnosis_host.visible = not done
 	_family_header.visible = not done
 	_family_row.visible = not done
 	_scroll.visible = not done

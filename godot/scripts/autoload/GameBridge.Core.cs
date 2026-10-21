@@ -468,6 +468,15 @@ public partial class GameBridge : Node
     public int SustainabilityScore =>
         SimulationEngine?.SustainabilityManager?.CurrentScore ?? 0;
 
+    /// <summary>
+    /// True once the weekly sustainability assessment has run (day
+    /// <see cref="LakskongenSim.Sustainability.SustainabilityManager.AssessmentIntervalDays"/>):
+    /// before it the score reads 0 without being a verdict.
+    /// </summary>
+    public bool SustainabilityAssessed =>
+        (SimulationEngine?.State?.Day ?? 0) >= LakskongenSim.Sustainability.SustainabilityManager.AssessmentIntervalDays
+        || SustainabilityScore > 0;
+
     /// <summary>Current certification level as a string (e.g. "ASCCertified").</summary>
     public string SustainabilityLevel =>
         SimulationEngine?.SustainabilityManager?.CurrentCertification.ToString() ?? "NonCompliant";

@@ -15,6 +15,7 @@ UI_KPI_FCR_LABEL,FEED RATIO (FCR),FÔRFAKTOR (FCR)
 UI_DASHBOARD_BIOMASS_FORMAT,%s tonnes,%s tonn
 UI_DASHBOARD_REVENUE_FORMAT,%s MNOK,%s MNOK
 UI_DASHBOARD_HEALTH_GOOD,Good,God
+UI_DASHBOARD_HEALTH_PENDING,First assessed on day 7,Vurderes første gang dag 7
 UI_DASHBOARD_HEALTH_STABLE,Stable,Stabil
 UI_DASHBOARD_HEALTH_LOW,Low,Lav
 UI_DASHBOARD_FCR_BETTER,Better than target (%s),Bedre enn målet (%s)
@@ -2340,6 +2341,7 @@ EXPANSION_ZONE_YOURS_MANY,Your zone · %d sites,Din sone · %d lokaliteter
 EXPANSION_ZONE_YOURS_ONE,Your zone · %d site,Din sone · %d lokalitet
 FEEDPLAN_APPLY,Apply to %s,Bruk på %s
 FEEDPLAN_APPLY_ALL,Feed all (%d sites),Fôr alle (%d lokaliteter)
+FEEDPLAN_APPLY_ALL_ONE,Feed all (1 site),Fôr alle (1 lokalitet)
 FEEDPLAN_APPLY_ALL_TIP,"The same ration, feed type and duration for every site.","Samme fôrmengde, fôrtype og varighet for alle lokalitetene."
 FEEDPLAN_APPLY_TIP,Feed this site this way from today.,Fôr denne lokaliteten slik fra i dag.
 FEEDPLAN_COL_CHANGE,vs full appetite,mot full appetitt
@@ -2856,7 +2858,7 @@ TUTORIAL_CARD_SKIP_OK,Skip the tutorial,Hopp over opplæringen
 TUTORIAL_CARD_SKIP_TIP,"Skip the tutorial: free play, but no win for the first season","Hopp over opplæringen: fri spilling, men ingen seier i Første sesong"
 TUTORIAL_CARD_STEP_DONE,Step %d done: %s,Steg %d fullført: %s
 TUTORIAL_CARD_WAIT,Wait for this,Vent på dette
-TUTORIAL_FEED_PLAN_DO,"Pick a plan on the «Feeding plan» card, for example 30 days, and press «Apply to …».","Velg en plan på kortet «Fôringsplan», for eksempel 30 dager, og trykk «Bruk på …»."
+TUTORIAL_FEED_PLAN_DO,"Pick a plan on the «Feeding plan» card, for example «Moderate 85 %», and press «Apply to …».","Velg en plan på kortet «Fôringsplan», for eksempel «Moderat 85 %», og trykk «Bruk på …»."
 TUTORIAL_FEED_PLAN_TEXT,"Feed is your largest cost. The plan sets how much of their appetite the fish get, which feed and for how long. The card shows what your choice does to growth, feed conversion and cost before you commit.","Fôret er den største kostnaden din. Planen bestemmer hvor mye av appetitten fisken får, hvilket fôr og hvor lenge. Kortet viser hva valget gjør med veksten, fôrfaktoren og kostnaden før du bestemmer deg."
 TUTORIAL_FEED_PLAN_TITLE,The feeding plan,Fôringsplanen
 TUTORIAL_FUNDING_DO,"Take a loan under «Økonomi» (finance), or wait until the bank balance reaches the target below.","Ta opp et lån under «Økonomi», eller vent til banken når målet under."

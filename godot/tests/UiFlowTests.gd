@@ -59,6 +59,7 @@ func _run() -> void:
 	await _test_dashboard_night_shift_policy()
 	await _test_tech_tree_lays_out_every_node()
 	await _test_goal_hud_shows_engine_progress()
+	await _test_first_week_sustainability_is_pending()
 	await _test_ras_panel_stocks_and_harvests()
 	await _test_finance_panel_takes_and_repays_loans()
 	await _test_analytics_panel_charts_every_metric()
@@ -423,6 +424,33 @@ func _test_goal_hud_shows_engine_progress() -> void:
 		"goal HUD: time left counts from the scenario start (%s)" % (time_label.text if time_label else "missing"))
 	hud.queue_free()
 	await get_tree().process_frame
+
+## SHIP_PLAN cycle 1: the sustainability score is first assessed on day 7.
+## Before it every new game warned "Bærekraft under kravet: 0/100" and the
+## dashboard read 0 %. Now: no alert and a pending reading until day 7, then
+## a real score.
+func _test_first_week_sustainability_is_pending() -> void:
+	_check(_sim.start_new_game("Player", 4_000_000, "forste_sesong"), "sustainability: a new game starts")
+	_sim.set_paused(true)
+	_sim.advance_days(3)
+	_sim._refresh_state()
+	var early: Array = (_sim.active_alerts as Array).filter(func(a: Dictionary) -> bool: return str(a.get("key", "")) == "sustainability")
+	_check(not _sim.sustainability_assessed and early.is_empty(),
+		"sustainability: day 3 is not yet assessed and raises no '0/100' alert (%d alerts)" % early.size())
+	var dash: Control = (load("res://scenes/ui/Dashboard.tscn") as PackedScene).instantiate()
+	add_child(dash)
+	await get_tree().process_frame
+	dash._refresh_kpis()
+	var value: Label = dash.get("_kpi_health_value")
+	_check(value != null and value.text == "–" and (dash.get("_kpi_health_change") as Label).text == tr("UI_DASHBOARD_HEALTH_PENDING"),
+		"sustainability: the dashboard says when the first assessment comes, never 0 %% ('%s')" % (value.text if value else "missing"))
+	dash.queue_free()
+	_sim.advance_days(5)
+	_sim._refresh_state()
+	_check(_sim.sustainability_assessed and int(_sim.sustainability_score) > 0,
+		"sustainability: from day 7 the score is assessed (%d)" % int(_sim.sustainability_score))
+	await get_tree().process_frame
+
 
 ## F383: a RAS facility holds fish — the panel's buttons stock it once it is
 ## operational and harvest it, through the engine verbs.
@@ -7035,6 +7063,8 @@ func _test_expansion_builds_the_tutorials_second_site() -> void:
 	_check(_sim.get_all_pens().size() == 2, "expansion: the confirm built the second site (%d sites)" % _sim.get_all_pens().size())
 	_check(dialog.get_node("%ResultBox").visible and confirm.text == tr("EXPANSION_BUILD_VIEW_BUTTON"),
 		"expansion: the dialog says the site is built and offers to show it")
+	_check(not (dialog.get_node("%DiagnosisHost") as Control).is_visible_in_tree(),
+		"expansion: the result shows no bottleneck strip (cycle 1: a red land/offshore capital alarm over a sea site just built)")
 	await _click_control(dialog.get_node("%CancelBtn"))
 	_check(not dialog.visible and section.zone_card("fjord_west") != null,
 		"expansion: closing the dialog returns to the map")

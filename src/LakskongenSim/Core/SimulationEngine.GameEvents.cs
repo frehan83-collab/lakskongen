@@ -165,13 +165,23 @@ public partial class SimulationEngine
         GameEventBus.KeyOf(GameEventCatalog.Describe(type).Category, siteId, "");
 
     /// <summary>Fish escaped from a site: critical (fines, Mattilsynet, the nets).</summary>
-    private void PublishEscapeEvent(SeaSite site, int escapees, string description)
+    /// <summary>
+    /// Escapes of at least this many fish are critical (a card that holds the
+    /// clock); smaller ones are warnings. Every escape is still fined, logged
+    /// and in the inbox, as every real escape must be reported, but a pause
+    /// card for one fish through a worn net cried wolf (SHIP_PLAN cycle 1
+    /// playtest: "KRITISK HENDELSE — 1 fisk rømte"). Game balance.
+    /// </summary>
+    internal const int EscapeCriticalFish = 100;
+
+    internal void PublishEscapeEvent(SeaSite site, int escapees, string description)
     {
         PublishGameEvent(new GameEventRequest(GameEventType.Escape, State.Day)
         {
             SiteId = site.Id,
             Message = description,
-            Value = escapees
+            Value = escapees,
+            Severity = escapees >= EscapeCriticalFish ? GameEventSeverity.Critical : GameEventSeverity.Warning,
         });
     }
 

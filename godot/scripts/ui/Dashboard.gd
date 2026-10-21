@@ -489,12 +489,21 @@ func _refresh_kpis() -> void:
 	_kpi_revenue_change.text = _trend_text(revenue_trend)
 	LakskongenTheme.set_text_color(_kpi_revenue_change, _trend_color(revenue_trend, true))
 
-	# Health (use sustainability score as proxy)
+	# Health (use sustainability score as proxy). Before the first weekly
+	# assessment there is no score yet: say when it comes, never "0 %"
+	# (SHIP_PLAN cycle 1: every new game showed 0 % through its first week).
 	var health: int = int(_sim.sustainability_score)
-	_kpi_health_value.text = SimFormatters.percent(health / 100.0)
-	_flash_kpi(_kpi_health_value, float(health), _prev_health, true, 0.01)
-	_prev_health = float(health)
-	if health >= 90:
+	if not _sim.sustainability_assessed:
+		_kpi_health_value.text = "–"
+		_kpi_health_change.text = tr("UI_DASHBOARD_HEALTH_PENDING")
+		LakskongenTheme.set_tone(_kpi_health_change, &"Muted")
+	else:
+		_kpi_health_value.text = SimFormatters.percent(health / 100.0)
+		_flash_kpi(_kpi_health_value, float(health), _prev_health, true, 0.01)
+		_prev_health = float(health)
+	if not _sim.sustainability_assessed:
+		pass
+	elif health >= 90:
 		_kpi_health_change.text = "▲ " + tr("UI_DASHBOARD_HEALTH_GOOD")
 		LakskongenTheme.set_tone(_kpi_health_change, &"Ok")
 	elif health >= 70:

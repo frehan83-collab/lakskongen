@@ -367,7 +367,7 @@ namespace LakskongenSim.Core;
     internal sealed class SustainabilityTickSystem : ITickSystem, ITickClock
     {
         private int _lastSustainabilityUpdate = 0;
-        private const int SustainabilityUpdateInterval = 7;
+        private const int SustainabilityUpdateInterval = LakskongenSim.Sustainability.SustainabilityManager.AssessmentIntervalDays;
         public void Tick(SimulationEngine engine)
         {
             if (engine.State.Day - _lastSustainabilityUpdate >= SustainabilityUpdateInterval)

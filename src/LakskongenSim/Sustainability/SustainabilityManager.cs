@@ -43,6 +43,14 @@ namespace LakskongenSim.Sustainability
         // Configuration (loaded from JSON)
         private SustainabilityConfig _config;
 
+        /// <summary>
+        /// Days between sustainability assessments; the first is on this day.
+        /// Before it the score is not yet assessed (it reads 0), which the UI
+        /// must not present as a verdict (SHIP_PLAN cycle 1: every new game
+        /// warned "Bærekraft under kravet: 0/100" through its first week).
+        /// </summary>
+        public const int AssessmentIntervalDays = 7;
+
         public int CurrentScore { get; private set; }
         public CertificationLevel CurrentCertification { get; private set; }
 
