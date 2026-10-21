@@ -140,9 +140,10 @@ distances of this close's harness frames against it (`visual_qa.phash`, no captu
   20_* frames are not in `visual_qa/config.py`, and none of the 115 `shots.json` shots is in
   visual QA. Adding any of them is the owner's call.
 - **The A/B that was dropped:** the harness on an export of `origin/main` (`git archive`, built
-  and imported in the scratchpad) captured 01 and then hung on the next shot for 15 minutes
-  (it loaded the day-30 autosave that this close's runs left in the shared `user://`); it was
-  stopped. Attributing each shot exactly needs that A/B with a clean `user://`.
+  and imported in the scratchpad) captured 01, then its menu loaded the day-30 autosave already
+  in the shared `user://saves` (written 2026-10-20 20:49, before the close) and hung for 15
+  minutes; it was stopped. `main` predates U2-08's by-path rules, so attributing each shot
+  exactly needs that A/B with a clean `user://`.
 
 ## Per-shot review
 
