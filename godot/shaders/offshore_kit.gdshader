@@ -37,6 +37,15 @@ uniform float ao_light_affect : hint_range(0.0, 1.0) = 0.35;
 uniform float night_light : hint_range(0.0, 1.0) = 0.0;
 uniform float emission_energy = 0.9;
 uniform vec3 glass_color : source_color = vec3(0.10, 0.13, 0.15);
+// F2-23 (spec §5.5 rule 1: the home view shows landmarks): far off, the
+// distance fog takes the hull's safety yellow down to a grey sliver; by day
+// the hull keeps a share of its own colour through it (lifted by the light
+// the fog takes, from LANDMARK_FROM_M on; the presenter's landmark_lift
+// is 0 at night) so the unit still reads as the yellow landmark.
+uniform float landmark_lift : hint_range(0.0, 4.0) = 0.0;
+uniform float fog_density = 0.0;
+const float LANDMARK_FROM_M = 900.0;
+const float LANDMARK_FULL_M = 1800.0;
 // Nav lanterns: 0 by day; F2-21 drives it with the night.
 uniform float nav_lights : hint_range(0.0, 1.0) = 0.0;
 uniform float nav_energy = 9.0;
@@ -135,6 +144,13 @@ void fragment() {
 	} else {
 		ALBEDO = albedo;
 		ROUGHNESS = rough;
+		if ((row == ROW_HULL || row == ROW_SPLASH) && landmark_lift > 0.0) {
+			float d = length(VERTEX);
+			float tr = exp(-fog_density * d);
+			// Through haze only: in rain, snow or a storm (tr < 0.4) the chip
+			// carries the read, and a lit hull in the murk would glow.
+			emit = albedo * landmark_lift * (1.0 - tr) * smoothstep(0.25, 0.5, tr) * smoothstep(LANDMARK_FROM_M, LANDMARK_FULL_M, d);
+		}
 	}
 	METALLIC = 0.0;
 	SPECULAR = glow ? 0.6 : 0.45;

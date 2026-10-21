@@ -132,6 +132,8 @@ const WALLS_TOP_PROGRESS := 0.96
 
 ## The unit this campus draws (a SimBridge.get_facility_visuals row).
 var view: Dictionary = {}
+## F2-23: the yard's lamps and pools of light after dark (CampusLights).
+var lights: CampusLights = null
 ## The pad (FjordTerrain.land_pad_slots row: centre, size, quay).
 var pad: Dictionary = {}
 
@@ -216,6 +218,9 @@ func build(unit_view: Dictionary, pad_slot: Dictionary) -> void:
 	_build_tank_multimeshes()
 	_build_groups()
 	_build_area()
+	lights = CampusLights.new()
+	add_child(lights)
+	lights.build(self)
 	apply_state(unit_view)
 
 
@@ -562,6 +567,8 @@ func _build_tank_multimeshes() -> void:
 			for building in [false, true]:
 				var mmi := _new_mmi("%s_LOD%d%s" % [asset, band, "_build" if building else ""], kit_mesh(asset, LODS[band]))
 				mmi.set_instance_shader_parameter("build_height_m", GROWOUT_H if asset == "tank_growout" else PREGROW_H)
+				# F2-23: the lid work-lights' pool spans the tank's own lid.
+				mmi.set_instance_shader_parameter("lid_radius_m", (GROWOUT_D if asset == "tank_growout" else PREGROW_D) * 0.5)
 				mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if band < 2 else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 				if building:
 					mmi.material_override = BUILD_MATERIAL
@@ -785,6 +792,8 @@ func apply_state(unit_view: Dictionary) -> void:
 	_set_group("utility", phase_share(site_build, "first_tanks"))
 	for k in lots.size():
 		_set_group("lot%d" % k, phase_share((lots[k] as Dictionary).get("build", site_build), "treatment_hall"))
+	if lights != null:
+		lights.set_built(built_groups(), tanks, _progress)
 	# A day that changes no tank uploads nothing (most days of a running site).
 	if tanks_changed or _uploaded_once == false:
 		_uploaded_once = true
@@ -805,6 +814,15 @@ func _set_group(group_name: String, share: float) -> void:
 		mi.set_instance_shader_parameter("build_cut_m", lerpf(rise.x, rise.y, share) if share < 1.0 else 100000.0)
 		# Cut open while it rises: drawn double-sided so its far walls show inside.
 		mi.material_override = BUILD_MATERIAL if share < 1.0 else MATERIAL
+
+
+## The groups standing whole now (name -> true): what CampusLights lights.
+func built_groups() -> Dictionary:
+	var out := {}
+	for group_name: String in _group_share:
+		if float(_group_share[group_name]) >= 1.0:
+			out[group_name] = true
+	return out
 
 
 ## How far the pad's blast has spread (0 heath .. 1 the campus's ground blasted).

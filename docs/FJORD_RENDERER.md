@@ -269,7 +269,14 @@ fly there, the pitch kept as an offset from the distance table's so Home
 restores the table. The focus clamp and the camera-position clamp both take
 the union of the world box and every target's disc, so a unit beyond the
 world's edge can be framed and orbited. The facility presenter registers each
-unit; the bookmark key and the framings' horizon rule are F2-21's.
+unit and (F2-21) every pad and slot (`plot:<id>`), each with its own yaw; G
+(the input action `camera_bookmark`) cycles Fjord (home) → Land → Hav, and
+the hint's chip names the place. The framings keep the horizon 10-25 % from
+the top (FJORD 13.1 %, COAST 12.7 %, OF1 220 m −18° 14.1 %, Havfarm class
+700 m −16° 15.9 %); a campus's framing yaw is the side that keeps the rig at
+−35..−45°. Near the focus the sight-line clearance tapers (`FOCUS_GROUND_M`),
+so the ground a framing looks at does not lift it. A cinematic (F2-23) poses
+the camera itself (`cinematic_pose`) with the rig stopped and its keys off.
 
 The water grid (`WaterGrid.gd`, below) runs out to ±32.8 km under the far
 field, so the view out of the mouth ends at a horizon.
@@ -799,7 +806,8 @@ longer has (a cancelled build) is freed, and nothing else moves.
 - **Lights** (presentation clock, D20): from a sun elevation of 6° down to
   −2° the kits' windows, lid work-lights and roof lights come up to 0.8
   (`night_light` on `LK_FacilityKit`, its build twin and `LK_OffshoreKit`);
-  the offshore lanterns flash at night.
+  the offshore lanterns flash at night. F2-23 adds the lamps, the pools and
+  the compensation below.
 - **Picking**: a click on a tank (an `Area3D` cylinder per tank) or a unit
   opens `FacilityWorldCard` (the unit, its variant and plot, the tank's
   number, lot and fish, the engine's phase name with "Byggefase n av m", why
@@ -830,6 +838,65 @@ is measured at the home view (the P0-04 view); at the units' own framings
 counts measured at the wave-4b merge are regression ceilings. Evidence
 `docs/run/evidence/f2_20_presenter.md`,
 `docs/run/evidence/wave4b_int_gfx_farm_1.md`.
+
+### The open sea, first sight and the farm types after dark (F2-21, F2-23)
+
+- **The open sea at a unit.** The presenter targets the plot of the offshore
+  unit nearest the camera's focus (`EnvironmentDirector.set_target_sea` with
+  the engine's `today`: Hs and its split into wind sea and swell,
+  `SimulationEngine.OpenSeaPartsAt`). `OpenSea.gd` draws the open coast as
+  that sea: the wind sea as the JONSWAP bands of the wind whose open-coast sea
+  has that height (`SeaStateModel.WindForHeight`), scaled to exactly
+  Σa² = wind sea²/8, and a swell on two bands beyond the wind sea's 128 m
+  (280 m and 160 m, `SwellAmplitudes`), each two long-crested Gerstner
+  components (152-168 m, 265-295 m, 6° apart, from the WSW), so across both
+  Σa² = Hs²/8. `water/water_swell.gdshaderinc` adds the swell to the exposed
+  sea only (sheltered amplitude 0; its slope per vertex, the `v_swell`
+  varying) and `WaveField` carries it, so the units heave on it. A new
+  target eases in at 0.6/s; with none the coast is the wind model's and has
+  no swell. The director is the only writer of `swell_k` and `swell_amp`.
+- **The Hs chip.** Each offshore unit carries an Ink chip with the engine's
+  forecast ("Hs 2,4 m · Tp 10 s · i morgen 3,1 m · behandlingsvindu om 3 d")
+  within 1,000 m and wherever fog or sea fog hides it (spec §5.5 rule 2), its
+  status as a colour and a shape, every colour ≥ 20 ΔE off the hull yellow.
+- **First sight.** A variant's first unit in operation plays one sequence
+  of ≤ 20 s (`FirstSightDirector`, `godot/data/first_sight.json`): a 4 s
+  construction timelapse through the presenter's own drawing, then the
+  camera on keys anchored to the unit (land: low over the quay, along the
+  orange bridge to the tanks as their lights come on in a wave, up to the
+  campus's −40° framing, at Blåtime; offshore: from behind the service vessel
+  up to the OF1 framing at the low sun, a wellboat coming in), ending on the
+  camera's own framing, then the card ("Lagre bilde", "Fortsett"). Esc or a
+  click skips it; a repeat gets a toast; reduced motion gets a still and a
+  2 s cross-fade. `CinematicStage` holds the clock and pins the hour, the
+  weather and the mood (`set_mood_hook`), and gives them back.
+- **The teaser** (`TeaserDirector`, Første sesong only): once after day 150,
+  while no tutorial step asks anything of the player, a parody rival's OF1-
+  class hull at its transit draft is towed by three anchor tugs past the
+  mouth toward hav_1 (a 13 s telephoto from the strandflat in the morning sun
+  at the camera's back), then a news card that offers "Fortsett" only.
+  Presentation only: the engine state hash is unchanged.
+- **After dark.** The kits' night lights are compensated for the eye's
+  exposure (`night_comp`: the windows kept their brightness instead of
+  blooming at the night's 16×) and can come on in a wave
+  (`light_wave_origin`/`radius`); the lids carry the work-lights' warm pool
+  on their rims. `CampusLights` draws every lamp of a campus as a camera-
+  facing glow (`campus_light_glow.gdshader`: the tanks' rail lamps, the
+  quay's masts, the hall's wall lamps, the bridge's walkway, road masts) and
+  up to six warm pools of light on the ground, whose energy the director
+  writes (`EnvironmentDirector.LIGHT_POOL_GROUP`).
+- **Landmarks at the home view.** By day, from 900 m to 1,800 m, the hull
+  rows and the pale wall and cladding rows keep a share of their own light
+  through haze (`landmark_lift`, gated to transmittance ≥ 0.25-0.5), so the
+  OF1 and the campus read in overcast; in rain, snow and storm the chip
+  carries the read.
+
+Frames and checks: `qa/scenes/ShowcaseCapture.tscn` (shots
+`30_land_campus_day`, `31_land_dusk`, `32_land_construction`,
+`33_offshore_of1_winter_sun`, `35_offshore_storm`,
+`36_home_{overcast,rain,snow,storm}_landmarks`, `34_first_sight_*`,
+`34_teaser_*`; metrics `f2_23_showcase_metrics.json`). Evidence
+`docs/run/evidence/f2_21_camera_sea.md`, `f2_23_first_sight.md`.
 
 ## Image pipeline (G1-06, post and anti-aliasing)
 

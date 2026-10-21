@@ -58,6 +58,25 @@
           }
         },
         "variant_of": {"type": "string"},
+        "sun_elevation_deg": {"type": "number", "minimum": -20, "maximum": 60, "description": "F2-23: the shot's hour is the hour of its day when the sun, going down, stands at this elevation (deg)."},
+        "open_sea": {
+          "type": "object",
+          "description": "F2-21: the open sea's target, staged as a weather is (EnvironmentDirector.set_target_sea).",
+          "required": ["hs", "wind_sea_hs", "swell_total_hs", "swell_tp"],
+          "additionalProperties": false,
+          "properties": {
+            "hs": {"type": "number", "minimum": 0},
+            "wind_sea_hs": {"type": "number", "minimum": 0},
+            "swell_total_hs": {"type": "number", "minimum": 0},
+            "swell_tp": {"type": "number", "minimum": 0}
+          }
+        },
+        "checks": {
+          "type": "array",
+          "description": "F2-21/F2-23: the content checks ShowcaseCapture runs on the shot.",
+          "items": {"enum": ["campus", "orange", "lights_ab", "sky", "of1", "storm", "chip", "landmarks", "first_sight", "teaser"]},
+          "uniqueItems": true
+        },
         "pad_state": {
           "type": "object",
           "description": "F2-19: land pad id -> terrain pad_state (0 heath, 1 blasted granite); pads left out stay heath.",
@@ -125,7 +144,9 @@
       "required": ["mode"],
       "additionalProperties": false,
       "properties": {
-        "mode": {"enum": ["home", "focus"]},
+        "mode": {"enum": ["home", "focus", "target", "first_sight", "teaser"]},
+        "t": {"type": "number", "minimum": 0, "description": "first_sight, teaser: the sequence's time (s)."},
+        "reduced": {"type": "boolean", "description": "first_sight, teaser: the reduced-motion still."},
         "target": {"type": "string"},
         "distance_m": {"type": "number", "exclusiveMinimum": 0},
         "pitch_deg": {"type": "number", "minimum": -90, "maximum": 0},

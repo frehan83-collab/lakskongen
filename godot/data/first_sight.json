@@ -1,0 +1,82 @@
+{
+  "schema": "lakskongen.first_sight/1",
+  "doc": "First sight (roadmap F2-23, farm-types spec §6.4): the one sequence that plays when the company's first unit of a variant comes into operation; a repeat build of the variant gets a toast. Read by godot/scripts/visual/FirstSightDirector.gd. Times are seconds from the start; a camera key is an anchor and an offset: land offsets in the pad's own frame (u toward its quay edge, v along it, y up, m), offshore offsets in the unit's (x from the ring toward its service vessel, z across, y up). Anchors: land 'campus' (the campus's middle), 'quay' (the pipe bridge's foot on the quay), 'bridge' (the bridge's middle), 'lots' (the first lot's tanks), offshore 'unit' (the ring's centre), 'vessel' (the service vessel); both 'final' (where the camera's own framing of the unit stands: the sequence hands the camera back there without a jump) and 'focus' (what that framing looks at).",
+  "max_seconds": 20.0,
+  "fade_in_seconds": 0.6,
+  "restore_fade_seconds": 0.45,
+  "toast_seconds": 3.0,
+  "reduced_motion": {
+    "crossfade_seconds": 2.0,
+    "hold_seconds": 4.5
+  },
+  "families": {
+    "land": {
+      "mood": "blaatime",
+      "mood_strength": 1.0,
+      "sun_elevation_deg": -3.5,
+      "weather": "clear",
+      "timelapse_seconds": [0.0, 4.0],
+      "lights_on_seconds": [6.0, 12.5],
+      "end_card_seconds": [15.8, 19.0],
+      "fov_deg": 40.0,
+      "keys": [
+        {"t": 0.0, "eye": ["campus", [470.0, -330.0, 165.0]], "look": ["campus", [0.0, 0.0, 0.0]]},
+        {"t": 4.0, "eye": ["campus", [360.0, -230.0, 105.0]], "look": ["campus", [0.0, 0.0, 0.0]]},
+        {"t": 6.2, "eye": ["quay", [72.0, 42.0, 24.0]], "look": ["quay", [-170.0, -2.0, 12.0]]},
+        {"t": 9.4, "eye": ["bridge", [-10.0, 30.0, 23.0]], "look": ["lots", [10.0, 0.0, 6.0]]},
+        {"t": 12.6, "eye": ["lots", [105.0, 125.0, 58.0]], "look": ["lots", [0.0, 0.0, 6.0]]},
+        {"t": 15.6, "eye": ["final", [0.0, 0.0, 0.0]], "look": ["focus", [0.0, 0.0, 0.0]]}
+      ]
+    },
+    "hav": {
+      "mood": "sommerdag",
+      "mood_strength": 0.85,
+      "sun_elevation_deg": 6.0,
+      "weather": "clear",
+      "timelapse_seconds": [0.0, 4.0],
+      "lights_on_seconds": [],
+      "end_card_seconds": [15.6, 19.0],
+      "fov_deg": 44.0,
+      "wellboat_seconds": [6.0, 16.0],
+      "keys": [
+        {"t": 0.0, "eye": ["unit", [-330.0, -260.0, 95.0]], "look": ["unit", [0.0, 0.0, 12.0]]},
+        {"t": 4.0, "eye": ["unit", [-250.0, -190.0, 62.0]], "look": ["unit", [0.0, 0.0, 12.0]]},
+        {"t": 6.0, "eye": ["vessel", [62.0, -38.0, 9.0]], "look": ["unit", [0.0, 0.0, 14.0]]},
+        {"t": 9.0, "eye": ["vessel", [120.0, -90.0, 30.0]], "look": ["unit", [0.0, 0.0, 10.0]]},
+        {"t": 14.2, "eye": ["final", [0.0, 0.0, 0.0]], "look": ["focus", [0.0, 0.0, 0.0]]}
+      ]
+    }
+  },
+  "teaser": {
+    "doc": "The teaser (farm-types spec §6.1 item 1, F2-23 acceptance 6), read by godot/scripts/visual/TeaserDirector.gd: in `scenario`, once, at the first moment after `after_day` when no tutorial step asks the player for anything (the tutorial not running, or its step a wait), never from `skip_from_day` on, on a timeline the director saw begin by `after_day`. A parody rival's hull (the OF1-class model raised to `tow.transit_draft_m`, no net) and its anchor tugs (`tow.tugs`: [ahead of the ring, to the side] m, a tow line each) follow `tow.path` (world x, z; Catmull-Rom) over `tow.seconds`, past the mouth toward `plot`. The light: the morning sun (`sun_rising`) at `sun_elevation_deg`, at the camera's back as it looks out west. Camera keys: `eye` a world point, `look` ['tow', offset] (the hull's waterline axis plus a world offset) or a world point; `fov_deg` [start, end]. The news card (\"Fortsett\" only: no build offered) from `card_seconds`. Times in seconds from the start.",
+    "scenario": "forste_sesong",
+    "after_day": 150,
+    "skip_from_day": 300,
+    "plot": "hav_1",
+    "seconds": 13.0,
+    "fade_in_seconds": 0.6,
+    "restore_fade_seconds": 0.45,
+    "mood": "sommerdag",
+    "mood_strength": 0.8,
+    "sun_elevation_deg": 32.0,
+    "sun_rising": true,
+    "weather": "clear",
+    "fov_deg": [17.0, 15.0],
+    "card_seconds": [8.4, 12.5],
+    "reduced_motion": {
+      "crossfade_seconds": 2.0,
+      "hold_seconds": 4.5,
+      "still_at_seconds": 6.0
+    },
+    "tow": {
+      "transit_draft_m": 23.0,
+      "seconds": [0.0, 13.0],
+      "path": [[1150.0, -3250.0], [800.0, -3450.0], [380.0, -3800.0], [120.0, -4300.0], [20.0, -4900.0]],
+      "tugs": [[400.0, 0.0], [250.0, -90.0], [250.0, 90.0]]
+    },
+    "keys": [
+      {"t": 0.0, "eye": [300.0, 16.0, -1720.0], "look": ["tow", [-200.0, -85.0, 0.0]]},
+      {"t": 13.0, "eye": [230.0, 15.0, -1760.0], "look": ["tow", [-60.0, -105.0, 0.0]]}
+    ]
+  }
+}

@@ -64,6 +64,57 @@ namespace LakskongenSim.Environment
         /// </summary>
         public static readonly double[] BandWavelengthsM = { 128.0, 68.4, 36.6, 19.6, 10.5, 5.6, 3.0, 1.6 };
 
+        /// <summary>
+        /// Wavelengths (m) of the two swell bands the renderer adds to the open
+        /// sea (F2-21, farm-types spec §4 "Wave driver"): a long, heavy swell
+        /// beyond <see cref="BandWavelengthsM"/>' 128 m, at the deep-water
+        /// wavelengths of the offshore model's 10.1 s and 13.4 s swells
+        /// (1.56·Tp², its swell periods running 9-14 s), longest first.
+        /// </summary>
+        public static readonly double[] SwellBandWavelengthsM = { 280.0, 160.0 };
+
+        /// <summary>
+        /// Amplitudes (m) of the swell bands for a swell of significant height
+        /// <paramref name="hsM"/> and peak period <paramref name="tpS"/>: the
+        /// JONSWAP energy shared over <see cref="SwellBandWavelengthsM"/> (the
+        /// end bands take the tails), Σa² = Hs²/8. A zero swell returns zeros.
+        /// </summary>
+        public static double[] SwellAmplitudes(double hsM, double tpS)
+            => BandAmplitudes(new WindSea(Math.Max(hsM, 0.0), Math.Max(tpS, 0.0)), SwellBandWavelengthsM);
+
+        /// <summary>
+        /// The 10 m wind (m/s) whose sea over <paramref name="fetchM"/> has the
+        /// significant height <paramref name="hsM"/> (the inverse of
+        /// <see cref="Derive"/>, by bisection: the height grows with the wind in
+        /// both regimes). The renderer draws a given open-sea wind sea (the
+        /// offshore model's) with the spectrum of this wind (F2-21). Zero for a
+        /// calm sea; capped at <see cref="MaxEquivalentWindMs"/>.
+        /// </summary>
+        public static double WindForHeight(double hsM, double fetchM)
+        {
+            if (hsM <= 0.0 || fetchM <= 0.0)
+                return 0.0;
+            double lo = CalmWindMs;
+            double hi = MaxEquivalentWindMs;
+            if (Derive(hi, fetchM).SignificantHeightM <= hsM)
+                return hi;
+            for (int i = 0; i < InverseSteps; i++)
+            {
+                double mid = 0.5 * (lo + hi);
+                if (Derive(mid, fetchM).SignificantHeightM < hsM)
+                    lo = mid;
+                else
+                    hi = mid;
+            }
+            return 0.5 * (lo + hi);
+        }
+
+        /// <summary>The strongest wind (m/s) <see cref="WindForHeight"/> returns: a hurricane-force 10 m wind.</summary>
+        public const double MaxEquivalentWindMs = 60.0;
+
+        /// <summary>Bisection steps of <see cref="WindForHeight"/> (60 m/s halved 64 times: far below a float's step).</summary>
+        private const int InverseSteps = 64;
+
         /// <summary>The fetch-limited (or fully developed) wind sea for a wind and a fetch.</summary>
         public static WindSea Derive(double windMs, double fetchM)
         {

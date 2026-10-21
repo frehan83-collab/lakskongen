@@ -166,6 +166,12 @@ func _run() -> void:
 	await _test_offshore_bridge_verbs()
 	# F2-20: the facility presenter draws the engine's land sites and offshore units.
 	await _test_facilities_render()
+	# F2-21: camera targets, the G bookmarks, the open sea and the unit's chip (tests/CameraSeaChecks.gd).
+	await preload("res://tests/CameraSeaChecks.gd").new().run(self)
+	# F2-23: the first sight and the night lights (tests/FirstSightChecks.gd).
+	await preload("res://tests/FirstSightChecks.gd").new().run(self)
+	# F2-23 acceptance 6: the teaser (tests/TeaserChecks.gd).
+	await preload("res://tests/TeaserChecks.gd").new().run(self)
 	# F2-04: the farm-type catalogue and the research gates reach the UI.
 	await _test_farm_type_catalog_reaches_the_ui()
 	# F2-05: the Driftsplan card sets, changes and ends standing orders.

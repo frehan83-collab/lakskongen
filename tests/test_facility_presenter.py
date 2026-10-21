@@ -213,7 +213,7 @@ def test_the_of1_unit_reads_as_hull_yellow_where_it_stands(metrics):
 
 def test_the_presenter_only_reads_the_engine():
     """The presenter calls no SimBridge or GameBridge verb but its reads."""
-    reads = {"get_facility_visuals", "get_land_plots", "get_offshore_plots"}
+    reads = {"get_facility_visuals", "get_land_plots", "get_offshore_plots", "get_sea_state_forecast"}
     for path in PRESENTER:
         text = path.read_text()
         for verb in QA_VERBS:
@@ -230,7 +230,9 @@ def test_the_presenter_only_reads_the_engine():
 # the three reads (or has_method / has_signal, or connecting to state_updated).
 SIM_BINDING = re.compile(r'(?:var\s+)?([A-Za-z_]\w*)\s*(?::\s*[A-Za-z_]\w*\s*)?:?=\s*get_node(?:_or_null)?\(\s*"/root/SimBridge"\s*\)')
 SIM_SAFE_MEMBERS = {"has_method", "has_signal"}
-SIM_READS = {"get_facility_visuals", "get_land_plots", "get_offshore_plots"}
+# F2-21 adds the sea at an offshore unit (the engine's cached forecast and
+# its split of today's sea; test_the_sea_read_is_the_engines_pure_forecast).
+SIM_READS = {"get_facility_visuals", "get_land_plots", "get_offshore_plots", "get_sea_state_forecast"}
 
 
 def _code_only(text: str) -> str:
@@ -372,6 +374,29 @@ def test_the_engine_rule_catches_the_known_ways_round_it():
     ]
     for text in allowed:
         assert engine_rule_breaches(text) == [], text[-400:]
+
+
+def test_the_sea_read_is_the_engines_pure_forecast():
+    """F2-21 (RUN_LOG §7): the presenter's fourth read, get_sea_state_forecast,
+    is the bridge's GetSeaStateForecast, which touches the engine through two
+    pure reads only: the cached forecast view and the split of today's sea,
+    each held pure by an xUnit test that polls it a thousand times and finds
+    no stream moved and the save unchanged."""
+    bridge = (GODOT / "scripts" / "autoload" / "GameBridge.Offshore.cs").read_text()
+    start = bridge.index("public Godot.Collections.Dictionary GetSeaStateForecast(")
+    depth, i = 0, bridge.index("{", start)
+    while True:
+        depth += {"{": 1, "}": -1}.get(bridge[i], 0)
+        i += 1
+        if depth == 0:
+            break
+    body = bridge[start:i]
+    members = set(re.findall(r"SimulationEngine\??\.([A-Za-z_]\w*)", body))
+    assert members <= {"State", "GetSeaStateForecastView", "OpenSeaPartsAt"}, members
+    assert {"GetSeaStateForecastView", "OpenSeaPartsAt"} <= members
+    tests = REPO / "src" / "LakskongenSim.Tests" / "Environment"
+    assert "AThousandForecastPolls_MoveNoStream_AndChangeNoSave" in (tests / "OffshoreSeaWiringTests.cs").read_text()
+    assert "TodaysSea_SplitsIntoWindSeaAndSwell_AsAPureRead" in (tests / "OpenSeaSwellTests.cs").read_text()
 
 
 def test_the_qa_staging_verbs_are_never_called_from_the_players_ui():

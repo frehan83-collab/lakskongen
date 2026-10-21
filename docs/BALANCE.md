@@ -2867,6 +2867,26 @@ seed 7; a real player who reads the planner's "2, 4, 8 weeks" columns can
 wait and may not need the loan. The season takes about 22 s of real time
 headless at 30×.
 
+### The teaser's day (F2-23, 2026-10-21, branch `wave4b/gfx-farm-2`)
+
+The F2-23 teaser plays after day 150 at the first moment no tutorial step
+asks for anything (§6.1 item 1). Where the minimal player stands then
+(`TutorialPlayer`, events on, the probe behind RUN_LOG §7's teaser row):
+
+| Seed | "grow" (a wait step) | The tutorial over | The teaser |
+|---|---|---|---|
+| 4 | days 0-266 | day 292 | day 151 |
+| 7 | days 0-287 | day 318 | day 151 |
+| 9 | days 0-257 | day 283 | day 151 |
+| 13 | days 0-290 | day 318 | day 151 |
+| 21 | days 0-284 | day 317 | day 151 |
+| 42 | days 0-274 | day 305 | day 151 |
+
+Waiting for the tutorial to be over would have skipped the teaser (day 300)
+on four of six seeds. The teaser changes no number: the engine's state hash
+is unchanged by it, and the F2-21 open sea reads the offshore model's own
+split (§1q: wind sea × the plot's scale, swell × √(0.34² + storm swell²)).
+
 ## 2. Key economic knobs
 
 | Knob | Current | Real reference | Source | Recommended playtest band |

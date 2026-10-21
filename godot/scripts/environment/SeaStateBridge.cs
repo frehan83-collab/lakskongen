@@ -23,6 +23,32 @@ public partial class SeaStateBridge : RefCounted
         return result;
     }
 
+    /// <summary>Wavelengths (m) of the open sea's two swell bands (F2-21), longest first.</summary>
+    public float[] SwellBandWavelengths()
+    {
+        var bands = SeaStateModel.SwellBandWavelengthsM;
+        var result = new float[bands.Length];
+        for (int i = 0; i < bands.Length; i++)
+            result[i] = (float)bands[i];
+        return result;
+    }
+
+    /// <summary>
+    /// Amplitudes (m) of the swell bands for a swell of significant height
+    /// (m) and peak period (s): Σa² = hs²/8 (F2-21).
+    /// </summary>
+    public float[] SwellAmplitudes(double hsM, double tpS)
+    {
+        double[] a = SeaStateModel.SwellAmplitudes(hsM, tpS);
+        var result = new float[a.Length];
+        for (int i = 0; i < a.Length; i++)
+            result[i] = (float)a[i];
+        return result;
+    }
+
+    /// <summary>The 10 m wind (m/s) whose sea over a fetch (m) has a significant height (m) (F2-21).</summary>
+    public double WindForHeight(double hsM, double fetchM) => SeaStateModel.WindForHeight(hsM, fetchM);
+
     /// <summary>
     /// The sea for a 10 m wind (m/s) over a fetch (m). Keys: hs (m), tp (s),
     /// peak_wavelength (m), amplitudes (one per band, Σa² = hs²/8),

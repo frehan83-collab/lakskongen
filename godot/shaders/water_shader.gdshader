@@ -36,6 +36,10 @@ render_mode world_vertex_coords, cull_disabled, depth_draw_opaque, diffuse_burle
 // the water, the clouds' shadows, the pens' lamps after dark. The body's
 // deep scatter follows the mood (EnvironmentDirector): sunny deep blue,
 // calm-winter slate, overcast grey.
+//
+// The open sea's swell (F2-21, water/water_swell.gdshaderinc): offshore the
+// exposed sea adds a long swell (150-300 m) to the wind sea, split from the
+// Hs of the plot the camera is at.
 
 #define WAVES 16
 
@@ -133,6 +137,8 @@ varying float origin_y;
 // the fragment stage their code (off on most days) cost ~1 ms at FJORD in
 // register pressure alone.
 varying vec4 v_mood;
+// F2-21: the open sea's swell slope per vertex (water_swell.gdshaderinc).
+varying vec3 v_swell;
 
 vec4 bake_at(vec2 xz) {
 	vec2 uv = ((xz - bake_origin) / bake_spacing + 0.5) / bake_texels;
@@ -161,8 +167,11 @@ float wave_phase(vec4 wk, vec4 wa, vec2 p) {
 	return fract((dot(wk.xy, p) - wa.z) * INV_TAU) * TAU_;
 }
 
+#include "res://shaders/water/water_swell.gdshaderinc"
+
 // The components are ordered longest first (EnvironmentDirector), so a loop
-// can stop at the first one too short to draw.
+// can stop at the first one too short to draw. The open sea's swell (F2-21)
+// rides on top.
 vec3 displacement(vec2 p, float exposure, float depth, float grid_spacing) {
 	vec3 d = vec3(0.0);
 	for (int i = 0; i < WAVES; i++) {
@@ -180,7 +189,7 @@ vec3 displacement(vec2 p, float exposure, float depth, float grid_spacing) {
 		d.y += a * sin(ph);
 		d.xz += wk.w * a * (wk.xy / wk.z) * cos(ph);
 	}
-	return d;
+	return d + swell_displacement(p, exposure, depth, grid_spacing);
 }
 
 void vertex() {
@@ -203,17 +212,20 @@ void vertex() {
 	float d_grid = max(abs(p0.x - origin.x), abs(p0.y - origin.z));
 	float grid_spacing = grid_base_spacing * max(1.0, 2.0 * d_grid / (grid_half_units * grid_base_spacing));
 	vec3 disp;
+	vec4 b = bake_at(p0);
 	if (stitch.x + stitch.y > 0.0) {
 		vec4 ba = bake_at(p0 - stitch);
 		vec4 bb = bake_at(p0 + stitch);
 		disp = 0.5 * (displacement(p0 - stitch, ba.b, ba.r, grid_spacing) + displacement(p0 + stitch, bb.b, bb.r, grid_spacing));
 	} else {
-		vec4 b = bake_at(p0);
 		disp = displacement(p0, b.b, b.r, grid_spacing);
 	}
 	// Flat beyond the displaced levels: the far skirt and the last level's
 	// edge meet without a crack.
-	disp *= 1.0 - smoothstep(0.75 * displaced_extent, displaced_extent, d_grid);
+	float far_fade = 1.0 - smoothstep(0.75 * displaced_extent, displaced_extent, d_grid);
+	disp *= far_fade;
+	// F2-21: the swell's slope at the vertex (the bake read once).
+	v_swell = swell_slope(p0, b.b, b.r) * far_fade;
 	VERTEX = vec3(p0.x, origin.y, p0.y) + disp;
 	v_world = VERTEX;
 	origin_y = origin.y;
@@ -286,6 +298,8 @@ void fragment() {
 	// The phase falls through pi/2 as a crest passes a point: just after it
 	// (sin high, cos still positive) the spent foam lingers.
 	float trail = 0.6 * height + 0.8 * height_lag;
+	// The open sea's swell (F2-21): its slope comes per vertex.
+	n -= v_swell * swell_keep(footprint);
 	n = normalize(n);
 
 	// ── Ripples: the wind's short waves, scrolling with the sea ──
