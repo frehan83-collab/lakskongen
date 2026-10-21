@@ -1,15 +1,16 @@
-# Handoff: total context and next steps (updated 2026-10-20)
+# Handoff: total context and next steps (updated 2026-10-21)
 
 Read this file first, and only this file, until you know your task. It is a summary
 of everything else. Then open only the sections the reading map (§8) names for your
-task. The large docs are long: ROADMAP 957 lines, FARM_TYPES_SPEC 1605, RUN_LOG 710,
-BALANCE 3085, FJORD_RENDERER 782, AGENTS 410. Do not read them whole.
+task. The large docs are long: ROADMAP 957 lines, FARM_TYPES_SPEC 1605, RUN_LOG 758,
+BALANCE 3283, FJORD_RENDERER 782, AGENTS 453, STAGE23_PLAN 853. Do not read them whole.
 
 ## 0. TL;DR
 
 - **Lakskongen** is a Norwegian salmon-farming management sim. The simulation is deterministic C# .NET 10 (`src/LakskongenSim`). The frontend is Godot 4.7.2 Mono (`godot/`).
 - **Build on `main`.** PR #5 (review remediation + waves 1-3) was merged into `main` on 2026-10-20 (`1a944e2`). New work goes on a branch from `origin/main` and back through a PR, so the GitHub CI (`ci`, `verify`) runs on it.
-- **Roadmap waves 1-3 are done**: graphics, simulation core, core loop UI, and farm-type foundations. **Wave 4's headless part is integrated** on `wave4/int` (land and offshore farm types in the engine, the build dialog, the tutorial; PR to `main`); the graphics stages wait for the owner's OK to open windows (§6).
+- **Roadmap waves 1-3 are done**: graphics, simulation core, core loop UI, and farm-type foundations. **Wave 4's headless part is on `main`** (PR #6, merged 2026-10-20: land and offshore farm types in the engine, the build dialog, the tutorial). Its graphics stages are being integrated on `wave4b/int`; the owner allowed windows again late on 2026-10-20 (§6).
+- **Geo stages 2-3 are integrated on `geo/int`** (local, not pushed yet). They bring the real Norwegian coast: real localities with parody owners, the open-pen places and 'why here' in the build flow, and a three-level map (national, area, site). The integration is closed: golden traces re-recorded with 27 of 27 games identical, and the windowed GEO-VIS review done. Next is the PR to `main`, which the owner merges (§6).
 - **Owner rules:**
   - wait for the owner's go and never autostart;
   - align with GitHub first, because other models may push;
@@ -43,6 +44,7 @@ BALANCE 3085, FJORD_RENDERER 782, AGENTS 410. Do not read them whole.
   - `Harvest/`: `HarvestRoute` per holding kind;
   - `Finance/`: `LicenceHolding`, `FacilityAssetRegister`, `PermitCase`;
   - `Market/`.
+- **Geo (geo stages 2-3, display only):** `Environment/Geo/` holds the embedded readers of `godot/data/geo/` and hav_1's open-sea binding; `Finance/RivalLayout.cs` and `ParodyNames.cs` hold the rival owners on real localities. None adds an RNG stream, a tick or a saved field; AGENTS.md has a section on them.
 - **Save:** version 11. Migrators chain sequentially, and the frozen fixture `save_v8_facilities.json` must keep loading.
 
 **Bridge** (Godot side, one partial per feature):
@@ -64,12 +66,13 @@ BALANCE 3085, FJORD_RENDERER 782, AGENTS 410. Do not read them whole.
 - **Vessels:** `godot/scripts/visual/`.
 - **UI:** `godot/scripts/ui/`.
   - `GameUI.gd` is the shell; there is one panel per tab.
+  - The 'Kart' tab is `MapPanel.gd` hosting the geo map in `godot/scripts/ui/map/`: `GeoMapView` (national), `GeoDrillStack` → `GeoRegionView` (area) → `GeoSiteCard` (site).
   - The theme is Kyst & Stål, generated from `design/tokens.json` via `tools/sync_tokens.py` into `godot/theme/`. Fonts are Inter and Barlow Condensed. All text is Norwegian via `godot/translations/translations.csv`.
 - **Assets:** built headless by Blender scripts in `blender/` (`build_pen.py`, `build_site_kit.py`, `build_vessels.py`, `build_land_base.py`, `build_offshore.py`, …), listed in `blender/asset_manifest.json`, and exported to `godot/assets/models/`.
 
 **Tests and tools:**
 - `tools/ci.sh` has 18 steps; `CI_REQUIRE_ALL=1` makes every step required.
-- `godot/tests/UiFlowTests.gd` drives the real game headless. MIN_CHECKS in `tools/run_ui_flow_tests.sh` must equal the exact check count (1637 on `wave4/int`), and the suite takes about 5-6 minutes.
+- `godot/tests/UiFlowTests.gd` drives the real game headless. MIN_CHECKS in `tools/run_ui_flow_tests.sh` must equal the exact check count (1637 on `main`, 2016 on `geo/int`), and the suite takes about 6-8 minutes.
 - Golden traces (F2-01): `tools/record_golden_traces.sh` records 27 games × 730 days.
 - Screenshot harness: `bash tools/capture_screenshots.sh`; shots are listed in `godot/qa/shots.json`.
 - Perf harness: `tools/perf_smoke.sh` (P0-04).
@@ -114,6 +117,7 @@ BALANCE 3085, FJORD_RENDERER 782, AGENTS 410. Do not read them whole.
   - the sheltered sea band is Hs 0.05-0.15 m at 3 m/s;
   - the PO4 vs PO13 growth gap is judged on the pooled climatology;
   - the shot-18 mirror is judged at the ripple scale. Its gain bar is still open, and wave 4 re-stages the shot as mirror-calm.
+  - geo stages 2-3: rulings OD1-OD16 (`docs/geo/STAGE23_PLAN.md` §7; display only, hav_1 alone binds an open-sea area, the D17 rename, one golden re-record); on the national map a click names a feature and a double-click opens its card.
 - **Process:**
   - parallel worktree tracks, one merge captain;
   - semantic merges, never picking a side wholesale;
@@ -130,7 +134,74 @@ BALANCE 3085, FJORD_RENDERER 782, AGENTS 410. Do not read them whole.
    - stair-stepped cloud edges in the half-resolution sky pass;
    - snow banding on the walls at 1-2 km.
 
-## 6. Wave 4: state (2026-10-20) and next steps
+## 6. State (2026-10-21) and next steps: geo stages 2-3, wave 4
+
+### Geo stages 2-3 (`geo/int`, integration closed 2026-10-21)
+
+The real Norwegian coast is in the game: `docs/geo/STAGE23_PLAN.md` (rulings OD1-OD16 in its §7), built from geo stage 1's data (`godot/data/geo/`, PR #8). `geo/int` was built locally and was not pushed at the close. It is `origin/main` (`e98944d`) plus captain P0 and the merges of tracks A, B, C and D, each `--no-ff` and each with the captain's review fixes. RUN_LOG §7 has one row per merge.
+
+**What it delivers:**
+- **Sim (track A, display only).** It adds no RNG stream and no `GameState` field (but B's optional `SeaSite.CandidateId`), and it runs on no tick.
+  - Embedded, hash-pinned readers in `src/LakskongenSim/Environment/Geo/`: production areas, candidates, suitability grids, localities and Utm33.
+  - hav_1 is bound per game to the Havbruk til havs area nearest the home area (its X, Z and depth; Z -9000 at the far clamp).
+  - `Finance/RivalLayout.cs` gives every real salmonid locality an owner: the six parody majors by MTB share, home areas first, and generated parody independents (`ParodyNames`, word lists in BALANCE §1ab).
+  - `ScenarioGeoAnchors` puts each scenario's farms on real localities.
+  - D17: "NordLaks Nord AS" is now "Kongsemne Havbruk AS", and the producer is "Kongsemne".
+  - `GetCompetitorCompanies` orders the 3D rivals by their sites in the home area.
+  - Bridge: `GameBridge.Geo.cs`, the sim·geo lane.
+- **Build flow (track B).** The Sjø step lists the area's 12 ranked open-pen places with an honest 'why here' (the score explains and changes no farming, OD3). A build at a place stores `SeaSite.CandidateId`, and `GetPlayerSiteLocations` puts the company's sites on the map. hav_1's Hav lens names its real area. Bridge: `GameBridge.SeaCandidates.cs`, the sim·candidates lane.
+- **The map (tracks C and D), `godot/scripts/ui/map/` hosted by `MapPanel`.** It has three levels:
+  - national (`GeoMapView`): a tinted base map, PO plates with the engine's traffic light, owner-banded clustered sites, offshore areas, salmon fjords, candidate stars and hexagons, and a real detail column;
+  - region (`GeoRegionView`): the suitability heat shader, constraint layers, rivals by owner and the 12 places;
+  - site (`GeoSiteCard`): 'Bygg her', 'Søk vekstlisens', 'Vis i 3D' or 'Bygg her (hav)'.
+
+  Breadcrumbs and a level-aware Esc tie them together. `NorwayCoastline.gd`, `MiniMap.gd` and MapPanel's hand-placed regions are gone. GEODATA §7 has a status line per track.
+
+**Gates at the close**, on `88f2954` (RUN_LOG §7, "Geo stages 2-3: integration close"):
+- both builds green;
+- dotnet, unfiltered: LakskongenSim.Tests 2240 passed, 3 skipped, 0 failed, and the other projects 75 passed (also on `ecdbe86`'s tree, the same C#). Two earlier full runs there, at load 60-217 on the shared Mac, each failed only `SoakLongRunTests.ThreeYearResourceRentSoak_StaysSane_AndFast`, whose 10 s wall-clock budget is bound by load: alone it passes in 1 s at load 29 and in 6 s at load 111. The geo C# tests (278) take 13 s;
+- pytest 809 passed, 1 skipped;
+- validate_scenes: 85 scenes, 0 failures;
+- UI flow 2016 checks, 0 failures (the sixth run). Earlier runs failed only wall-clock checks while other worktrees ran, and twice on U2-01's auction confirm: the dialog's entrance, fixed below;
+- golden traces re-recorded once: 27 of 27 games identical to `origin/main` on every day, with save drift only on the three nodes the D17 rename touches (`docs/run/evidence/geo_stage23_golden_diff.md`); against the geo/int head before the close (`497eec5`), 27 of 27 identical with no drift (`geo_int_close_golden_diff.md`).
+
+**GEO-VIS, the windowed review** (`docs/run/evidence/geo_vis_review.md`, frames in `docs/run/evidence/geo_vis/`). It was run at the close: the national, region and site levels, the 'why here', the Hav lens (also at the far clamp, with its ghost) and the 3D rival order, at 1280x720 and 1920x1080 with the UI at 100 % and 125 %. Capture: `tools/capture_screenshots.sh --scene res://qa/scenes/GeoVisCapture.tscn`. Three things were off and are fixed with checks:
+- the national map's badges stacked over each other and the plate anchors sat on numerals;
+- hav_1's 'Bygg her (hav)' lost hav_1;
+- a borrowed open-sea area now says 'Nærmeste havområde'.
+
+The close's gate runs found a fourth (`88f2954`): while the Sjø places grew the build dialog's panel, its entrance slide held the confirm below the window for 0.28 s, and U2-01's auction test clicked past it in 2 of 3 UI runs. The panel now rises into the place its centre gives it at its size now (`GeoVisChecks`).
+
+**Still the owner's** (RUN_LOG §9, "GEO-VIS: the Visual QA baselines"):
+- the Visual QA baselines `05_map_overlay` (pHash 34 > 25), `41_expansion_*` and `43_first_season_*` (no baseline yet); never run `baseline_update`;
+- the vocabulary veto (OD10).
+
+**Follow-ups:**
+1. The home-area rule leaves PO3, PO4 and PO6 to the majors: 3 owners each, no independent farmer. The owner decides on a softer rule (BALANCE §1ab).
+2. OD3: a bounded nearest-farm lice multiplier on candidate sites, which needs calibration 1.1.5 and a BALANCE section.
+3. D17, counts only: the place labels PO06-04 and PO06-08 equal a registry holder's name without its legal form (track A's PlaceLabels). PO02-05's label 'Are' is in TextLint's ENGLISH_WORDS.
+4. GEO-VIS:
+   - candidate stars and the company's farms can sit on a badge's numeral;
+   - hav_1's card offers 'Bygg her (hav)' where the first open unit (OF1-class) cannot take its sea (the dialog says so);
+   - in the six home areas with no Havbruk til havs area, hav_1 has no row in the home region;
+   - the first season's guide card sits over the home area's plates at step 1, and at step 16 the inbox and toasts cover the zone card's 'Bygg lokalitet' (U2-02).
+5. Performance:
+   - the first `GetCompetitorCompanies` takes 65-340 ms; warm it on a background thread;
+   - the stars' 13 candidate reads take about 26 ms at map setup;
+   - the first drill into an area takes 130-300 ms on the main thread (a prefetch);
+   - the region map has no zoom or pan.
+6. File sizes:
+   - `BuildSiteDialog.gd` is 1,097 lines, over the 800 cap: split out the Sjø places and the Land/Hav footer;
+   - `GeoMapView.gd` 771, `MapPanel.gd` 755 and `GeoRegionChecks.gd` 774 are near the cap; U3-01 re-hosts the map.
+7. Tests:
+   - tutorial step 16 'by input only' is covered only by combining other tests;
+   - U2-07's notification and 30x p95 checks and `SoakLongRunTests`' 10 s budget run on wall time and can fail under heavy machine load (the soak failed in two full runs at load 60-217 and passed in the third; alone it passes in 1 s);
+   - U2-01's auction test still runs its 30x clock on wall time, so the days that pass vary; its missed confirm was the dialog's entrance (above), not the load.
+8. The shaders `map_po_tint` and `map_suitability` compiled and drew under Metal in the GEO-VIS captures; their first CI compile is GitHub's Xvfb step.
+
+**Next:** push `geo/int` and open its PR to `main` (plan §4 step 4.7: `ci` Quality gate, `verify` dotnet/python/golden-traces); the owner merges. `wave4b/int` lands the same way (`docs/SHIP_PLAN.md` §8, on PR #10). Merge them in sequence and use `tools/merge/` for `translations.csv` and `UiFlowTests.gd`. Then SHIP_PLAN's cycles; cycle 3 plays "expand via the map" end to end.
+
+### Wave 4
 
 Goal: land-based and offshore farms that are buildable, visible and operable end to end, plus the tutorial and polish.
 
@@ -207,3 +278,4 @@ The stage branches' finished heads above exist only in this checkout's local bra
 | Rendering, water, terrain, perf | FJORD_RENDERER: grep the system name. `docs/run/evidence/p0_04_perf.md` for the perf baseline. |
 | Art and the look | `docs/art/OWNER_REFERENCE_BRIEF.md` and `docs/art/WAVE1_ART_REVIEW.md` (short). |
 | Codebase conventions | AGENTS.md: grep the topic (e.g. "Real pens", "Driftsplan", "golden"). |
+| The map, geodata, rivals on real sites | AGENTS.md "Geodata and the three-level map"; `docs/geo/GEODATA.md` §7 (status per track); `docs/geo/STAGE23_PLAN.md` §3 interfaces and §7 rulings OD1-OD16; BALANCE §1ab; `docs/run/evidence/geo_vis_review.md` (what the frames show). |

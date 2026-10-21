@@ -5,7 +5,8 @@ namespace LakskongenSim.Farm
 {
     /// <summary>
     /// Offshore/Exposed Aquaculture Farm — Semi-submersible or ship-shaped structures.
-    /// Based on real data from SalMar Ocean Farm 1, Nordlaks Havfarm 1, Norway Royal Salmon.
+    /// Based on public data on the first Norwegian semi-submersible and ship-shaped offshore
+    /// units (the development licences of 2017-2020); no company is named in the game (D17).
     /// 
     /// Key characteristics:
     /// - Massive capacity (6,000-10,000+ tonnes per unit)
@@ -23,10 +24,10 @@ namespace LakskongenSim.Farm
 
         // ─── Capacity ───
         /// <summary>Maximum biomass capacity in tonnes.</summary>
-        public double CapacityTonnes { get; set; } = 8_000; // Ocean Farm 1: ~8,000t
+        public double CapacityTonnes { get; set; } = 8_000; // the first semi-submersible unit: ~8,000 t
         
         /// <summary>Number of containment units/net pens.</summary>
-        public int PenCount { get; set; } = 6; // Ocean Farm 1: 6 pens inside structure
+        public int PenCount { get; set; } = 6; // the first semi-submersible unit: 6 pens inside the structure
         
         /// <summary>Volume per pen in m³.</summary>
         public double PenVolumeM3 { get; set; } = 40_000; // Much larger than fjord pens
@@ -49,7 +50,7 @@ namespace LakskongenSim.Farm
 
         // ─── Weather Vulnerability ───
         /// <summary>Maximum wave height the structure can handle (meters).</summary>
-        public double MaxWaveHeightM { get; set; } = 12.0; // Ocean Farm 1 rated for 12m waves
+        public double MaxWaveHeightM { get; set; } = 12.0; // the first semi-submersible unit was rated for 12 m waves
         
         /// <summary>Current significant wave height (meters).</summary>
         public double CurrentWaveHeight { get; set; } = 2.0;
@@ -227,8 +228,8 @@ namespace LakskongenSim.Farm
 
         public decimal GetCAPEX() => FarmType switch
         {
-            OffshoreType.SemiSubmersible => 700_000_000m,  // 700M NOK — Ocean Farm 1 style
-            OffshoreType.ShipShaped => 900_000_000m,       // 900M NOK — Havfarm 1 style (394m long ship)
+            OffshoreType.SemiSubmersible => 700_000_000m,  // 700M NOK — semi-submersible (OF1-class)
+            OffshoreType.ShipShaped => 900_000_000m,       // 900M NOK — ship-shaped (Havfarm-class, a 394 m hull)
             OffshoreType.Submersible => 1_200_000_000m,    // 1.2B NOK — Fully submersible (future tech)
             _ => 700_000_000m
         };
@@ -236,8 +237,8 @@ namespace LakskongenSim.Farm
 
     public enum OffshoreType
     {
-        SemiSubmersible,  // SalMar Ocean Farm 1 — circular, 110m diameter
-        ShipShaped,       // Nordlaks Havfarm 1 — 394m converted ship hull
+        SemiSubmersible,  // OF1-class — circular, 110 m diameter
+        ShipShaped,       // Havfarm-class — a 394 m converted ship hull
         Submersible       // Future concept — fully submerging during storms
     }
 

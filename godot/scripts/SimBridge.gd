@@ -782,3 +782,22 @@ func appeal_licence_conversion(site_id: String) -> Dictionary: return _proxies.a
 func pay_licence_conversion(site_id: String) -> Dictionary: return _proxies.pay_licence_conversion(site_id)
 func place_converted_licences(holding_ids: Array, zone_id: String) -> Dictionary: return _proxies.place_converted_licences(holding_ids, zone_id)
 # ═══ END sim·sea lane block ═══
+
+# ═══ BEGIN sim·geo lane block (geo track A: production areas, hav_1's binding, rivals, anchors) ═══
+# Geo stages 2-3 (docs/geo/STAGE23_PLAN.md §3): the real coast.
+func get_geo_production_areas() -> Array[Dictionary]: return _proxies.get_geo_production_areas()
+func get_geo_plot_binding(plot_id: String) -> Dictionary: return _proxies.get_geo_plot_binding(plot_id)
+func get_geo_offshore_candidates() -> Array[Dictionary]: return _proxies.get_geo_offshore_candidates()
+func get_geo_area_at(x: float, y: float) -> int: return _proxies.get_geo_area_at(x, y)
+func get_geo_sites_signature() -> String: return _proxies.get_geo_sites_signature()
+func get_geo_sites() -> Dictionary: return _proxies.get_geo_sites()
+func get_rival_summary(po: int) -> Dictionary: return _proxies.get_rival_summary(po)
+func get_zone_anchors() -> Array[Dictionary]: return _proxies.get_zone_anchors()
+# ═══ END sim·geo lane block ═══
+
+# ═══ BEGIN sim·candidates lane block (geo stages 2-3 track B: open-pen candidates, the build at a candidate, the company's site locations) ═══
+func get_sea_candidates(area: int) -> Array[Dictionary]: return _proxies.get_sea_candidates(area)
+func plan_site_build_at(zone_id: String, candidate_id: String) -> Dictionary: return _proxies.plan_site_build_at(zone_id, candidate_id)
+func build_expansion_site_at(zone_id: String, candidate_id: String) -> Dictionary: return _actions.build_expansion_site_at(zone_id, candidate_id)
+func get_player_site_locations() -> Array[Dictionary]: return _proxies.get_player_site_locations()
+# ═══ END sim·candidates lane block ═══

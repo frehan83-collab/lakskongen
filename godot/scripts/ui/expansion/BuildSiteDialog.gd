@@ -29,6 +29,9 @@ signal closed
 const CARD_IDS := {"sjo": "sea", "land": "land", "hav": "offshore"}
 ## The fjord variant this dialog builds (the closed pen is an upgrade on the pen card).
 const SEA_BUILD := "open_pen"
+## The entrance: a fade and a rise of this many px (JuiceEffects.panel_enter's).
+const ENTER_SECONDS := 0.28
+const ENTER_RISE_PX := 14.0
 
 @onready var _dialog: PanelContainer = %Dialog
 @onready var _overline: Label = %Overline
@@ -81,6 +84,8 @@ var _mitigations: Array = []
 var _choosing_family := false
 ## Land permits filed or a unit contracted by the last confirm ("" none).
 var _done_kind := ""
+## The entrance's tween (see _enter).
+var _slide: Tween = null
 
 var _catalog: Dictionary = {}
 var _starts: Dictionary = {}
@@ -90,6 +95,11 @@ var _comparison: ComparisonBars = null
 var _plot_lens: PlotLens = null
 var _facility: FacilityBuildPreview = null
 var _research_names: Dictionary = {}
+# Geo B: the Sjø step's places (the area's open-pen candidates) and 'why here'.
+var _candidate := ""
+var _sea_rows: Array = []
+var _candidates: SeaCandidateList = null
+var _why: CandidateWhyHere = null
 
 
 func _ready() -> void:
@@ -118,6 +128,18 @@ func _ready() -> void:
 	_plot_lens.name = "PlotLens"
 	_plot_host.add_child(_plot_lens)
 	_plot_lens.plot_chosen.connect(choose_plot)
+	var places := HBoxContainer.new()
+	places.name = "CandidateRow"
+	places.add_theme_constant_override("separation", 16)
+	_plot_host.add_child(places)
+	_candidates = SeaCandidateList.new()
+	_candidates.name = "Candidates"
+	places.add_child(_candidates)
+	_why = CandidateWhyHere.new()
+	_why.name = "WhyHere"
+	places.add_child(_why)
+	_candidates.candidate_chosen.connect(choose_candidate)
+	_candidates.candidate_activated.connect(func(_id: String) -> void: _confirm_btn.grab_focus.call_deferred())
 	_facility = FacilityBuildPreview.new()
 	_facility.name = "FacilityPreview"
 	_facility_host.add_child(_facility)
@@ -145,6 +167,38 @@ func open_for_zone(zone_id: String) -> void:
 	_open()
 
 
+## Geo B: open the dialog on Sjø at an open-pen candidate (the map's site
+## card). The place asked for is the place shown and built: with no zone, or a
+## zone in another production area, the build uses the place's own build
+## zone; a held or unknown place stays chosen and the verdict says why it
+## cannot be built (captain's review of track B, finding 1).
+func open_for_candidate(zone_id: String, candidate_id: String) -> void:
+	if _sim != null:
+		var at: Dictionary = _sim.plan_site_build_at(zone_id, candidate_id)
+		var place: Dictionary = at.get("candidate", {})
+		if not place.is_empty() and int(place.get("po", 0)) != int(at.get("production_area", 0)):
+			zone_id = str(place.get("build_zone_id", zone_id))
+	_zone_id = zone_id
+	_reset_choices("sjo")
+	_candidate = candidate_id
+	_choosing_family = false
+	_open()
+
+
+## Geo B: the Sjø step's list of places, and the chosen one ("" none).
+func candidate_list() -> Control:
+	return _candidates
+
+
+func selected_candidate() -> String:
+	return _candidate
+
+
+## The 'why here' beside the list.
+func why_here() -> CandidateWhyHere:
+	return _why
+
+
 ## Open the dialog on the family cards (RAS and Offshore tabs, "Nytt anlegg"):
 ## `family_id` ("land", "hav", "sjo") chosen, or "" to start at the cards.
 func open_for_family(family_id: String, zone_id: String = "") -> void:
@@ -159,7 +213,7 @@ func _open() -> void:
 	_done_kind = ""
 	show()
 	_refresh()
-	JuiceEffects.panel_enter(_dialog)
+	_enter()
 	_focus_after_open.call_deferred()
 
 
@@ -246,6 +300,20 @@ func _reset_choices(family_id: String) -> void:
 	_consortium = false
 	_mitigations = []
 	_farm_preview = {}
+	_candidate = ""
+
+
+## Geo B: choose an open-pen place (a row's click, an arrow key, Enter); the
+## no-zone picker takes the place's build zone. A preview only.
+func choose_candidate(candidate_id: String) -> void:
+	var row := _candidates.candidate(candidate_id)
+	if candidate_id == _candidate or row.is_empty() or _built_site_id != "":
+		return
+	_candidate = candidate_id
+	if _zone_id == "":
+		_zone_id = str(row.get("build_zone_id", ""))
+	_refresh_sea()
+	_fit.call_deferred()
 
 
 ## Choose a family (a card's click or its button).
@@ -264,6 +332,8 @@ func choose_family(family_id: String) -> void:
 	_clear_ghost()
 	_refresh()
 	_focus_variant.call_deferred()
+	if family_id == "sjo":
+		_show_places()   # as when the dialog opens on Sjø: the places in view
 
 
 ## Choose a variant (its column's button).
@@ -327,7 +397,7 @@ func _refresh() -> void:
 		_refresh_sea()
 	else:
 		_refresh_farm()
-	_fit.call_deferred()
+	_fit_after_layout()
 
 
 func _family_dict(family_id: String) -> Dictionary:
@@ -509,35 +579,41 @@ func _build_options() -> void:
 # ── Sjø: the fjord zone's locality (U2-01) ──────────────────────────────────
 
 func _refresh_sea() -> void:
-	_plot_header.visible = false
-	_plot_host.visible = false
+	if _zone_id == "" and _candidate == "":
+		_zone_id = _zone_when_every_place_is_held()
 	_facility_host.visible = false
 	var has_zone := _zone_id != ""
 	_preview_header.visible = has_zone and _variant == SEA_BUILD
 	_preview_row.visible = has_zone and _variant == SEA_BUILD
 	_explain_callout.visible = has_zone and _variant == SEA_BUILD
 	_plan = _sim.plan_site_build(_zone_id) if has_zone else {}
+	var place := _refresh_places()
 	var area := int(_plan.get("production_area", 0))
 	if has_zone:
-		_title.text = tr("EXPANSION_BUILD_TITLE") % SimLabels.zone(_zone_id)
+		_title.text = tr("EXPANSION_BUILD_TITLE") % SimLabels.zone(_zone_id) if place == "" else tr("SEA_CANDIDATE_BUILD_TITLE") % place
 		var where := tr("EXPANSION_BUILD_FIRST_SITE")
 		if bool(_plan.get("new_zone", false)):
 			where = tr("EXPANSION_BUILD_NEW_ZONE")
 		elif int(_plan.get("player_sites_in_zone", 0)) > 0:
 			where = tr("EXPANSION_BUILD_YOUR_ZONE")
-		_subtitle.text = tr("EXPANSION_BUILD_SUBTITLE") % [area, where]
+		_subtitle.text = tr("EXPANSION_BUILD_SUBTITLE") % [area, where] + ("" if place == "" else " · " + tr("SEA_CANDIDATE_PLACE") % place)
 		_build_ledger()
 		_pen_grid.pens = int(_plan.get("pens", 0))
 		_pen_grid.queue_redraw()
 		_explain.text = tr("EXPANSION_BUILD_EXPLAIN") % [SimFormatters.num(float(_plan.get("area_licence_mtb_t", 0.0))), area]
 	else:
 		_title.text = tr("BUILD_TITLE")
-		_subtitle.text = tr("BUILD_SUBTITLE_SEA_PICK_ZONE")
+		# The picker's list frames the step; without one the map is the way in.
+		_subtitle.text = tr("BUILD_SUBTITLE_SEA_PICK_ZONE") if _sea_rows.is_empty() \
+			else tr("SEA_CANDIDATE_SUBTITLE_PICK") % int(_sea_rows[0].get("po", 0))
 	var built_now := _built_site_id != ""
 	var allowed := has_zone and bool(_plan.get("allowed", false))
 	var reason := ""
 	if not has_zone:
-		reason = tr("BUILD_SEA_PICK_ZONE")
+		reason = tr("SEA_CANDIDATE_PICK") if _candidates.first_free_row() != null else tr("BUILD_SEA_PICK_ZONE")
+		if _candidate != "":
+			# An unknown place asked for with no zone: the candidate check's own text.
+			reason = tr(str(_sim.plan_site_build_at("", _candidate).get("candidate_label_key", "")))
 	elif not allowed:
 		reason = tr(str(_plan.get("label_key", "")))
 		if str(_plan.get("reason_key", "")) == "insufficient_funds":
@@ -552,9 +628,56 @@ func _refresh_sea() -> void:
 		_hint.text = ""
 		return
 	_cancel_btn.text = tr("EXPANSION_CANCEL")
-	_confirm_btn.text = tr("EXPANSION_BUILD_CONFIRM") % SimFormatters.format_nok(float(_plan.get("cost_nok", 0.0)))
+	_confirm_btn.text = tr("EXPANSION_BUILD_CONFIRM") % SimFormatters.format_nok(float(_plan.get("cost_nok", 0.0))) if has_zone else tr("BUILD_CONFIRM_GENERIC")
 	UIPolish.set_available(_confirm_btn, reason)
 	_hint.text = tr("EXPANSION_BUILD_HINT")
+
+
+## Geo B: the area's open-pen places beside the chosen one's 'why here' (no
+## zone: the home area's, nothing chosen). A zone's build preselects the first
+## free place, so tutorial step 16 stays BuildBtn then ConfirmBtn; with none
+## free the build is U2-01's without a place. A place already chosen (by the
+## player or the map) is never swapped for the suggestion, even held or
+## unknown: the plan's verdict says why it cannot be built. Returns the chosen
+## place's label.
+func _refresh_places() -> String:
+	var listed := _variant == SEA_BUILD and (_zone_id == "" or bool(_plan.get("success", false)))
+	_sea_rows = _sim.get_sea_candidates(int(_plan.get("production_area", 0))) if listed else []
+	var chosen: Dictionary = {}
+	for c in _sea_rows:
+		if str(c.get("id", "")) == _candidate or (_candidate == "" and _zone_id != "" and bool(c.get("suggested", false))):
+			chosen = c
+			break
+	if _candidate == "":
+		_candidate = str(chosen.get("id", ""))
+	_plot_header.text = tr("SEA_CANDIDATE_HEADER")
+	_plot_header.visible = not _sea_rows.is_empty()
+	_plot_host.visible = not _sea_rows.is_empty()
+	_plot_lens.visible = false
+	_candidates.get_parent().visible = true
+	_candidates.show_candidates(_sea_rows, _candidate)
+	if chosen.is_empty() and not _sea_rows.is_empty() and _candidates.first_free_row() == null:
+		_why.show_all_held(_zone_id)
+	else:
+		_why.show_candidate(chosen, _zone_id)
+	var row := _candidates.row_button(_candidate)
+	var reachable := row != null and row.focus_mode != Control.FOCUS_NONE
+	_confirm_btn.focus_neighbor_top = _confirm_btn.get_path_to(row) if reachable else NodePath()
+	if _candidate != "" and _zone_id != "":
+		_plan = _sim.plan_site_build_at(_zone_id, _candidate)
+	return str(chosen.get("label", ""))
+
+
+## Geo B: the zone a Sjø build with no zone takes when every place in the
+## home area already holds one of the company's sites ("" while one is free):
+## the build is then the zone's, without a place, instead of a list with
+## nothing to choose (captain's review of track B, finding 3).
+func _zone_when_every_place_is_held() -> String:
+	var rows: Array = _sim.get_sea_candidates(0)
+	for c in rows:
+		if str(c.get("taken_by_site_id", "")) == "":
+			return ""
+	return str(rows[0].get("build_zone_id", "")) if not rows.is_empty() else ""
 
 
 func _build_ledger() -> void:
@@ -595,6 +718,12 @@ func _row(id: String, key: String, value: String, variation: StringName, area: i
 	v.theme_type_variation = variation
 	v.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# A floor width: an autowrapping label measured before the grid has a width
+	# wraps word-per-line and reports a huge minimum height. The VBox above had
+	# already sized PreviewRow's slot from the old minimum, and Godot clamps
+	# the child to the new one, so without this the row froze 2750 px tall over
+	# its siblings on the CI runner (PR #11, run 06:26; the rects in the lint).
+	v.custom_minimum_size.x = 200.0
 	_ledger.add_child(v)
 
 
@@ -611,6 +740,10 @@ func _refresh_farm() -> void:
 	var show_plots := not _choosing_family and startable
 	_plot_header.visible = show_plots
 	_plot_host.visible = show_plots
+	_plot_header.text = tr("BUILD_PLOT_HEADER")
+	_plot_lens.visible = true
+	_candidates.get_parent().visible = false
+	_confirm_btn.focus_neighbor_top = NodePath()
 	if show_plots:
 		_plot_lens.show_plots(_sim.get_build_plots(_family), _plot, _variant, _option)
 	_farm_preview = {}
@@ -722,7 +855,10 @@ func _focus_after_open() -> void:
 			first.choose_button().grab_focus()
 		return
 	if _family == "sjo":
-		if _confirm_btn.disabled:
+		_show_places()
+		if _zone_id == "" and _plot_host.visible and _candidates.first_free_row() != null:
+			_candidates.first_free_row().grab_focus()
+		elif _confirm_btn.disabled:
 			_cancel_btn.grab_focus()
 		else:
 			_confirm_btn.grab_focus()
@@ -732,7 +868,29 @@ func _focus_after_open() -> void:
 		card.choose_button().grab_focus()
 
 
+## The plot step in view once laid out, the variants a scroll above: a Sjø
+## build opens on its places (Geo B), the map's hav_1 card on hav_1's lens
+## (GEO-VIS). `family` "" means whichever family is chosen by then.
+func show_plot_step(family: String = "") -> void:
+	await get_tree().process_frame
+	_fit()   # again, once the strip and the header wrap at their real width
+	for i in 2:
+		await get_tree().process_frame
+	if visible and (family == "" or _family == family) and _plot_host.visible:
+		_scroll.scroll_vertical = int(_plot_header.position.y)
+
+
+func _show_places() -> void:
+	await show_plot_step("sjo")
+
+
 func _focus_variant() -> void:
+	if _family == "sjo" and _zone_id == "" and _plot_host.visible and _candidates.first_free_row() != null:
+		_candidates.first_free_row().grab_focus()   # Geo B: the no-zone picker's places come first
+		return
+	if _family == "sjo" and _plot_host.visible and _candidates.first_free_row() == null and not _confirm_btn.disabled:
+		_confirm_btn.grab_focus()   # Geo B: every place held, the zone's build is what is left to do
+		return
 	var b := variant_button(_variant) if _variant != "" else null
 	if b == null or b.disabled:
 		for v in _family_dict(_family).get("variants", []):
@@ -756,6 +914,46 @@ func _focus_plot() -> void:
 	_confirm_btn.grab_focus()
 
 
+## The entrance: a fade, and a rise into the place the centre gives the panel
+## at its size now. A fit grows the panel while it slides in (Sjø's places),
+## and a rise towards where the panel stood at the start held it, and its
+## confirm, below the window for the slide's 0.28 s (GEO-VIS close: U2-01's
+## auction test clicked past it; the merge of track B saw it at 1280x720).
+## The centre sorts the panel again at the end.
+func _enter() -> void:
+	if _slide != null and _slide.is_valid():
+		_slide.kill()
+	_dialog.modulate.a = 0.0
+	_slide = _dialog.create_tween()
+	_slide.set_ease(Tween.EASE_OUT)
+	_slide.set_trans(Tween.TRANS_CUBIC)
+	_slide.set_parallel(true)
+	_slide.tween_property(_dialog, "modulate:a", 1.0, ENTER_SECONDS)
+	_slide.tween_method(_rise_into_place, ENTER_RISE_PX, 0.0, ENTER_SECONDS)
+	var centre := _dialog.get_parent() as Container
+	if centre != null:
+		_slide.finished.connect(centre.queue_sort)
+
+
+## The panel `offset` px below the place its centre gives it now.
+func _rise_into_place(offset: float) -> void:
+	var centre := _dialog.get_parent() as Control
+	if centre != null:
+		_dialog.position.y = floorf((centre.size.y - _dialog.get_combined_minimum_size().y) * 0.5) + offset
+
+
+## Fit at the end of this frame and once more on the next, when rebuilt steps
+## (the family cards, the places) and the wrapped header and strip have their
+## real size. Measured only at the end of the refresh, «Nytt anlegg» → Sjø kept
+## the steps' scroll at its 120 px floor with the places out of sight (captain's
+## merge of track B; track B's follow-up for Land and Hav too).
+func _fit_after_layout() -> void:
+	_fit.call_deferred()
+	# One more pass per frame however many refreshes ran; a freed dialog drops it.
+	if is_inside_tree() and not get_tree().process_frame.is_connected(_fit):
+		get_tree().process_frame.connect(_fit, CONNECT_ONE_SHOT)
+
+
 ## Keep the dialog inside the window at any size and UI scale: the steps
 ## scroll, the header, the family cards and the footer stay.
 func _fit() -> void:
@@ -769,6 +967,13 @@ func _fit() -> void:
 	var chrome := _dialog.get_combined_minimum_size().y - _scroll.get_combined_minimum_size().y
 	var room := view.y - chrome - 32.0
 	_scroll.custom_minimum_size.y = clampf(content, 0.0, maxf(120.0, room))
+	# Re-place the steps with the minimums as they are NOW: a child whose
+	# minimum changed after the last sort (the rebuilt ledger's wrapping
+	# labels) otherwise keeps a slot computed from the stale value, and when
+	# nothing else dirties the layout — slower runners — that never heals.
+	if body is Container:
+		(body as Container).queue_sort()
+	_scroll.queue_sort()
 
 
 # ── Confirm ─────────────────────────────────────────────────────────────────
@@ -792,17 +997,19 @@ func _on_confirm() -> void:
 
 
 func _confirm_sea() -> void:
-	var result: Dictionary = _sim.build_expansion_site(_zone_id)
+	var place := str(_candidates.candidate(_candidate).get("label", ""))
+	var result: Dictionary = _sim.build_expansion_site_at(_zone_id, _candidate) if _candidate != "" else _sim.build_expansion_site(_zone_id)
 	if not bool(result.get("success", false)):
 		_refresh()
 		_verdict.text = tr(str(result.get("label_key", "EXPANSION_REASON_ENGINE_NOT_READY")))
 		_verdict.visible = true
 		return
 	_built_site_id = str(result.get("site_id", ""))
-	_result_title.text = tr("EXPANSION_BUILD_DONE_TITLE") % str(result.get("site_label", ""))
+	_result_title.text = tr("EXPANSION_BUILD_DONE_TITLE") % str(result.get("site_label", "")) if place == "" \
+		else tr("SEA_CANDIDATE_DONE_TITLE") % [str(result.get("site_label", "")), place]
 	_result_body.text = tr("EXPANSION_BUILD_DONE_BODY") % int(_plan.get("pens", 0))
 	_refresh()
-	JuiceEffects.panel_enter(_dialog)
+	_enter()
 	built.emit(_built_site_id, _zone_id)
 
 
@@ -853,7 +1060,7 @@ func _confirm_farm() -> void:
 			_result_body.text = tr("BUILD_DONE_SEA_BODY") % SimFormatters.format_day(int(
 				(_farm_preview.get("offshore", {}) as Dictionary).get("first_stocking_day", 0)))
 	_refresh()
-	JuiceEffects.panel_enter(_dialog)
+	_enter()
 	built.emit(str(result.get("id", "")), _plot)
 
 

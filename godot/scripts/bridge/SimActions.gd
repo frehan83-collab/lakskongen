@@ -417,6 +417,18 @@ func build_expansion_site(zone_id: String) -> Dictionary:
 	return result
 
 
+## Geo B (track B): build a sea site at an open-pen candidate in a zone (the
+## build dialog's Sjø step). Returns the bridge's dictionary (build_expansion_site's
+## keys plus candidate_id).
+func build_expansion_site_at(zone_id: String, candidate_id: String) -> Dictionary:
+	if not game_bridge:
+		return {"success": false, "reason_key": "engine_not_ready", "label_key": "EXPANSION_REASON_ENGINE_NOT_READY"}
+	var result: Dictionary = game_bridge.BuildExpansionSiteAt(zone_id, candidate_id)
+	if bool(result.get("success", false)):
+		state._refresh_state()
+	return result
+
+
 ## U2-01: open the growth-licence auction for a zone (opening is free).
 func open_licence_auction(zone_id: String) -> Dictionary:
 	if not game_bridge:

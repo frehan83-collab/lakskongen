@@ -201,7 +201,48 @@ The Phase 4 "Exit" in `NEXT_LEVEL_PLAN.md` has two gates an agent cannot close a
 - `Core/SimulationEngine.Expansion.cs` + `Core/ExpansionViews.cs`: the map's verdicts as reason keys (`ExpansionReasons`, text `EXPANSION_REASON_*`): `BuildGateKey`/`BuildVerdictOf` (the build gate, then the cost; the free first locality is F2-03's development right: it counts fjord sites, `FjordSites()`, so an offshore unit neither uses it up nor opens a fjord zone) and `ApplyVerdictOf` (the licence application); `ApplyForGrowthLicence`, `CanBuildSeaSite`, `BuildSeaSite` and `PreviewBuildSeaSite` run them. Pure reads: `GetExpansionOverview` (13 areas: licences, MTB, headroom, traffic light, climatology, zones), `PlanSiteBuild` (cost, cash after, running cost per month, 3,120 t locality, +0 t licence MTB, the pen layout), `PreviewLicenceApplication`, `GetLicenceAuctionView` (bids newest first with rival names and NOK/t)
 - Catalogue zones (`Environment/ExpansionZones.cs`, one growth zone per area) are addresses, not zones: they join `GameState.Zones` only when a site is built (`AdmitCatalogueZone`); outside the game they take the area's traffic light (worst colour of its zones, else green). Never add them to the state at start: that changes the rival opener's draws and every golden trace
 - Auctions the company is in report `licence_outbid` (warning, verb `bid_licence`, deadline = close) and `licence_auction_won`/`_lost` on the bus; opening one registers a pacing deadline; a leading bid resolves them. Activity rule: a bid on the closing day extends the close by `ClosingRoundExtensionDays` (1)
-- UI: `MapPanel.gd` (area picker, traffic-light dots, ring on the company's areas) hosts `RegionExpansionSection` (`scripts/ui/expansion/`), `LicenceAuctionCard.tscn` and `BuildSiteDialog.tscn` (since F2-31 the family-first build flow, below; a zone's "Bygg lokalitet" opens it on Sjø). Bridge `GameBridge.Expansion.cs` (`get_expansion_overview`, `plan_site_build`, `build_expansion_site`, `preview_licence_application`, `open_licence_auction`, `bid_on_licence_auction`, `get_licence_auction`); the inbox lists auctions under "Vekst". Frames: `tools/capture_screenshots.sh --scene res://qa/scenes/ExpansionFlowCapture.tscn` (shots `41_expansion_*`)
+- UI: `MapPanel.gd` (the area picker and the geo map, below) hosts `RegionExpansionSection` (`scripts/ui/expansion/`), `LicenceAuctionCard.tscn` and `BuildSiteDialog.tscn` (since F2-31 the family-first build flow, below; a zone's "Bygg lokalitet" opens it on Sjø). Bridge `GameBridge.Expansion.cs` (`get_expansion_overview`, `plan_site_build`, `build_expansion_site`, `preview_licence_application`, `open_licence_auction`, `bid_on_licence_auction`, `get_licence_auction`); the inbox lists auctions under "Vekst". Frames: `tools/capture_screenshots.sh --scene res://qa/scenes/ExpansionFlowCapture.tscn` (shots `41_expansion_*`)
+- Open-pen places (geo stages 2-3, track B; `Core/SimulationEngine.SeaCandidates.cs`, `Core/SeaCandidateViews.cs`): the Sjø step lists the area's 12 ranked open-pen candidates (`GetSeaCandidates`: weights, per-term costs, holder, `Suggested` = the first free one, preselected so tutorial step 16 is unchanged; `BuildZoneId` = the company's zone there with most fjord sites, else the catalogue zone). `BuildSeaSiteAt` = the candidate checks (`SeaCandidateReasons`, text `SEA_CANDIDATE_REASON_*`, never `ExpansionReasons`, whose 11 keys are pinned) + U2-01's unchanged `BuildSeaSite` + `SeaSite.CandidateId` (written only when set: no save drift). `GetPlayerSiteLocations`: at the candidate, else the zone's anchor (approximate). Explanation only: the score never changes farming (ruling OD3). UI `SeaCandidateList.gd`, `CandidateWhyHere.gd`; `BuildSiteDialog.open_for_candidate(zone, candidate)` (the map's 'Bygg her') keeps the place it is given and moves the zone to it. Bridge `GameBridge.SeaCandidates.cs`, the sim·candidates lane after track A's sim·geo block (`get_sea_candidates`, `plan_site_build_at`, `build_expansion_site_at` in SimActions, `get_player_site_locations`)
+
+### Geodata and the three-level map (geo stages 2-3)
+Plan `docs/geo/STAGE23_PLAN.md` (rulings OD1-OD16); data notes and status per track in `docs/geo/GEODATA.md` §7; numbers in BALANCE §1ab; the visual review in `docs/run/evidence/geo_vis_review.md`.
+- **Data.** `godot/data/geo/` is built offline by `tools/geodata/` and is hash-pinned in `manifest.json`; never edit it by hand. The sim embeds what it reads (the `LakskongenSim.csproj` ItemGroup "geo"). The readers in `Environment/Geo/` parse once per process and never touch the file system. `GeoNoFileSystemTests` also keeps every Geo* or RivalLayout member out of the tick systems and out of `SimulationEngine.cs`.
+- **Display only** (rulings OD3, OD4):
+  - hav_1's binding: `GeoSitePlotGeometry` and `GeoPlotCatalogs.ForHomeArea`, chosen at StartScenario and on load from the saved home area; `Reset()` goes back to the default catalogue; nothing is saved;
+  - `Finance/RivalLayout.cs` and `ParodyNames.cs`;
+  - `ScenarioGeoAnchors`;
+  - the candidates' scores.
+  None of them adds an RNG stream or a `GameState` field; `SeaSite.CandidateId` is the one new field and is written only when set. The golden traces stay identical.
+- **Bridge lanes,** pull-only, pinned by `tests/test_geo_sim_contract.py` and `test_sea_candidates_contract.py`:
+  - `GameBridge.Geo.cs`, the sim·geo lane:
+    - `get_geo_production_areas`;
+    - `get_geo_plot_binding`, with `home_po`: a `po` other than `home_po` is a borrowed area, which the lens calls 'Nærmeste havområde';
+    - `get_geo_offshore_candidates`: `distance_km` is -1 in a game with no home area, so never print it;
+    - `get_geo_area_at`;
+    - `get_geo_sites_signature` (opaque);
+    - `get_geo_sites` (packed arrays);
+    - `get_rival_summary`;
+    - `get_zone_anchors`.
+  - `GameBridge.SeaCandidates.cs`, the sim·candidates lane, after the sim·geo block's END marker.
+  - `GetCompetitorCompanies` orders the 3D rivals by `home_po_sites`.
+- **Map UI** (`godot/scripts/ui/map/`; `MapPanel` keeps its public API, and its geo-drill hooks are marked):
+  - `GeoBridgeAdapter` is the map's one reader of the facade. `GeoData` loads each file once and reads the data PNGs raw; `GeoProjection` does the projection.
+  - National level, `GeoMapView`:
+    - the plates (`MapMarker`, placed by `MapLabelPlacer`; a badge over the anchor marks it instead);
+    - `GeoSiteLayer` with `GeoClusterer`: screen-grid clusters, and `declutter` keeps any badge from covering another badge or a single site;
+    - `GeoOverlayLayer` and `MapCartography`.
+  - `GeoDrillStack` walks national → region → site, and Esc steps up a level (OD11).
+  - Region level, `GeoRegionView`: the `map_suitability.gdshader` heat, `GeoRegionOverlay` and `GeoRegionRivals`.
+  - Site level: `GeoSiteCard`.
+  - On the national map a click names a feature; a double-click opens its card.
+  - hav_1's 'Bygg her (hav)' opens the Hav family on the first open unit, with hav_1 in its lens (`BuildSiteDialog.show_plot_step`).
+  - No GDScript parses `localities.geojson`, and nothing reads geo data on a tick. Reads repeat only when the layout signature or the company's farms change.
+- **Tests:**
+  - C#: `src/LakskongenSim.Tests/Geo/*`, `Finance/RivalLayoutTests`, `ParodyNamesTests`, `Integration/GeoReadPurityTests` and `GeoEngineReuseTests`.
+  - UiFlowTests: `GeoBridgeChecks`, `GeoExpansionChecks`, `GeoMapChecks` (with `GeoMapNationalChecks`, `GeoMapHitChecks` and `GeoMapReviewChecks`) and `GeoRegionChecks` (with `GeoRegionReviewChecks` and `GeoVisChecks`).
+  - pytest: `test_geo_*` and `test_sea_candidates_contract.py`.
+  - Frames: `tools/capture_screenshots.sh --scene res://qa/scenes/GeoVisCapture.tscn` covers the three levels, the 'why here', the Hav lens and its far-clamp ghost, and the 3D rival order at 1280x720 and 1920x1080, 100 and 125 % (`-- <prefix>` picks frames). `GeoMapCapture` and `GeoRegionCapture` add more.
+- **D17:** every generated name comes from `ParodyNames`. It is checked against BRANDS, every municipality and locality name, and, offline, the raw registry's holder names (`~/.cache/lakskongen-geo`: report counts only, never names). A rival's card shows the locality's number, never the registry's name.
 
 ### End screens, liquidity ladder, campaign (U2-03)
 - Negative cash pays 12.25 % a year (forsinkelsesrente), booked as interest (`OverdraftInterestTickSystem`). The bank's ladder (`Core/SimulationEngine.Liquidity.cs`, `Finance/LiquidityLadder.cs`, calibration section `liquidity`) reads the burn (median 7-day change over 35 days) and the runway to the scenario's floor: `liquidity_warning` (warning, <= 60 days), `bank_call` (critical, <= 28 days) with a rescue offer against half the biomass (14 %, 2 % fee, 36 months, 14 days to answer, one a game); verbs `AcceptRescueLoan`/`DeclineRescueLoan`; state `GameState.Liquidity` (additive). S1-03's depth ladder is unchanged beneath it
@@ -274,6 +315,7 @@ The Phase 4 "Exit" in `NEXT_LEVEL_PLAN.md` has two gates an agent cannot close a
 - `BuildSiteDialog` (`scripts/ui/expansion/`) is the one way to build a farm: three `FarmFamilyCard`s (`scenes/ui/FarmFamilyCard.tscn`; Sjø, Land, Hav), then the family's variants on `ComparisonBars` (the catalogue's 7 axes as aligned pip bars on one scale over all variants, median and a hollow pip for the bad case; the open pen as the reference column) with a `GateList` under each (every gate, money included, progress bars, the waived gates explained), then the site lens (`PlotLens`: pads and slots from `get_build_plots`, a 2D ghost and the 3D `environment/FarmGhost.gd`, both from `FarmGhostLayout` on `LandCampusLayout`), then `FacilityBuildPreview` (KPIs, payments with the p50/p90 overrun, `CashRunwayChart`, `PermitTimeline` and mitigations on land; licence value, consortium, teething and tow at sea). `DiagnosisStrip` on top. Everything in `scripts/ui/facilities/`; the UI holds no farm-type number (`tests/test_farm_type_catalog.py`)
 - Open it with `MapPanel.open_build(zone)` (Sjø, from a zone card), `open_build_family(family)` (the header's "Nytt anlegg", "" = the cards) or `BuildFlowLink.open(node, family)` (the RAS and Offshore tabs' "Planlegg …"). Confirm uses the lanes' verbs: `apply_land_permits` (land, permits missing), `build_land_site` (land, permitted), `apply_development_licence` (Hav, no F2-09 award for the plot while a round is open), `build_offshore_unit` (Hav, with the award), `build_expansion_site` (Sjø). The legacy `build_ras_facility`/`build_offshore_farm` are QA-only (`test_no_gdscript_outside_qa_calls_the_legacy_facility_builds`)
 - Engine reads (pure): `PreviewFarmBuild` (`Core/SimulationEngine.BuildFlow.cs`: the lane preview + `FarmBuildEconomics`: capex, overrun, licence, start-up, capacity cost, farming cost, permit wait, first harvest, payback, the 36-month runway, the bank's pre-filled loan), `CanStartFarmType`/`StartWaivedGates` (the build verbs' own gate rules: land waives the zoned pad, sea the development licence, both money), `GetBuildDiagnosis` and `GetBuildPlots` (`Core/SimulationEngine.BuildDiagnosis.cs`). Numbers: docs/BALANCE.md §1x. Bridge `GameBridge.BuildFlow.cs` (`preview_farm_build`, `get_build_diagnosis`, `get_build_plots`, `get_farm_type_starts`; QA: `qa_state_digest`, `qa_open_farm_family`); keys `BUILD_*` (`tests/test_build_flow.py`)
+- Layout: `_fit` clamps the steps' scroll to the room (the header, the family cards and the footer stay), and `_enter` rises the panel into the place its centre gives it at its size now. Do not use `JuiceEffects.panel_enter` here: its rise ends where the panel stood when it began, so a fit that grew the panel mid-slide (Sjø's places) held the confirm below the window (geo stages 2-3 close; `GeoVisChecks.gd` pins it)
 - Tests: `BuildFlowTests` (xUnit), `godot/tests/BuildFlowChecks.gd` (UI input only: map → Land → hybrid → pad_a → confirm files the permits; bars = catalogue; gates; ghost leaves `qa_state_digest` unchanged; preview figures; diagnosis; Hav licence line and consortium; `DialogLayoutLint` + contrast/text lints at 1280x720 100/125 %; a keyboard path)
 
 ### Post-smolt bridge, competence, cohort plans, land boards (F2-13, F2-15)
@@ -290,7 +332,8 @@ The Phase 4 "Exit" in `NEXT_LEVEL_PLAN.md` has two gates an agent cannot close a
 - Calibration: `OffshoreIncidentCalibration.cs` and `OffshoreLicenceCalibration.cs` extend the partial `OffshoreCalibration`; `facilities_offshore.json` holds their sections (alarmReview, handling, incidents, liceCoupling, licences, procedures, reinforcement)
 
 ### CompetitorAI
-- 7 parody competitors (Mowier, SalMax, Herøy, Greed Gregarious, Offshore Optimists, NordLaks Nord)
+- 6 parody competitors (Mowier, SalMax, Herøy, Greed Gregarious, Offshore Optimists, Kongsemne Havbruk; ids unchanged, `nordlaks_nord` is Kongsemne since the geo D17 rename, old saves keep their stored names)
+- On the map (geo stages 2-3, `Finance/RivalLayout.cs`): the real salmonid localities get owners by MTB share, home areas first, the rest go to generated independents (`Finance/ParodyNames.cs`, word lists reviewed in BALANCE §1ab); display only, cached by a signature that names every input
 - Quarterly `AdvanceQuarter` (every 90 days) with financial updates, distress check, strategic actions
 - Actions: Harvest, Acquisition, LicenseBid (legacy, now separate from auction), PriceWar, Lobbying, International
 - Distress triggers: `FinancialHealth < 0.30` || `LeverageRatio > 5.0` || `CashReserves <= 0`
@@ -386,7 +429,7 @@ func my_bridge_method(arg: String) -> Dictionary: return _proxies.my_bridge_meth
 
 ## Godot / C# Interop Notes
 - Godot resolves autoload by filename: `GameBridge.cs` must exist as anchor
-- Partials: `GameBridge.Core.cs`, `GameBridge.Farm.cs`, `GameBridge.Market.cs`, `GameBridge.Depth.cs`, `GameBridge.Economy.cs`, `GameBridge.Licence.cs`, `GameBridge.Content.cs`, `GameBridge.Events.cs` (the `GameEventRaised` signal of the typed event bus), `GameBridge.Clock.cs` (the game clock: speeds, holds, pacing, `ClockChanged`), `GameBridge.LandSites.cs` / `GameBridge.Offshore.cs` (F2-03: the land and sea lanes' slices, one marked append block each)
+- Partials: `GameBridge.Core.cs`, `GameBridge.Farm.cs`, `GameBridge.Market.cs`, `GameBridge.Depth.cs`, `GameBridge.Economy.cs`, `GameBridge.Licence.cs`, `GameBridge.Content.cs`, `GameBridge.Events.cs` (the `GameEventRaised` signal of the typed event bus), `GameBridge.Clock.cs` (the game clock: speeds, holds, pacing, `ClockChanged`), `GameBridge.LandSites.cs` / `GameBridge.Offshore.cs` (F2-03: the land and sea lanes' slices, one marked append block each), `GameBridge.Geo.cs` / `GameBridge.SeaCandidates.cs` (geo stages 2-3: the sim·geo and sim·candidates lanes)
 - `InternalsVisibleTo("LakskongenSim.Tests")` in `SaveJson.cs` allows tests to call `internal` methods (`TickLicenseAuctions`, `DrainDayNotes`, etc.)
 - `Nullable enable`, `ImplicitUsings`, `TreatWarningsAsErrors` in csproj
 

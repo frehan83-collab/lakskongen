@@ -37,6 +37,17 @@ namespace LakskongenSim.Farm
         /// <summary>The plot the site stands on ("off_1"), "" for a fjord locality (F2-03; <see cref="SitePlot"/>).</summary>
         public string PlotId { get; set; } = "";
 
+        /// <summary>
+        /// The open-pen candidate the locality was built at ("PO03-01",
+        /// <c>godot/data/geo/candidates.json</c>; geo stages 2-3), null for a
+        /// site built without one (every scenario site, every save from
+        /// before). Written only when set, so a save without one is
+        /// byte-identical to an older save (the property-level ignore follows
+        /// SeaLiceModel's WhenWritingDefault precedent; null is a string's default).
+        /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? CandidateId { get; set; }
+
         /// <summary>The offshore structure: non-null exactly when <see cref="Kind"/> is <see cref="SiteKind.Offshore"/> (F2-03).</summary>
         public global::LakskongenSim.Farm.Offshore.OffshoreUnit? Offshore { get; set; }
 
