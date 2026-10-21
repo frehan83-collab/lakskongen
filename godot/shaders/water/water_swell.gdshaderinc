@@ -25,10 +25,26 @@
 // swell_amp[i] = (sheltered amplitude 0, exposed amplitude m, phase rad, wavelength m).
 uniform vec4 swell_k[SWELL_WAVES];
 uniform vec4 swell_amp[SWELL_WAVES];
+// The largest exposed amplitude in swell_amp (m; EnvironmentDirector, 0 with
+// no swell). A component draws a = exposure x its amplitude (x a shallow
+// fade <= 1) and is skipped under 0.1 mm, so where exposure x swell_peak is
+// under that every component is: the vertex skips the loops at once. A game
+// with no offshore unit and the sheltered fjord pay one multiply, not the
+// loops (wave4b int review: they cost +0.33-0.50 ms p50 at 1080p High with
+// every amplitude 0). Drawing is unchanged: the same skip, made early.
+uniform float swell_peak = 0.0;
+
+// True when no swell component can reach 0.1 mm at this exposure.
+bool swell_skips(float exposure) {
+	return exposure * swell_peak < 1e-4;
+}
 
 // The swell's Gerstner displacement at a grid point (water_shader displacement()'s terms).
 vec3 swell_displacement(vec2 p, float exposure, float depth, float grid_spacing) {
 	vec3 d = vec3(0.0);
+	if (swell_skips(exposure)) {
+		return d;
+	}
 	for (int i = 0; i < SWELL_WAVES; i++) {
 		vec4 wk = swell_k[i];
 		vec4 wa = swell_amp[i];
@@ -51,6 +67,9 @@ vec3 swell_displacement(vec2 p, float exposure, float depth, float grid_spacing)
 // subtracts from the normal, as it does for each wind component.
 vec3 swell_slope(vec2 p, float exposure, float depth) {
 	vec3 s = vec3(0.0);
+	if (swell_skips(exposure)) {
+		return s;
+	}
 	for (int i = 0; i < SWELL_WAVES; i++) {
 		vec4 wk = swell_k[i];
 		vec4 wa = swell_amp[i];

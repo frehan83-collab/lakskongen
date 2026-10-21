@@ -117,6 +117,32 @@ def test_the_swell_is_drawn_as_built_and_ridden_as_drawn():
         assert not re.search(r'set_shader_parameter\(\s*"(swell_k|swell_amp)"', code), path
 
 
+def test_the_swell_skips_its_loops_where_no_component_can_draw():
+    """Wave4b int review (RUN_LOG §7): with no swell (no offshore unit) the
+    swell's loops cost +0.2-0.5 ms p50 at 1080p High on every water vertex.
+    The gate skips a vertex where exposure x the largest amplitude is under
+    the components' own 0.1 mm skip: each component draws exposure x its
+    amplitude (the sheltered amplitude is 0) x a shallow fade <= 1, so every
+    component would be skipped there anyway, and nothing drawn changes."""
+    assert "uniform float swell_peak = 0.0;" in SWELL
+    assert re.search(r"bool swell_skips\(float exposure\) \{\s*return exposure \* swell_peak < 1e-4;\s*\}", SWELL)
+    # Both loops start with it, and each component keeps its own 0.1 mm skip.
+    for fn in ("vec3 swell_displacement(vec2 p, float exposure, float depth, float grid_spacing) {",
+               "vec3 swell_slope(vec2 p, float exposure, float depth) {"):
+        body = SWELL[SWELL.index(fn):]
+        assert re.match(r"[^\n]*\{\n\tvec3 \w = vec3\(0\.0\);\n\tif \(swell_skips\(exposure\)\) \{", body), fn
+    assert SWELL.count("if (a < 1e-4) {") == 2
+    # The fade a component's amplitude takes in shallow water never raises it.
+    assert "a *= d / (d + 0.08 * wa.w + 0.5);" in WATER
+    # The director writes the largest exposed amplitude of the rows it draws, and only it writes it.
+    assert re.search(r"for row: Vector4 in swell:\n\t\tswell_peak = maxf\(swell_peak, row\.y\)\n"
+                     r'\tmat\.set_shader_parameter\("swell_peak", swell_peak\)', DIRECTOR)
+    for path in GODOT.rglob("*.gd"):
+        if "/addons/" in path.as_posix() or path.name == "EnvironmentDirector.gd":
+            continue
+        assert 'set_shader_parameter("swell_peak"' not in path.read_text(encoding="utf-8"), path
+
+
 def _lab(hex_color: str):
     h = hex_color.lstrip("#")
     rgb = [int(h[i:i + 2], 16) / 255.0 for i in (0, 2, 4)]

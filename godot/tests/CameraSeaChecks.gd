@@ -288,6 +288,15 @@ func _spectrum(director: EnvironmentDirector, manager: FarmFacilityVisualManager
 	_check(shader_swell is PackedVector4Array and (shader_swell as PackedVector4Array).size() == 4
 		and director.wave_field.swell_amp == director.open_sea.swell_amp(),
 		"F2-21: the shader's swell uniforms and the CPU wave field get the director's swell")
+	# The swell's gate (wave4b int review): the water reads its largest
+	# amplitude and skips the loops where exposure x it is under 0.1 mm.
+	var largest := 0.0
+	for row: Vector4 in director.open_sea.swell_amp():
+		largest = maxf(largest, row.y)
+	var peak_value: Variant = director.water_material().get_shader_parameter("swell_peak")
+	var peak_drawn := float(peak_value) if peak_value != null else -1.0
+	_check(largest > 0.1 and is_equal_approx(peak_drawn, largest),
+		"F2-21: the water gets the swell's largest amplitude, which gates its loops (%.3f m = %.3f m)" % [peak_drawn, largest])
 	# The units ride the swell: the CPU field's sum at an open-sea point is the
 	# shader's wind sum plus its swell terms, computed here from the uniforms.
 	var field := director.wave_field
@@ -311,6 +320,9 @@ func _spectrum(director: EnvironmentDirector, manager: FarmFacilityVisualManager
 	director.set_target_sea({})
 	director.compose(0.0, true)
 	_check(director.open_sea.swell_hs() < 1e-6, "F2-21: with no target the open coast draws no swell")
+	var peak_after: Variant = director.water_material().get_shader_parameter("swell_peak")
+	_check(peak_after != null and float(peak_after) == 0.0,
+		"F2-21: with no swell the water's vertices skip the swell's loops (swell_peak %s)" % str(peak_after))
 	manager.set_process(true)
 	manager._update_sea_target()
 

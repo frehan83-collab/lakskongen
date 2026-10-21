@@ -72,3 +72,37 @@ none of it; with no target the open coast draws no swell.
   each (circle, triangle, square), on an Ink pill.
 - The chip shows within 1,000 m of a unit (the OF1 framing is 220 m) and
   wherever the fog's transmittance at the unit is under 0.4 or sea fog lies.
+
+## The swell's cost (wave4b int review, merge of gfx-farm-2)
+
+The stage's perf A/B hid the whole presenter and drew the swell in both
+variants, so the swell's own cost was not in it. The review measured it: with
+every swell amplitude 0 (no offshore unit) the swell's loops still ran on
+every water vertex, +0.33-0.50 ms p50 at 1080p High. Since the merge the
+water reads `swell_peak`, the largest swell amplitude (`EnvironmentDirector`,
+0 with no swell), and a vertex skips the loops when exposure × swell_peak is
+under 0.1 mm (`water_swell.gdshaderinc` `swell_skips`): the same skip each
+component already made, made before the loops, so nothing drawn changes.
+
+In-run paired A/B (`tools/perf_smoke.sh`, windowed 1920x1080, High, 12 sea
+sites, 8 s segments, 3 repeats, `--paired`; the raw override
+`water.swell_peak` set after the director's own write):
+
+| Game | Segment | Variant against the default | Δp50 | p50 ratio | Load |
+|---|---|---|---:|---:|---|
+| No offshore unit | FJORD | the loops forced on (`swell_peak` 1e6, as before the gate) | +0.23 ms | 1.016 | 4.2 |
+| No offshore unit | FARM | the loops forced on | +0.46 ms | 1.032 | 4.2 |
+| The farm-type set (OF1 and Havfarm class) | FJORD | no swell drawn (`swell_peak` 0) | −0.32 ms | 0.982 | 4.8-6.9 |
+| The farm-type set | hav (220 m, −18°) | no swell drawn | −0.36 ms | 0.974 | 4.8-6.9 |
+| The farm-type set | FJORD | the exposure skip off (`swell_peak` 1e6) | +0.01 ms | 1.001 | 4.8-6.9 |
+| The farm-type set | hav | the exposure skip off | −0.03 ms | 1.002 | 4.8-6.9 |
+
+So a game without an offshore unit no longer pays for the swell (the gate
+saves the review's +0.2-0.5 ms); a game with one pays +0.32-0.36 ms p50 for
+the swell it sees (the open coast heaves on it from the home view too), within
+F2-20's 1.5 ms presenter budget. The exposure skip (where the bake's exposure
+is near 0) saves nothing measurable at these two views; it costs nothing either.
+A first run without units at load 13.6 → 7.3 gave the same sign (+0.82 /
++1.23 ms p50, ratios 1.025 / 1.045, p95 noisy). Reports:
+`docs/run/evidence/perf/perf_wave4b_int_swell_gate_nounits.md` and
+`perf_wave4b_int_swell_gate_units.md` (with their JSON).

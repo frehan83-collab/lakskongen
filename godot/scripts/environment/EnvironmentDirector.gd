@@ -1112,6 +1112,13 @@ func _apply_water(delta: float, c: Dictionary, snap: bool = false) -> void:
 	mat.set_shader_parameter("swell_k", open_sea.swell_k)
 	mat.set_shader_parameter("swell_amp", swell)
 	wave_field.set_swell(open_sea.swell_k, swell)
+	# Its largest amplitude: with none the water's vertices skip the swell's
+	# loops (wave4b int review; water_swell.gdshaderinc swell_skips).
+	var swell_peak := 0.0
+	for row: Vector4 in swell:
+		swell_peak = maxf(swell_peak, row.y)
+	mat.set_shader_parameter("swell_peak", swell_peak)
+	c["swell_peak"] = swell_peak
 	mat.set_shader_parameter("wave_peak", sea_state["wave_peak"])
 	# Dead calm mirrors crisply; a breeze's ripples break the mirror up.
 	mat.set_shader_parameter("planar_distort", lerpf(MIRROR_DISTORT_CALM, MIRROR_DISTORT_BREEZE, smoothstep(1.0, 6.0, wind)))
