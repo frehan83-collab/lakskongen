@@ -122,10 +122,6 @@ func detail() -> GeoRegionDetail:
 	return _detail
 
 
-func bridge() -> GeoBridgeAdapter:
-	return _bridge
-
-
 ## Drill into a production area (1-13): the region level. False for an area
 ## that does not exist (the level does not change).
 func drill_into(po: int) -> bool:
@@ -336,10 +332,6 @@ func _drill_from_panel(po: int) -> bool:
 	if _panel != null and _panel.has_method("drill_into"):
 		return bool(_panel.call("drill_into", po))
 	return drill_into(po)
-
-
-func _home_area() -> int:
-	return int(_panel.call("home_area")) if _panel != null and _panel.has_method("home_area") else 0
 
 
 static func _row_with(rows: Array, key: String, value: String) -> Dictionary:
