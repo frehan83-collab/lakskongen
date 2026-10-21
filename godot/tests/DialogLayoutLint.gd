@@ -53,7 +53,12 @@ static func problems(dialog: Control) -> PackedStringArray:
 			for j in range(i + 1, kids.size()):
 				var b2 := (kids[j] as Control).get_global_rect().grow(-0.5)
 				if b2.has_area() and a.intersects(b2):
-					out.append("%s × %s" % [_path(kids[i], panel), str(kids[j].name)])
+					# The rects and the parent pin down the geometry when the
+					# failure is on a machine we cannot look at (CI).
+					out.append("%s %s × %s %s in %s %s sep %d" % [
+							_path(kids[i], panel), str(a.grow(0.5)), str(kids[j].name), str(b2.grow(0.5)),
+							cont.get_class(), str(cont.get_global_rect()),
+							cont.get_theme_constant("separation") if cont is BoxContainer else -1])
 	return out
 
 
