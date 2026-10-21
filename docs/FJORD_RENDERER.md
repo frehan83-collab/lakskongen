@@ -960,7 +960,7 @@ totally reflected outside 48.6 degrees (the water's own light below: the
 window's tinted ring), mixed by Fresnel taken on the air side, foam lighter,
 the water between dimming it at 0.45 of the fog's attenuation (a bright
 source keeps its shape through forward scattering). 11c measures the window
-at 2.38× the surface outside it, the TIR ring green over red.
+at 2.38-2.42× the surface outside it, the TIR ring green over red.
 
 **On the net, the collar and the fish** (`shaders/include/underwater_light.gdshaderinc`,
 globals `lk_uw*` in `project.godot`, written only by the director):
@@ -976,9 +976,11 @@ periodic field of short waves (|k| 2-11 a tile, RMS slope 0.075) and bins
 them on a plane 0.9 tiles down, 32 frames of 256², a 9 s loop, seamless in
 space and time (every wave turns whole cycles), texel = I / 4 (mean 1). The
 net's threads take the sun on their tops under water (the normal tilted 0.7
-toward up; above water unchanged). 11d holds the caustics' motion on the net
-against a twin with them held off (mean |dL| 0.020 against 0.004-0.005 in
-0.5 s).
+toward up; above water unchanged). With time stopped, 0.5 s on the
+caustics' clock moves the clean net's pixels by mean |dL| 0.0039 (its
+threads' albedo is 1.6 %: a faint shimmer, p99 4 and at most 12 levels of
+255 on 18 % of the frame), the fouled net's by 0.0086 (p99 8, at most 30
+levels), nothing with them held off.
 
 **Fouling.** `pen_net_shader`'s `net_fouling` instance uniform is the site's
 net condition from the sim (`FarmSite.net_fouling_for`: `net_integrity` 100
@@ -1006,7 +1008,7 @@ crosses the surface; it reads no screen texture.
 
 **The fish** under water show within 5 optical depths of the fog plus the
 school's ring (`FishSchool.underwater_reach_m`, 40 m in 11's water): the
-schools beyond it are not drawn. 11's school changes 3.0 % of the frame.
+schools beyond it are not drawn. 11's school changes 3.0-3.3 % of the frame.
 
 **The shots** (`--only=underwater`, `UnderwaterShots.gd`, a JSON report
 `11_underwater.json`): 11 (noon, clear, the first stocked pen), 11c (tilted
@@ -1014,9 +1016,11 @@ schools beyond it are not drawn. 11's school changes 3.0 % of the frame.
 at 4 m, facing away from the sun: the sun-side wall lies in the collar's and
 walkway's shadow down to ~5 m at noon) and 11e (11d fouled). The checks: 11
 at 3-8 m inside the net; the window over the TIR ring (≥ 1.8×, tinted); the
-bloom's fog over the clear water's; fish ≥ 1 %; the caustics' motion ≥ 0.004
-and ≥ 2× the twin's; the fouling ≥ 10 % of the frame. The caustics' frame
-pairs go to `screenshots/game/underwater_motion/`.
+bloom's fog over the clear water's; fish ≥ 1 %; with time stopped (the
+floating pen stays where the net's mask was taken, and a run's frame pacing
+cannot move it) 0.5 s on the caustics' clock moves the clean net ≥ 0.002,
+the fouled net ≥ 0.005 and, held off, ≤ 0.0005; the fouling ≥ 10 % of the
+frame. The caustics' frame pairs go to `screenshots/game/underwater_motion/`.
 
 Cost (`tools/perf_smoke.sh --segments=farm,underwater`, the new
 `underwater` segment run only when named; 2560×1440 High, M1 Pro, load 9-14,

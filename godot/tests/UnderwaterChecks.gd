@@ -264,17 +264,20 @@ func _check_staging(env: FjordEnvironment) -> void:
 	var view := env.underwater_view
 	director.stage_caustics(false)
 	view.stage_effects(false)
+	director.stage_caustic_clock(3.25)
 	director.compose(0.0, true)
 	for i in 3:
 		await t.get_tree().process_frame
-	var held := float(director.get_composed().get("caustic_strength", 1.0)) == 0.0 and not view.shafts.visible and not view.snow.visible
+	var held := float(director.get_composed().get("caustic_strength", 1.0)) == 0.0 and not view.shafts.visible and not view.snow.visible \
+		and is_equal_approx(float(director.get_composed().get("caustic_time", 0.0)), 3.25)
+	director.stage_caustic_clock(-1.0)
 	director.stage_caustics(true)
 	view.stage_effects(true)
 	director.compose(0.0, true)
 	for i in 3:
 		await t.get_tree().process_frame
 	t._check(held and float(director.get_composed().get("caustic_strength", 0.0)) > 0.5 and view.shafts.visible and view.snow.visible,
-		"underwater: the staging holds the caustics, the shafts and the snow off and gives them back")
+		"underwater: the staging holds the caustics (and their clock), the shafts and the snow off and gives them back")
 
 
 ## The net-fouling uniform on every net of the site's pens and their LODs.

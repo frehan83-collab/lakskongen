@@ -342,8 +342,10 @@ var _uw_chlorophyll := 0.0
 ## read it).
 var _caustic_time := 0.0
 var uw_globals_on := false
-## Staging (the harness's caustics twin): the caustics held off.
+## Staging (the harness's caustics twin): the caustics held off, and their
+## clock held at a time (s; negative: it runs).
 var caustics_staged_off := false
+var caustic_clock_staged := -1.0
 ## The ground (G2-02): fresh snow and wet ground, eased toward the weather.
 var _fresh_snow := 0.0
 var _wetness := 0.0
@@ -583,6 +585,13 @@ func stage_cloud_drift(offset_km: Vector2) -> void:
 ## give them back) while everything else runs.
 func stage_caustics(on: bool) -> void:
 	caustics_staged_off = not on
+
+
+## Staging (G3-04): hold the caustics' clock at `seconds` (a negative value
+## lets it run again), so the harness measures their motion between two
+## clock times with everything else frozen, whatever the frame pacing.
+func stage_caustic_clock(seconds: float) -> void:
+	caustic_clock_staged = seconds
 
 
 ## Staging (the harness's aurora shot): put the sky's animation clock (the
@@ -928,7 +937,7 @@ func _apply_underwater_globals(delta: float, sun_elev: float, cloud: float, unde
 			RenderingServer.global_shader_parameter_set(UW_GLOBALS[0], Vector4.ZERO)
 			uw_globals_on = false
 		return
-	_caustic_time += delta
+	_caustic_time = caustic_clock_staged if caustic_clock_staged >= 0.0 else _caustic_time + delta
 	var wind := weather_system.get_wind_speed_ms() if weather_system else 4.0
 	var strength := smoothstep(CAUSTIC_SUN_DEG.x, CAUSTIC_SUN_DEG.y, sun_elev) \
 		* (1.0 - smoothstep(CAUSTIC_CLOUD.x, CAUSTIC_CLOUD.y, cloud)) \
