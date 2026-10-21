@@ -203,11 +203,13 @@ func _named_feature(map: Control) -> void:
 func _crossfade_mid_fade(map: Control) -> void:
 	var drill: GeoDrillStack = map.geo_drill()
 	drill.go_national()
+	await t.get_tree().process_frame
+	# The drill and the card in one frame, as the national feature path does:
+	# the stack's fade has just begun (alpha 0) when the card's begins.
 	map.drill_into(AREA)
-	await _wait(0.05)
-	var mid: float = drill.modulate.a
 	drill.open_candidate(drill.region_view().candidates()[0])
-	await _wait(0.05)
+	var mid: float = drill.modulate.a
+	await t.get_tree().process_frame
 	drill.step_up()
 	await _wait(FADE_WAIT_S)
 	_check(mid < 1.0 and map.map_level() == "region" and _opaque(drill),
