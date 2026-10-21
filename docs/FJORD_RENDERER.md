@@ -25,7 +25,8 @@ FjordEnvironment (FjordEnvironment.gd)    environment controller + gameplay API
 ├── PlanarReflection (PlanarReflection.gd) the water's mirror: SubViewport, mirrored camera
 ├── VesselWakes (VesselWakes.gd)          wakes behind moving boats (ribbons, wake_shader)
 ├── PenSpray (PenSpray.gd)                spray at the pens in a gale (particles)
-├── UnderwaterCanvas                      underwater overlay
+├── UnderwaterView (UnderwaterView.gd)    under the surface: the site's water, shafts, snow, the lens
+├── UnderwaterCanvas                      the lens (underwater_lens: vignette, the crossing's veil)
 ├── ParticleEffects (ParticleEffects.gd)
 ├── WellboatVisualManager / FeedBargeVisualManager / CompetitorFarmVisualManager
 └── FishPenManager (GameScene)            sites (FarmSite: pens, grid, hoses), fish, selection
@@ -261,7 +262,7 @@ pads' mean colour built against heath (ΔE76; `docs/run/evidence/f2_19_pads.md`)
 |---|---|
 | WASD, arrows, middle-drag | pan |
 | Q/E, right-drag | rotate (right-drag also tilts) |
-| Wheel | zoom ×1.15 toward the cursor, 25–3000 m; past 25 m: underwater |
+| Wheel | zoom ×1.15 toward the cursor, 25–3000 m; past 25 m: underwater, inside the nearest pen (G3-04, below) |
 | T | top-down toggle |
 | Home | recentre on the first pen, looking down the fjord to the mouth |
 | Double-click | focus the clicked point |
@@ -330,7 +331,7 @@ axes: north +X, up +Y, east +Z; the fjord opens west (−Z).
 
 | Composed | Rule |
 |---|---|
-| Fog | `fog_density = 3.912 / visibility` (Koschmieder), drawn at no less than a smooth 2.5 km (G3-05, below); aerial perspective 0.6, sky affect 0.15, sun scatter 0.25; height fog for a sea-fog layer, or mist above a mood's low cloud base; underwater 30 m visibility; the colour (the mood-graded sky) written sRGB-encoded |
+| Fog | `fog_density = 3.912 / visibility` (Koschmieder), drawn at no less than a smooth 2.5 km (G3-05, below); aerial perspective 0.6, sky affect 0.15, sun scatter 0.25; height fog for a sea-fog layer, or mist above a mood's low cloud base; under the surface the site's water (G3-04, below); the colour (the mood-graded sky) written sRGB-encoded |
 | Sun | direction from `SolarGeometry`; colour and energy from the same Chapman-function transmittance the sky draws, white-balanced at 60°; the colour (sRGB-encoded, as Light3D colours are) sets the hue only and the light is divided by its luminance, so it carries the energy at every elevation (gfx-polish-1: a 3° sun had kept 0.60 of it, a 10° one 0.74); clouds dim it (× lerp(1, 0.15, c)), soften its shadow and take its specular glint off the water |
 | Moon | #C7D7E8, energy 0.04 × phase × elevation × (1 − 0.85 c), shadows only when the sun's are off |
 | Exposure | 1 with the sun above 12°; below that the eye adapts as (key_ref / key)^0.72 up to 16×, where the key is the zenith and horizon luminance of the same sky model plus the direct light; under a deck it adapts only part of the way, so storms stay dark |
@@ -978,6 +979,137 @@ Frames and checks: `qa/scenes/ShowcaseCapture.tscn` (shots
 `34_teaser_*`; metrics `f2_23_showcase_metrics.json`). Evidence
 `docs/run/evidence/f2_21_camera_sea.md`, `f2_23_first_sight.md`.
 
+## Under the surface (G3-04)
+
+Past the FARM zoom the wheel takes the camera into the water, inside the pen
+nearest its focus. The water is drawn in 3D: no full-screen tint, blur or
+painted caustic (the old `underwater_post.gdshader` is gone).
+
+**The camera.** `UnderwaterView.dive_anchor` (the pen within 120 m of the
+focus) is `FjordCamera.underwater_anchor`. The view stands 5 m down
+(`UNDERWATER_DEPTH`, kept 3-8 m and 4 m over the seabed), 0.72 of the net's
+radius out from the pen's centre (18 m of 24.95, in the school's band), and
+looks across the pen 45 degrees off its centre and 16 degrees up (64 degree
+field of view): the school passes through one side, the net wall and its
+ropes show at the other, Snell's window at the top. Q/E and right-drag turn
+it round the pen, the up and down keys tilt it (60 degrees at most). The dive
+flies to 7 m over its place, then straight down, looking down (eased); the
+way out rises straight up first. In open water it looks at the focus.
+
+**The water is the sim's.** `WaterClarity` (sim, pure: no state, no RNG)
+gives each site's horizontal black-target visibility, 4.8 / α: a Norwegian
+fjord's Secchi depth through the year (OH-10, Hardangerfjorden, 2024) times
+0.75, and the chlorophyll a live algal blooms at the site add (Voss 1992),
+`BALANCE.md` §1ab. `GetSeaSiteDetails` carries `water_visibility_m` and
+`bloom_chlorophyll_ug_l`; `FjordVistaBridge` hands every site's row to
+`UnderwaterView.set_site_waters`, which hands the water at the camera (its
+pen's site, else the nearest site within 1.5 km, else 6 m) to
+`EnvironmentDirector.set_underwater_water`. The fog density is 4.8 / the drawn
+visibility, `sqrt((1.5 v)^2 + 4.5^2)`: a camera's contrast stretch (1.5) and a
+readable floor, so a 2.3 m bloom still shows the net beside the camera
+(`UnderwaterOptics`). 11's water reads 11.5 m (fog 0.269 /m), 11b's bloom
+2.35 m (0.839 /m).
+
+**The light** (`EnvironmentDirector.underwater_profile`, pure): the sun
+refracted (Snell, n 1.333: a horizon sun shines in at 48.6 degrees from the
+zenith), through the surface by Fresnel, filtered by Beer-Lambert along its
+slant path (σ (0.40, 0.09, 0.14) /m, plus a bloom's (0.16, 0.06, 0.30) × its
+share of 20 µg/L); the sky's light through the surface over a 1.2× longer
+diffuse path. The scene's sun carries the sunlight at the camera's depth,
+pointed along the refracted sun; the ambient light is the water's own light
+field. The water's horizontal radiance is 0.032 × the light at depth × its
+scatter share (green-blue; olive in a bloom), straight down 0.3 of it. The
+eye adapts to the light at depth by (the light just under the surface / the
+light here)^0.7, at most 6×.
+
+**The sky** under water (`sky_shader.gdshader`, `underwater` 1) is that
+light: a linear gradient from the nadir through the horizontal, pre-sharpened
+in the radiance pass (÷ 0.62, the roughest mip's blur), so fully fogged
+geometry and the background behind it meet without a seam, and the sun's
+forward-scattered glow. Fog sky affect 0, aerial perspective 1. The
+reflection probe rests (hidden, no capture): nothing mirrors the fjord above.
+
+**The surface from below** (`shaders/water/water_underside.gdshader`): the
+water grid wears it once the camera is 0.6 m down (`WaterGrid.set_underside`).
+Its vertex stage is the water's (`tests/test_underwater.py` holds the copy to
+the original); `cull_front`, unshaded, its own fog. Per pixel: the wave
+normal band-limited to the pixel and the ripples at 0.25 of their slope
+(steeper ones shatter the window), the ray refracted out (Snell's window:
+the sky, the walls round its rim, the sun's disc, radiance n² denser) or
+totally reflected outside 48.6 degrees (the water's own light below: the
+window's tinted ring), mixed by Fresnel taken on the air side, foam lighter,
+the water between dimming it at 0.45 of the fog's attenuation (a bright
+source keeps its shape through forward scattering). 11c measures the window
+at 2.37-2.42× the surface outside it, the TIR ring green over red.
+
+**On the net, the collar and the fish** (`shaders/include/underwater_light.gdshaderinc`,
+globals `lk_uw*` in `project.godot`, written only by the director):
+`uw_depth_light` filters the sun from the camera's depth to the surface's
+(red goes first); `uw_caustic_light` adds the caustics: the sunlight × (i − 1)
+where the loop of frames puts it (Godot folds the BRDF's 1/π into a light's
+energy: measured, a light of 0.25 lights a white Lambert quad to 0.2502), on
+surfaces facing the refracted sun, projected along it to the surface, in
+3.4 m cells that grow 7 %/m and soften with depth and fade over 9 m; none
+with the sun under 4-18 degrees, under a closing deck or a glassy sea. The
+frames: `tools/gen_caustics.py` refracts 768² vertical rays through a
+periodic field of short waves (|k| 2-11 a tile, RMS slope 0.075) and bins
+them on a plane 0.9 tiles down, 32 frames of 256², a 9 s loop, seamless in
+space and time (every wave turns whole cycles), texel = I / 4 (mean 1). The
+net's threads take the sun on their tops under water (the normal tilted 0.7
+toward up; above water unchanged). With time stopped, 0.5 s on the
+caustics' clock moves the clean net's pixels by mean |dL| 0.0039 (its
+threads' albedo is 1.6 %: a faint shimmer, p99 4 and at most 12 levels of
+255 on 18 % of the frame), the fouled net's by 0.0086 (p99 8, at most 30
+levels), nothing with them held off.
+
+**Fouling.** `pen_net_shader`'s `net_fouling` instance uniform is the site's
+net condition from the sim (`FarmSite.net_fouling_for`: `net_integrity` 100
+clean, 60 and below fully fouled; the sim has no fouling of its own and its
+ROV restores the same number). The growth is under the surface only, deeper
+as it grows (to 18 m), patchy (0.55-1 round the pen): the tile's thread
+coverage spread over 3 mips, reached 0-2× by three octaves of clumps, cut at
+a threshold falling with the fouling: ragged tufts, then the mesh closes; a
+fully fouled tile covers 2.35× the clean 0.15 (Gansel et al. 2015 measured a
+0.20 net reach 0.50 in ten weeks); olive-tan; past the spread's mip it gives
+way to its mean. 11e is 11d fouled (41 % of the frame changes).
+
+**Shafts and snow** (`UnderwaterView`, presenter: they read the director's
+composition and write nothing else). Shafts: one additive quad a 3 m world
+cell (hashed, so a shaft stays put), within 16 m of the camera, 0.2-1.8 m
+wide and 8-22 m long along the refracted sun, flickering slowly; 5× the
+water's horizontal light at their core, fading at 0.45 of the fog's
+attenuation, brighter seen toward the sun; none with a low sun or a closed
+deck. Art direction: a beam 5 m off in 12 m water holds 6 % contrast.
+Marine snow: 4000 flakes of 3 cm in an 8 × 5 × 8 m box round the camera,
+sinking and drifting, 0.16 of the light at depth, 0.55 of them in clear
+water. The lens (`underwater_lens.gdshader`, `UnderwaterCanvas`): a 0.32
+vignette under water and a 0.45 s veil in the water's colour as the camera
+crosses the surface; it reads no screen texture.
+
+**The fish** under water show within 5 optical depths of the fog plus the
+school's ring (`FishSchool.underwater_reach_m`, 40 m in 11's water): the
+schools beyond it are not drawn. 11's school changes 2.9-3.3 % of the frame.
+
+**The shots** (`--only=underwater`, `UnderwaterShots.gd`, a JSON report
+`11_underwater.json`): 11 (noon, clear, the first stocked pen), 11c (tilted
+45 degrees up), 11b (a QA bloom of 0.8 at the site), 11d (2.6 m from the net
+at 4 m, facing away from the sun: the sun-side wall lies in the collar's and
+walkway's shadow down to ~5 m at noon) and 11e (11d fouled). The checks: 11
+at 3-8 m inside the net; the window over the TIR ring (≥ 1.8×, tinted); the
+bloom's fog over the clear water's; fish ≥ 1 %; with time stopped (the
+floating pen stays where the net's mask was taken, and a run's frame pacing
+cannot move it) 0.5 s on the caustics' clock moves the clean net ≥ 0.002,
+the fouled net ≥ 0.005 and, held off, ≤ 0.0005; the fouling ≥ 10 % of the
+frame. The caustics' frame pairs go to `screenshots/game/underwater_motion/`.
+
+Cost (`tools/perf_smoke.sh --segments=farm,underwater`, the new
+`underwater` segment run only when named; 2560×1440 High, M1 Pro, load 9-14,
+three interleaved repeats): the underwater view p50 14.4 ms, p95 15.2 ms,
+against FARM's 20.3 / 23.3 ms in the same run (the fog hides the world: 266
+draws against 310, 75 shadow draws against 107); the shafts and the snow
+cost 0.66 ms p50 (paired ratio 0.952 with the view hidden). Evidence:
+`docs/run/evidence/g3_04/README.md`.
+
 ## Image pipeline (G1-06, post and anti-aliasing)
 
 MSAA 4× plus SMAA (`screen_space_aa = 2`); no tilt-shift pass (removed with
@@ -1073,7 +1205,10 @@ runs, the cost breakdown and the frames.
 | `shaders/mist_bank.gdshader` | `MistBanks` (low cloud on the walls, G3-05) |
 | `shaders/rain_streak.gdshader` | the rain particles (streaks along the wind, G3-05) |
 | `shaders/world_chip.gdshader` | `VesselChip` status pills |
-| `shaders/underwater_post.gdshader` | `UnderwaterCanvas` |
+| `shaders/underwater_lens.gdshader` | `UnderwaterCanvas` (the lens, G3-04) |
+| `shaders/water/water_underside.gdshader` | `WaterGrid` under the surface (G3-04) |
+| `shaders/include/underwater_light.gdshaderinc` (in `pen_net_shader`, `pen_collar_shader`, `salmon_school`) | the light at depth and the caustics (G3-04) |
+| `shaders/underwater/light_shaft.gdshader`, `shaders/underwater/marine_snow.gdshader` | `UnderwaterView`'s shafts and snow (G3-04) |
 | `shaders/pen_*.gdshader`, `salmon_skin.gdshader` | pen and fish assets |
 | `shaders/fish_school.gdshaderinc` (in `salmon_school`, `fish_shoal`) | the salmon schools (G3-01) |
 | `shaders/light_glow.gdshaderinc` (in `mooring_light_glow`, `vessel_light_glow`) | night lights and their glitter |

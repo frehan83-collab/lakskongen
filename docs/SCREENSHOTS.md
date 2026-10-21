@@ -60,7 +60,11 @@ On macOS the `user://` folder resolves to:
 | 8 | `08_fjord_day.png` | 3D fjord, summer noon, clear weather |
 | 9 | `09_fjord_night_aurora.png` | Winter night, aurora intensity 1.0 |
 | 10 | `10_fjord_storm.png` | Summer noon, storm (transition forced short for QA) |
-| 11 | `11_fjord_underwater.png` | Camera below the water line (underwater post-process) |
+| 11 | `11_fjord_underwater.png` | Inside the first stocked pen at 5 m, noon, clear (G3-04: the sim's water, Snell's window, shafts, snow, the school) |
+| 11c | `11c_underwater_window.png` | The same, tilted 45° up: Snell's window and the ring of total internal reflection |
+| 11b | `11b_underwater_bloom.png` | The same with a QA bloom of 0.8 at the site (2.35 m water) |
+| 11d | `11d_underwater_net.png` | 2.6 m from the net at 4 m, facing away from the sun (the caustics on the net) |
+| 11e | `11e_underwater_net_fouled.png` | 11d with the site's nets fully fouled |
 
 UI panels are hidden for the 3D fjord shots so the environment is unobstructed.
 
@@ -78,7 +82,8 @@ autoloads (`SimBridge`, `GameBridge`, `TutorialState`, …) are live.
 - **Map overlay** is set on the embedded `SiteOverlayLegend` node.
 - **Fjord state** uses the `FjordEnvironment` API: `set_season`, `set_time`,
   `set_weather`; the aurora is set on the sky `ShaderMaterial`; underwater moves
-  the `FjordCamera` below the water line.
+  the `FjordCamera` into the first stocked pen and checks the frames
+  (`UnderwaterShots.gd`; the report `11_underwater.json`).
 - Capture uses `get_viewport().get_texture().get_image().save_png(...)`, waiting on
   `RenderingServer.frame_post_draw` so a fully drawn frame is grabbed.
 

@@ -1,4 +1,4 @@
-[gd_scene load_steps=39 format=3 uid="uid://fjord_environment_001"]
+[gd_scene load_steps=42 format=3 uid="uid://fjord_environment_001"]
 
 [ext_resource type="Script" path="res://scripts/environment/FjordEnvironment.gd" id="1_env"]
 [ext_resource type="Script" path="res://scripts/environment/FjordTerrain.gd" id="2_terrain"]
@@ -10,7 +10,7 @@
 [ext_resource type="Shader" path="res://shaders/sky_shader.gdshader" id="8_sky_shader"]
 [ext_resource type="Texture2D" path="res://assets/textures/water/ocean_normal_1.png" id="10_normal_map_1"]
 [ext_resource type="Texture2D" path="res://assets/textures/water/ocean_normal_2.png" id="11_normal_map_2"]
-[ext_resource type="Shader" path="res://shaders/underwater_post.gdshader" id="12_underwater_shader"]
+[ext_resource type="Shader" path="res://shaders/underwater_lens.gdshader" id="12_underwater_shader"]
 [ext_resource type="Texture2D" path="res://assets/textures/water_foam.png" id="13_foam_tex"]
 [ext_resource type="Texture2D" path="res://assets/textures/water_caustics.png" id="14_caustics_tex"]
 [ext_resource type="Script" path="res://scripts/visual/WellboatVisualManager.gd" id="15_wellboat_vm_script"]
@@ -24,6 +24,8 @@
 [ext_resource type="Shader" path="res://shaders/rain_streak.gdshader" id="23_rain_streak"]
 [ext_resource type="Script" path="res://scripts/environment/CloudShadows.gd" id="24_cloud_shadows"]
 [ext_resource type="Script" path="res://scripts/environment/PenLamps.gd" id="25_pen_lamps"]
+[ext_resource type="Script" path="res://scripts/environment/UnderwaterView.gd" id="26_underwater_view"]
+[ext_resource type="Shader" path="res://shaders/water/water_underside.gdshader" id="27_underside_shader"]
 
 [sub_resource type="ShaderMaterial" id="water_mat"]
 shader = ExtResource("6_water_shader")
@@ -47,6 +49,13 @@ shader_parameter/normal_map_1 = ExtResource("10_normal_map_1")
 shader_parameter/normal_map_2 = ExtResource("11_normal_map_2")
 shader_parameter/foam_texture = ExtResource("13_foam_tex")
 shader_parameter/caustics_texture = ExtResource("14_caustics_tex")
+shader_parameter/grid_half_units = 128.0
+shader_parameter/grid_base_spacing = 2.0
+
+[sub_resource type="ShaderMaterial" id="water_underside_mat"]
+shader = ExtResource("27_underside_shader")
+shader_parameter/normal_map_1 = ExtResource("10_normal_map_1")
+shader_parameter/normal_map_2 = ExtResource("11_normal_map_2")
 shader_parameter/grid_half_units = 128.0
 shader_parameter/grid_base_spacing = 2.0
 
@@ -117,15 +126,9 @@ dof_blur_amount = 0.1
 
 [sub_resource type="ShaderMaterial" id="underwater_mat"]
 shader = ExtResource("12_underwater_shader")
-shader_parameter/active = 0.0
-shader_parameter/water_tint = Color(0.055, 0.227, 0.29, 1)
-shader_parameter/tint_strength = 0.55
-shader_parameter/blur_amount = 2.5
-shader_parameter/caustics_strength = 0.16
-shader_parameter/caustics_scale = 0.12
-shader_parameter/caustics_speed = 0.05
-shader_parameter/edge_vignette = 0.35
-shader_parameter/caustics_texture = ExtResource("14_caustics_tex")
+shader_parameter/vignette = 0.0
+shader_parameter/veil = 0.0
+shader_parameter/veil_color = Color(0.05, 0.12, 0.12, 1)
 
 [sub_resource type="ParticleProcessMaterial" id="rain_process"]
 particle_flag_align_y = true
@@ -195,7 +198,7 @@ material = SubResource("snow_draw_mat")
 size = Vector2(0.09, 0.09)
 
 
-[node name="FjordEnvironment" type="Node3D" node_paths=PackedStringArray("terrain", "camera", "time_system", "weather_system", "water_grid", "particle_effects", "underwater_rect", "director")]
+[node name="FjordEnvironment" type="Node3D" node_paths=PackedStringArray("terrain", "camera", "time_system", "weather_system", "water_grid", "particle_effects", "director", "underwater_view")]
 script = ExtResource("1_env")
 terrain = NodePath("Terrain")
 camera = NodePath("FjordCamera")
@@ -203,8 +206,8 @@ time_system = NodePath("TimeOfDay")
 weather_system = NodePath("WeatherSystem")
 water_grid = NodePath("WaterGrid")
 particle_effects = NodePath("ParticleEffects")
-underwater_rect = NodePath("UnderwaterCanvas/UnderwaterRect")
 director = NodePath("EnvironmentDirector")
+underwater_view = NodePath("UnderwaterView")
 
 [node name="Terrain" type="Node3D" parent="."]
 script = ExtResource("2_terrain")
@@ -215,6 +218,7 @@ terrain_seed = 42
 [node name="WaterGrid" type="Node3D" parent="."]
 script = ExtResource("19_water_grid")
 material = SubResource("water_mat")
+underside_material = SubResource("water_underside_mat")
 
 [node name="FjordCamera" type="Camera3D" parent="." node_paths=PackedStringArray("terrain")]
 script = ExtResource("3_camera")
@@ -306,6 +310,12 @@ script = ExtResource("24_cloud_shadows")
 
 [node name="PenLamps" type="Node3D" parent="."]
 script = ExtResource("25_pen_lamps")
+
+[node name="UnderwaterView" type="Node3D" parent="." node_paths=PackedStringArray("camera", "director", "lens_rect")]
+script = ExtResource("26_underwater_view")
+camera = NodePath("../FjordCamera")
+director = NodePath("../EnvironmentDirector")
+lens_rect = NodePath("../UnderwaterCanvas/UnderwaterRect")
 
 [node name="RainParticles" type="GPUParticles3D" parent="WeatherSystem"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 50, 0)

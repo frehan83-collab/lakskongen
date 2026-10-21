@@ -905,6 +905,9 @@ public partial class GameBridge : Node
             double weightCv = SimulationEngine != null ? SimulationEngine.SizeSpreadOf(site.Pens).WeightCv : 0.0;
             double ration = site.Pens.Count > 0
                 ? site.Pens.Average(p => p.Ration?.EffectiveFraction ?? 1.0) : 1.0;
+            // G3-04: the water the underwater view looks through (the season's
+            // clarity, cut by an algal bloom at the site; a pure engine read).
+            var water = SimulationEngine!.WaterClarityOf(site);
 
             result.Add(new Godot.Collections.Dictionary
             {
@@ -942,7 +945,11 @@ public partial class GameBridge : Node
                 ["pens"]              = PenArrayOf(site.Id),
                 // F2-03: what the site is and the plot an offshore unit stands on.
                 ["kind"]              = site.Kind.ToString(),
-                ["plot_id"]           = site.PlotId
+                ["plot_id"]           = site.PlotId,
+                // G3-04: horizontal visibility of a black target (m) and the
+                // chlorophyll a an algal bloom at the site adds (µg/L).
+                ["water_visibility_m"] = water.VisibilityM,
+                ["bloom_chlorophyll_ug_l"] = water.BloomChlorophyllUgL
             });
         }
         return result;

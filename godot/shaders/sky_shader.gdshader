@@ -91,8 +91,31 @@ uniform float grade_deck_value : hint_range(0.0, 2.0) = 1.0;
 // Under a closed deck, how much lighter the sky gets in the last degrees
 // over the horizon (0: the haze colour throughout).
 uniform float grade_horizon_lift : hint_range(0.0, 4.0) = 0.0;
+// Under the surface (G3-04) the sky is the water's own light, as the
+// director composes it from the sun and sky at the camera's depth (linear
+// radiance): the background behind the fog, the colour the fog's aerial
+// perspective fades a line of sight into, the ambient light and what a
+// fish's silver flank mirrors. It is smooth on purpose, the horizontal
+// radiance plus a linear slope in the view's height (darker toward the
+// deep, lighter toward the surface) and a broad glow round the sun's
+// refracted direction: the fog takes its colour from the radiance map's
+// roughest level, which blurs the sky, so the radiance pass draws the slope
+// steeper by 1 / UW_BLUR_SLOPE and the blur gives back the background's
+// own slope. A fully fogged net then has the background's colour exactly
+// (with any sharper detail here it showed as a pattern of threads on the
+// deep). Snell's window is the surface's own (water/water_underside.gdshader).
+// Nothing else is drawn then.
+uniform float underwater = 0.0;
+uniform vec3 uw_horizontal = vec3(0.01, 0.03, 0.03);
+uniform vec3 uw_nadir = vec3(0.003, 0.009, 0.009);
+uniform vec3 uw_sun_dir = vec3(0.0, 1.0, 0.0);
+uniform vec3 uw_sun_glow = vec3(0.0);
 
 const float PI_ = 3.14159265;
+// How much of a linear slope in the view's height the radiance map's
+// roughest level keeps (its GGX lobe at roughness 1; measured in the
+// underwater shots: a fully fogged net against the deep behind it).
+const float UW_BLUR_SLOPE = 0.62;
 const float R_EARTH = 6360.0;      // km
 const float R_TOP = 6420.0;        // km
 const float H_RAYLEIGH = 8.0;      // km
@@ -984,6 +1007,16 @@ vec4 unfogged(vec4 cl, vec3 dir, vec3 sun_dir) {
 	return vec4(max((cl.rgb - sky_fog_k * haze_color - sky_fog_scatter * scatter) / max(1.0 - sky_fog_k, 0.05), vec3(0.0)), cl.a);
 }
 
+// The water's own light in a direction, under the surface (G3-04); the
+// radiance pass (`cubemap`) draws the slope steeper (see UW_BLUR_SLOPE).
+vec3 underwater_light(vec3 dir, bool cubemap) {
+	vec3 slope = (uw_horizontal - uw_nadir) * (cubemap ? 1.0 / UW_BLUR_SLOPE : 1.0);
+	vec3 col = max(uw_horizontal + slope * dir.y, vec3(0.0));
+	// The sun's light scattered forward round its refracted direction.
+	float s = max(dot(dir, uw_sun_dir), 0.0);
+	return col + uw_sun_glow * (s * s * s * s);
+}
+
 void sky() {
 	vec3 dir = normalize(EYEDIR);
 	vec3 sun_dir = LIGHT0_ENABLED ? normalize(LIGHT0_DIRECTION) : vec3(0.0, -1.0, 0.0);
@@ -994,7 +1027,15 @@ void sky() {
 	// are 2 and 4 times the screen's): the clouds are band-limited to it.
 	// Taken here, in uniform control flow, before any branch.
 	float pixel_angle = max(max(length(dFdx(dir)), length(dFdy(dir))), 1e-5);
-	if (AT_HALF_RES_PASS || AT_QUARTER_RES_PASS) {
+	if (underwater > 0.5) {
+		// G3-04: the water's light; the reduced passes have nothing to draw.
+		if (AT_HALF_RES_PASS || AT_QUARTER_RES_PASS) {
+			COLOR = vec3(0.0);
+			ALPHA = 0.0;
+		} else {
+			COLOR = underwater_light(dir, cubemap);
+		}
+	} else if (AT_HALF_RES_PASS || AT_QUARTER_RES_PASS) {
 		// A reduced pass's texel is spread over the screen by a bilinear
 		// upsample that the 3D upscaler then sharpens again: band-limit it
 		// to a little more than its own texel, so no edge is left for the

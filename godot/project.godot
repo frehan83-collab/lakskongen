@@ -177,3 +177,23 @@ lk_cloud_shadow_darken={
 "type": "float",
 "value": 0.0
 }
+lk_uw={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}
+lk_uw_sun={
+"type": "vec3",
+"value": Vector3(0, 1, 0)
+}
+lk_uw_light={
+"type": "vec3",
+"value": Vector3(0, 0, 0)
+}
+lk_uw_sigma={
+"type": "vec3",
+"value": Vector3(0.4, 0.09, 0.14)
+}
+lk_uw_caustics={
+"type": "sampler2DArray",
+"value": "res://assets/textures/water/caustics_frames.png"
+}

@@ -159,6 +159,10 @@ func _sync_environment(sim: Node) -> void:
 	if gb != null and gb.has_method("GetMaxBloomSeverity"):
 		algae = float(gb.GetMaxBloomSeverity())
 	env.call("set_water_state", temp_c, algae)
+	# G3-04: each site's water (its visibility and a bloom's chlorophyll),
+	# the underwater view's fog and colour where the camera dives.
+	if "sea_sites" in sim and env.has_method("set_site_waters"):
+		env.call("set_site_waters", sim.get("sea_sites"))
 
 
 func _on_pen_clicked(pen_id: String, position: Vector3) -> void:

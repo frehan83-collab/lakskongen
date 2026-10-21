@@ -16,63 +16,32 @@ extends Node3D
 @export_group("Water")
 ## The camera-snapped LOD water grid (G1-05), out to the horizon.
 @export var water_grid: WaterGrid
-
-@export_group("Post-Process")
-## Full-screen underwater overlay (blue tint + blur + caustics).
-@export var underwater_rect: ColorRect
-## Water surface height used to detect an underwater camera.
-@export var underwater_water_level: float = 0.0
+## The world under the surface (G3-04): the pen the camera dives into, the
+## sim's water at the camera, the lens (UnderwaterView).
+@export var underwater_view: UnderwaterView
 
 @export_group("Debug")
 @export var debug_overlay: bool = false
 
 var _initialized: bool = false
-var _underwater_target: float = 0.0
-var _underwater_current: float = 0.0
 
 
 func _ready() -> void:
 	_connect_signals()
 
-	if underwater_rect == null:
-		underwater_rect = get_node_or_null("UnderwaterCanvas/UnderwaterRect") as ColorRect
 	if director == null:
 		director = get_node_or_null("EnvironmentDirector") as EnvironmentDirector
-	
+	if underwater_view == null:
+		underwater_view = get_node_or_null("UnderwaterView") as UnderwaterView
+
 	if particle_effects:
 		var pen_mgr = get_node_or_null("/root/FishPenManager")
 		if pen_mgr == null:
 			pen_mgr = get_node_or_null("../FishPenManager")
 		particle_effects.fish_pen_manager = pen_mgr
-	
+
 	_initialized = true
 	print("[FjordEnvironment] Initialized — Norwegian fjord renderer ready")
-
-
-func _process(delta: float) -> void:
-	_update_underwater_post(delta)
-
-
-## Fade the underwater post-process overlay based on camera depth.
-## Fully guarded: no-ops when the overlay or camera is missing.
-func _update_underwater_post(delta: float) -> void:
-	if underwater_rect == null or not (underwater_rect.material is ShaderMaterial):
-		return
-
-	var target := 0.0
-	if camera:
-		var level := underwater_water_level
-		if terrain:
-			level = terrain.water_level
-		if camera.global_position.y < level:
-			target = 1.0
-
-	_underwater_target = target
-	_underwater_current = move_toward(_underwater_current, _underwater_target, delta * 2.5)
-	# Hidden when inactive: the overlay samples the screen texture every
-	# frame even at active == 0.
-	underwater_rect.visible = _underwater_current > 0.01
-	(underwater_rect.material as ShaderMaterial).set_shader_parameter("active", _underwater_current)
 
 
 func _connect_signals() -> void:
@@ -151,6 +120,14 @@ func apply_sky_context(ctx: Dictionary) -> void:
 func set_water_state(temperature_c: float, algae01: float) -> void:
 	if director:
 		director.set_water_state(temperature_c, algae01)
+
+
+## The sites' water as the sim reports it (GetSeaSiteDetails rows with
+## water_visibility_m, bloom_chlorophyll_ug_l): the underwater view's fog
+## and colour at each site (G3-04).
+func set_site_waters(sites: Array) -> void:
+	if underwater_view:
+		underwater_view.set_site_waters(sites)
 
 
 ## Set time of day (0-24 hours). Photo mode and the harness pin the hour.
