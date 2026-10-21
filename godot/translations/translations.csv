@@ -431,7 +431,7 @@ UI_OFFSHORE_BUILD,Build a new offshore facility,Bygg nytt offshoreanlegg
 UI_OFFSHORE_EMPTY,No offshore facilities yet — build one below,Ingen offshoreanlegg ennå — bygg et nytt anlegg nedenfor
 UI_AIFEED_TITLE,AI feeding,AI-fôring
 UI_AIFEED_INSTALL,Install the AI feeding system,Installer AI-fôringssystem
-UI_FJORD_HINT,WASD or middle-drag: pan • Q/E or right-drag: rotate • Scroll: zoom • T: top-down • Home: recentre • Click a pen for details,WASD eller midtklikk + dra: panorer • Q/E eller høyreklikk + dra: roter • Rull: zoom • T: ovenfra • Home: tilbake • Klikk en merd for detaljer
+UI_FJORD_HINT,WASD or middle-drag: pan • Q/E or right-drag: rotate • Scroll: zoom • T: top-down • Home: recentre • G: Fjord/Land/Offshore • Click a pen for details,WASD eller midtklikk + dra: panorer • Q/E eller høyreklikk + dra: roter • Rull: zoom • T: ovenfra • Home: tilbake • G: Fjord/Land/Hav • Klikk en merd for detaljer
 UI_FJORD_FLY,🐟 Fly to pen,🐟 Fly til merd
 UI_FJORD_FLY_HINT,Focus the camera on the selected pen,Fokuser kameraet på valgt merd
 UI_FJORD_FLY_NONE,Select a pen in the 3D view or Pens tab first,Velg en merd i 3D-visningen eller Merder-fanen først
@@ -635,6 +635,26 @@ UI_FARM_STATE_CTA_OXYGEN,Open telemetry,Til telemetri
 UI_FARM_STATE_CTA_FCR,Open the feeding plan,Til fôringsplanen
 UI_FARM_STATE_CTA_BALANCE,Open finance,Til økonomi
 UI_FARM_STATE_CTA_TIP,Opens the panel where this is handled,Åpner panelet der dette håndteres
+CAMERA_BOOKMARK_FJORD,Fjord · home view,Fjord · hjemmevisning
+CAMERA_BOOKMARK_HAV,Offshore · %s,Hav · %s
+CAMERA_BOOKMARK_LAND,Land · %s,Land · %s
+FACILITY_CARD_CLOSE,Close,Lukk
+FACILITY_CARD_LOT,Lot %s,Byggetrinn %s
+FACILITY_CARD_MODULE,Module %s,Modul %s
+FACILITY_CARD_OPERATIONAL,Operational,I drift
+FACILITY_CARD_PHASE,Phase %s of %s,Byggefase %s av %s
+FACILITY_CARD_STOCK,%s fish · %s,%s fisk · %s
+FACILITY_CARD_SUSPENDED,Sea works stand still in April–June,Sjøarbeidet står stille i april–juni
+FACILITY_CARD_TANK,Tank %s,Kar %s
+FACILITY_CARD_TANK_FISH,%s fish,%s fisk
+FACILITY_CARD_WAITING_CLOSED_SEASON,Sea works wait for July: they never start in April–June,Sjøarbeidet venter til juli: det startes aldri i april–juni
+FACILITY_CARD_WAITING_FUNDS,Waiting for the money for the next payment,Venter på penger til neste betaling
+FACILITY_CARD_WAITING_SHELTERING,Sheltering after the tow broke off,Ligger i le etter avbrutt slep
+FACILITY_CARD_WAITING_TOW,Ready to be towed out,Klar til slep
+FACILITY_CHIP_SEA,Hs %s m · Tp %s s · tomorrow %s m,Hs %s m · Tp %s s · i morgen %s m
+FACILITY_CHIP_SEA_SHORT,Hs %s m,Hs %s m
+FACILITY_CHIP_WINDOW_IN,handling window in %s d,behandlingsvindu om %s d
+FACILITY_CHIP_WINDOW_NONE,no handling window in %s d,ingen behandlingsvindu på %s d
 FARM_FACTOR_LICE_CRITICAL,lice %s (limit %s),lus %s (grense %s)
 FARM_FACTOR_LICE,lice %s,lus %s
 FARM_FACTOR_OXYGEN,O₂ %s mg/L,O₂ %s mg/L
@@ -652,6 +672,13 @@ FARM_VARIANT_OF1,Offshore pen,Havmerd
 FARM_VARIANT_OPEN_PEN,Open net pen,Åpen merd
 FARM_VARIANT_POST_SMOLT,Post-smolt module,Postsmoltmodul
 FARM_VARIANT_RAS,Land farm (RAS),Landanlegg (RAS)
+FIRST_SIGHT_CONTINUE,Continue,Fortsett
+FIRST_SIGHT_KICKER,First in operation,Første i drift
+FIRST_SIGHT_PICTURE_SAVED,Picture saved: %s,Bilde lagret: %s
+FIRST_SIGHT_REPEAT_TOAST,%s in operation at %s,%s i drift på %s
+FIRST_SIGHT_SAVE_PICTURE,Save picture,Lagre bilde
+FIRST_SIGHT_SKIP,Esc or click: skip,Esc eller klikk: hopp over
+FIRST_SIGHT_TITLE,%s at %s,%s på %s
 LAND_CONTRACT_MANAGED,Managed build (you carry the overrun),Egen byggeledelse (du bærer overskridelsen)
 LAND_CONTRACT_TURNKEY,Turnkey (fixed price with a premium),Totalentreprise (fastpris med påslag)
 LAND_DRIVER_APPEAL,Appeal,Klage
@@ -711,6 +738,11 @@ LAND_TEMPLATE_RAS_HALL,Land farm (RAS),Landanlegg (RAS)
 RESEARCH_SCOPE_LAND,land tanks,landtanker
 RESEARCH_SCOPE_OFFSHORE,offshore units,havmerder
 RESEARCH_SCOPE_SEA,fjord pens,fjordmerder
+TEASER_KICKER,News,Nyheter
+TEASER_PLOT_FALLBACK,the open sea,havet
+TEASER_RIVAL,SalMax Group,SalMax Group
+TEASER_TEXT,The region's first offshore pen is on its way out to the open sea.,Regionens første havmerd er på vei ut på åpent hav.
+TEASER_TITLE,%s tows an offshore pen out toward %s,%s sleper en havmerd ut mot %s
 UI_COMPANY_FALLBACK,Your company,Ditt selskap
 UI_DASHBOARD_PENS_TITLE,Pen overview,Merdoversikt
 UI_DASHBOARD_WATER_TITLE,Water quality,Vannkvalitet
@@ -2920,6 +2952,7 @@ UI_BANK_TEXT_CALM,The cash is not falling. The bank has no remarks.,Kontantene f
 UI_BANK_TEXT_FALLING,The cash falls by %s a day and reaches the credit limit of %s in %s days.,Kontantene faller med %s om dagen og når kredittrammen på %s om %s dager.
 UI_BANK_TEXT_WARNING,"Liquidity warning on day %d: at today's burn the cash reaches the credit limit of %s in %s days. Harvest, borrow or cut costs.","Likviditetsvarsel dag %d: på dagens forbruk når kontantene kredittrammen på %s om %s dager. Slakt, lån eller kutt kostnader."
 UI_BANK_TITLE,The bank,Banken
+UI_CREDITS_ROLE_SOUND,"Ambience and sound effects, synthesised in the project","Naturlyder og lydeffekter, syntetisert i prosjektet"
 UI_ENDSCREEN_AUTOSAVE,Load autosave,Last inn autolagring
 UI_ENDSCREEN_AUTOSAVE_OFF,No autosave from before the end,Ingen autolagring fra før slutten
 UI_ENDSCREEN_AUTOSAVE_TIP,Go back to the latest autosave,Gå tilbake til siste autolagring
@@ -3006,6 +3039,7 @@ UI_ENDSCREEN_VERDICT_LOST,Scenario lost,Scenarioet er tapt
 UI_ENDSCREEN_VERDICT_WON,Goal reached,Målet er nådd
 UI_EVENT_VERB_BID_LICENCE,See the auction,Se auksjonen
 UI_PEN_ACTION_FEED_PLAN,Feeding plan,Fôringsplan
+UI_SAVELOAD_NO_SCENARIO,Free play,Fritt spill
 UI_SCENARIO_CAMPAIGN_BEST,Your best: %s,Ditt beste: %s
 UI_SCENARIO_CAMPAIGN_LOCKED,Win %s to open this scenario.,Vinn %s for å åpne dette scenarioet.
 UI_SCENARIO_CAMPAIGN_OR, or , eller 
@@ -3013,6 +3047,12 @@ UI_SCENARIO_MEDAL_BRONZE,Bronze,Bronse
 UI_SCENARIO_MEDAL_GOLD,Gold,Gull
 UI_SCENARIO_MEDAL_NONE,No medal,Ingen medalje
 UI_SCENARIO_MEDAL_SILVER,Silver,Sølv
+UI_SETTINGS_AUTOSAVE_TIP,"Saves the game every so many minutes you play, at the end of a day. Off: only when you save.","Lagrer spillet hvert så mange minutter du spiller, ved slutten av en dag. Av: bare når du lagrer selv."
+UI_SETTINGS_AUTO_PAUSE_LABEL,Pause at critical events,Stopp ved kritiske varsler
+UI_SETTINGS_HIGH_CONTRAST_TIP,"Solid panels, brighter text and borders, and a wider focus frame.","Tette paneler, sterkere tekst og kanter og en bredere fokusramme."
+UI_SETTINGS_LANGUAGE_LABEL,Language,Språk
+UI_SETTINGS_NOTIFICATIONS_TIP,Warnings show as a notice with a sound. Off: they go to the inbox and the bell only. Critical events still stop the game.,Advarsler vises som et varsel med lyd. Av: de havner bare i innboksen og på bjella. Kritiske hendelser stopper fortsatt spillet.
+UI_SETTINGS_UI_SCALE_LABEL,Interface scale,Grensesnittskala
 UI_TOAST_FEED_PLAN_ALL_OK,Feeding plan set for every site,Fôringsplan satt for alle lokaliteter
 UI_TOAST_FEED_PLAN_OK,Feeding plan for %s set,Fôringsplan for %s satt
 UI_TOAST_HARVEST_DONE,"Harvest done at %s: %s gutted, %s net. Click for the report.","Slakting ferdig på %s: %s sløyd, %s netto. Klikk for rapporten."

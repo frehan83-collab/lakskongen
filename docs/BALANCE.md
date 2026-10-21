@@ -1784,6 +1784,20 @@ oxygen are per kg of live-weight biomass growth (harvest + Δ standing − smolt
 stocked), the basis of [L:R2]'s "kWh/kg biomass (LW)" and "oxygen consumption
 (biomass growth (LW))".
 
+**Re-measured after F2-19 (2026-10-17, `wave4/gfx-farm-1`).** F2-19 carved the
+pads and moved pad_a's terrain slot to the F2-18 centre (−450, −1720), its quay
+on the fairway edge (−130, −1720): 25 m water now lies 80 m from the quay and the
+deep line runs 280 m to the world edge (open ocean; no 95 m water is nearer).
+The HFS anchor moves from 6.40 to **6.41** kWh/kg LW (intake 1.13 → 1.14
+kWh/kg) and the best fixed blend from 179.4 to 179.3 M NOK; every other figure
+in this section is unchanged to its printed digit and every band holds
+(`LandEnergyModelTests`, `LandWaterModelTests`, `LandVannstrategiSweepTests`).
+These figures are the test harness's (`LandTestSites` reads the reach from
+`TerrainGenerator`). The running engine does not use the computed reach yet:
+`SitePlotCatalog.WithGeometry` is called only from tests, so the game's pads
+keep `DeepIntakeReachM` = 0 (wave4b review, a gap since F2-03/F2-12; RUN_LOG
+§8 "Finding (F2-19): the computed intake reach never reaches the game").
+
 ### Acceptance (spec §7.1 F2-12, 1-5)
 
 | # | Criterion | Band | Measured | Test |
@@ -2853,6 +2867,117 @@ seed 7; a real player who reads the planner's "2, 4, 8 weeks" columns can
 wait and may not need the loan. The season takes about 22 s of real time
 headless at 30×.
 
+### The teaser's day (F2-23, 2026-10-21, branch `wave4b/gfx-farm-2`)
+
+The F2-23 teaser plays after day 150 at the first moment no tutorial step
+asks for anything (§6.1 item 1). Where the minimal player stands then
+(`TutorialPlayer`, events on, the probe behind RUN_LOG §7's teaser row):
+
+| Seed | "grow" (a wait step) | The tutorial over | The teaser |
+|---|---|---|---|
+| 4 | days 0-266 | day 292 | day 151 |
+| 7 | days 0-287 | day 318 | day 151 |
+| 9 | days 0-257 | day 283 | day 151 |
+| 13 | days 0-290 | day 318 | day 151 |
+| 21 | days 0-284 | day 317 | day 151 |
+| 42 | days 0-274 | day 305 | day 151 |
+
+Waiting for the tutorial to be over would have skipped the teaser (day 300)
+on four of six seeds. The teaser changes no number: the engine's state hash
+is unchanged by it, and the F2-21 open sea reads the offshore model's own
+split (§1q: wind sea × the plot's scale, swell × √(0.34² + storm swell²)).
+
+## 1ac. G3-04: the water the camera dives into (2026-10-21, branch `wave4b/gfx-polish-2`)
+
+The underwater view's fog is the sim's water: `Environment/WaterClarity.cs`
+(pure: no saved state, no RNG stream, read through
+`SimulationEngine.WaterClarityOf(site)` and `GetSeaSiteDetails`'
+`water_visibility_m` and `bloom_chlorophyll_ug_l`). No other system reads it,
+so no career, save or golden trace moves (the gate's report:
+`docs/run/evidence/g3_04_golden_diff.md`).
+
+### The measure
+
+The horizontal sighting range of a black target, y = 4.8 / α, with α the
+photopic beam attenuation (Zaneveld & Pegau 2003, "Robust underwater
+visibility parameter", Optics Express 11(23):2997-3009,
+https://doi.org/10.1364/OE.11.002997; the constant is Davies-Colley's 1988
+black-disk one, within 10 % over coastal, estuarine and inland waters). The
+view's fog density is that α (drawn with a camera's contrast stretch, below).
+
+### The season (no bloom)
+
+A fjord's Secchi depth Z_SD through the year, the three-month running mean of
+the 2024 monthly means at OH-10 in Hardangerfjorden (Statsforvalteren i
+Vestland / Rambøll, "Overvåkingsprogram for Hardangerfjorden 2024-2026,
+årsrapport 2024", Vedlegg 5, 2025,
+https://inte.statsforvalteren.no/contentassets/1356d24c117846cfafa805b2b4376446/overvakingsprogram-hardangerfjorden-arsrapport-2024-med-vedlegg.pdf;
+cross-check: ØKOKYST Nordsjøen sør, Miljødirektoratet M-1604|2020, summer
+7.7-9.7 m in the Ryfylke fjords 2016-2019), converted by y = 0.75 Z_SD
+(derived: y / Z_SD = 4.8 (1 + K_d/α) / Γ with Γ = 8 and K_d/α = 0.25; Γ over
+6-9 and K_d/α over 0.15-0.35 keep it within 0.6-1.0). Values at mid-month,
+interpolated between (across the new year):
+
+| Month | Z_SD (m) | Visibility y (m) | α (1/m) | Fog drawn (1/m) | Full bloom (m) |
+|---|---|---|---|---|---|
+| Jan | 15.7 | 11.8 | 0.41 | 0.26 | 2.13 |
+| Feb | 14.3 | 10.7 | 0.45 | 0.29 | 2.10 |
+| Mar | 11.3 | 8.5 | 0.57 | 0.36 | 1.99 |
+| Apr | 8.3 | 6.2 | 0.77 | 0.46 | 1.84 |
+| May | 7.0 | 5.2 | 0.91 | 0.53 | 1.74 |
+| Jun | 7.3 | 5.5 | 0.88 | 0.51 | 1.77 |
+| Jul | 8.2 | 6.1 | 0.78 | 0.47 | 1.83 |
+| Aug | 7.8 | 5.8 | 0.82 | 0.49 | 1.80 |
+| Sep | 7.2 | 5.4 | 0.89 | 0.52 | 1.76 |
+| Oct | 6.0 | 4.5 | 1.07 | 0.59 | 1.65 |
+| Nov | 9.0 | 6.8 | 0.71 | 0.43 | 1.88 |
+| Dec | 12.3 | 9.2 | 0.52 | 0.33 | 2.03 |
+
+Winter water is 1.8-2.6 times as clear as summer's (`WaterClarityTests`
+holds winter 10-13 m, summer 5-7 m and > 1.8×).
+The zone plankton model (`Biology.PlanktonBloom`) is not read: its intensity
+is a bloom-risk index that stays at 0.7-0.8 through the winter (po3_red_sone,
+seed 20261012: 0.77 on 1 January of the second year), when the water is at
+its clearest.
+
+### A bloom at the site
+
+A live "algae" `BloomEvent` at the site (the worst one) adds chlorophyll a
+of 20 µg/L × its severity (game estimate: a dense flagellate bloom, twice the
+plankton model's seasonal bloom at capacity; the 1988 Chrysochromulina
+polylepis bloom's 1e8 cells/L at about 0.2 pg chlorophyll a a cell is
+20 µg/L: Dundas et al. 1989, Oceanography 2(1),
+https://tos.org/oceanography/assets/docs/2-1_dundas.pdf), and chlorophyll
+adds Δα = 0.334 Chl^0.57 (Voss 1992, Limnol. Oceanogr. 37(3):501-509: c(490)
+− c_w = 0.39 Chl^0.57, × 0.952 to 532 nm, × 0.9 to photopic α). A severity of
+0.8 (16 µg/L, the harness's 11b) adds 1.62 /m: the QA day's 11.5 m water
+reads 2.35 m. A full bloom (20 µg/L, +1.84 /m) leaves 1.65-2.13 m through the
+year (the table's last column).
+
+### Drawn
+
+The view draws the fog at 4.8 / sqrt((1.5 y)^2 + 4.5^2) (`UnderwaterOptics`:
+a camera's contrast stretch of 1.5 and a readable floor of 4.5 m), so
+January reads 0.26 /m and a full bloom no denser than 0.93 /m: the net beside
+the camera stays readable. Art direction, logged in RUN_LOG §7.
+
+### Offshore units (wave4b int, the gfx-polish-2 review)
+
+`WaterClarityOf` reads any sea site, and since the merge the underwater view
+reads an offshore unit's (`GetAllSeaSiteDetails`, round the unit's plot's
+slot) instead of the 6 m fallback. Its season is still the fjord's (OH-10):
+open coastal water is usually clearer than a fjord's, but no open-sea Secchi
+climatology is sourced yet. An open-sea profile is a sim item (RUN_LOG §8).
+
+### The nets' fouling
+
+The sim has no fouling: the net shader's growth reads the site's net
+condition (`NetIntegrityPct`, which storms wear and the ROV's "+15 renset"
+restores): fouling = (100 − integrity) / 40, fully fouled at 60 % and below
+(`FarmSite.net_fouling_for`). A fully fouled tile covers 2.35× the clean
+tile's 0.15 (0.35; Gansel et al. 2015, PLoS One 10(7) e0131051,
+https://pmc.ncbi.nlm.nih.gov/articles/PMC4495041: a 0.20 net reached 0.50 in
+ten weeks; NS 9415 designs for a 50 % solidity increase).
 ## 1ab. Geo stages 2-3: the rival layout, parody names and hav_1's open-sea binding (2026-10-20, branch `geo/sim-data-2`)
 
 Track A of `docs/geo/STAGE23_PLAN.md` owns this section (plan §4, hot-file

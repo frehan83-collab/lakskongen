@@ -70,6 +70,31 @@ const float FAR_WARP_M = 22.0;
 // rock. Their fetches are skipped there.
 const float WALL_FADE_START_M = 2500.0;
 const float WALL_FADE_END_M = 5000.0;
+// gfx-polish-1: the cliff bands' mean height (m), the swells that vary it
+// (amplitude and length, m: slopes 9/37 + 5/17 = 0.54 < 1, no fold), and the
+// band's height on screen (px) below which the bands fade (full above
+// BAND_FADE_FULL_PX, gone at BAND_FADE_GONE_PX).
+const float BAND_M = 24.0;
+const float BAND_SWELL_A_M = 9.0;
+const float BAND_SWELL_A_LEN_M = 37.0;
+const float BAND_SWELL_B_M = 5.0;
+const float BAND_SWELL_B_LEN_M = 17.0;
+const float BAND_FADE_FULL_PX = 26.0;
+const float BAND_FADE_GONE_PX = 10.0;
+// Snow-season rock (at and above the snow line) is damp: its albedo falls by
+// this share (wet rock 0.55 of dry under rain here, lk_ground_wetness; a
+// thinner film of meltwater and rime a little less).
+const float ROCK_WINTER_DAMP = 0.38;
+// The heightfield's wall ledges (TerrainGenerator.LedgeStepM, m of height)
+// and the size on screen (px) from which their flats and risers decide the
+// masks (full above TERRACE_FULL_PX, the averaged slope below
+// TERRACE_GONE_PX).
+const float LEDGE_STEP_M = 48.0;
+const float TERRACE_FULL_PX = 64.0;
+const float TERRACE_GONE_PX = 28.0;
+// Under this ledge strength the masks read one slope (the flats' and the
+// risers' are the same to a few per cent).
+const float TERRACE_SPREAD_MIN = 0.01;
 
 uniform sampler2DArray albedo_height : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2DArray normal_rough_ao : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
@@ -105,15 +130,54 @@ uniform vec3 vegetation_tint : source_color = vec3(1.0);
 uniform vec3 wrack_color : source_color = vec3(0.290, 0.263, 0.157);       // #4A4328
 uniform vec3 black_lichen_color : source_color = vec3(0.141, 0.149, 0.157); // #242628
 
+// F2-19 land pads (farm-types spec §4), set by FjordTerrain from the
+// generator's pads: xy the centre (world x, z), zw the half size. The
+// heightfield carries them flat at +3.6 m with a rim (at most pad_rim_m wide)
+// of cut faces and rock fill; this paints them. pad_state per pad: 0 an
+// unbuilt pad, heath over strandflat rock with bare slabs breaking through;
+// 1 blasted granite #6B7378 (wet #3E4448): crushed rock on the pad (the
+// shingle layer's stones at the granite's tone) and fresh-cut granite on its
+// steep rim. Between, the blast spreads the granite in patches. Never a
+// geometry change at runtime.
+uniform vec4 pad_rects[4];
+uniform float pad_state[4];
+// F2-20: per pad the rectangle (x0, z0, x1, z1) its campus blasts; zero (x1 <=
+// x0) blasts the whole pad.
+uniform vec4 pad_blast[4];
+uniform int pad_count = 0;
+uniform float pad_rim_m = 50.0;
+// F2-20: a built pad's yard (crushed rock, graded): the stones' tone
+// contrast (a power on the shingle's luma) and how much of their relief is
+// rolled flat.
+uniform float yard_contrast = 0.8;
+uniform float yard_flatten : hint_range(0.0, 1.0) = 0.7;
+uniform vec3 granite_color : source_color = vec3(0.420, 0.451, 0.471);     // #6B7378
+uniform vec3 granite_wet_color : source_color = vec3(0.243, 0.267, 0.282); // #3E4448
+// The texture layers' own mean colours (tools/gen_terrain_textures.py): the
+// granite tint is their ratio, so the textures keep their detail.
+uniform vec3 rock_base_color : source_color = vec3(0.420, 0.447, 0.463);    // #6B7276
+uniform vec3 shingle_base_color : source_color = vec3(0.502, 0.478, 0.439); // #807A70
+
 varying vec3 world_pos;
 varying vec3 world_normal;
 varying vec4 masks;
+// The slope (rise over run) and the cavity of the ground without the wall
+// ledges' terraces, and the ledges' strength (how far they flatten and
+// steepen the slope there) (CUSTOM0, TerrainMesh.Chunk.Macro).
+varying vec4 macro_terrain;
 
 void vertex() {
 	VERTEX = lk_mirror_vertex(VERTEX, MODEL_MATRIX, CAMERA_VISIBLE_LAYERS, CAMERA_POSITION_WORLD);
 	world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	world_normal = (MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz;
 	masks = COLOR;
+	macro_terrain = CUSTOM0;
+}
+
+// The slope snow and soil feel: a cliff ledge or a gully holds them as a
+// gentler slope would.
+float snow_slope(float slope_tan, float ledge, float gully) {
+	return mix(mix(slope_tan, 0.6, smoothstep(0.5, 0.9, ledge)), 0.7, gully * 0.8);
 }
 
 // ── Macro variation: noise read from the noise slices, not computed ─────────
@@ -306,6 +370,39 @@ vec3 soil_colour(float layer, vec3 albedo, float tone) {
 	return albedo;
 }
 
+// F2-19: the pad under a ground point: x the flat top (1 on the pad, feathered
+// over its last 1.5 m), y the pad with its rim (1 to pad_rim_m - 4 m beyond
+// the edge, 0 from pad_rim_m), z the pad's state, w the distance beyond the
+// pad's edge (m). `blast_d`: the signed distance (m) beyond the pad's blasted
+// rectangle (F2-20: only the ground a campus builds on is blasted; an empty
+// rectangle blasts the whole pad).
+vec4 pad_at(vec2 p, out float blast_d) {
+	vec4 best = vec4(0.0, 0.0, 0.0, 1e6);
+	blast_d = -1e6;
+	for (int i = 0; i < 4; i++) {
+		if (i >= pad_count) {
+			break;
+		}
+		vec4 r = pad_rects[i];
+		vec2 d = abs(p - r.xy) - r.zw;
+		float outside = length(max(d, vec2(0.0)));
+		float top = 1.0 - smoothstep(-1.5, 0.5, max(d.x, d.y));
+		float rim = 1.0 - smoothstep(pad_rim_m - 4.0, pad_rim_m, outside);
+		if (rim > best.y) {
+			best = vec4(top, rim, pad_state[i], outside);
+			vec4 b = pad_blast[i];
+			if (b.z > b.x) {
+				vec2 bc = (b.xy + b.zw) * 0.5;
+				vec2 bd = abs(p - bc) - (b.zw - b.xy) * 0.5;
+				blast_d = length(max(bd, vec2(0.0))) + min(max(bd.x, bd.y), 0.0);
+			} else {
+				blast_d = -1e6;
+			}
+		}
+	}
+	return best;
+}
+
 void fragment() {
 	vec3 p = world_pos;
 	vec3 g = normalize(world_normal);
@@ -327,10 +424,50 @@ void fragment() {
 	// and ~85 m (n_mid, A ~43 m).
 	vec2 skew = vec2(p.x + 0.61 * p.y, p.z - 0.79 * p.y);
 	float footprint = max(length(dpdx), length(dpdy));
+	// gfx-polish-1: the walls' ledges (TerrainGenerator WallRelief: a soft
+	// terrace every LEDGE_STEP_M of height) hold snow and soil on their
+	// flats and shed them off their risers. Seen from 1-2 km a terrace is a
+	// few tens of pixels and the walls drew as regular snow stripes
+	// (venetian blinds, harness 18). Where a terrace is small on screen the
+	// masks (bare rock, soil, snow, cliff) read the slope of the ground
+	// without its terraces, as does the cavity (soil, gullies, snow and
+	// occlusion read it): the snow then lies by the walls' buttresses and
+	// gullies, as sharp as before; the light keeps the geometry's own
+	// normal. Near, the snowy benches stay.
+	float terrace_near = smoothstep(TERRACE_GONE_PX, TERRACE_FULL_PX, LEDGE_STEP_M / max(footprint, 1e-3));
+	slope_tan = mix(macro_terrain.x, slope_tan, terrace_near);
+	cavity = mix(macro_terrain.y, cavity, terrace_near);
+	hollow = cavity - 0.5;
+	// A pixel that covers several terraces covers their flats and risers
+	// alike: half of a terrace's height is flat (the slope times 1 - k, k
+	// the ledges' strength), half riser (times 1 + k on average). The snow
+	// takes the mean of what the two hold, the rock's texture deciding where
+	// it lies, and the bare rock half of each, so a wall seen from afar
+	// keeps about as much snow as it shows close up. (Averaging the snow's
+	// cover instead, the flats' full and the risers' none, greyed the walls
+	// into an even speckle: the menu and 18 compared.)
+	float terrace_spread = macro_terrain.z * (1.0 - terrace_near);
 	vec4 n_big = noise_at(skew, 2000.0, footprint);
 	vec4 n_mid = noise_at(skew + 517.0, 520.0, footprint);
 	float macro = n_big.r;
 	float mottle = n_mid.g;
+	// F2-19 pads: where the granite is (the blast spreads it across the pad
+	// in ~85 m patches as pad_state rises), and the unbuilt heath top.
+	float blast_d = -1e6;
+	vec4 pad = pad_count > 0 ? pad_at(p.xz, blast_d) : vec4(0.0, 0.0, 0.0, 1e6);
+	// The blasted ground ends in a ragged edge (~26 m) round the campus.
+	pad.z *= 1.0 - smoothstep(-8.0, 8.0, blast_d + (n_mid.b - 0.5) * 24.0);
+	float blast_front = mottle * 0.7 + macro * 0.3;
+	// The rim is granite where it is cut or filled (steep) and, near the pad,
+	// where its low shelf is armoured with blasted rock; not on the natural
+	// strandflat its widest band reaches.
+	float armour = (1.0 - smoothstep(18.0, 40.0, pad.w)) * (1.0 - smoothstep(4.0, 5.0, h)) * 0.85;
+	float pad_zone = max(pad.x, pad.y * max(smoothstep(0.25, 0.6, slope_tan), armour));
+	float pad_granite = pad_zone * smoothstep(blast_front - 0.06, blast_front + 0.06, pad.z * 1.12 - 0.06);
+	float granite_top = pad_granite * pad.x;
+	float pad_heath = pad.x * (1.0 - pad_granite);
+	// Slabs of strandflat rock through an unbuilt pad's heath (~26 m features).
+	float slab_n = pad.x > 0.0 ? noise_at(p.xz + 211.0, 160.0, footprint).r : 0.0;
 	// Noise over the ground plane only (constant up a wall): the cliff bands'
 	// warp and the shift of the narrow wall slices. Anything that changed
 	// with height would shear them into swirls and fold the bands.
@@ -372,8 +509,20 @@ void fragment() {
 	// just under a ledge lies in shadow. A ledge runs for a stretch and
 	// breaks off; its width varies.
 	float cliff = smoothstep(0.9, 1.7, slope_tan);
-	float cliff_near = cliff * wall_near;
-	float band_t = (p.y + dot(p.xz, vec2(0.09, -0.05))) / 24.0 + n_band.g * 2.2 + n_band.a * 0.6;
+	// gfx-polish-1: the bands fade by their size on screen as well as by
+	// distance. A band under BAND_FADE_FULL_PX pixels tall starts to read as
+	// a stripe and is gone below BAND_FADE_GONE_PX: at 1-2 km a regular run
+	// of snow ledges and dark faces every 24 m drew the walls as venetian
+	// blinds (harness 18). Closer, the bands keep their structure.
+	float band_px = BAND_M / max(footprint, 1e-3);
+	float cliff_near = cliff * wall_near * smoothstep(BAND_FADE_GONE_PX, BAND_FADE_FULL_PX, band_px);
+	// Band heights vary from about 11 to 37 m up a wall (sheeting joints are
+	// not evenly spaced): two incommensurate swells in height whose slopes
+	// sum to under 1, so the warp never folds a band, their phases drifting
+	// slowly along the walls with the ground-plane noise.
+	float band_y = p.y + BAND_SWELL_A_M * sin(p.y / BAND_SWELL_A_LEN_M + n_band.b * 6.2832)
+		+ BAND_SWELL_B_M * sin(p.y / BAND_SWELL_B_LEN_M + n_band.r * 6.2832);
+	float band_t = (band_y + dot(p.xz, vec2(0.09, -0.05))) / BAND_M + n_band.g * 2.2 + n_band.a * 0.6;
 	float band_f = fract(band_t);
 	float band_id = floor(band_t);
 	float band_tone = hash12(vec2(band_id, 7.3));
@@ -395,14 +544,19 @@ void fragment() {
 	// Gullies cut down the walls: snow and soil gather in them too.
 	float gully = smoothstep(0.06, 0.25, hollow) * cliff;
 	// Ledges and gullies are flat or sheltered enough to hold snow and soil.
-	float slope_eff = mix(mix(slope_tan, 0.6, smoothstep(0.5, 0.9, ledge)), 0.7, gully * 0.8);
+	float slope_eff = snow_slope(slope_tan, ledge, gully);
 
 	// ── Masks ──
 	// Bare rock where it is steep (gullies and ledges hold soil a little
 	// steeper), on the high plateau's outcrops, and on the shore below the
 	// shingle's reach. Woods override it: birch clings to the wall ledges.
 	float soil_limit = soil_slope_tan + hollow * 0.9 + (mottle - 0.5) * 0.25;
-	float bare = smoothstep(soil_limit, soil_limit + (bare_slope_tan - soil_slope_tan), slope_tan);
+	float bare_span = bare_slope_tan - soil_slope_tan;
+	float bare = smoothstep(soil_limit, soil_limit + bare_span, slope_tan);
+	if (terrace_spread > TERRACE_SPREAD_MIN) {
+		bare = 0.5 * (smoothstep(soil_limit, soil_limit + bare_span, slope_tan * (1.0 - terrace_spread))
+			+ smoothstep(soil_limit, soil_limit + bare_span, slope_tan * (1.0 + terrace_spread)));
+	}
 	// Shingle only lies where the shore is gentle; a cliff drops straight in.
 	float gentle_shore = 1.0 - smoothstep(0.5, 1.0, slope_tan);
 	// Glacier-scoured outcrops: ridges and knolls of the upland stay bare.
@@ -411,6 +565,13 @@ void fragment() {
 	bare = max(bare, upland * outcrop * 0.9);
 	bare *= 1.0 - smoothstep(0.05, 0.45, forest) * 0.9;
 	bare = max(bare, 1.0 - smoothstep(0.6, 1.4, h));
+	// F2-19: an unbuilt pad is heath over the strandflat's rock, a few bare
+	// slabs breaking through; a blasted pad, its cut faces and its rock fill
+	// are bare granite.
+	float slab = smoothstep(0.56, 0.68, slab_n * 0.65 + mottle * 0.35);
+	bare = mix(bare, slab * 0.8, pad_heath);
+	// Blasted: the rim's cut faces bare rock, the pad's top crushed stone (a soil, below).
+	bare = max(bare * (1.0 - granite_top), pad_granite - granite_top);
 
 	// Soils: shingle at the shore, meadow and woods from the masks, heath
 	// and grass on open ground (heath above the treeline).
@@ -425,6 +586,14 @@ void fragment() {
 	float w_heath = open_ground * (1.0 - grassy);
 	float w_spruce = wood * (1.0 - birch_share);
 	float w_birch = wood * birch_share;
+	// An unbuilt pad's top is heath (spec §4), whatever the meadow noise says;
+	// a blasted one is crushed stone (the shingle layer, tinted below).
+	w_shingle *= 1.0 - pad_heath;
+	w_grass *= 1.0 - pad_heath - granite_top;
+	w_spruce *= 1.0 - pad_heath - granite_top;
+	w_birch *= 1.0 - pad_heath - granite_top;
+	w_heath = mix(w_heath * (1.0 - granite_top), 1.0, pad_heath);
+	w_shingle = mix(w_shingle, 1.0, granite_top);
 	float soil_a;
 	float soil_wa;
 	float soil_b;
@@ -433,6 +602,10 @@ void fragment() {
 
 	float north = clamp(g.x * 2.0, 0.0, 1.0);
 	float snow_amount = ground_snow(h, slope_eff, north, hollow, macro);
+	if (terrace_spread > TERRACE_SPREAD_MIN) {
+		snow_amount = 0.5 * (ground_snow(h, snow_slope(slope_tan * (1.0 - terrace_spread), ledge, gully), north, hollow, macro)
+			+ ground_snow(h, snow_slope(slope_tan * (1.0 + terrace_spread), ledge, gully), north, hollow, macro));
+	}
 
 	// ── Biplanar projections ──
 	int major = aw.x > aw.y && aw.x > aw.z ? 0 : (aw.y > aw.z ? 1 : 2);
@@ -549,8 +722,13 @@ void fragment() {
 	rock *= mix(0.62, 1.12, smoothstep(0.22, 0.78, tone_field));
 	// Gullies on the walls stay damp and dark.
 	rock *= 1.0 - 0.28 * smoothstep(0.04, 0.22, hollow) * cliff;
-	// Above the snow line bare rock is damp and frosted: darker.
-	rock *= 1.0 - 0.15 * (1.0 - smoothstep(0.0, 400.0, lk_snow_line - h));
+	// Above the snow line bare rock is damp and frosted: darker. A film of
+	// meltwater or verglas darkens rock the way rain does (light trapped in
+	// the film, Lekner and Dorf 1988), so the snow-season walls stand dark
+	// against their snow, as in the owner's winter reference (gfx-polish-1:
+	// the grey winter day's land read a flat mid-grey).
+	float rock_damp = 1.0 - smoothstep(0.0, 400.0, lk_snow_line - h);
+	rock *= 1.0 - ROCK_WINTER_DAMP * rock_damp;
 	// Streaks run down the face: noise stretched along Y, read in the two
 	// vertical planes and blended like the textures (a coordinate taken
 	// along the face's own tangent would swing with the normal and draw
@@ -560,13 +738,33 @@ void fragment() {
 	float streak = mix(streak_x, streak_z, wz);
 	float seep = smoothstep(0.5, 0.78, streak) * steep * wall_near;
 	rock *= 1.0 - 0.45 * seep;
+	// F2-19: blasted granite on a pad and its rim (#6B7378): the rock
+	// texture's detail at the fresh granite's tone, with none of the
+	// weathered rock's lichen tone, strata or seepage.
+	vec3 granite = alb_r.rgb * (granite_color / rock_base_color) * mix(0.94, 1.04, mottle);
+	rock = mix(rock, granite, pad_granite);
 	vec3 soil_col_a = soil_colour(soil_a, alb_a.rgb, tone);
 	vec3 soil_col_b = soil_colour(soil_b, alb_b.rgb, tone);
+	// F2-19: a blasted pad's crushed stone: the shingle layer's stones,
+	// grey, at the granite's tone.
+	if (granite_top > 0.0) {
+		// Stones at the granite's tone with more contrast than the beach's,
+		// patches of darker compacted fines and of warmer weathered rock (~85
+		// and ~26 m) so the yard is never one flat grey.
+		float shingle_luma = dot(shingle_base_color, vec3(0.2126, 0.7152, 0.0722));
+		float fines = smoothstep(0.55, 0.8, mottle * 0.6 + slab_n * 0.4);
+		vec3 yard = mix(granite_color, granite_wet_color * 1.15, fines * 0.4);
+		yard = mix(yard, yard * vec3(1.08, 1.02, 0.94), smoothstep(0.4, 0.7, macro) * 0.5);
+		vec3 crushed_a = yard * pow(dot(alb_a.rgb, vec3(0.2126, 0.7152, 0.0722)) / shingle_luma, yard_contrast);
+		vec3 crushed_b = yard * pow(dot(alb_b.rgb, vec3(0.2126, 0.7152, 0.0722)) / shingle_luma, yard_contrast);
+		soil_col_a = mix(soil_col_a, crushed_a, granite_top * float(soil_a == L_SHINGLE));
+		soil_col_b = mix(soil_col_b, crushed_b, granite_top * float(soil_b == L_SHINGLE));
+	}
 	// Moss, grass and birch scrub on the ledges below the treeline.
 	float ledge_green = max(ledge, smoothstep(0.08, 0.3, hollow) * cliff * 0.6) * (1.0 - smoothstep(treeline_m - 100.0, treeline_m + 60.0, h))
 		* smoothstep(0.3, 0.7, mottle + 0.2);
 	vec3 moss = mix(vec3(0.040, 0.062, 0.022), vec3(0.085, 0.080, 0.032), lk_autumn) * mix(0.75, 1.0, lk_foliage);
-	rock = mix(rock, moss, ledge_green * 0.85);
+	rock = mix(rock, moss, ledge_green * 0.85 * (1.0 - pad_granite));
 	vec3 col = rock * br + soil_col_a * ba + soil_col_b * bb;
 	// Vegetation varies stand by stand.
 	col *= mix(1.0, mix(0.86, 1.12, mottle), (ba + bb) * 0.8);
@@ -583,7 +781,9 @@ void fragment() {
 
 	// Rain: rock and soil darken and gloss; snow stays.
 	float wetness = lk_ground_wetness * (1.0 - snow);
-	col *= 1.0 - wetness * mix(0.2, 0.45, br);
+	// Wet blasted granite goes to #3E4448 (spec §4).
+	float wet_dark = mix(mix(0.2, 0.45, br), 1.0 - granite_wet_color.g / granite_color.g, pad_granite);
+	col *= 1.0 - wetness * wet_dark;
 	float seep_wet = seep * (0.25 + 0.75 * lk_ground_wetness);
 
 	// ── Normal ──
@@ -591,6 +791,13 @@ void fragment() {
 	float relief = 1.0 - 0.6 * wet;
 	tn_r_a.xy *= relief;
 	tn_r_b.xy *= relief;
+	// F2-20: a built pad's yard is graded and rolled crushed rock: the
+	// shingle's stone relief flattened, so it reads as an even granite yard.
+	float yard_relief = 1.0 - yard_flatten * granite_top;
+	tn_a_a.xy *= yard_relief;
+	tn_a_b.xy *= yard_relief;
+	tn_b_a.xy *= yard_relief;
+	tn_b_b.xy *= yard_relief;
 	vec3 tn_a = tn_r_a * br + tn_a_a * ba + tn_b_a * bb + tn_s_a * snow;
 	vec3 tn_b = tn_r_b * br + tn_a_b * ba + tn_b_b * bb + tn_s_b * snow;
 	vec3 n_world = whiteout(normalize(tn_a), g, pa.axis) * pa.weight;

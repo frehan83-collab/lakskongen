@@ -668,6 +668,17 @@ func qa_state_digest() -> String:
 func qa_open_farm_family(research_node_id: String, post_smolt_plot_id: String, first_harvest: bool) -> bool:
 	return game_bridge.QaOpenFarmFamily(research_node_id, post_smolt_plot_id, first_harvest) if game_bridge else false
 
+# ── F2-20: the facility presenter's read (gfx) ───────────────────────────────
+## Every land site and offshore unit as the 3D scene draws it: plot, lots,
+## modules, tanks, the construction phase and fish (GameBridge.FacilityVisuals.cs).
+func get_facility_visuals() -> Array[Dictionary]:
+	return _arr(game_bridge.GetFacilityVisuals()) if game_bridge else []
+## Which game the state belongs to: the event bus's generation, which every
+## new and loaded game changes (GameBridge.GameEventGeneration, a getter). The
+## presenter's first sync of a new game is a baseline (F2-23, wave4b int).
+func get_game_generation() -> int:
+	return int(game_bridge.GameEventGeneration) if game_bridge else 0
+
 # ── F2-03: farm types (land sites, offshore units, their plots) ───────────────
 # Two lane blocks (FARM_TYPES_SPEC §7.6): the land lane (F2-12 … F2-16) appends
 # only inside the land block, the sea lane (F2-06 … F2-11) only inside the sea

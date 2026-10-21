@@ -190,6 +190,54 @@ def test_base_label_colours_follow_the_surface(theme_path, surface):
     assert _color_hex(items["KpiCrit/colors/font_color"]) == token(f"surfaces.{surface}.crit").upper()
 
 
+HC_INK_THEME = GODOT / "theme" / "lakskongen_theme_hc.tres"
+HC_CHART_THEME = GODOT / "theme" / "lakskongen_chart_theme_hc.tres"
+# The HUD glass: the top bar and tab rail, glass panels, chips over the world,
+# every toast, tooltips. Ink on every surface; high-contrast Ink on the HC ones.
+HUD_GLASS = ("Rail", "Glass", "Chip", "Toast", "ToastMuted", "ToastOk", "ToastWarn", "ToastCrit", "ToastInfo",
+             "ToastAccent", "TooltipPanel")
+
+
+def _alpha(value: str) -> float:
+    nums = re.findall(r"[-\d.]+", value)
+    return float(nums[3]) if len(nums) > 3 else 1.0
+
+
+def _panel_box(items: dict[str, str], subs: dict[str, dict[str, str]], variation: str) -> dict[str, str]:
+    return subs[re.search(r'SubResource\("([^"]+)"\)', items[f"{variation}/styles/panel"]).group(1)]
+
+
+@pytest.mark.parametrize("hc_path,normal_path", [(HC_INK_THEME, INK_THEME), (HC_CHART_THEME, CHART_THEME)])
+def test_high_contrast_reaches_the_hud_glass_toasts_and_tooltips(hc_path, normal_path):
+    """U2-08 review: Glass, Rail, Chip, the toasts and the tooltip were built
+    from the normal Ink palette in both high-contrast themes (0.9-alpha glass,
+    a 1.5:1 hairline), so high contrast never reached the HUD. In the HC
+    themes they are opaque, their edge at least 3:1 on the ink-hc base, and
+    different from the normal theme's."""
+    base = token("surfaces.ink-hc.base")
+    hc_items, hc_subs = _tres_items(hc_path), _tres_subresources(hc_path)
+    n_items, n_subs = _tres_items(normal_path), _tres_subresources(normal_path)
+    for variation in HUD_GLASS:
+        hc = _panel_box(hc_items, hc_subs, variation)
+        normal = _panel_box(n_items, n_subs, variation)
+        assert _alpha(hc["bg_color"]) == 1.0, f"{hc_path.name} {variation}: translucent {hc['bg_color']}"
+        assert _alpha(hc["border_color"]) == 1.0, f"{hc_path.name} {variation}: faded edge {hc['border_color']}"
+        assert ratio(_color_hex(hc["border_color"]), base) >= 3.0, f"{hc_path.name} {variation}: edge under 3:1"
+        assert hc["bg_color"] != normal["bg_color"], f"{hc_path.name} {variation}: same as the normal theme"
+
+
+@pytest.mark.parametrize("hc_path", [HC_INK_THEME, HC_CHART_THEME])
+def test_high_contrast_primary_buttons_are_black_on_salmon_at_7_to_1(hc_path):
+    items = _tres_items(hc_path)
+    subs = _tres_subresources(hc_path)
+    for variation in ("PrimaryButton", "SmallPrimaryButton", "LargePrimaryButton"):
+        fg = _color_hex(items[f"{variation}/colors/font_color"])
+        assert fg == "#000000"
+        for state in ("normal", "hover", "pressed"):
+            sb_id = re.search(r'SubResource\("([^"]+)"\)', items[f"{variation}/styles/{state}"]).group(1)
+            assert ratio(fg, _color_hex(subs[sb_id]["bg_color"])) >= 7.0, f"{variation} {state}"
+
+
 # ── typography ────────────────────────────────────────────────────────────────
 
 MIN_PX = int(TOKENS["fonts"]["min-size"])

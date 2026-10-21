@@ -703,6 +703,11 @@ func get_farm_type_starts() -> Dictionary: return _proxies.get_farm_type_starts(
 func qa_state_digest() -> String: return _proxies.qa_state_digest()
 func qa_open_farm_family(research_node_id: String, post_smolt_plot_id: String, first_harvest: bool) -> bool: return _proxies.qa_open_farm_family(research_node_id, post_smolt_plot_id, first_harvest)
 
+# ── F2-20: the facility presenter's read (gfx) ───────────────────────────────
+func get_facility_visuals() -> Array[Dictionary]: return _proxies.get_facility_visuals()
+## F2-23 (wave4b int): which game the state belongs to; every new and loaded game changes it (a pure read).
+func get_game_generation() -> int: return _proxies.get_game_generation()
+
 # ── F2-03: farm types (land sites, offshore units, their plots) ───────────────
 # Each lane forwards only inside its own block (FARM_TYPES_SPEC §7.6).
 

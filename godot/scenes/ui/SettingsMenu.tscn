@@ -48,7 +48,7 @@ theme_type_variation = &"Heading"
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Innstillinger"
+text = "UI_SETTINGS_TITLE"
 
 [node name="CloseButton" type="Button" parent="./Center/DialogPanel/DialogVBox/HeaderRow"]
 unique_name_in_owner = true
@@ -71,7 +71,7 @@ theme_override_constants/separation = 8
 [node name="MasterCap" type="Label" parent="./Center/DialogPanel/DialogVBox/Tabs/Lyd/MasterRow"]
 custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
-text = "Master"
+text = "UI_SETTINGS_MASTER_LABEL"
 
 [node name="MasterSlider" type="HSlider" parent="./Center/DialogPanel/DialogVBox/Tabs/Lyd/MasterRow"]
 unique_name_in_owner = true
@@ -94,7 +94,7 @@ theme_override_constants/separation = 8
 [node name="MusicCap" type="Label" parent="./Center/DialogPanel/DialogVBox/Tabs/Lyd/MusicRow"]
 custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
-text = "Musikk"
+text = "UI_SETTINGS_MUSIC_LABEL"
 
 [node name="MusicSlider" type="HSlider" parent="./Center/DialogPanel/DialogVBox/Tabs/Lyd/MusicRow"]
 unique_name_in_owner = true
@@ -117,7 +117,7 @@ theme_override_constants/separation = 8
 [node name="AmbientCap" type="Label" parent="./Center/DialogPanel/DialogVBox/Tabs/Lyd/AmbientRow"]
 custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
-text = "Ambient"
+text = "UI_SETTINGS_AMBIENT_LABEL"
 
 [node name="AmbientSlider" type="HSlider" parent="./Center/DialogPanel/DialogVBox/Tabs/Lyd/AmbientRow"]
 unique_name_in_owner = true
@@ -140,7 +140,7 @@ theme_override_constants/separation = 8
 [node name="SfxCap" type="Label" parent="./Center/DialogPanel/DialogVBox/Tabs/Lyd/SfxRow"]
 custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
-text = "Effekter"
+text = "UI_SETTINGS_SFX_LABEL"
 
 [node name="SfxSlider" type="HSlider" parent="./Center/DialogPanel/DialogVBox/Tabs/Lyd/SfxRow"]
 unique_name_in_owner = true
@@ -166,7 +166,7 @@ layout_mode = 2
 [node name="ResCap" type="Label" parent="./Center/DialogPanel/DialogVBox/Tabs/Grafikk/ResRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Oppløsning"
+text = "UI_SETTINGS_RESOLUTION_LABEL"
 
 [node name="ResOption" type="OptionButton" parent="./Center/DialogPanel/DialogVBox/Tabs/Grafikk/ResRow"]
 unique_name_in_owner = true
@@ -179,7 +179,7 @@ layout_mode = 2
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Grafikkvalitet"
+text = "UI_SETTINGS_QUALITY_LABEL"
 
 [node name="QualityOption" type="OptionButton" parent="./Center/DialogPanel/DialogVBox/Tabs/Grafikk/QualityRow"]
 unique_name_in_owner = true
@@ -188,16 +188,28 @@ layout_mode = 2
 [node name="FullscreenCheck" type="CheckBox" parent="./Center/DialogPanel/DialogVBox/Tabs/Grafikk"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Fullskjerm"
+text = "UI_SETTINGS_FULLSCREEN_LABEL"
 
 [node name="VsyncCheck" type="CheckBox" parent="./Center/DialogPanel/DialogVBox/Tabs/Grafikk"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "VSync"
+text = "UI_SETTINGS_VSYNC_LABEL"
 
 [node name="Spill" type="VBoxContainer" parent="./Center/DialogPanel/DialogVBox/Tabs"]
 layout_mode = 2
 theme_override_constants/separation = 12
+
+[node name="LanguageRow" type="HBoxContainer" parent="./Center/DialogPanel/DialogVBox/Tabs/Spill"]
+layout_mode = 2
+
+[node name="LanguageCap" type="Label" parent="./Center/DialogPanel/DialogVBox/Tabs/Spill/LanguageRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "UI_SETTINGS_LANGUAGE_LABEL"
+
+[node name="LanguageOption" type="OptionButton" parent="./Center/DialogPanel/DialogVBox/Tabs/Spill/LanguageRow"]
+unique_name_in_owner = true
+layout_mode = 2
 
 [node name="AutosaveRow" type="HBoxContainer" parent="./Center/DialogPanel/DialogVBox/Tabs/Spill"]
 layout_mode = 2
@@ -205,7 +217,9 @@ layout_mode = 2
 [node name="AutosaveCap" type="Label" parent="./Center/DialogPanel/DialogVBox/Tabs/Spill/AutosaveRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Autolagring"
+mouse_filter = 0
+tooltip_text = "UI_SETTINGS_AUTOSAVE_TIP"
+text = "UI_SETTINGS_AUTOSAVE_LABEL"
 
 [node name="AutosaveOption" type="OptionButton" parent="./Center/DialogPanel/DialogVBox/Tabs/Spill/AutosaveRow"]
 unique_name_in_owner = true
@@ -214,18 +228,19 @@ layout_mode = 2
 [node name="TutorialCheck" type="CheckBox" parent="./Center/DialogPanel/DialogVBox/Tabs/Spill"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Vis tutorial"
+text = "UI_SETTINGS_TUTORIAL_LABEL"
 
 [node name="NotifsCheck" type="CheckBox" parent="./Center/DialogPanel/DialogVBox/Tabs/Spill"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Varsler"
+tooltip_text = "UI_SETTINGS_NOTIFICATIONS_TIP"
+text = "UI_SETTINGS_NOTIFICATIONS_LABEL"
 
 [node name="AutoPauseCheck" type="CheckBox" parent="./Center/DialogPanel/DialogVBox/Tabs/Spill"]
 unique_name_in_owner = true
 layout_mode = 2
 button_pressed = true
-text = "Stopp ved kritiske varsler"
+text = "UI_SETTINGS_AUTO_PAUSE_LABEL"
 
 [node name="AutoSlowCheck" type="CheckBox" parent="./Center/DialogPanel/DialogVBox/Tabs/Spill"]
 unique_name_in_owner = true
@@ -241,7 +256,7 @@ theme_override_constants/separation = 8
 [node name="SpeedCap" type="Label" parent="./Center/DialogPanel/DialogVBox/Tabs/Spill/SpeedRow"]
 custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
-text = "Standard hastighet"
+text = "UI_SETTINGS_SPEED_LABEL"
 
 [node name="SpeedSlider" type="HSlider" parent="./Center/DialogPanel/DialogVBox/Tabs/Spill/SpeedRow"]
 unique_name_in_owner = true
@@ -265,7 +280,8 @@ theme_override_constants/separation = 12
 [node name="HighContrastCheck" type="CheckBox" parent="./Center/DialogPanel/DialogVBox/Tabs/Tilgjengelighet"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Høykontrast"
+tooltip_text = "UI_SETTINGS_HIGH_CONTRAST_TIP"
+text = "UI_SETTINGS_HIGH_CONTRAST_LABEL"
 
 [node name="ReducedMotionCheck" type="CheckBox" parent="./Center/DialogPanel/DialogVBox/Tabs/Tilgjengelighet"]
 unique_name_in_owner = true
@@ -280,7 +296,7 @@ theme_override_constants/separation = 8
 [node name="UiScaleCap" type="Label" parent="./Center/DialogPanel/DialogVBox/Tabs/Tilgjengelighet/UiScaleRow"]
 custom_minimum_size = Vector2(160, 0)
 layout_mode = 2
-text = "Skala grensesnitt"
+text = "UI_SETTINGS_UI_SCALE_LABEL"
 
 [node name="UiScaleOption" type="OptionButton" parent="./Center/DialogPanel/DialogVBox/Tabs/Tilgjengelighet/UiScaleRow"]
 unique_name_in_owner = true
@@ -295,10 +311,10 @@ theme_override_constants/separation = 8
 [node name="ResetButton" type="Button" parent="./Center/DialogPanel/DialogVBox/ButtonRow"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Tilbakestill"
+text = "UI_SETTINGS_RESET"
 
 [node name="ApplyButton" type="Button" parent="./Center/DialogPanel/DialogVBox/ButtonRow"]
 theme_type_variation = &"PrimaryButton"
 unique_name_in_owner = true
 layout_mode = 2
-text = "Bruk"
+text = "UI_SETTINGS_APPLY"

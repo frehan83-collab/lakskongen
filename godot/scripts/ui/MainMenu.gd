@@ -99,6 +99,11 @@ func _ready() -> void:
 		audio.play_menu_music()
 
 
+## The language changed (Innstillinger > Spill > Språk, U2-08): redraw at once.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_TRANSLATION_CHANGED and is_node_ready():
+		_apply_localization()
+
 func _apply_localization() -> void:
 	subtitle_label.text = _tr_or("UI_MAINMENU_SUBTITLE", "Norsk lakseoppdrettssimulator")
 	# The wordmark is a picture of the name: screen readers get the name.

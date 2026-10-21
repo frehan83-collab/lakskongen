@@ -235,9 +235,16 @@ def test_only_the_quality_tiers_write_the_render_settings():
 
 
 def test_the_settings_menu_offers_the_same_tiers():
+    """U2-08 moved the schema to SettingsStore and the apply to SettingsApplier:
+    the menu offers the four tiers, the default is High, a change goes to
+    every live director at once, and the menu routes its choice there."""
     menu = (GODOT / "scripts/ui/SettingsMenu.gd").read_text(encoding="utf-8")
+    store = (GODOT / "scripts/ui/SettingsStore.gd").read_text(encoding="utf-8")
+    applier = (GODOT / "scripts/autoload/SettingsApplier.gd").read_text(encoding="utf-8")
     assert 'const QUALITY_TIERS: Array[String] = ["low", "medium", "high", "ultra"]' in menu
-    assert '"quality": "high"' in menu and "RenderQuality.DIRECTOR_GROUP" in menu
+    assert '"quality": "high"' in store and "const DEFAULT_SETTINGS := SettingsStore.DEFAULTS" in menu
+    assert "RenderQuality.DIRECTOR_GROUP" in applier and '"set_quality"' in applier
+    assert '_applier_call("apply_quality", [_quality_name()])' in menu
     scene = (GODOT / "scenes/ui/SettingsMenu.tscn").read_text(encoding="utf-8")
     assert '[node name="QualityOption" type="OptionButton"' in scene
     csv = (GODOT / "translations/translations.csv").read_text(encoding="utf-8")

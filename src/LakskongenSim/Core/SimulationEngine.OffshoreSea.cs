@@ -122,6 +122,29 @@ public partial class SimulationEngine
         => State?.Metocean is { LastTickDay: >= 0 } ? site.Offshore?.CurrentWaveHeight ?? 0.0 : 0.0;
 
     /// <summary>
+    /// Today's sea at the offshore unit <paramref name="siteId"/> split as the
+    /// renderer draws it (F2-21, farm-types spec §4 "Wave driver"): the base
+    /// (wind) sea and the swell (the background swell and the storm swell,
+    /// added in energy) at the plot's fitted scale, so that
+    /// WindSeaHsM² + SwellHsM² is the unit's Hs² today
+    /// (<see cref="OffshoreMetoceanModel.CombineHs"/>); the swell's peak period
+    /// is the strongest storm swell's, or the shortest storm-swell period when
+    /// only the background swell runs. Null for a site that is no offshore unit
+    /// or while the game has no open sea. Pure: no stream moves.
+    /// </summary>
+    public OpenSeaParts? OpenSeaPartsAt(string siteId)
+    {
+        var sea = State?.Metocean;
+        var site = sea is { LastTickDay: >= 0 } ? FindOffshoreUnit(siteId ?? "") : null;
+        if (site == null || sea == null) return null;
+        double scale = PlotHsScaleOf(site);
+        var cal = OffshoreCal.Metocean;
+        double swell = scale * Math.Sqrt(cal.BackgroundSwellHsM * cal.BackgroundSwellHsM + sea.SwellHsToday * sea.SwellHsToday);
+        double tp = sea.SwellTpToday > 0.0 ? sea.SwellTpToday : cal.SwellTpMinS;
+        return new OpenSeaParts(scale * sea.BaseHsToday, swell, tp);
+    }
+
+    /// <summary>
     /// The honest forecast at an offshore unit's plot (spec §3.3 point 6), issued
     /// from today's sea and weather and cached for the day; null while the game
     /// has no open sea or the sea is not on today's weather day. Pure: no
@@ -249,6 +272,12 @@ internal sealed class OffshoreSeaTickSystem : ITickSystem
 {
     public void Tick(SimulationEngine engine) => OffshoreTickSystem.AdvanceSea(engine);
 }
+
+/// <summary>Today's open sea at an offshore unit split into its wind sea and its swell (F2-21).</summary>
+/// <param name="WindSeaHsM">The base (wind) sea at the plot (m Hs).</param>
+/// <param name="SwellHsM">The background and storm swell at the plot, in energy (m Hs).</param>
+/// <param name="SwellTpS">The swell's peak period (s).</param>
+public sealed record OpenSeaParts(double WindSeaHsM, double SwellHsM, double SwellTpS);
 
 /// <summary>One forecast day at a unit as the window board reads it.</summary>
 /// <param name="Day">The sim day.</param>

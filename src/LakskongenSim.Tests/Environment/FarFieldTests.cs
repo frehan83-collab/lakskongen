@@ -158,7 +158,8 @@ namespace LakskongenSim.Tests.Environment
             ISitePlotGeometry geometry = Gen42;
             var pads = geometry.LandPadSlots();
             Assert.Equal(new[] { "pad_a", "pad_b", "pad_delta" }, pads.Select(p => p.Id));
-            Assert.Equal((-700f, -1650f, 640f, 420f, 4), (pads[0].CentreX, pads[0].CentreZ, pads[0].WidthM, pads[0].DepthM, pads[0].Lots));
+            // pad_a at the F2-18 read gate's centre (F2-19 moved it from (−700, −1650)).
+            Assert.Equal((-450f, -1720f, 640f, 420f, 4), (pads[0].CentreX, pads[0].CentreZ, pads[0].WidthM, pads[0].DepthM, pads[0].Lots));
             Assert.Equal((750f, -1640f, 480f, 360f, 2), (pads[1].CentreX, pads[1].CentreZ, pads[1].WidthM, pads[1].DepthM, pads[1].Lots));
             Assert.Equal((0f, 1450f, 260f, 180f, 4), (pads[2].CentreX, pads[2].CentreZ, pads[2].WidthM, pads[2].DepthM, pads[2].Lots));
             Assert.All(pads, p => Assert.Equal(3.6f, p.PadHeightM));

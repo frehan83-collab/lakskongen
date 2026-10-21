@@ -186,8 +186,12 @@ namespace LakskongenSim.Tests.Environment
             Assert.Equal(GoldenHashSeed42, TerrainGenerator.HeightfieldHash(a));
         }
 
-        /// <summary>Seed 42 at 512² over 4 km (the game's fjord). Update only with a deliberate terrain change.</summary>
-        internal const string GoldenHashSeed42 = "5a84dfe1202f180d";
+        /// <summary>
+        /// Seed 42 at 512² over 4 km (the game's fjord). Update only with a
+        /// deliberate terrain change. Re-promoted by F2-19 (the land pads are
+        /// carved; was 5a84dfe1202f180d), docs/run/evidence/f2_19_pads.md.
+        /// </summary>
+        internal const string GoldenHashSeed42 = "a7b58a2c48dd4a8f";
 
         [Fact]
         public void Channel_IsNavigableFromTheHarbourToTheLastPenSlot()

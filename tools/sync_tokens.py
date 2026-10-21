@@ -46,6 +46,9 @@ PROJECT_THEME_RES = "res://theme/lakskongen_theme.tres"
 THEMES = {
     "ink": GODOT_DIR / "theme" / "lakskongen_theme.tres",
     "chart": GODOT_DIR / "theme" / "lakskongen_chart_theme.tres",
+    # The high-contrast variants (U2-08, roadmap D21).
+    "ink-hc": GODOT_DIR / "theme" / "lakskongen_theme_hc.tres",
+    "chart-hc": GODOT_DIR / "theme" / "lakskongen_chart_theme_hc.tres",
 }
 BUILD_SCRIPT_RES = "res://scripts/tools/build_theme.gd"
 # Mirrors build_theme.gd BUILDER_SOURCES (order matters: the hash is over the

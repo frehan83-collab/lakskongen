@@ -29,16 +29,9 @@ static func reduced_motion() -> bool:
 
 
 ## The player's own setting (false when the settings file is missing or broken).
+## (SettingsStore: the player's file, or a test's own through path_override.)
 static func setting_enabled() -> bool:
-	if not FileAccess.file_exists(SETTINGS_PATH):
-		return false
-	var file := FileAccess.open(SETTINGS_PATH, FileAccess.READ)
-	if file == null:
-		return false
-	var data: Variant = JSON.parse_string(file.get_as_text())
-	if not (data is Dictionary):
-		return false
-	var acc: Variant = (data as Dictionary).get("accessibility", {})
+	var acc: Variant = SettingsStore.load_raw().get("accessibility", {})
 	return acc is Dictionary and bool((acc as Dictionary).get("reduced_motion", false))
 
 

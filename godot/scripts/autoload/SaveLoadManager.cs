@@ -3,6 +3,7 @@ using LakskongenSim.Core;
 using LakskongenSim.Farm;
 using LakskongenSim.Logistics;
 using System;
+using System.Globalization;
 using System.IO;
 using System.Text.Json;
 using System.Collections.Generic;
@@ -84,7 +85,13 @@ public partial class SaveLoadManager : Node
 
     /// <summary>
     /// Save files as Variant-safe dictionaries for GDScript (newest first):
-    /// file (pass to LoadGame/DeleteSave), name, day, cash, time (ISO 8601 UTC).
+    /// file (pass to LoadGame/DeleteSave), name, day, cash, time (ISO 8601 UTC),
+    /// time_unix (seconds, UTC), time_local ("yyyy-MM-dd HH:mm" in the player's
+    /// zone, by that zone's rules for the save's own instant, so a save from
+    /// before a summer-time change keeps its wall-clock time), scenario (the
+    /// scenario id, "" for none), seed (the game's RandomSeed: which game the
+    /// save belongs to, 0 when unknown) and thumbnail (the slot's picture, a
+    /// user:// path, "" when it has none; U2-08).
     /// <see cref="GetSaveFiles"/> returns a CLR list GDScript cannot marshal.
     /// </summary>
     public Godot.Collections.Array<Godot.Collections.Dictionary> GetSaveList()
@@ -92,6 +99,7 @@ public partial class SaveLoadManager : Node
         var list = new Godot.Collections.Array<Godot.Collections.Dictionary>();
         foreach (var save in GetSaveFiles())
         {
+            string thumb = ThumbnailPathFor(save.FileName);
             list.Add(new Godot.Collections.Dictionary
             {
                 ["file"] = save.FileName,
@@ -99,10 +107,33 @@ public partial class SaveLoadManager : Node
                 ["day"] = save.GameDay,
                 ["cash"] = save.Cash,
                 ["time"] = save.SaveTime.ToString("o"),
+                ["time_unix"] = AsUtc(save.SaveTime).ToUnixTimeSeconds(),
+                ["time_local"] = AsUtc(save.SaveTime).ToLocalTime().ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture),
+                ["scenario"] = save.ScenarioId ?? "",
+                ["seed"] = save.Seed,
+                ["thumbnail"] = Godot.FileAccess.FileExists(thumb) ? thumb : "",
             });
         }
         return list;
     }
+
+    /// <summary>
+    /// The picture of a save slot (U2-08): a PNG beside the save,
+    /// "&lt;save name&gt;.thumb.png" (SaveThumbnails writes it a frame after the
+    /// save; DeleteSave removes it with the save).
+    /// </summary>
+    public string ThumbnailPathFor(string fileName)
+    {
+        string bare = ToSaveFileName(fileName);
+        string stem = bare.EndsWith(".json") ? bare[..^5] : bare;
+        return Path.Combine(_saveDirectory, stem + ThumbnailSuffix);
+    }
+
+    private const string ThumbnailSuffix = ".thumb.png";
+
+    /// <summary>Saves write UTC; a save that lost its kind reads as UTC too.</summary>
+    private static DateTimeOffset AsUtc(DateTime time) => new(
+        time.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(time, DateTimeKind.Utc) : time.ToUniversalTime());
 
     private void SetupJsonOptions()
     {
@@ -138,7 +169,9 @@ public partial class SaveLoadManager : Node
         _gameBridge = GetNode<GameBridge>("/root/GameBridge");
         if (_gameBridge != null)
         {
-            // Auto-save every 30 game days
+            // The autosave interval (U2-08): every game, new, scenario or
+            // loaded, starts its own; the ticks take the save when it is due.
+            _gameBridge.GameStarted += RestartAutoSaveInterval;
             _gameBridge.SimulationTicked += OnSimulationTicked;
         }
     }
@@ -229,11 +262,11 @@ public partial class SaveLoadManager : Node
             RotateAutoSaves();
             
             string saveName = $"{AUTOSAVE_PREFIX}_latest";
-            // Every autosave, the day cadence's or an explicit one, starts the
-            // real minute the next day-cadence autosave waits for (U2-07), so
-            // the cadence never overwrites a fresh autosave_latest at once.
-            _autoSavedOnce = true;
-            _lastAutoSaveMs = Time.GetTicksMsec();
+            // Every autosave, the interval's or an explicit one, starts the
+            // next interval (U2-08), so the cadence never overwrites a fresh
+            // autosave_latest at once.
+            _intervalEngine = _gameBridge.SimulationEngine;
+            _intervalStartMs = NowMs;
             return SaveGame(saveName);
         }
         catch (Exception ex)
@@ -325,7 +358,10 @@ public partial class SaveLoadManager : Node
 
             // Load the game state into GameBridge
             _gameBridge.LoadGame(saveData.GameState);
-            
+            // A loaded game starts its own autosave interval (U2-08).
+            _intervalEngine = _gameBridge.SimulationEngine;
+            _intervalStartMs = NowMs;
+
             EmitSignal(SignalName.GameLoaded, saveData.SaveName);
             EventBus eventBus = GetNode<EventBus>("/root/EventBus");
             eventBus.PostNotification("Game Loaded", $"Loaded '{saveData.SaveName}'", "success");
@@ -543,6 +579,9 @@ public partial class SaveLoadManager : Node
                 dir.Remove(fileName);
                 if (dir.FileExists(fileName + BACKUP_SUFFIX))
                     dir.Remove(fileName + BACKUP_SUFFIX);
+                string thumb = Path.GetFileName(ThumbnailPathFor(fileName));
+                if (dir.FileExists(thumb))
+                    dir.Remove(thumb);
                 GD.Print($"Deleted save file: {fileName}");
                 return true;
             }
@@ -728,6 +767,8 @@ public partial class SaveLoadManager : Node
 #pragma warning disable CS0618 // GameState.Balance is the intentional save-compat mirror
                 Cash = (long)saveData.GameState.Balance, // Use Balance and cast to long
 #pragma warning restore CS0618
+                ScenarioId = saveData.GameState.ActiveScenarioId ?? "",
+                Seed = saveData.GameState.RandomSeed,
                 FileSize = (int)fileSize
             };
         }
@@ -806,23 +847,65 @@ public partial class SaveLoadManager : Node
         return sanitized.Trim();
     }
 
-    /// <summary>Real time between two day-cadence autosaves (U2-07).</summary>
-    private const ulong MinAutoSaveIntervalMs = 60_000;
-    private ulong _lastAutoSaveMs;
-    private bool _autoSavedOnce;
+    /// <summary>
+    /// Real minutes between autosaves: the player's "Autolagring" setting
+    /// (gameplay.autosave_minutes: 0 off, 2, 5, 10 or 30; U2-08), set by
+    /// SettingsApplier at launch and whenever the settings are applied.
+    /// </summary>
+    public int AutoSaveIntervalMinutes
+    {
+        get => _autoSaveIntervalMinutes;
+        set => _autoSaveIntervalMinutes = Math.Max(0, value);
+    }
+    private int _autoSaveIntervalMinutes = 5;
 
+    /// <summary>Test seam: the real clock in ms (negative: Time.GetTicksMsec()).</summary>
+    public long ClockOverrideMs { get; set; } = -1;
+    private ulong NowMs => ClockOverrideMs >= 0 ? (ulong)ClockOverrideMs : Time.GetTicksMsec();
+
+    /// <summary>When the running interval started: the last autosave, or the
+    /// game's start or load (GameBridge.GameStarted, which every new game,
+    /// scenario and load emits: a new game never inherits the old one's clock).</summary>
+    private ulong _intervalStartMs;
+    private SimulationEngine _intervalEngine;
+
+    /// <summary>Start the autosave interval now, for the running game (tests,
+    /// and anything that stands the clock still for long).</summary>
+    public void RestartAutoSaveInterval()
+    {
+        _intervalEngine = _gameBridge?.SimulationEngine;
+        _intervalStartMs = NowMs;
+    }
+
+    /// <summary>Real ms until the next autosave is due (-1: off or no game).</summary>
+    public long AutoSaveDueInMs()
+    {
+        if (_autoSaveIntervalMinutes <= 0 || _intervalEngine == null) return -1;
+        long due = (long)_intervalStartMs + _autoSaveIntervalMinutes * 60_000L - (long)NowMs;
+        return Math.Max(0, due);
+    }
+
+    // U2-08: an autosave every N real minutes of play, taken at the first day
+    // boundary after (a whole day: the save is consistent), and never with the
+    // setting off. It replaces U2-07's day-30 cadence with its one-minute
+    // guard: at 30x that cadence still saved (a 150-180 ms frame) every real
+    // minute, and the player could not choose.
     private void OnSimulationTicked(int day)
     {
-        // Auto save every 30 days, but not more than once a real minute: at
-        // 30× a 30-day cadence wrote the save (a 40-50 ms frame) every second
-        // (U2-07). The settings' real-time interval is U2-08's.
-        if (day % 30 == 0)
+        var engine = _gameBridge?.SimulationEngine;
+        if (engine == null) return;
+        ulong now = NowMs;
+        // A tick with no GameStarted seen (the engine was swapped some other
+        // way) starts the interval here.
+        if (!ReferenceEquals(engine, _intervalEngine))
         {
-            ulong now = Time.GetTicksMsec();
-            if (_autoSavedOnce && now - _lastAutoSaveMs < MinAutoSaveIntervalMs)
-                return;
-            AutoSave();
+            _intervalEngine = engine;
+            _intervalStartMs = now;
+            return;
         }
+        if (_autoSaveIntervalMinutes <= 0) return;
+        if (now - _intervalStartMs >= (ulong)_autoSaveIntervalMinutes * 60_000UL)
+            AutoSave();
     }
 }
 
@@ -845,5 +928,9 @@ public class SaveFileInfo
     public DateTime SaveTime { get; set; }
     public int GameDay { get; set; }
     public long Cash { get; set; }
+    /// <summary>The scenario the save was playing (GameState.ActiveScenarioId; "" for none).</summary>
+    public string ScenarioId { get; set; } = "";
+    /// <summary>The game's seed (GameState.RandomSeed): which game the save belongs to (0: unknown).</summary>
+    public int Seed { get; set; }
     public int FileSize { get; set; }
 }

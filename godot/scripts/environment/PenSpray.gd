@@ -32,12 +32,23 @@ const LIFETIME_S := 1.8
 const VISIBLE_M := 1100.0
 ## Seconds between re-reading the pens and the sea.
 const REFRESH_S := 0.5
+## The water's calm slots (water_shader.gdshader MAX_PEN_CALM): a pen's
+## collar and net damp the sea inside it, so no whitecap breaks there
+## (gfx-polish-1). The nearest pens to the camera take them.
+const MAX_CALM_PENS := 32
+## A pen without a cage of its own (a site the manager draws as one
+## position): the standard 160 m collar's radius (m).
+const DEFAULT_COLLAR_RADIUS_M := 25.5
 
 @export var director: EnvironmentDirector
 @export var pen_manager_path: NodePath = ^"../FishPenManager"
 
 ## pen key ("<site>#<n>", n from 1) -> GPUParticles3D (tests read it).
 var emitters := {}
+## Every pen's collar for the water's calm: (x, z, collar radius m, 1), the
+## nearest the camera first, at most MAX_CALM_PENS (the director hands them
+## to the water; tests read them).
+var collars := PackedVector4Array()
 ## The spray share at each pen last refresh (0-1, tests read it).
 var levels := {}
 
@@ -73,6 +84,8 @@ func _refresh() -> void:
 	var wind := float(sea.get("wind_ms", 0.0))
 	var calm := sea.is_empty() or spray_level(maxf(float(sea.get("exposed_hs", 0.0)), float(sea.get("sheltered_hs", 0.0))), wind) <= 0.0
 	var seen := {}
+	var cam := get_viewport().get_camera_3d() if is_inside_tree() else null
+	collars = pen_collars(pens, cam.global_position if cam != null else Vector3.ZERO)
 	var points := pen_points(pens)
 	for id in points:
 		seen[id] = true
@@ -128,6 +141,37 @@ static func pen_points(pens: Node) -> Dictionary:
 			if cage != null and cage.is_visible_in_tree():
 				out["%s#%d" % [id, k + 1]] = cage.global_position
 	return out
+
+
+## Every pen's collar as (x, z, collar radius m, 1), nearest `eye` first, at
+## most MAX_CALM_PENS: the cages of each site (a ghost site has none), or
+## the site's position with the standard collar where the manager has no
+## cages.
+static func pen_collars(pens: Node, eye: Vector3) -> PackedVector4Array:
+	var found: Array[Vector4] = []
+	if pens == null or not pens.has_method("get_pen_ids"):
+		return PackedVector4Array()
+	for id in pens.call("get_pen_ids"):
+		var farm: Node = pens.call("get_site", id) if pens.has_method("get_site") else null
+		if farm != null and farm.has_method("is_ghost") and farm.call("is_ghost"):
+			continue
+		var cages: Array = pens.call("get_site_cages", id) if pens.has_method("get_site_cages") else []
+		if cages.is_empty():
+			var at: Vector3 = pens.call("get_pen_position", id)
+			found.append(Vector4(at.x, at.z, DEFAULT_COLLAR_RADIUS_M, 1.0))
+			continue
+		for cage in cages:
+			var node := cage as Node3D
+			if node == null or not node.is_visible_in_tree():
+				continue
+			var radius := float(node.call("get_collar_radius")) if node.has_method("get_collar_radius") else DEFAULT_COLLAR_RADIUS_M
+			found.append(Vector4(node.global_position.x, node.global_position.z, radius, 1.0))
+	var eye_xz := Vector2(eye.x, eye.z)
+	found.sort_custom(func(a: Vector4, b: Vector4) -> bool:
+		return Vector2(a.x, a.y).distance_squared_to(eye_xz) < Vector2(b.x, b.y).distance_squared_to(eye_xz))
+	if found.size() > MAX_CALM_PENS:
+		found.resize(MAX_CALM_PENS)
+	return PackedVector4Array(found)
 
 
 func _make_emitter(id: String) -> GPUParticles3D:

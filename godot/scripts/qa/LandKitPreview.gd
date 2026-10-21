@@ -291,24 +291,48 @@ func _carve_terrain() -> void:
 	var floor_y := LAYOUT.PAD_TOP_Y - 0.6
 	for node in terrain.call("get_chunk_meshes"):
 		var mi := node as MeshInstance3D
-		var mesh := mi.mesh as ArrayMesh
-		var arrays := mesh.surface_get_arrays(0)
-		var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
-		var changed := false
-		for i in verts.size():
-			var v := mi.transform * verts[i]
-			if v.y <= floor_y:
-				continue
-			for r in rects:
-				if r.has_point(Vector2(v.x, v.z)):
-					verts[i].y = floor_y - mi.transform.origin.y
-					changed = true
-					break
-		if changed:
-			arrays[Mesh.ARRAY_VERTEX] = verts
-			var carved := ArrayMesh.new()
-			carved.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+		var carved := carve_chunk(mi.mesh as ArrayMesh, mi.transform, rects, floor_y)
+		if carved != null:
 			mi.mesh = carved
+
+
+## A terrain chunk's mesh (placed by `xform`, a translation) with every vertex
+## inside `rects` (world XZ) and above `floor_y` (world) pressed down to it, or
+## null when no vertex moves. The chunk's custom channels keep their formats:
+## its CUSTOM0 is RGBA float since gfx-polish-1, and a rebuild without them
+## failed ("Invalid array format for surface"), so the chunk drew nothing in
+## the 39_landkit_* frames (found at the wave-4b close).
+static func carve_chunk(mesh: ArrayMesh, xform: Transform3D, rects: Array[Rect2], floor_y: float) -> ArrayMesh:
+	var arrays := mesh.surface_get_arrays(0)
+	var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+	var changed := false
+	for i in verts.size():
+		var v := xform * verts[i]
+		if v.y <= floor_y:
+			continue
+		for r in rects:
+			if r.has_point(Vector2(v.x, v.z)):
+				verts[i].y = floor_y - xform.origin.y
+				changed = true
+				break
+	if not changed:
+		return null
+	arrays[Mesh.ARRAY_VERTEX] = verts
+	var carved := ArrayMesh.new()
+	carved.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays, [], {},
+		custom_formats(mesh.surface_get_format(0)))
+	return carved
+
+
+## The custom channels' format bits of a surface format, for a surface
+## rebuilt from its arrays (add_surface_from_arrays reads a custom array as
+## bytes unless its flags say otherwise).
+static func custom_formats(surface_format: int) -> int:
+	var mask := 0
+	for shift: int in [Mesh.ARRAY_FORMAT_CUSTOM0_SHIFT, Mesh.ARRAY_FORMAT_CUSTOM1_SHIFT,
+			Mesh.ARRAY_FORMAT_CUSTOM2_SHIFT, Mesh.ARRAY_FORMAT_CUSTOM3_SHIFT]:
+		mask |= Mesh.ARRAY_FORMAT_CUSTOM_MASK << shift
+	return surface_format & mask
 
 
 # ── Measuring ────────────────────────────────────────────────────────────────

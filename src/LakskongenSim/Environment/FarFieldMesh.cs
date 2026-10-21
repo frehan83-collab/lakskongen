@@ -425,6 +425,7 @@ namespace LakskongenSim.Environment
                 var tangents = new float[count * 4];
                 var uvs = new float[count * 2];
                 var colors = new float[count * 4];
+                var macro = new float[count * TerrainMesh.MacroStride];
                 float world = 2f * _half;
                 for (int l = 0; l < rows; l++)
                 {
@@ -450,6 +451,10 @@ namespace LakskongenSim.Environment
                         tangents[v * 4] = tx * tinv; tangents[v * 4 + 1] = ty * tinv; tangents[v * 4 + 2] = tz * tinv; tangents[v * 4 + 3] = -1f;
                         uvs[v * 2] = (pos[j * 3] + _half) / world;
                         uvs[v * 2 + 1] = (pos[j * 3 + 2] + _half) / world;
+                        // The ring carries no wall ledges (its relief fades out past the
+                        // heightfield's edge): its macro slope and cavity are its own.
+                        macro[v * TerrainMesh.MacroStride] = ny > 1e-6f ? MathF.Sqrt(nx * nx + nz * nz) / ny : 0f;
+                        macro[v * TerrainMesh.MacroStride + 1] = col[j * 4];
                     }
                 }
 
@@ -468,6 +473,7 @@ namespace LakskongenSim.Environment
                     Tangents = tangents,
                     Uvs = uvs,
                     Colors = colors,
+                    Macro = macro,
                     Indices = indices.ToArray(),
                     FirstColumn = sector,
                     FirstRow = band,

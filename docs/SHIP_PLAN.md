@@ -110,13 +110,10 @@ the harness itself cannot run.
   fix drill-down friction; make rival pressure legible. Stop geo data work after this — the player
   needs reasons to care about the Norway that exists, not more Norway.
 
-## 8. Landing the in-flight work (do this first)
+## 8. Landing the in-flight work — done (2026-10-21)
 
-Two workflows are finishing (started before this plan; let them run): **geo stages 2–3** on `geo/int`
-and **wave 4b graphics** on `wave4b/int`. When each lands: push, open its PR, let the owner merge.
-Merge them sequentially if translations/UiFlowTests conflict (use `tools/merge/`). Salvage from the
-workflow journals if one stalls; do not start replacement waves. This plan's branch is disjoint from
-both. After both merge, §3 takes effect.
+Geo stages 2-3 (PR #11) and wave 4b (PR #12) are on `main`. Cycle 1 (onboarding) is on this
+branch (PR #10). From here, §3 is in effect.
 
 ## 9. Working agreement + kickoff prompt
 
@@ -129,3 +126,41 @@ Kickoff prompt for the next session:
 > Read `docs/SHIP_PLAN.md`, then `docs/HANDOFF.md` TL;DR. You are the single integrator.
 > First land the in-flight work (SHIP_PLAN §8): check `gh pr list` and branches `geo/int`,
 > `wave4b/int`. Then start Cycle 1 (§7). Decide rather than ask; one RUN_LOG row per cycle.
+
+## 10. Work queue by difficulty (owner, 2026-10-21: save the strongest model for the hardest work)
+
+The owner splits the weekly budget: the strongest model (Opus) takes the judgment-heavy and
+high-risk work; cheaper models (Sonnet/Haiku) take well-specified work with automatic checks.
+Every item names where to start. Take one item, finish it, and verify it.
+
+**Strongest model only.** Wrong calls here cost a lot.
+
+| Item | Why it is hard | Start here |
+|---|---|---|
+| Ship cycles: play, judge, rank, fix | Player judgment, cross-layer fixes | §4, `tools/playtest.sh`, RUN_LOG §8 follow-ups (cycle 1) |
+| Cycle 2: the guide card covers its own target; alarm fatigue in Familiegården | Game design (pacing, event severity) as much as code | `godot/scripts/ui/TutorialUI.gd` docking; `GameEventCatalog.cs` severities; playtest frames |
+| Sim determinism: `BloomEvent.Id = Guid.NewGuid()` | Saves differ run to run; touches save compat and golden traces | `src/LakskongenSim/Environment/BloomEvent.cs`; `FarmTypeMoveTests` proof pattern |
+| Sim week 1 runs NonCompliant (sustainability first assessed on day 7) | Changes every game's week 1: golden re-record plus a diff report | `InDayTickSystems.cs` SustainabilityTickSystem; RUN_LOG §8 (b) |
+| P0-04 High tier p95 23-25 ms at 1440p | Perf diagnosis on a shared machine | `tools/perf_smoke.sh`, PerfHarness; plugin agent `godot-performance-profiler` |
+| Economy balance with owner decisions (F2-07 acceptance 7, F2-08 acceptance 5) | Calibration with sources | `docs/BALANCE.md` §1w; HANDOFF open issues |
+
+**Cheaper models.** The spec is exact and the checks are automatic.
+
+| Item | Size | Start here; done when |
+|---|---|---|
+| F2-28 Construction kit (tower crane 50 m, scaffold ring Ø29.5 m, per-phase sets) | M | `docs/FARM_TYPES_SPEC.md` F2-28 row; `.claude/skills/ecc/blender-asset-pipeline/SKILL.md`; acceptance 1-4 and new `tests/test_construction_kit_assets.py` green |
+| F2-29 Havfarm-class unit (385 × 59.5 m, 6 wells) + mooring line kit (8/11 lines) | M | Spec row F2-29; `blender/build_offshore.py`, `offshore_designs.py`; `tests/test_offshore_assets.py` |
+| F2-30 Closed-pen kit (Donut 22,000 m³, Globe 3,500 m³, skirt 13 m) | M | Spec row F2-30; new `blender/build_closed_pens.py`; new tests |
+| Art notes: navy hall cladding; OF1 yellow reads mustard in low winter sun | S | `blender/lk_trim_atlas.py` swatches; render with `blender/render_*_preview.py`; compare with `docs/art/OWNER_REFERENCE_BRIEF.md` |
+| F2-22 logistics visuals, F2-24 weather drama and incident poses | M | Spec rows; `godot/scripts/visual/`; presenter only reads engine state |
+| Split files over 800 lines: `LandCampusBuilder.gd` (964), `BuildSiteDialog.gd` (~1,100) | S | Pure refactor; the UI flow suite stays at its exact count |
+| Visual-QA baseline refresh | S | Only after the owner approves the list in RUN_LOG §9 |
+
+Rules that hold for every model:
+- every Godot run is silent (`--audio-driver Dummy`);
+- never touch the owner's checkout; work in a worktree off `origin/main`;
+- no attribution lines;
+- PR merges are the owner's;
+- assets come from the build scripts only (the live Blender MCP is for look-dev);
+- tests are add-only;
+- golden traces are run only when the sim changes.

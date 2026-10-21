@@ -91,8 +91,12 @@ def test_version_string_comes_from_the_project_version():
 
 def test_reduced_motion_is_a_saved_accessibility_setting():
     settings = (GODOT / "scripts" / "ui" / "SettingsMenu.gd").read_text(encoding="utf-8")
-    assert '"reduced_motion": false' in settings
+    # U2-08: the schema and its defaults live in SettingsStore, which the menu uses.
+    store = (GODOT / "scripts" / "ui" / "SettingsStore.gd").read_text(encoding="utf-8")
+    assert '"reduced_motion": false' in store
+    assert "const DEFAULT_SETTINGS := SettingsStore.DEFAULTS" in settings
     assert '"reduced_motion": _motion_check.button_pressed' in settings
+    assert "SettingsStore.load_raw()" in (GODOT / "scripts" / "ui" / "MotionPrefs.gd").read_text(encoding="utf-8")
     prefs = (GODOT / "scripts" / "ui" / "MotionPrefs.gd").read_text(encoding="utf-8")
     assert "accessibility_should_reduce_animation()" in prefs
     assert "MotionPrefs.reduced_motion()" in BACKDROP.read_text(encoding="utf-8")

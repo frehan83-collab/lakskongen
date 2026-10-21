@@ -107,7 +107,11 @@ func _present_critical(event: Dictionary) -> void:
 	_play_cue("error")
 
 ## Warning: exactly one toast. Clicking it opens the notification drawer.
+## With "Varsler" off (GameplayPrefs.notifications_enabled, U2-08) the
+## warning goes to the inbox and the bell's badge only: no toast, no cue.
 func _present_warning(event: Dictionary) -> void:
+	if not GameplayPrefs.notifications_enabled():
+		return
 	_toast(_toast_text(event), "WARNING", WARNING_TOAST_SECONDS, _open_inbox)
 	_play_cue("notification")
 

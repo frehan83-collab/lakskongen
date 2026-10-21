@@ -109,8 +109,12 @@ namespace LakskongenSim.Environment
         /// The masks for a heightfield of n² vertices spanning worldSize
         /// metres, centred on the origin. waterExposure is the WaterBake B
         /// channel (open-sea exposure of water, 0 on land), or null for none.
+        /// No wood or meadow grows on the <paramref name="cleared"/> ground
+        /// (F2-19: the land pads and their rims), so the terrain shader paints
+        /// none there either.
         /// </summary>
-        public static VegetationMasks BuildMasks(float[] heights, int n, float worldSize, VegetationSettings s, float[]? waterExposure)
+        public static VegetationMasks BuildMasks(float[] heights, int n, float worldSize, VegetationSettings s, float[]? waterExposure,
+            IReadOnlyList<GroundRect>? cleared = null)
         {
             if (heights.Length != n * n || n < 3)
                 throw new ArgumentException($"heights must hold {n}² values");
@@ -129,11 +133,13 @@ namespace LakskongenSim.Environment
                     float x = -half + c * spacing;
                     float h = heights[i];
                     float slope = SlopeTan(heights, n, spacing, c, r);
+                    birch[i] = BirchShareAt(s, h, slope, x, z);
+                    if (GroundRect.AnyContains(cleared, x, z))
+                        continue;
                     float soil = TerrainMesh.Cavity(heights, n, spacing, c, r) - 0.5f;
                     float m = MeadowAt(s, h, slope, land[i], x, z);
                     meadow[i] = m;
                     forest[i] = ForestAt(s, h, slope, soil, land[i], x, z) * (1f - 0.85f * m);
-                    birch[i] = BirchShareAt(s, h, slope, x, z);
                 }
             });
             return new VegetationMasks { Size = n, WorldSizeM = worldSize, Forest = forest, Birch = birch, Meadow = meadow, LandExposure = land };
@@ -192,11 +198,12 @@ namespace LakskongenSim.Environment
         /// Trees for the masks: one candidate per <see cref="VegetationSettings.CellM"/>
         /// cell, jittered inside it, kept with probability density × fill.
         /// Every kept tree also passes the slope, altitude and treeline test at
-        /// its own position, so none stands outside the masks, and none stands
-        /// inside a clearing (x, z, radius: the shore buildings' yards).
+        /// its own position, so none stands outside the masks, none inside a
+        /// clearing (x, z, radius: the shore buildings' yards) and none on the
+        /// <paramref name="cleared"/> ground (F2-19: the land pads and their rims).
         /// </summary>
         public static List<TreeInstance> Scatter(float[] heights, VegetationMasks masks, VegetationSettings s,
-            IReadOnlyList<(float x, float z, float r)>? clearings = null)
+            IReadOnlyList<(float x, float z, float r)>? clearings = null, IReadOnlyList<GroundRect>? cleared = null)
         {
             int n = masks.Size;
             float world = masks.WorldSizeM;
@@ -216,7 +223,7 @@ namespace LakskongenSim.Environment
                         continue;
                     float h = Bilinear(heights, n, spacing, half, x, z);
                     float slope = SlopeTanAt(heights, n, spacing, half, x, z);
-                    if (!IsInsideMask(s, h, slope, x, z) || InClearing(clearings, x, z))
+                    if (!IsInsideMask(s, h, slope, x, z) || InClearing(clearings, x, z) || GroundRect.AnyContains(cleared, x, z))
                         continue;
                     float birchShare = Bilinear(masks.Birch, n, spacing, half, x, z);
                     var species = Hash01(s.Seed, i, j, SaltSpecies) < birchShare || slope >= s.SpruceMaxSlopeTan || h >= s.SpruceTopM

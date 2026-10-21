@@ -109,6 +109,10 @@ func _ready() -> void:
 	add_child(environment)
 	if environment.director != null:
 		environment.director.set_render_scale_cap(RENDER_SCALE)
+		# The clouds stay in the tier's pass (no hero sky): one pass finer
+		# cost the first screen +2.3 ms a frame at 1080p and +3.7-4.1 ms at
+		# 1440p on High, and per pixel the clouds drew sharp contours that the
+		# band-limited half pass does not (wave4b int, RUN_LOG section 7).
 	camera = environment.camera
 	terrain = environment.terrain
 	for manager in SIM_MANAGERS:

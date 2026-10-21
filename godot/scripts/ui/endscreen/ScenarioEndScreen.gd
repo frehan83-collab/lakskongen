@@ -410,16 +410,28 @@ func _arrange_buttons() -> void:
 		b.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 
 
-## The newest autosave from before the end (a lost or bankrupt game's later
-## autosave would load the same end); "" when there is none.
+## The newest autosave of this game from before the end (a lost or bankrupt
+## game's later autosave would load the same end); "" when there is none.
+## "This game" is the same scenario and the same seed (GetSaveList's
+## "scenario" and "seed" against the report's): with the real-time autosave
+## interval (U2-08) a short game may have none, and another game's autosave
+## must never stand in for it.
 func _find_autosave() -> String:
 	var end_day := int(_report.get("end_day", 0))
 	for entry in _sim.get_save_list():
 		if not str(entry.get("name", "")).begins_with(AUTOSAVE_PREFIX):
 			continue
+		if not is_same_game(entry, _report):
+			continue
 		if _verdict == "won" or int(entry.get("day", 0)) < end_day:
 			return str(entry.get("file", ""))
 	return ""
+
+
+## True when a save-list entry belongs to the game the end report is about.
+static func is_same_game(entry: Dictionary, report: Dictionary) -> bool:
+	return str(entry.get("scenario", "")) == str(report.get("scenario_id", "")) \
+		and int(entry.get("seed", 0)) == int(report.get("game_seed", 0))
 
 
 func _on_continue() -> void:

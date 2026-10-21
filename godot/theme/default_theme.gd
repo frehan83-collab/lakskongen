@@ -209,21 +209,54 @@ func _build_in_memory() -> void:
 ## Restore the accessibility UI scale (user://settings.json) at boot, so it
 ## survives restarts even though SettingsMenu only exists in the main menu.
 func _apply_saved_ui_scale() -> void:
-	if not FileAccess.file_exists("user://settings.json"):
-		return
-	var file := FileAccess.open("user://settings.json", FileAccess.READ)
-	if file == null:
-		return
-	var json := JSON.new()
-	if json.parse(file.get_as_text()) != OK or not (json.data is Dictionary):
-		return
-	var acc: Variant = json.data.get("accessibility", {})
+	var acc: Variant = SettingsStore.load_raw().get("accessibility", {})
 	if not (acc is Dictionary):
 		return
 	var scale := float(acc.get("ui_scale", 1.0))
 	var win := get_window()
 	if win != null and scale > 0.0:
 		win.content_scale_factor = scale
+
+
+# ---------------------------------------------------------------------------
+# High contrast (roadmap D21, U2-08)
+# ---------------------------------------------------------------------------
+
+## The high-contrast variant turned on or off.
+signal high_contrast_changed(on: bool)
+
+var _high_contrast := false
+
+
+## Swap both live themes (Ink, the project theme, and Chart paper) for their
+## high-contrast variants (tools/sync_tokens.py builds them from the tokens'
+## ink-hc and chart-hc surfaces: opaque, every text colour at least 7:1, a
+## wider focus ring) or back. Every Control follows at once: the themes are
+## merged in place, so nothing has to be reassigned.
+func set_high_contrast(on: bool) -> void:
+	if on == _high_contrast or _theme == null:
+		return
+	var ink_src := _fresh_theme(Builder.HC_THEME_PATH if on else Builder.PROJECT_THEME_PATH)
+	var chart_src := _fresh_theme(Builder.HC_CHART_THEME_PATH if on else Builder.CHART_THEME_PATH)
+	if ink_src == null or chart_src == null:
+		push_warning("LakskongenTheme: a %s theme is missing — run tools/sync_tokens.py --write" % ("high-contrast" if on else "base"))
+		return
+	_theme.merge_with(ink_src)
+	if chart_theme != null:
+		chart_theme.merge_with(chart_src)
+	_high_contrast = on
+	high_contrast_changed.emit(on)
+
+
+func is_high_contrast() -> bool:
+	return _high_contrast
+
+
+## A theme as saved on disk, never the live (merged-into) instance.
+func _fresh_theme(path: String) -> Theme:
+	if not ResourceLoader.exists(path):
+		return null
+	return ResourceLoader.load(path, "Theme", ResourceLoader.CACHE_MODE_IGNORE) as Theme
 
 
 ## Rebuild both themes from res://theme/tokens.json and merge them into the
