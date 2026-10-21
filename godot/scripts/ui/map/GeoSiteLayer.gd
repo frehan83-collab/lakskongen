@@ -20,6 +20,13 @@ const CELL_PX := 16.0
 const MIN_GAP_PX := 13.0
 const ICON_HIT_PX := 6.0
 const BADGE_FONT := 11
+## A single site's icon reaches this far from its point (the offshore 12-gon).
+const SINGLE_REACH_PX := 5.6
+## The majors' arc ends this far outside a badge's disc (x the symbol scale):
+## drawn at r + 2.6 with a width of 2.6 (_draw_badge).
+const BADGE_ARC_OUT := 3.9
+## Clear space kept between two marks (x the symbol scale).
+const BADGE_PAD_PX := 1.0
 
 ## Times _draw recorded the layer (tests: unchanged over days at 30x).
 var redraw_count: int = 0
@@ -167,7 +174,32 @@ func _rebuild() -> void:
 		for i in xs.size():
 			_local[i] = _origin + GeoProjection.to_px(float(xs[i]), float(ys[i]), _bounds, _res) * _scale
 	_clusters = GeoClusterer.cluster(_local, _classes, _owner_of, CELL_PX * _symbol, MIN_GAP_PX * _symbol)
+	# GEO-VIS: no badge drawn over another or over a single site (badges grown
+	# for a small window stacked over each other and the city names).
+	_clusters = GeoClusterer.declutter(_clusters, _local, _classes, _owner_of, gap_between)
 	queue_redraw()
+
+
+## How far a cluster of `count` sites draws from its centre: a single site's
+## icon, or a badge with its halo and the majors' outer arc.
+func reach_of(count: int) -> float:
+	if count <= 1:
+		return SINGLE_REACH_PX
+	return badge_radius_now(count) + BADGE_ARC_OUT * _symbol
+
+
+## The least distance between the centres of clusters of `a` and `b` sites
+## that keeps either from covering the other: two badges keep their discs,
+## halos and the majors' arcs apart; a single site's icon keeps off a badge's
+## disc and halo, its numeral (an arc may graze it). Two single sites are
+## never closer than the grid's gap, which is more.
+func gap_between(a: int, b: int) -> float:
+	var pad := BADGE_PAD_PX * _symbol
+	if a > 1 and b > 1:
+		return reach_of(a) + reach_of(b) + pad
+	if a > 1 or b > 1:
+		return badge_radius_now(maxi(a, b)) + 1.0 * _symbol + SINGLE_REACH_PX + pad
+	return SINGLE_REACH_PX * 2.0 + pad
 
 
 func _draw() -> void:

@@ -6,6 +6,9 @@ extends PanelContainer
 ## "NameLabel". The plate sits where MapLabelPlacer put it; its anchor dot
 ## marks the area's label point (label_25833) and a leader line joins the
 ## two when they are apart. The company's farms in the area ring the dot.
+## Where a cluster badge covers the label point, the badge marks it: no dot
+## over the numeral, the line stops at the badge's rim and the ring goes
+## round the badge (set_cover, GEO-VIS).
 ##
 ## MapPanel keeps the plates in _region_nodes ("po01".."po13"); a click
 ## anywhere on the plate selects the area (pressed), a double-click or Enter
@@ -36,6 +39,12 @@ var ring_color := Color.WHITE
 var overlay_active := false
 var overlay_color := Color.GRAY
 var compact := false
+## A cluster badge over the anchor (GEO-VIS), in the parent's coordinates:
+## the leader stops at the badge's rim, no diamond hides its numeral, and the
+## company's ring goes round the badge. cover_radius 0: nothing covers it.
+var cover_centre := Vector2.ZERO
+var cover_radius := 0.0
+var cover_ring_radius := 0.0
 
 var _code: Label = null
 var _name: Label = null
@@ -112,6 +121,23 @@ func set_overlay(active: bool, color: Color) -> bool:
 	return true
 
 
+## The badge drawn over the anchor (radius 0: none) and where the company's
+## ring goes round it; redraws only on a change.
+func set_cover(centre: Vector2, radius: float, ring_radius: float) -> bool:
+	if centre == cover_centre and is_equal_approx(radius, cover_radius) and is_equal_approx(ring_radius, cover_ring_radius):
+		return false
+	cover_centre = centre
+	cover_radius = radius
+	cover_ring_radius = ring_radius
+	queue_redraw()
+	return true
+
+
+## Is the anchor's diamond drawn (no badge covers the anchor)?
+func draws_dot() -> bool:
+	return cover_radius <= 0.0
+
+
 ## The plate's size for the placer, in its current mode.
 func plate_size() -> Vector2:
 	return get_combined_minimum_size()
@@ -185,16 +211,41 @@ func _draw() -> void:
 	var deep := MapPalette.deep_water()
 	var light := MapPalette.snow()
 	var end := Vector2(clampf(local.x, 0.0, size.x), clampf(local.y, 0.0, size.y))
-	if local.distance_to(end) > 2.0:
-		draw_line(local, end, Color(deep, 0.85), 3.0, true)
-		draw_line(local, end, Color(light, 0.95), 1.25, true)
+	var covered := cover_radius > 0.0
+	var centre := cover_centre - position
+	# A badge over the anchor: the stem starts at its rim, clear of the numeral.
+	var start := rim_point(local, end, centre, cover_radius) if covered else local
+	if start.distance_to(end) > 2.0:
+		draw_line(start, end, Color(deep, 0.85), 3.0, true)
+		draw_line(start, end, Color(light, 0.95), 1.25, true)
 	if player_sites > 0:
-		draw_arc(local, RING_RADIUS, 0.0, TAU, 28, Color(deep, 0.85), 4.0, true)
-		draw_arc(local, RING_RADIUS, 0.0, TAU, 28, ring_color, 2.25, true)
+		var at := centre if covered else local
+		var ring := cover_ring_radius if covered else RING_RADIUS
+		draw_arc(at, ring, 0.0, TAU, 40, Color(deep, 0.85), 4.0, true)
+		draw_arc(at, ring, 0.0, TAU, 40, ring_color, 2.25, true)
+	if covered:
+		return
 	var sel := state == STATE_SELECTED
 	var r := DOT_RADIUS + (1.0 if sel else 0.0)
 	draw_colored_polygon(_diamond(local, r + 1.5), deep)
 	draw_colored_polygon(_diamond(local, r), MapPalette.chart("accent") if sel else light)
+
+
+## Where the segment from `from` (inside the circle) towards `to` leaves the
+## circle at `centre` with `radius`; `to` itself when it lies inside.
+static func rim_point(from: Vector2, to: Vector2, centre: Vector2, radius: float) -> Vector2:
+	var d := to - from
+	var a := d.length_squared()
+	if a <= 0.0 or centre.distance_to(to) <= radius:
+		return to
+	var f := from - centre
+	var b := 2.0 * f.dot(d)
+	var c := f.length_squared() - radius * radius
+	var disc := b * b - 4.0 * a * c
+	if disc < 0.0:
+		return from
+	var t := (-b + sqrt(disc)) / (2.0 * a)
+	return from + d * clampf(t, 0.0, 1.0)
 
 
 static func _diamond(c: Vector2, r: float) -> PackedVector2Array:

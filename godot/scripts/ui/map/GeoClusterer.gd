@@ -32,6 +32,53 @@ static func cluster(points: PackedVector2Array, classes: PackedByteArray, owners
 	return _merge(out, points, classes, owners, min_gap_px)
 
 
+## Merge clusters whose drawn marks would overlap (GEO-VIS: on a 1280x720
+## window the badges grow to keep their numerals readable, and a fixed gap
+## left them stacked over each other and the city names). `gap_of(a, b)` is
+## the least distance between the centres of clusters of `a` and `b` sites
+## that keeps either from covering the other; two clusters closer than that
+## become one, biggest first (on a tie, the one whose first member comes
+## first), round after round until none are, since a merged cluster moves and
+## grows. Deterministic; members keep their order and the output is sorted
+## as cluster() sorts it.
+static func declutter(clusters: Array, points: PackedVector2Array, classes: PackedByteArray,
+		owners: PackedInt32Array, gap_of: Callable) -> Array:
+	var out := clusters.duplicate()
+	for _round in MAX_DECLUTTER_ROUNDS:
+		var order := range(out.size())
+		order.sort_custom(func(a: int, b: int) -> bool:
+			var ca: int = out[a]["count"]
+			var cb: int = out[b]["count"]
+			return ca > cb or (ca == cb and _first(out[a]) < _first(out[b])))
+		var kept: Array = []
+		var merged := false
+		for idx: int in order:
+			var c: Dictionary = out[idx]
+			var host := -1
+			for j in kept.size():
+				var gap := float(gap_of.call(int(kept[j]["count"]), int(c["count"])))
+				if (kept[j]["pos"] as Vector2).distance_to(c["pos"]) < gap:
+					host = j
+					break
+			if host < 0:
+				kept.append(c)
+				continue
+			var members: PackedInt32Array = kept[host]["members"].duplicate()
+			members.append_array(c["members"])
+			kept[host] = _make(members, points, classes, owners)
+			merged = true
+		out = kept
+		if not merged:
+			break
+	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return _first(a) < _first(b))
+	return out
+
+
+## Rounds of declutter() at most (it settles in a few: every round that
+## merges leaves fewer clusters).
+const MAX_DECLUTTER_ROUNDS := 32
+
+
 ## Totals over clusters: PackedInt32Array of CLASS_COUNT counts.
 static func totals(clusters: Array) -> PackedInt32Array:
 	var out := PackedInt32Array()

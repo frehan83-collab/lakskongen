@@ -371,6 +371,7 @@ func live_update(overview_changed: bool) -> PackedStringArray:
 	if sig != _sites_signature:
 		_sites_signature = sig
 		_sites.set_sites(bridge.sites())
+		_cover_anchors()
 		changed.append("sites")
 	if overview_changed and _update_players():
 		changed.append("players")
@@ -460,7 +461,30 @@ func relayout(force: bool = false) -> void:
 			badges.append(Rect2(c["pos"] - Vector2(r, r), Vector2(r, r) * 2.0))
 	_carto.layout_cities(_city_anchors(), Rect2(Vector2(EDGE_PAD, EDGE_PAD), size - Vector2(EDGE_PAD, EDGE_PAD) * 2.0),
 		taken, badges)
+	_cover_anchors()
 	layout_count += 1
+
+
+## GEO-VIS: a plate's anchor that lies on a cluster badge would hide its
+## numeral under the diamond and the stem; the badge marks the place instead
+## (MapMarker.set_cover). Run on a layout or a sites change only.
+func _cover_anchors() -> void:
+	for a: int in _plates:
+		var p := _plates[a] as MapMarker
+		var centre := Vector2.ZERO
+		var radius := 0.0
+		var ring := 0.0
+		for c: Dictionary in _sites.clusters():
+			var n := int(c["count"])
+			if n < 2:
+				continue
+			var r := _sites.badge_radius_now(n) + 1.0 * _sites.symbol_scale()
+			if (c["pos"] as Vector2).distance_to(p.anchor) <= r + MapMarker.DOT_RADIUS + 1.5:
+				centre = c["pos"]
+				radius = r
+				ring = _sites.reach_of(n) + 2.5
+				break
+		p.set_cover(centre, radius, ring)
 
 
 func _relayout() -> void:

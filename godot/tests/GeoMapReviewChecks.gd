@@ -14,6 +14,10 @@ extends RefCounted
 ##    hole, and a point in the hole is not the fjord.
 ## 4. Cluster numerals keep 11 screen pixels on a 1280x720 window with the
 ##    UI at 100 % (they drew at about 7): the badges and their grid grow.
+## 5. GEO-VIS (the captain's integration close): no badge is drawn over
+##    another badge or a single site at 1920x1080 and 1280x720 with the UI at
+##    100 % and 125 %: the grown badges had stacked over each other and the
+##    city names; and no plate's anchor diamond sits on a badge's numeral.
 
 var t: Node = null
 
@@ -25,6 +29,7 @@ func run(runner: Node, map: Control, chart: GeoMapView) -> void:
 	await _stars_follow_the_companys_places(chart)
 	_fjord_holes(chart)
 	await _badge_numerals(chart)
+	await _marks_never_overlap(chart)
 
 
 func _check(ok: bool, label: String) -> void:
@@ -231,3 +236,62 @@ func _badge_numerals(chart: GeoMapView) -> void:
 	await _frames(4)
 	_check(ok and small_grows and chart.site_layer().symbol_scale() == 1.0,
 		"geo map: cluster numerals draw at 11 screen px or more, inside their badges: %s" % ", ".join(rows))
+
+
+## GEO-VIS: the site layer's marks keep apart at every window size and UI
+## scale the review judged: two badges keep their discs, halos and the
+## majors' arcs apart, a single site's icon keeps off a badge's disc (its
+## numeral), and every site is still counted once.
+func _marks_never_overlap(chart: GeoMapView) -> void:
+	var win := t.get_window()
+	var old_size := win.size
+	var old_factor := win.content_scale_factor
+	var rows := []
+	var ok := true
+	var anchor_rows := []
+	var anchors_ok := true
+	var sites := (chart.site_layer().sites().get("x", PackedInt32Array()) as PackedInt32Array).size()
+	for spec: Array in [[Vector2i(1920, 1080), 1.0], [Vector2i(1280, 720), 1.0], [Vector2i(1280, 720), 1.25],
+			[Vector2i(1920, 1080), 1.25]]:
+		win.size = spec[0]
+		win.content_scale_factor = spec[1]
+		await _frames(4)
+		var layer := chart.site_layer()
+		var clusters := layer.clusters()
+		var worst := INF
+		var counted := 0
+		for i in clusters.size():
+			counted += int(clusters[i]["count"])
+			for j in range(i + 1, clusters.size()):
+				var gap := layer.gap_between(int(clusters[i]["count"]), int(clusters[j]["count"]))
+				worst = minf(worst, (clusters[i]["pos"] as Vector2).distance_to(clusters[j]["pos"]) - gap)
+		var badges := clusters.filter(func(c: Dictionary) -> bool: return int(c["count"]) > 1).size()
+		rows.append("%dx%d at %d %%: %d clusters (%d badges), closest %.1f px clear" % [spec[0].x, spec[0].y,
+			int(round(float(spec[1]) * 100.0)), clusters.size(), badges, worst])
+		ok = ok and worst >= 0.0 and counted == sites and badges > 0
+		# The plates' anchors: a diamond is drawn only clear of every badge,
+		# and an anchor on a badge starts its stem at the badge's rim.
+		var on_badges := 0
+		for a: int in chart.plates():
+			var plate := chart.plates()[a] as MapMarker
+			var hit := {}
+			for c: Dictionary in clusters:
+				var r := layer.badge_radius_now(int(c["count"])) + 1.0 * layer.symbol_scale()
+				if int(c["count"]) > 1 and (c["pos"] as Vector2).distance_to(plate.anchor) <= r + MapMarker.DOT_RADIUS + 1.5:
+					hit = {"pos": c["pos"], "r": r}
+					break
+			if hit.is_empty():
+				anchors_ok = anchors_ok and plate.draws_dot()
+				continue
+			on_badges += 1
+			var stem := MapMarker.rim_point(plate.anchor, plate.get_rect().get_center(), hit["pos"], hit["r"])
+			anchors_ok = anchors_ok and not plate.draws_dot() and plate.cover_centre == hit["pos"] \
+				and (stem.distance_to(hit["pos"]) >= hit["r"] - 0.01 or plate.get_rect().has_point(stem))
+		anchor_rows.append("%dx%d at %d %%: %d of 13 anchors on a badge" % [spec[0].x, spec[0].y,
+			int(round(float(spec[1]) * 100.0)), on_badges])
+	win.size = old_size
+	win.content_scale_factor = old_factor
+	await _frames(4)
+	_check(ok and sites > 0, "geo map: no badge draws over another badge or a single site, every site counted once: %s" % ", ".join(rows))
+	_check(anchors_ok and chart.plates().size() == 13,
+		"geo map: no plate's anchor diamond hides a badge's numeral, the stem starts at the badge's rim: %s" % ", ".join(anchor_rows))
