@@ -5673,6 +5673,83 @@ func _test_inbox_lists_what_happened() -> void:
 			and past_head.text.begins_with(tr("UI_NOTIFY_GROUP_HISTORY")),
 		"inbox: %d days later, unreported, it is under Tidligere (%s) and out of the badge" % [LIVE_AGE_DAYS, past_head.text if past_head else "missing"])
 	center.hide_panel()
+	# Cycle 2 follow-up: a live entry says how long its condition has gone on.
+	# The bus keeps one entry for a condition reported at most 3 days apart, so
+	# «siden dag N» is where its current run began (an entry showed its first
+	# day, «Dag 274» on day 540); a warning reported once shows its day; and a
+	# condition that comes back after a gap is a new entry, the older run's
+	# entry history rather than revived by the new run's reports.
+	var day_of := func(message: String) -> String:
+		for node in center.entry_list.get_children():
+			var desc: Label = node.find_child("Desc", true, false)
+			var label: Label = node.find_child("Day", true, false)
+			if desc != null and label != null and desc.text == message:
+				return label.text
+		return ""
+	center.clear_all()
+	var began := int(get_node("/root/GameBridge").CurrentDay)
+	_sim.publish_condition_event("appetite_low", "warning", "", "CI: appetitten faller")
+	_sim.publish_condition_event("sustainability_low", "warning", "", "CI: bærekraft under grensen")
+	_sim.advance_days(1)
+	var goes_on: Dictionary = _sim.publish_condition_event("appetite_low", "warning", "", "CI: appetitten faller fortsatt")
+	center.show_panel()
+	await get_tree().create_timer(0.3).timeout
+	var run_text: String = day_of.call("CI: appetitten faller")
+	var once_text: String = day_of.call("CI: bærekraft under grensen")
+	_check(str(goes_on.get("outcome", "")) == "suppressed" and tr("UI_EVENT_SINCE_DAY") != "UI_EVENT_SINCE_DAY"
+			and run_text == tr("UI_EVENT_SINCE_DAY") % began,
+		"inbox: a condition that went on after its first day reads «%s» (%s)" % [tr("UI_EVENT_SINCE_DAY") % began, run_text])
+	_check(once_text == tr("UI_EVENT_DAY") % began,
+		"inbox: a warning reported once keeps its day «%s» (%s)" % [tr("UI_EVENT_DAY") % began, once_text])
+	center.hide_panel()
+	center.clear_all()
+	var first_run := int(get_node("/root/GameBridge").CurrentDay)
+	_sim.publish_condition_event("oxygen_low", "warning", "", "CI: oksygen faller (første gang)")
+	_sim.advance_days(5)
+	var comes_back: Dictionary = _sim.publish_condition_event("oxygen_low", "warning", "", "CI: oksygen faller igjen")
+	center.show_panel()
+	await get_tree().create_timer(0.3).timeout
+	var seen_now: Dictionary = center._last_seen()
+	# The days that passed delivered other events too: pick the two by their messages.
+	var entry_of := func(message: String) -> Dictionary:
+		for e in center._entries:
+			if str(e.get("description", "")) == message:
+				return e
+		return {}
+	var newer: Dictionary = entry_of.call("CI: oksygen faller igjen")
+	var older: Dictionary = entry_of.call("CI: oksygen faller (første gang)")
+	var newer_live: bool = not newer.is_empty() and center._is_live(newer, seen_now)
+	var older_live: bool = not older.is_empty() and center._is_live(older, seen_now)
+	_check(str(comes_back.get("outcome", "")) == "delivered" and not newer.is_empty() and not older.is_empty() and newer_live and not older_live,
+		"inbox: a condition back after a gap is a new entry and the older run is not revived by it (%s, newer live %s, older live %s)"
+			% [str(comes_back.get("outcome", "")), newer_live, older_live])
+	var older_text: String = day_of.call("CI: oksygen faller (første gang)")
+	_check(older_text == tr("UI_EVENT_DAY") % first_run and center.entry_list.find_child("Group_history", true, false) != null,
+		"inbox: the older run keeps its own day under Tidligere (%s)" % older_text)
+	# The day sits under the title, beside the subject: «siden dag 126» in the
+	# header left «Vaksinasjonsvinduet er åpent» too little room for its longest
+	# word, and the title broke after "Vaksinasjonsvindue".
+	var wide_entry := {
+		"id": "ev-layout", "key": "vaccination||", "title": tr("GAME_EVENT_VACCINE_WINDOW_OPEN"),
+		"description": "CI: layout", "day": 126, "severity": "warning", "icon": "!",
+		"subject": tr("UI_EVENT_SUBJECT_COMPANY"), "unread": true, "event": {},
+	}
+	var wide_node: Control = center._build_entry_node(wide_entry, 99, {"vaccination||": 129})
+	center.entry_list.add_child(wide_node)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var wide_title: Label = wide_node.find_child("Title", true, false)
+	var wide_day: Label = wide_node.find_child("Day", true, false)
+	var title_font: Font = wide_title.get_theme_font("font")
+	var title_size: int = wide_title.get_theme_font_size("font_size")
+	var widest := 0.0
+	for word in wide_title.text.split(" "):
+		widest = maxf(widest, title_font.get_string_size(word, HORIZONTAL_ALIGNMENT_LEFT, -1, title_size).x)
+	_check(wide_day.text == tr("UI_EVENT_SINCE_DAY") % 126 and widest <= wide_title.size.x,
+		"inbox: «%s» beside a long title leaves the title room for its longest word (%d of %d px)"
+			% [wide_day.text, int(widest), int(wide_title.size.x)])
+	wide_node.queue_free()
+	center.hide_panel()
 	# A new game starts with an empty inbox, and keeps its own first events
 	# even when they arrive before GameStarted reaches the inbox.
 	_sim.start_qa_scenario("po3_red_sone", 91)

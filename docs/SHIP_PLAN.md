@@ -139,6 +139,7 @@ Every item names where to start. Take one item, finish it, and verify it.
 |---|---|---|
 | Ship cycles: play, judge, rank, fix | Player judgment, cross-layer fixes | §4, `tools/playtest.sh`, RUN_LOG §8 follow-ups (cycle 1) |
 | ~~Cycle 2: the guide card covers its own target; alarm fatigue in Familiegården~~ | **Done 2026-10-21** (card keeps clear of where targets arrive; inbox splits now / «Tidligere») | RUN_LOG §7 cycle 2 row |
+| Playtest harness: a press that a stray pointer motion turns into `click_missed` | The harness is the evidence behind every ship cycle, so how it counts a miss is a judgment call; `PlaytestHarness.gd` is off limits to the other models | `godot/qa/PlaytestHarness.gd` `_click_control`; `docs/run/evidence/inbox_polish.md` §2: annotate the finding with the motion seen between press and release (retry once if wanted); never move the real pointer |
 | Sim determinism: `BloomEvent.Id = Guid.NewGuid()` | Saves differ run to run; touches save compat and golden traces | `src/LakskongenSim/Environment/BloomEvent.cs`; `FarmTypeMoveTests` proof pattern |
 | Sim week 1 runs NonCompliant (sustainability first assessed on day 7) | Changes every game's week 1: golden re-record plus a diff report | `InDayTickSystems.cs` SustainabilityTickSystem; RUN_LOG §8 (b) |
 | P0-04 High tier p95 23-25 ms at 1440p | Perf diagnosis on a shared machine | `tools/perf_smoke.sh`, PerfHarness; plugin agent `godot-performance-profiler` |
@@ -156,7 +157,7 @@ Every item names where to start. Take one item, finish it, and verify it.
 | F2-22 logistics visuals, F2-24 weather drama and incident poses | M | Spec rows; `godot/scripts/visual/`; presenter only reads engine state |
 | Split files over 800 lines: `LandCampusBuilder.gd` (964), `BuildSiteDialog.gd` (~1,100) | S | Pure refactor; the UI flow suite stays at its exact count |
 | Visual-QA baseline refresh | S | Only after the owner approves the list in RUN_LOG §9 |
-| Inbox polish: a live entry shows «siden dag N» (it shows its first day); the 30× button's first click is swallowed while the drawer is open | S | `godot/scripts/ui/NotificationCenter.gd`, HUD speed buttons; RUN_LOG §8 cycle 2 follow-up |
+| ~~Inbox polish: a live entry shows «siden dag N» (it shows its first day); the 30× button's first click is swallowed while the drawer is open~~ | S | **Done 2026-10-21** on `ui/inbox-polish`: «siden dag N» (`NotificationCenter._day_text`), an older run no longer revived by a newer one of its key, the day beside the subject so a long title keeps its words. The 30× click is the playtest harness, not the drawer (7 of 320 presses missed with the drawer open, 7 of 320 closed): evidence `docs/run/evidence/inbox_polish.md`, RUN_LOG §7 row. The harness part is the open row in the strongest-model table |
 
 Rules that hold for every model:
 - every Godot run is silent (`--audio-driver Dummy`);
