@@ -158,6 +158,10 @@ var sea_sites: Array[Dictionary]:
 var sustainability_score: int:
 	get(): return _state.sustainability_score
 	set(v): _state.sustainability_score = v
+## False until the first weekly assessment (day 7): a 0 before it is no verdict.
+var sustainability_assessed: bool:
+	get(): return _state.sustainability_assessed
+	set(v): _state.sustainability_assessed = v
 var sustainability_level: String:
 	get(): return _state.sustainability_level
 	set(v): _state.sustainability_level = v

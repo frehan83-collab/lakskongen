@@ -141,8 +141,20 @@ func _the_card_shows_with_a_dot_per_step_and_points_at_the_tab() -> void:
 	_check(int(t._sim.tutorial_step_number) == 2 and ui.get_active_tab() == "pens",
 		"first season: a click on the ringed tab completes step 1 (step %d)" % int(t._sim.tutorial_step_number))
 	var pens: Control = ui.panel_of("pens")
-	_check(card.highlight().target() == pens.feed_plan_card() and card.title_label.text == tr("TUTORIAL_FEED_PLAN_TITLE"),
-		"first season: step 2 rings the feeding plan card")
+	# Replaced (stronger; RUN_LOG §7, SHIP_PLAN cycle 1): the ring was on the
+	# whole card, and a new player could not find what to press. It must sit on
+	# one pressable control inside the card: the "Moderat" stop while nothing
+	# differs from the running plan.
+	var plan_card: FeedPlanCard = pens.feed_plan_card()
+	var ringed: Control = card.highlight().target()
+	_check(ringed != null and ringed == plan_card.moderate_stop() and plan_card.is_ancestor_of(ringed)
+			and ringed is Button and not (ringed as Button).disabled and card.title_label.text == tr("TUTORIAL_FEED_PLAN_TITLE"),
+		"first season: step 2 rings a pressable control on the feeding plan card (Moderat), not the whole card")
+	# Cycle 1 finding: with one site, "Fôr alle" applied nothing, toasted
+	# "satt", and the step never completed. It now waits like "Bruk på".
+	var all_btn: Button = plan_card.get_node("%BtnApplyAll")
+	_check(all_btn.disabled and all_btn.tooltip_text == tr("FEEDPLAN_WHY_IN_USE") and all_btn.text == tr("FEEDPLAN_APPLY_ALL_ONE"),
+		"first season: with one site and nothing changed, 'Fôr alle (1 lokalitet)' waits and says why ('%s', '%s')" % [all_btn.text, all_btn.tooltip_text])
 	# Locked tabs say which step opens them.
 	var research_tip: String = (ui._tab_buttons["research"] as Button).tooltip_text
 	_check((ui._tab_buttons["research"] as Button).disabled and research_tip == tr("TUTORIAL_TAB_LOCKED_TIP") % 11,

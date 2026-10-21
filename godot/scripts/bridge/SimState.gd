@@ -93,6 +93,8 @@ var traffic_zones: Array[Dictionary] = []
 ## Read-only: the dictionaries are shared.
 var sea_sites: Array[Dictionary] = []
 var sustainability_score: int = 0
+## False until the first weekly assessment (day 7): a 0 before it is no verdict.
+var sustainability_assessed: bool = false
 var sustainability_level: String = "NonCompliant"
 var zone_count: int = 0
 var site_count: int = 0
@@ -276,6 +278,7 @@ func _refresh_state() -> void:
 	vaccine_window_left  = game_bridge.VaccineWindowDaysLeft
 	night_shift_policy   = game_bridge.NightShiftPolicy
 	sustainability_score = game_bridge.SustainabilityScore
+	sustainability_assessed = game_bridge.SustainabilityAssessed
 	sustainability_level = game_bridge.SustainabilityLevel
 	zone_count           = game_bridge.ZoneCount
 	site_count           = game_bridge.SiteCount
@@ -440,9 +443,10 @@ func _check_alerts() -> void:
 		_raise("solvency:%d" % solvency_level, "critical" if solvency_level >= 2 else "warning",
 			_solvency_message(solvency_level))
 
-	# The score is first computed on the first day's tick: 0 before it is
-	# not a verdict (the start of every game listed "0/100 under kravet").
-	if sustainability_score < 50 and current_day > 0:
+	# The score is first assessed on day 7 (weekly): 0 before it is not a
+	# verdict. The old guard (day > 0) still warned "0/100 under kravet"
+	# through every new game's first week (SHIP_PLAN cycle 1 playtest).
+	if sustainability_score < 50 and sustainability_assessed:
 		_raise("sustainability", "warning", tr("ALERT_SUSTAINABILITY_LOW") % sustainability_score,
 			_ev("sustainability_low"))
 

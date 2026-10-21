@@ -36,10 +36,12 @@ if [[ "$(basename "$DATA_DIR")" == "$USER_DIR_NAME" && -d "$DATA_DIR" ]]; then
     rm -rf "$DATA_DIR"
 fi
 
-printf '[application]\n\nconfig/use_custom_user_dir=true\nconfig/custom_user_dir_name="%s"\n' \
+# Silent: no game audio from a playtest (owner rule, 2026-10-21: "do not play
+# sound when you debug"). Belt and braces: the override and the CLI flag.
+printf '[application]\n\nconfig/use_custom_user_dir=true\nconfig/custom_user_dir_name="%s"\n\n[audio]\n\ndriver/driver="Dummy"\n' \
     "$USER_DIR_NAME" > "$OVR"
 mkdir -p "$OUT"
 
 env GODOT_MCP_TOKEN_PATH="$(mktemp -d)/t" perl -e 'alarm shift; exec @ARGV' 2400 \
-    godot-mono --path "$ROOT/godot" res://qa/scenes/PlaytestSession.tscn -- \
+    godot-mono --audio-driver Dummy --path "$ROOT/godot" res://qa/scenes/PlaytestSession.tscn -- \
     --acts="$ACTS" --out="$OUT" "$@"

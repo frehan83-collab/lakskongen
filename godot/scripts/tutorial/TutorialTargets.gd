@@ -39,7 +39,8 @@ func resolve(target: String) -> Dictionary:
 			var card: FeedPlanCard = pens.feed_plan_card()
 			if card != null and not card.apply_button().disabled:
 				return _at(card.apply_button(), false)
-			return _at(card, false)
+			# A concrete first choice, not the whole card (cycle 1 playtest).
+			return _at(card.moderate_stop() if card != null else null, false)
 		"pens:lice_order":
 			var pens := _open_panel(ui, "pens")
 			if pens == null:

@@ -201,13 +201,18 @@ namespace LakskongenSim.Core
             double biomass     = allCohorts.Sum(c => c.Count * c.MeanWeightKg);
             double avgWeight   = fishCount > 0 ? biomass / fishCount : 0.0;
 
-            // Mortality rate: compare to previous day's fish count
+            // Mortality rate: the fish that DIED today (the mortality ledger's
+            // deaths, which exclude harvests, transfers and sales) over the
+            // fish alive today. The day's drop in fish count reported every
+            // harvest as "100 % mortality" (SHIP_PLAN cycle 1 playtest).
             double mortalityRate = 0.0;
-            if (_snapshots.Count > 0)
+            var ledger = engine.Mortality?.Ledger;
+            if (ledger != null)
             {
-                int prevCount = _snapshots[^1].FishCount;
-                if (prevCount > 0 && fishCount < prevCount)
-                    mortalityRate = (double)(prevCount - fishCount) / prevCount;
+                long deaths = ledger.ForDays(ledger.Day, ledger.Day).Total.Fish;
+                long atRisk = fishCount + deaths;
+                if (deaths > 0 && atRisk > 0)
+                    mortalityRate = (double)deaths / atRisk;
             }
 
             var external = state.ExternalAquacultureSnapshot;

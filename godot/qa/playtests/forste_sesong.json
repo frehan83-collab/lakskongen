@@ -1,0 +1,75 @@
+{
+  "name": "forste_sesong",
+  "_note": "SHIP_PLAN cycle 1: a brand-new player (fresh install) starts the tutorial scenario (player-facing name Familiegården; internal id forste_sesong) and follows the guide card to the end. The judge reads tut_* frames and the timeline's tutorial_step texts as that player.",
+  "acts": [
+    {
+      "do": "wait",
+      "sec": 4
+    },
+    {
+      "do": "frame",
+      "note": "first_screen"
+    },
+    {
+      "do": "click_text",
+      "text": "Nytt spill"
+    },
+    {
+      "do": "wait",
+      "sec": 2
+    },
+    {
+      "do": "frame",
+      "note": "scenario_select"
+    },
+    {
+      "do": "click_text",
+      "text": "Familiegården",
+      "optional": true,
+      "timeout_sec": 5
+    },
+    {
+      "do": "wait",
+      "sec": 1
+    },
+    {
+      "do": "click_text",
+      "text": "Start scenarioet",
+      "timeout_sec": 8
+    },
+    {
+      "do": "wait",
+      "sec": 5
+    },
+    {
+      "do": "frame",
+      "note": "scenario_intro"
+    },
+    {
+      "do": "click_text",
+      "text": "Start sesongen",
+      "timeout_sec": 10
+    },
+    {
+      "do": "wait",
+      "sec": 4
+    },
+    {
+      "do": "frame",
+      "note": "season_started"
+    },
+    {
+      "do": "follow_tutorial",
+      "max_min": 30,
+      "step_timeout_sec": 240
+    },
+    {
+      "do": "wait",
+      "sec": 3
+    },
+    {
+      "do": "frame",
+      "note": "after_tutorial"
+    }
+  ]
+}

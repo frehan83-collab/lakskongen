@@ -258,8 +258,36 @@ public class GameEventBusTests
     }
 
     /// <summary>
-    /// Fish escaping through storm-torn nets is the classic critical event:
-    /// one per escape, about its site, with the event log's text.
+    /// Replaced (stronger; RUN_LOG §7, SHIP_PLAN cycle 1): an escape was
+    /// always critical, so one fish held the clock with a pause card. The
+    /// severity now scales with the fish: exactly at the threshold it is
+    /// critical, one below it a warning, and both keep their site, verb,
+    /// count and the log's text.
+    /// </summary>
+    [Fact]
+    public void Engine_EscapeSeverity_ScalesWithTheFish_AtTheThreshold()
+    {
+        var engine = StockedEngine(3);
+        var site = engine.State.SeaSites[0];
+        foreach (int fish in new[] { 1, SimulationEngine.EscapeCriticalFish - 1, SimulationEngine.EscapeCriticalFish, 5_000 })
+        {
+            // A clean bus per size: within its window the bus only lets an
+            // escalation of the same key through (the dedupe rule).
+            engine.GameEvents.Clear();
+            engine.PublishEscapeEvent(site, fish, $"{fish} fisk rømte");
+            var ev = Assert.Single(engine.GameEvents.DrainDelivered(), e => e.Type == GameEventType.Escape);
+            var want = fish >= SimulationEngine.EscapeCriticalFish ? GameEventSeverity.Critical : GameEventSeverity.Warning;
+            Assert.Equal(want, ev.Severity);
+            Assert.Equal(site.Id, ev.SiteId);
+            Assert.Equal(GameEventCatalog.VerbInspectNets, ev.CounterVerb);
+            Assert.Equal(fish, (int)ev.Value);
+        }
+    }
+
+    /// <summary>
+    /// Fish escaping through storm-torn nets reach the bus: one per escape,
+    /// about its site, with the event log's text, at the severity its size
+    /// gives it.
     /// </summary>
     [Fact]
     public void Engine_ReportsAnEscapeAsCritical_ForItsSite()
@@ -277,7 +305,8 @@ public class GameEventBusTests
             }
             if (escapes.Count == 0) continue;
             var ev = escapes[0];
-            Assert.Equal(GameEventSeverity.Critical, ev.Severity);
+            Assert.Equal(ev.Value >= SimulationEngine.EscapeCriticalFish ? GameEventSeverity.Critical : GameEventSeverity.Warning,
+                ev.Severity);
             Assert.Equal("site-1", ev.SiteId);
             Assert.Equal(GameEventCatalog.VerbInspectNets, ev.CounterVerb);
             Assert.True(ev.Value > 0, "the event carries the number of fish");

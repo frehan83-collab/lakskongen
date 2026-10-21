@@ -176,6 +176,8 @@ func _run_act(act: Dictionary, idx: int) -> void:
 			await _wait_text(act)
 		"wait_dialog":
 			await _wait_dialog(act)
+		"follow_tutorial":
+			await _follow_tutorial(act)
 		_:
 			_finding("harness_error", "unknown act '%s'" % String(act.get("do", "")), {"i": idx})
 
@@ -238,7 +240,7 @@ func _click_control(c: Control, label: String) -> void:
 	# the content stretch; control rects are in viewport units. The first real
 	# session (1920x1080 base in a 1280x720 window) clicked 1.5x too far down
 	# and hit the wrong menu button. Map viewport -> window first.
-	var center := get_viewport().get_final_transform() * c.get_global_rect().get_center()
+	var center := _window_point(c)
 	# Prove the press landed: a button that does not emit `pressed` was
 	# covered, moved, or the mapping is wrong — a finding, never silent.
 	var landed := [false]
@@ -272,6 +274,23 @@ func _click_control(c: Control, label: String) -> void:
 	await _capture("click_" + _safe(label), true)
 
 
+## Where `c`'s centre is in the OS window's pixels. A control inside an
+## embedded sub-window (an AcceptDialog, a ConfirmationDialog) has its rect in
+## that window's own space: offset it by the window's position in the root
+## viewport first (cycle 1: "Start forskning?"'s OK was clicked off by the
+## dialog's position and the step never completed).
+func _window_point(c: Control) -> Vector2:
+	var p := c.get_global_rect().get_center()
+	var w: Window = c.get_window()
+	while w != null and w != get_tree().root:
+		var host := w.get_parent()
+		if not w.is_embedded() or host == null:
+			break
+		p += Vector2(w.position)
+		w = (host as Node).get_viewport() as Window if host is Node else null
+	return get_tree().root.get_final_transform() * p
+
+
 func _wait_text(act: Dictionary) -> void:
 	var wanted := String(act.get("text", ""))
 	var deadline := Time.get_ticks_msec() \
@@ -302,6 +321,210 @@ func _wait_dialog(act: Dictionary) -> void:
 			await _capture("nodialog", true)
 			return
 		await _sleep(0.3)
+
+
+# --- the tutorial, played like a new player ---------------------------------
+
+## Follow the first-season guide the way a new player does: read the card,
+## press what the ring points at (or "Vis meg" when nothing is pointed at),
+## and on a "wait" step run the clock fast until the step moves on. Every step
+## is logged with the card's texts and a pinned frame; a step a player could
+## not finish from the guidance alone is a finding ("tutorial_stuck"), and so
+## is every fallback the harness had to use. Duck-typed on the card (a node
+## with a `status` dict and a `_highlight` ring) so a card refactor degrades
+## to findings, never to a crash.
+func _follow_tutorial(act: Dictionary) -> void:
+	var step_cap_ms := int(float(act.get("step_timeout_sec", 240.0)) * 1000.0)
+	var fast_text := String(act.get("fast_speed_text", "30×"))
+	var total_deadline := Time.get_ticks_msec() + int(float(act.get("max_min", 30.0)) * 60_000.0)
+	var card: Node = null
+	for i in 40:
+		card = _find_tutorial_card()
+		if card != null:
+			break
+		await _sleep(0.25)
+	if card == null:
+		_finding("tutorial_missing", "no tutorial card appeared", {})
+		await _capture("tutorial_missing", true)
+		return
+	var last_step := -1
+	var step_started := 0
+	var clicks_this_step := 0
+	var last_target: Control = null
+	var last_speed_check := 0
+	while not _finished and Time.get_ticks_msec() < total_deadline:
+		if not is_instance_valid(card) or not card.is_inside_tree():
+			card = _find_tutorial_card()
+			if card == null:
+				_finding("tutorial_missing", "the tutorial card vanished mid-season", {"step": last_step})
+				return
+		var st: Dictionary = card.get("status") if card.get("status") is Dictionary else {}
+		if bool(st.get("earned", false)):
+			_log("tutorial_done", {"steps": int(st.get("total", 0))})
+			await _capture("tutorial_done", true)
+			return
+		var step := int(st.get("step", 0))
+		if step != last_step:
+			last_step = step
+			step_started = Time.get_ticks_msec()
+			clicks_this_step = 0
+			last_target = null
+			_log("tutorial_step", {
+				"step": step, "total": int(st.get("total", 0)), "kind": str(st.get("kind", "")),
+				"title": _label_text(card, "title_label"), "text": _label_text(card, "description_label"),
+				"do": _label_text(card, "hint_label"), "target": str(st.get("target", ""))})
+			await _sleep(0.8)            # a player reads before acting
+			await _capture("tut_%02d_%s" % [step, _safe(str(st.get("id", st.get("target", ""))))], true)
+			if str(st.get("kind", "")) == "wait":
+				var fast := _find_clickable_by_text(fast_text)
+				if fast != null:
+					await _click_control(fast, fast_text)
+		# A modal dialog blocks everything else: a player reads it and presses
+		# its confirm (cycle 1: "Start forskning?" held step 11 for 4 minutes).
+		var dlg := _open_accept_dialog()
+		if dlg != null:
+			_log("dialog", {"step": step, "title": dlg.title, "text": dlg.dialog_text.left(240),
+					"ok": dlg.get_ok_button().text})
+			await _capture("dialog_s%02d" % step, true)
+			await _click_control(dlg.get_ok_button(), "dialog " + dlg.get_ok_button().text)
+			await _sleep(0.6)
+			continue
+		# A player reads an event card and presses «Fortsett»; the game stays
+		# paused under it otherwise (cycle 1: step 6 sat under a bloom card).
+		var cont := _find_button_with_word("Fortsett")
+		if cont != null and not cont.disabled:
+			_log("event_card", {"step": step, "texts": _visible_texts_near(cont)})
+			await _capture("event_s%02d" % step, true)
+			await _click_control(cont, "Fortsett")
+			continue
+		if str(st.get("kind", "")) == "wait" and Time.get_ticks_msec() - last_speed_check > 3000:
+			last_speed_check = Time.get_ticks_msec()
+			var fast := _find_clickable_by_text(fast_text)
+			# The first click on a speed button can be swallowed closing an open
+			# drawer or popup; keep pressing until the toggle shows it took.
+			if fast is Button and (fast as Button).toggle_mode and not (fast as Button).button_pressed:
+				await _click_control(fast, fast_text)
+		if Time.get_ticks_msec() - step_started > step_cap_ms:
+			_finding("tutorial_stuck", "step %d '%s' did not finish within %d s" % [
+					step, _label_text(card, "title_label"), step_cap_ms / 1000],
+					{"do": _label_text(card, "hint_label"), "clicks": clicks_this_step})
+			await _capture("tut_%02d_stuck" % step, true)
+			return
+		if str(st.get("kind", "")) == "do":
+			var target := _tutorial_target(card)
+			if target == null:
+				var show_me: Variant = card.get("show_me_button")
+				if show_me is BaseButton and (show_me as BaseButton).is_visible_in_tree() and clicks_this_step < 8:
+					clicks_this_step += 1
+					_finding("tutorial_fallback", "step %d: nothing pointed at; pressed 'Vis meg'" % step, {})
+					await _click_control(show_me, "Vis meg")
+			elif clicks_this_step < 12:
+				if target == last_target and clicks_this_step >= 3:
+					# The ring keeps pointing at the same control: the step wants
+					# more than a press (a choice inside a dialog). Try the
+					# dialog's confirm the way a player would, and say so.
+					if await _press_dialog_confirm(step):
+						clicks_this_step += 1
+						await _sleep(1.0)
+						continue
+				last_target = target
+				clicks_this_step += 1
+				await _click_control(target, "tut%02d_target" % step)
+		await _sleep(0.6)
+	if Time.get_ticks_msec() >= total_deadline:
+		_finding("tutorial_stuck", "the season did not finish within the session budget", {"step": last_step})
+
+
+func _find_tutorial_card() -> Node:
+	var stack: Array[Node] = [get_tree().root]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		for c in n.get_children(true):
+			stack.push_back(c)
+		if n is Control and (n as Control).is_visible_in_tree() \
+				and n.get("status") is Dictionary and n.get("_highlight") != null:
+			return n
+	return null
+
+
+func _tutorial_target(card: Node) -> Control:
+	var hl: Variant = card.get("_highlight")
+	if hl == null or not is_instance_valid(hl) or not hl.has_method("target"):
+		return null
+	if hl.has_method("is_pointing") and not hl.is_pointing():
+		return null
+	var t: Variant = hl.target()
+	if t is Control and is_instance_valid(t) and (t as Control).is_visible_in_tree():
+		return t
+	return null
+
+
+## Press the open dialog's confirm-like button (a player's guess when the
+## guide points at nothing more specific). Returns whether one was pressed.
+func _press_dialog_confirm(step: int) -> bool:
+	for word in ["Bekreft", "Lagre", "Bestill", "Start", "Bruk", "OK", "Kjøp", "Bygg"]:
+		var b := _find_button_with_word(word)
+		if b != null and not b.disabled:
+			_finding("tutorial_fallback", "step %d: the ring stayed on one control; pressed '%s'" % [step, word], {})
+			await _click_control(b, word)
+			return true
+	return false
+
+
+## A visible button whose caption contains `word` as a whole word (cycle 1:
+## a substring match took "ok" from "lokaliteter" and pressed the wrong button).
+func _find_button_with_word(word: String) -> BaseButton:
+	var want := word.to_lower()
+	var stack: Array[Node] = [get_tree().root]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		if n == self:
+			continue
+		for c in n.get_children(true):
+			stack.push_back(c)
+		if n is Button and (n as Control).is_visible_in_tree():
+			var words := RegEx.create_from_string("[^\\p{L}\\p{N}]+").sub((n as Button).text.to_lower(), " ", true).split(" ", false)
+			if want in words:
+				return n
+	return null
+
+
+## The visible AcceptDialog/ConfirmationDialog on top, or null.
+func _open_accept_dialog() -> AcceptDialog:
+	var found: AcceptDialog = null
+	var stack: Array[Node] = [get_tree().root]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		for c in n.get_children(true):
+			stack.push_back(c)
+		if n is AcceptDialog and (n as Window).visible:
+			found = n
+	return found
+
+
+## The texts of the panel around `c` (its nearest PanelContainer ancestor):
+## what the player read on an event card before pressing it.
+func _visible_texts_near(c: Control) -> PackedStringArray:
+	var out := PackedStringArray()
+	var p: Node = c.get_parent()
+	while p != null and not (p is PanelContainer):
+		p = p.get_parent()
+	if p == null:
+		return out
+	for n in p.find_children("*", "Label", true, false):
+		var l := n as Label
+		if l.is_visible_in_tree() and l.text.strip_edges() != "":
+			out.append(l.text.strip_edges().left(160))
+	return out
+
+
+func _label_text(card: Node, prop: String) -> String:
+	var l: Variant = card.get(prop)
+	if l is Label:
+		return (l as Label).text
+	if l is RichTextLabel:
+		return (l as RichTextLabel).get_parsed_text()
+	return ""
 
 
 # --- discovery (never by node path: survives UI refactors) ------------------
