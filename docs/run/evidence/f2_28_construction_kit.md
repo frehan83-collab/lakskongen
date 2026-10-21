@@ -18,6 +18,8 @@ is the palette rule (saturation is reserved for equipment, so the temporary
 yellow of a building site is spec §5.3's #E6BE2E), and the frames are set
 against that.
 
+*Update 2026-10-21: the kit is drawn in the game since, by `ConstructionKitVisual` (`construction_kit_presenter.md`), and the scaffold ring's LOD1 was thickened there (outer Ø30.1, still 128 triangles). This record stays as the merge's: its numbers and "not drawn yet" are F2-28's own.*
+
 ## What was built
 
 | Piece | Where |

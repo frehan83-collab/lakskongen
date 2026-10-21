@@ -190,10 +190,11 @@ func _ready() -> void:
 	teaser = TeaserDirector.new()
 	teaser.manager = self
 	add_child(teaser)
-	# The land kit loads in the background, so the first campus built (a
-	# player's build, a loaded save) does not stall a frame reading it.
-	# A glb whose mesh the kit already holds is never loaded again.
-	for path: String in LandCampusBuilder.kit_paths():
+	# The land kit (and the construction kit's props, F2-28) loads in the
+	# background, so the first campus built (a player's build, a loaded save)
+	# does not stall a frame reading it. A glb whose mesh the kit already holds
+	# is never loaded again.
+	for path: String in LandCampusBuilder.kit_paths() + ConstructionKitVisual.paths():
 		if not LandCampusBuilder.has_kit_mesh(path) and not ResourceLoader.has_cached(path) \
 				and ResourceLoader.load_threaded_get_status(path) == ResourceLoader.THREAD_LOAD_INVALID_RESOURCE:
 			ResourceLoader.load_threaded_request(path)

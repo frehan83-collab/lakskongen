@@ -59,6 +59,7 @@ PRESENTER = [
     GODOT / "scripts" / "visual" / "LandCampusBuilder.gd",
     GODOT / "scripts" / "visual" / "OffshoreUnitVisual.gd",
     GODOT / "scripts" / "ui" / "facilities" / "FacilityWorldCard.gd",
+    GODOT / "scripts" / "visual" / "ConstructionKitVisual.gd",  # F2-28's kit on a campus
 ]
 QA_VERBS = ["QaPlaceFarmTypeSet", "QaStartLandBuild", "QaExpandLandSite", "QaStageConstruction", "QaContractOffshore"]
 

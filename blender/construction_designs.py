@@ -254,6 +254,12 @@ def tower_crane(b, lod):
 R_STD = 14.70          # centre line of the outer standards
 R_IN, R_OUT = 14.48, 14.75   # the working platform: 0.27 m, clear of the plinth (R 14.3)
 SCAFFOLD_H = 13.0
+# LOD1 is drawn from 350 m out, where a pixel is a quarter of a metre: its
+# members are thickened (same triangles) so the cage still reads against the
+# tank wall: standards 0.5 m wide, a 0.6 m top band, platforms 0.3 m wider.
+LOD1_STANDARD_W = 0.5
+LOD1_RAIL_H = 0.6
+LOD1_BOARD_OUT = 0.3
 
 
 def _vribbon(b, part, strip, r, theta, z0, z1, width):
@@ -279,9 +285,10 @@ def scaffold_ring(b, lod):
         if lod == 0:
             beam(b, "Standards", "steel", polar(R_STD, th, 0.0), polar(R_STD, th, SCAFFOLD_H), 0.10, sides=4)
         else:
-            _vribbon(b, "Standards", "steel", R_STD, th, 0.0, SCAFFOLD_H, 0.12)
+            _vribbon(b, "Standards", "steel", R_STD, th, 0.0, SCAFFOLD_H, LOD1_STANDARD_W)
     for z in lifts:
-        ring_deck(b, "Boards", "grating", R_IN, R_OUT, z, 0.04, n, outer=False, under=False)
+        ring_deck(b, "Boards", "grating", R_IN, R_OUT + (LOD1_BOARD_OUT if lod == 1 else 0.0), z, 0.04, n,
+                  outer=False, under=False)
     if lod == 0:
         for z in lifts:  # a guard rail 1 m above every platform, the top one at 13 m
             ring_band(b, "Rails", "steel", R_STD, z + 0.9, z + 1.0, n, both=True)
@@ -300,7 +307,7 @@ def scaffold_ring(b, lod):
             x, y = polar(R_STD - 0.12, th, 0.0)[:2]
             rib(b, "Ladder", "steel", (x - 0.25, y, z - 0.6), (x + 0.25, y, z - 0.6), 0.05)
     else:
-        ring_band(b, "Rails", "steel", R_STD, SCAFFOLD_H - 0.1, SCAFFOLD_H, n, both=True)
+        ring_band(b, "Rails", "steel", R_STD, SCAFFOLD_H - LOD1_RAIL_H, SCAFFOLD_H, n, both=True)
 
 
 # --------------------------------------------------------------------------
