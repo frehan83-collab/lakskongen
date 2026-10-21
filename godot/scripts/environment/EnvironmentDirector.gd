@@ -376,6 +376,9 @@ var caustic_clock_staged := -1.0
 ## own above the surface, REALTIME under it; switches counted for the tests.
 var sky_mode_switches := 0
 var _sky_mode_above := -1
+## Staging (the REALTIME sky's cost, an in-run A/B): the mode under the
+## surface (negative: REALTIME, as the game runs it).
+var sky_mode_staged := -1
 ## The ground (G2-02): fresh snow and wet ground, eased toward the weather.
 var _fresh_snow := 0.0
 var _wetness := 0.0
@@ -617,6 +620,13 @@ func set_underwater_water(visibility_m: float, chlorophyll_ug_l: float) -> void:
 ## not depend on how long the run has played.
 func stage_cloud_drift(offset_km: Vector2) -> void:
 	_cloud_offset = offset_km
+
+
+## Staging (wave4b int: the REALTIME sky's cost against the incremental one,
+## in one run): the sky's mode under the surface; a negative value gives the
+## game's REALTIME back.
+func stage_sky_mode(mode: int) -> void:
+	sky_mode_staged = mode
 
 
 ## Staging (the harness's caustics twin, G3-04): hold the caustics off (or
@@ -989,7 +999,8 @@ func _apply_sky_mode(underwater: bool, c: Dictionary) -> void:
 		return
 	if _sky_mode_above < 0:
 		_sky_mode_above = env.sky.process_mode
-	var want: int = Sky.PROCESS_MODE_REALTIME if underwater else _sky_mode_above
+	var under_mode := Sky.PROCESS_MODE_REALTIME if sky_mode_staged < 0 else sky_mode_staged
+	var want: int = under_mode if underwater else _sky_mode_above
 	if env.sky.process_mode != want:
 		env.sky.process_mode = want
 		sky_mode_switches += 1

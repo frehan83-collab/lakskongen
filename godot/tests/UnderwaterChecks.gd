@@ -56,6 +56,7 @@ func run(tests: Node) -> void:
 	await _check_no_dive_over_land(env, pens, site_id)
 	await _check_framing_leaves_the_water(env, pens, site_id)
 	await _check_offshore_water(env, scene)
+	_check_snow_fill(env)
 	_bloom(site_id, 0.0)
 	scene.queue_free()
 	await t.get_tree().process_frame
@@ -497,7 +498,8 @@ func _check_water_sky(env: FjordEnvironment, pens: FishPenManager, site_id: Stri
 	var side_fn: bool = not fn.is_empty() and side.get_shader_parameter("underside_horizontal") == fn["horizontal"] \
 		and side.get_shader_parameter("underside_vertical") == fn["vertical"] and side.get_shader_parameter("underside_sun_slope") == fn["sun_slope"] \
 		and side.get_shader_parameter("underside_glow_dir") == sky.get_shader_parameter("uw_sun_dir")
-	var fog_fn: bool = is_equal_approx(float(side.get_shader_parameter("underside_fog")), world_env.fog_density) \
+	var side_fog: Variant = side.get_shader_parameter("underside_fog")
+	var fog_fn: bool = side_fog != null and is_equal_approx(float(side_fog), world_env.fog_density) \
 		and world_env.fog_aerial_perspective == 1.0 and world_env.fog_sky_affect == 0.0
 	var floor := _steepened_floor(fn, sky.get_shader_parameter("uw_sun_dir"))
 	var same := sky_fn and side_fn and fog_fn
@@ -646,9 +648,14 @@ func _check_offshore_water(env: FjordEnvironment, scene: Node) -> void:
 	var w := view.water_now
 	var water := director.water_material()
 	var side := director.water_grid.underside_material
-	var copied := director.water_grid.is_underside()
-	for key in EnvironmentDirector.UNDERSIDE_COPIED:
-		copied = copied and side.get_shader_parameter(key) == water.get_shader_parameter(key)
+	# Every uniform the two shaders share, from the shaders themselves (not
+	# the director's list of what it copies: the review's mutant emptied it).
+	var shared := shared_uniforms(water.shader, side.shader)
+	var differ: Array[String] = []
+	for key in shared:
+		if side.get_shader_parameter(key) != water.get_shader_parameter(key):
+			differ.append(key)
+	var copied := director.water_grid.is_underside() and shared.size() >= 14 and differ.is_empty()
 	var swell := float(water.get_shader_parameter("swell_peak"))
 	cam.set_zoom_level(FjordCamera.ZoomLevel.FARM)
 	await t._settle_camera(cam)
@@ -656,4 +663,29 @@ func _check_offshore_water(env: FjordEnvironment, scene: Node) -> void:
 		and is_equal_approx(float(w["visibility_m"]), float(row.get("water_visibility_m", -1.0))),
 		"underwater: at an offshore unit the view takes the unit's water from the sim (%s: %.2f m)" % [String(w["site_id"]), float(w["visibility_m"])])
 	t._check(copied and swell > 0.0,
-		"underwater: under the open sea's swell (peak %.2f m) the surface from below carries every wave uniform the water does" % swell)
+		"underwater: under the open sea's swell (peak %.2f m) the surface from below carries every uniform it shares with the water (%d; differ: %s)" % [
+			swell, shared.size(), ", ".join(differ)])
+
+
+## The uniforms two shaders both declare (names), samplers included.
+static func shared_uniforms(a: Shader, b: Shader) -> Array[String]:
+	var names := {}
+	for u: Dictionary in a.get_shader_uniform_list():
+		names[String(u["name"])] = true
+	var out: Array[String] = []
+	for u: Dictionary in b.get_shader_uniform_list():
+		if names.has(String(u["name"])):
+			out.append(String(u["name"]))
+	return out
+
+
+
+## Found by the captain's measurement: a dive fills the snow's box at once
+## with its preprocess, which at 30 simulation steps a second held the
+## crossing's frame 100 ms; at UnderwaterView.SNOW_FIXED_FPS, interpolated,
+## the whole lifetime is at most 120 steps (35 ms measured).
+func _check_snow_fill(env: FjordEnvironment) -> void:
+	var snow := env.underwater_view.snow
+	var steps := snow.preprocess * float(snow.fixed_fps)
+	t._check(snow.interpolate and steps <= 120.0 and snow.preprocess >= snow.lifetime,
+		"underwater: a dive fills the snow's box at once in %.0f simulation steps (interpolated)" % steps)

@@ -44,9 +44,11 @@ const FALLBACK_VISIBILITY_M := 6.0
 const WATER_F0 := 0.02
 ## The water's diffuse attenuation per metre (water_shader absorption) and
 ## what a bloom adds per unit of severity: the algae's pigments take the
-## blue first and some red, the cells' scattering spreads every colour, so
-## bloom water turns a murky yellow-green (olive), not pure green (the
-## water shader's surface tint from above is its own, stronger look).
+## blue first and some red, the cells' scattering spreads every colour. Seen
+## from inside the pen, bloom water is a deep, dark green (11b: mean sRGB
+## (17, 81, 31), hue 133 degrees): the water over the camera has already taken
+## the red (0.40 /m), which no bloom gives back (wave4b int review: "olive"
+## here was the bloom's look from above, the water shader's own surface tint).
 const ABSORPTION := Vector3(0.40, 0.09, 0.14)
 const BLOOM_ABSORPTION := Vector3(0.16, 0.06, 0.30)
 ## Chlorophyll a (ug/L) of a bloom at full severity

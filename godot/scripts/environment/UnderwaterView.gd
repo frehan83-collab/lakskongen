@@ -89,6 +89,11 @@ const SNOW_LIFETIME_S := 12.0
 const SNOW_SIZE_M := 0.03
 const SNOW_SHARE := 0.16
 const SNOW_CLEAR_RATIO := 0.55
+## The snow is simulated at this rate and drawn interpolated (it sinks a few
+## millimetres a step): a dive fills the box at once with the snow's
+## preprocess (its lifetime), which at the default 30 steps a second cost
+## the crossing's frame 100 ms (wave4b int, measured: 35 ms at 10).
+const SNOW_FIXED_FPS := 10
 const SHAFT_SHADER := preload("res://shaders/underwater/light_shaft.gdshader")
 const SNOW_SHADER := preload("res://shaders/underwater/marine_snow.gdshader")
 
@@ -317,14 +322,20 @@ func _update_lens(under: bool) -> void:
 	mat.set_shader_parameter("veil_color", _water_color)
 
 
-## The water's colour for the veil: the fog the director composed, while it
-## composes the water (above the surface it keeps the last).
+## The water's colour for the veil, as the screen shows it: the fog's colour
+## at the horizontal (the sky's water light) at the eye's exposure, encoded
+## (the lens is drawn after the tonemap, which is near linear this dark), while
+## the director composes the water (above the surface it keeps the last).
 func _track_water_color() -> void:
 	if director == null:
 		return
 	var composed := director.get_composed()
-	if not (composed.get("uw", {}) as Dictionary).is_empty():
-		_water_color = composed.get("fog_color", _water_color)
+	var uw: Dictionary = composed.get("uw", {})
+	if uw.is_empty():
+		return
+	var sky: Dictionary = uw.get("sky", {})
+	var h: Vector3 = sky.get("horizontal", uw.get("horizontal", Vector3.ZERO)) * float(composed.get("exposure", 1.0))
+	_water_color = Color(h.x, h.y, h.z).linear_to_srgb()
 
 
 ## The bird net of the pen the dive goes into (see BIRD_NET_FADE_M), by the
@@ -507,6 +518,8 @@ func _make_snow() -> GPUParticles3D:
 	node.amount = SNOW_AMOUNT
 	node.lifetime = SNOW_LIFETIME_S
 	node.preprocess = SNOW_LIFETIME_S
+	node.fixed_fps = SNOW_FIXED_FPS
+	node.interpolate = true
 	node.local_coords = false
 	node.process_material = process
 	node.draw_pass_1 = quad

@@ -500,7 +500,9 @@ func _apply_variant(v: Dictionary) -> void:
 ## prefix: "Shoal", "FishSchool", "Net"... to split a node's cost by part), and
 ## "eachgeom.<name glob>/<property>=value" (that property on every
 ## GeometryInstance3D whose name matches, e.g. the trees' far LOD's
-## "eachgeom.Spruce_*_LOD1/visibility_range_end=4000").
+## "eachgeom.Spruce_*_LOD1/visibility_range_end=4000"), and
+## "director.<property>" (an EnvironmentDirector staging property, e.g.
+## "director.sky_mode_staged=2": the sky's mode under the surface).
 ## They are set right before every draw, after the director composed the
 ## frame, so they win.
 var _raw := {}
@@ -644,6 +646,10 @@ func _raw_target(key: String) -> Array:
 		"probe":
 			var probe := _env.get_node_or_null("ReflectionProbe")
 			return [probe, prop, false] if probe else []
+		"director":
+			# A director staging property (wave4b int: "director.sky_mode_staged=2",
+			# the sky's incremental mode under the surface against REALTIME).
+			return [_director, prop, false] if _director else []
 		"mirrorenv":
 			# The planar mirror's environment (G2-03).
 			var mirror := _env.get_node_or_null("PlanarReflection")
