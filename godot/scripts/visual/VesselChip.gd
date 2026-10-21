@@ -137,9 +137,11 @@ func get_accent() -> Color:
 func get_shape() -> Shape:
 	return _shape
 
-## The pill's size on screen, in pixels.
+## The pill's size on screen, in pixels (zero until set_chip gave it text:
+## F2-21's sea chip is made hidden and processes before its first text).
 func get_size_px() -> Vector2:
-	return _quad.get_instance_shader_parameter("size_px")
+	var size: Variant = _quad.get_instance_shader_parameter("size_px")
+	return size if size is Vector2 else Vector2.ZERO
 
 func _process(_delta: float) -> void:
 	var director := get_tree().get_first_node_in_group(RenderQuality.DIRECTOR_GROUP) as EnvironmentDirector

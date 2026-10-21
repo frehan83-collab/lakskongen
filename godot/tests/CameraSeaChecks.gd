@@ -321,6 +321,13 @@ func _chip(cam: FjordCamera, manager: FarmFacilityVisualManager, env: Node, off_
 	if unit == null:
 		_check(false, "F2-21: the OF1 unit is drawn for its chip")
 		return
+	# A chip made before its first text (the sea chip is made hidden and waits
+	# for its unit's first forecast) reads size zero: gfx-polish-1's slide that
+	# keeps a chip on screen reads it every frame (the wave4b merge's SCRIPT
+	# ERROR, VesselChip.get_size_px).
+	var blank := VesselChip.new()
+	_check(blank.get_size_px() == Vector2.ZERO, "F2-21: a chip with no text yet reads size zero for the on-screen slide (%s)" % str(blank.get_size_px()))
+	blank.free()
 	var forecast: Dictionary = sim.get_sea_state_forecast(off_id)
 	unit.set_sea(forecast)
 	cam.focus_target(off_id, 0.0)
