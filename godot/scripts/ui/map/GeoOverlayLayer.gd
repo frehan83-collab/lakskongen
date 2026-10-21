@@ -9,8 +9,10 @@ extends Control
 ##   procedural repeating hatch), or as an outline when a fjord does not
 ##   triangulate at this scale, so no engine error is ever logged;
 ## - the candidates: the 156 open-pen sites as one salmon star per area
-##   (12 each, at the area's best-ranked site) and the 33 offshore sites as
-##   yellow hexagons, the one hav_1 is bound to ringed.
+##   (12 each, at the area's best-ranked site the company has not built on,
+##   from track B's get_sea_candidates; no star where it farms all twelve)
+##   and the 33 offshore sites as yellow hexagons, the one hav_1 is bound to
+##   ringed.
 ##
 ## Two instances share the code: part "areas" draws the fjords and the
 ## offshore areas under the site icons, part "candidates" the stars and the
@@ -51,6 +53,7 @@ var _fjords_local: Array = []
 var _stars: Array = []
 var _hexes: Array = []
 var _offshore_rows: Array = []
+var _open_pens: Array = []
 
 
 func _ready() -> void:
@@ -61,6 +64,12 @@ func _ready() -> void:
 ## The offshore candidates as GeoBridgeAdapter.offshore_candidates returns them.
 func set_offshore_candidates(rows: Array) -> void:
 	_offshore_rows = rows
+	_rebuild()
+
+
+## The open-pen candidates as GeoBridgeAdapter.open_pen_candidates returns them.
+func set_open_pens(rows: Array) -> void:
+	_open_pens = rows
 	_rebuild()
 
 
@@ -85,7 +94,8 @@ func set_layer(layer: String, on: bool) -> void:
 	queue_redraw()
 
 
-## One star per area: [{po, pos, count, best: candidate dict}].
+## One star per area with a free place: [{po, pos, count, held (the
+## company's sites on its places), best: the best-ranked free candidate}].
 func star_groups() -> Array:
 	return _stars
 
@@ -108,8 +118,8 @@ func item_at(p: Vector2) -> Dictionary:
 			var d := (s["pos"] as Vector2).distance_to(p)
 			if d <= STAR_HIT_PX and d <= best_d:
 				best_d = d
-				best = {"kind": "candidates", "po": s["po"], "count": s["count"], "best": s["best"], "pos": s["pos"],
-					"distance": d}
+				best = {"kind": "candidates", "po": s["po"], "count": s["count"], "held": s["held"], "best": s["best"],
+					"pos": s["pos"], "distance": d}
 		for h: Dictionary in _hexes:
 			var d := (h["pos"] as Vector2).distance_to(p)
 			if d <= HEX_HIT_PX and d <= best_d:
@@ -140,20 +150,21 @@ func _rebuild() -> void:
 	if part != "candidates":
 		queue_redraw()
 		return
-	var best_by_po := {}
-	var count_by_po := {}
-	for s: Dictionary in GeoData.candidates():
-		if str(s.get("type", "")) != "open_pen":
-			continue
-		var po := int(s["po"])
-		count_by_po[po] = int(count_by_po.get(po, 0)) + 1
-		if not best_by_po.has(po) or int(s["rank"]) < int(best_by_po[po]["rank"]):
-			best_by_po[po] = s
-	var pos_keys := best_by_po.keys()
+	var rows_by_po := {}
+	for row: Dictionary in _open_pens:
+		var po := int(row.get("po", 0))
+		if not rows_by_po.has(po):
+			rows_by_po[po] = []
+		(rows_by_po[po] as Array).append(row)
+	var pos_keys := rows_by_po.keys()
 	pos_keys.sort()
 	for po: int in pos_keys:
-		var best: Dictionary = best_by_po[po]
-		_stars.append({"po": po, "count": count_by_po[po], "best": best,
+		var rows: Array = rows_by_po[po]
+		var best := _best_free(rows)
+		if best.is_empty():
+			continue  # every place holds a farm of the company's: nothing to offer
+		var held := rows.filter(func(r: Dictionary) -> bool: return _held(r)).size()
+		_stars.append({"po": po, "count": rows.size(), "held": held, "best": best,
 			"pos": _local_of(float(best["x"]), float(best["y"]))})
 	_hexes.clear()
 	var ringed: Array = []
@@ -164,6 +175,19 @@ func _rebuild() -> void:
 	# The ringed one last: drawn above its neighbours, and first to answer.
 	_hexes.append_array(ringed)
 	queue_redraw()
+
+
+static func _held(row: Dictionary) -> bool:
+	return str(row.get("taken_by_site_id", "")) != ""
+
+
+## The best-ranked candidate the company has not built on, {} for none.
+static func _best_free(rows: Array) -> Dictionary:
+	var best: Dictionary = {}
+	for row: Dictionary in rows:
+		if not _held(row) and (best.is_empty() or int(row["rank"]) < int(best["rank"])):
+			best = row
+	return best
 
 
 func _local_of(x: float, y: float) -> Vector2:

@@ -81,6 +81,8 @@ var _selected_area := 0
 var _sites_signature := ""
 var _player_rows: Array = []
 var _offshore_rows: Array = []
+## Which open-pen candidates the company holds (the stars move off them).
+var _open_pens_key := ""
 var _laid_out_for := Vector2(-1.0, -1.0)
 var _relayout_queued := false
 var _legend_auto := true
@@ -132,6 +134,9 @@ func setup(sim: Node) -> void:
 	_full_rect(_candidates)
 	_offshore_rows = bridge.offshore_candidates()
 	_candidates.set_offshore_candidates(_offshore_rows)
+	var pens := bridge.open_pen_candidates()
+	_open_pens_key = _held_key(pens)
+	_candidates.set_open_pens(pens)
 	_players = GeoSiteLayer.PlayerMarks.new()
 	_players.name = "PlayerSites"
 	_full_rect(_players)
@@ -330,6 +335,13 @@ func live_update(overview_changed: bool) -> PackedStringArray:
 		changed.append("sites")
 	if overview_changed and _update_players():
 		changed.append("players")
+		# A farm built on (or gone from) a candidate moves its area's star.
+		var pens := bridge.open_pen_candidates()
+		var key := _held_key(pens)
+		if key != _open_pens_key:
+			_open_pens_key = key
+			_candidates.set_open_pens(pens)
+			changed.append("candidates")
 	# A loaded game may bind hav_1 elsewhere (its home area): re-record the
 	# candidates only when the bound candidate moved.
 	if overview_changed:
@@ -337,8 +349,18 @@ func live_update(overview_changed: bool) -> PackedStringArray:
 		if _bound_id(rows) != _bound_id(_offshore_rows):
 			_offshore_rows = rows
 			_candidates.set_offshore_candidates(rows)
-			changed.append("candidates")
+			if not "candidates" in changed:
+				changed.append("candidates")
 	return changed
+
+
+## The open-pen candidates the company holds, and how many rows there are.
+static func _held_key(rows: Array) -> String:
+	var held := PackedStringArray()
+	for r: Variant in rows:
+		if r is Dictionary and str(r.get("taken_by_site_id", "")) != "":
+			held.append(str(r.get("id", "")))
+	return "%d|%s" % [rows.size(), ",".join(held)]
 
 
 static func _bound_id(rows: Array) -> String:

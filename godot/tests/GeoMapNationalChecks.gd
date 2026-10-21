@@ -80,7 +80,7 @@ func run(runner: Node) -> void:
 	await _fjord_fallback()
 	_detail(map, chart)
 	_overlay_fix(map)
-	ReviewChecks.new().run(t, map, chart)
+	await ReviewChecks.new().run(t, map, chart)
 	await _chips(chart)
 	_tooltips(chart)
 	await _legend(chart)
@@ -138,12 +138,12 @@ func _adapter_uses_the_real_reads() -> void:
 	var ok := adapter.missing().is_empty() and adapter.production_areas() == [{"id": 99}] \
 		and adapter.offshore_candidates() == [{"id": "HTH99"}] and adapter.area_at(1.0, 2.0) == 7 \
 		and adapter.sites_signature() == "fake:2" and adapter.rival_summary(3) == {"po": 3} \
-		and adapter.player_site_locations() == [{"site_id": "s1"}]
+		and adapter.player_site_locations() == [{"site_id": "s1"}] and adapter.open_pen_candidates().size() == AREAS
 	_check(ok and sites["ids"] is PackedInt32Array and sites["x"] is PackedInt32Array and sites["kind"] is PackedByteArray
 			and sites["po"] is PackedByteArray and sites["mtb_t"] is PackedFloat32Array and sites["owner"] is PackedInt32Array
 			and Array(sites["x"]) == [1, 2] and Array(sites["kind"]) == [0, 5] and Array(sites["owner"]) == [-1, 0]
 			and is_equal_approx(sites["mtb_t"][0], 1.5) and (sites["owners"] as Array).size() == 1,
-		"geo map: with the lanes merged the adapter calls the seven reads, and normalises the sites' arrays")
+		"geo map: with the lanes merged the adapter calls the eight reads, and normalises the sites' arrays")
 	fake.free()
 	var bare := GeoBridgeAdapter.new(null)
 	var none := bare.sites()
@@ -151,7 +151,7 @@ func _adapter_uses_the_real_reads() -> void:
 			and bare.offshore_candidates().is_empty() and bare.area_at(500000.0, 7000000.0) == 0
 			and bare.sites_signature() == "" and (none["ids"] as PackedInt32Array).is_empty()
 			and (none["owners"] as Array).is_empty() and bare.rival_summary(3).is_empty()
-			and bare.player_site_locations().is_empty(),
+			and bare.player_site_locations().is_empty() and bare.open_pen_candidates().is_empty(),
 		"geo map: with no facade every read answers empty, nothing is made up (missing %d)" % bare.missing().size())
 
 
@@ -166,6 +166,7 @@ class _FakeSim extends Node:
 			"owner": [-1, 0], "owners": [{"id": "fake", "name": "Fake", "is_major": true}]}
 	func get_rival_summary(po: int) -> Dictionary: return {"po": po}
 	func get_player_site_locations() -> Array: return [{"site_id": "s1"}]
+	func get_sea_candidates(po: int) -> Array: return [{"id": "PO%02d-01" % po, "po": po}]
 
 
 # ── 2. Plates ─────────────────────────────────────────────────────────────────

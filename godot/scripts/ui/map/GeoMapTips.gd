@@ -32,9 +32,7 @@ static func feature(item: Dictionary, view: GeoMapView) -> String:
 				text += "\n" + _t("MAP_GEO_TIP_HAV1")
 			return text
 		"candidates":
-			var best: Dictionary = item["best"]
-			return _t("MAP_GEO_TIP_CANDIDATES") % [int(item["count"]), area_name(view, int(item["po"])),
-				str(best.get("near", "")), SimFormatters.num(float(best.get("score", 0.0)), 2)]
+			return candidates(item, view)
 		"site":
 			return site(view.site_layer(), int(item["index"]))
 		"cluster":
@@ -45,6 +43,22 @@ static func feature(item: Dictionary, view: GeoMapView) -> String:
 		"fjord":
 			return _t("MAP_GEO_TIP_FJORD") % str(item.get("name", ""))
 	return ""
+
+
+## A star: the area's open-pen candidates and the best free one by the
+## place name track A cleans ("Selje", not the shipped "Selje kloster"); when
+## the company farms some of them, how many.
+static func candidates(item: Dictionary, view: GeoMapView) -> String:
+	var best: Dictionary = item["best"]
+	var count := int(item["count"])
+	var held := int(item.get("held", 0))
+	var area := area_name(view, int(item["po"]))
+	var label := str(best.get("label", best.get("near", "")))
+	var score := SimFormatters.num(float(best.get("score", 0.0)), 2)
+	if held == 0:
+		return _t("MAP_GEO_TIP_CANDIDATES") % [count, area, label, score]
+	return _t("MAP_GEO_TIP_CANDIDATES_FREE") % [count, area, label, score] + "\n" \
+		+ _t("MAP_GEO_TIP_CANDIDATES_YOURS") % held
 
 
 ## One site: its kind, its owner when it has one, its MTB when registered in tonnes.

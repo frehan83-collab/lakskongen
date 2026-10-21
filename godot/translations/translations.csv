@@ -2571,6 +2571,8 @@ MAP_GEO_STAGE_2022,recommended for study in 2022,anbefalt utredet i 2022
 MAP_GEO_STAGE_2024,impact assessed in 2024,konsekvensutredet i 2024
 MAP_GEO_STAGE_2026,can be announced from 2026,kan lyses ut fra 2026
 MAP_GEO_TIP_CANDIDATES,"%d possible sites in %s · the best near %s, suitability %s","%d mulige lokaliteter i %s · den beste ved %s, egnethet %s"
+MAP_GEO_TIP_CANDIDATES_FREE,"%d possible sites in %s · the best free one near %s, suitability %s","%d mulige lokaliteter i %s · den beste ledige ved %s, egnethet %s"
+MAP_GEO_TIP_CANDIDATES_YOURS,You farm %d of them,Du har anlegg på %d av dem
 MAP_GEO_TIP_CLUSTER,%d sites,%d lokaliteter
 MAP_GEO_TIP_FJORD,National salmon fjord: %s. No new farms.,Nasjonal laksefjord: %s. Ingen nye anlegg.
 MAP_GEO_TIP_HAV1,The game's open-sea plot lies here,Spillets havlokalitet ligger her

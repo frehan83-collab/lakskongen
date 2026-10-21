@@ -134,9 +134,11 @@ NATIONAL_CHECKS = REPO / "godot" / "tests" / "GeoMapNationalChecks.gd"
 TINT_SHADER = REPO / "godot" / "shaders" / "map_po_tint.gdshader"
 TRANSLATIONS = REPO / "godot" / "translations" / "translations.csv"
 MANIFEST = REPO / "godot" / "data" / "geo" / "manifest.json"
-## The reads the plan names (§3, sim·geo and sim·candidates lanes).
+## The reads the plan names (§3, sim·geo and sim·candidates lanes); the
+## captain's C2 merge adds get_sea_candidates for the stars' places.
 PLAN_READS = ["get_geo_production_areas", "get_geo_offshore_candidates", "get_geo_area_at",
-              "get_geo_sites_signature", "get_geo_sites", "get_rival_summary", "get_player_site_locations"]
+              "get_geo_sites_signature", "get_geo_sites", "get_rival_summary", "get_player_site_locations",
+              "get_sea_candidates"]
 ## MapPanel's public API: TutorialTargets, AttentionInbox, GameEventActions,
 ## BuildFlowLink and the UI tests call these (plan §3 "MapPanel v2 API").
 PUBLIC_API = ["region_marker", "home_area", "new_farm_button", "region_label_rects", "city_label_rects",

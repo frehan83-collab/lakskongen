@@ -5,8 +5,9 @@ extends RefCounted
 ## Every read goes to SimBridge by the plan's exact name: Track A's sim·geo
 ## lane (get_geo_production_areas, get_geo_offshore_candidates,
 ## get_geo_area_at, get_geo_sites_signature, get_geo_sites, get_rival_summary)
-## and Track B's sim·candidates lane (get_player_site_locations). Both lanes
-## are merged, so nothing is stubbed: a facade without a read (no SimBridge,
+## and Track B's sim·candidates lane (get_player_site_locations, and
+## get_sea_candidates for the open-pen stars). Both lanes are merged, so
+## nothing is stubbed: a facade without a read (no SimBridge,
 ## as in a bare scene) answers empty, never with invented data.
 ##
 ## get_geo_sites' "kind" bytes index its "kinds" table (track A: placement ×
@@ -26,7 +27,9 @@ const CLASS_KEYS: Array[String] = ["sea", "land", "offshore", "other"]
 
 ## The facade reads the adapter makes (plan §3), for the evidence lines.
 const READS: Array[String] = ["get_geo_production_areas", "get_geo_offshore_candidates", "get_geo_area_at",
-	"get_geo_sites_signature", "get_geo_sites", "get_rival_summary", "get_player_site_locations"]
+	"get_geo_sites_signature", "get_geo_sites", "get_rival_summary", "get_player_site_locations",
+	"get_sea_candidates"]
+const AREA_COUNT := 13
 
 var _sim: Node = null
 
@@ -130,6 +133,18 @@ func rival_summary(po: int) -> Dictionary:
 ## candidate_id, x, y, source ("candidate" exact, "anchor" approximate)}.
 func player_site_locations() -> Array:
 	return _sim.get_player_site_locations() if has_read("get_player_site_locations") else []
+
+
+## Every area's 12 open-pen candidates in rank order (track B's
+## get_sea_candidates per area): {id, po, rank, label (the place as track A
+## cleans it), near (the label as shipped), score, x, y, taken_by_site_id
+## (the company's site there, "" when free), ...}.
+func open_pen_candidates() -> Array:
+	var out: Array = []
+	if has_read("get_sea_candidates"):
+		for po in range(1, AREA_COUNT + 1):
+			out.append_array(_sim.get_sea_candidates(po))
+	return out
 
 
 # ── Kinds ─────────────────────────────────────────────────────────────────────
