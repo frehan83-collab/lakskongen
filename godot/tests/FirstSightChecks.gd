@@ -23,6 +23,11 @@ extends RefCounted
 ## 7. Wave4b int review: a save loaded in the running game, its unit long in
 ##    operation, over a session that was still building a unit of that id,
 ##    plays nothing.
+## 8. Wave4b int review: Esc gives the world back as it was: the hour, the
+##    sim's weather at once (no 10 s blend from the staged clear sky), the
+##    mood, the sim weather on, the camera where the sequence's last frame
+##    stood; "Lagre bilde" confirms on the card (the toasts are hidden); a
+##    right-drag held into a sequence ends with it.
 
 const SCENARIO := "po3_red_sone"
 const SEED := 91
@@ -64,6 +69,18 @@ func run(runner: Node) -> void:
 	var started: Dictionary = bridge.QaStartLandBuild("pad_a", "hfs_lot")
 	var land_id := str(started.get("unit_id", ""))
 	_check(bool(started.get("success", false)), "F2-23: an HFS site is under construction on pad_a (%s)" % started.get("message", ""))
+	# 8. What the sequence borrows, as it stands before it: the presentation
+	# hour (held still, to be compared), the sim's weather settled (day 0 of
+	# this seed rains), the mood, the sim weather on.
+	var time_of_day: TimeOfDay = env.get("time_system")
+	var weather: WeatherController = env.get("weather_system")
+	var vista: Node = scene.get_node("FjordVistaBridge")
+	time_of_day.paused = true
+	var blend := weather.transition_duration
+	weather.transition_duration = 0.0
+	vista.call("_sync_environment", sim)
+	weather.transition_duration = blend
+	var world_before := world_state(env, vista)
 	bridge.QaStageConstruction(land_id, "completion", 0.95)
 	sim.state_updated.emit()
 	for i in 2:
@@ -128,6 +145,23 @@ func run(runner: Node) -> void:
 	_check(sim.current_day == day and director.time > 0.0, "F2-23: while it plays the sim day stands (day %d at 30x; %.2f s in)" % [sim.current_day, director.time])
 	sim.set_paused(true)
 	sim.set_time_speed(1.0)
+	director.manual = true
+	var now := director.time
+	# "Lagre bilde" (on the end card) confirms on the card, where the player
+	# looks (the game's toasts are hidden while it plays; headless saves no
+	# image, so the confirmation is called as save_picture calls it).
+	var card_at: Array = director._plan.get("end_card_seconds", [director.duration - 1.0, director.duration])
+	director.seek(float(card_at[1]))
+	director.confirm_picture("user://screenshots/first_sight_%s.png" % land_id)
+	var line := director.overlay.saved_line
+	_check(line.is_visible_in_tree() and director.overlay.card.is_ancestor_of(line) and line.text.contains("first_sight_%s.png" % land_id)
+			and not director.overlay.save_button.disabled,
+		"F2-23: a saved picture is confirmed on the card itself ('%s' at %.1f s)" % [line.text, float(card_at[1])])
+	# The sequence's last frame, where the hand-back must leave the camera.
+	director.seek(director.duration)
+	var last_frame := cam.global_transform
+	var last_fov := cam.fov
+	director.seek(now)
 	# Esc skips it, as a player presses it.
 	await t._press_key(KEY_ESCAPE)
 	await t.get_tree().process_frame
@@ -138,6 +172,14 @@ func run(runner: Node) -> void:
 		"F2-23: Esc skips the sequence: the clock and the UI are given back")
 	_check(Vector2(focus.x - at.x, focus.z - at.z).length() < 1.0 and is_equal_approx(cam.get_zoom_distance(), float(target.get("distance", -1.0))),
 		"F2-23: the camera is left on the campus's own framing (%.0f m)" % cam.get_zoom_distance())
+	var world_after := world_state(env, vista)
+	_check(world_after == world_before,
+		"F2-23: Esc gives the world back as it was: the hour, the sim's weather at once, the mood, the sim weather on (%s; before %s)"
+		% [str(world_after), str(world_before)])
+	var jump := cam.global_position.distance_to(last_frame.origin)
+	var turn := rad_to_deg((-cam.global_transform.basis.z).angle_to(-last_frame.basis.z))
+	_check(jump < 0.05 and turn < 0.05 and absf(cam.fov - last_fov) < 0.05,
+		"F2-23: the camera is handed back where the sequence's last frame stood (%.3f m, %.3f deg, fov %.2f -> %.2f)" % [jump, turn, last_fov, cam.fov])
 	_check(sim.current_day == day and sim.qa_state_digest() == digest,
 		"F2-23: the sim day and every stream stand where they stood (day %d, the state digest unchanged)" % sim.current_day)
 
@@ -207,6 +249,20 @@ func run(runner: Node) -> void:
 	await t.get_tree().process_frame
 	await _waits_for_an_open_card()
 	await _a_loaded_game_is_no_completion()
+	await _a_drag_held_into_it_ends()
+
+
+## What a cinematic borrows from the world, as it stands now (the teaser's
+## checks read it too): the presentation hour and its pause, the weather the
+## world shows, the sim weather on or off, the mood hook.
+static func world_state(env: Node, vista: Node) -> Dictionary:
+	var ts: TimeOfDay = env.get("time_system")
+	var ws: WeatherController = env.get("weather_system")
+	var ed: EnvironmentDirector = env.get("director")
+	return {"hour": snappedf(ts.get_hour(), 1e-4), "clock_paused": ts.paused, "weather": int(ws.current_weather),
+		"rain_mm_h": snappedf(ws.get_rain(), 1e-3), "visibility_m": snappedf(ws.get_visibility_m(), 1.0),
+		"cloud": snappedf(ws.get_cloud_cover(), 1e-3), "sim_weather": bool(vista.get("sim_weather_enabled")),
+		"mood_hook": ed.mood_hook, "mood_strength": ed.mood_hook_strength}
 
 
 # ── 6. An open card ──────────────────────────────────────────────────────────
@@ -325,6 +381,81 @@ func _a_loaded_game_is_no_completion() -> void:
 	MotionPrefs.force(null)
 	FirstSightDirector.force_auto_play(null)
 	scene.queue_free()
+	await t.get_tree().process_frame
+
+
+# ── 8. A drag held into it ───────────────────────────────────────────────────
+
+func _a_drag_held_into_it_ends() -> void:
+	var sim: Node = t._sim
+	FirstSightDirector.force_auto_play(true)
+	MotionPrefs.force(false)
+	_check(sim.start_qa_scenario(SCENARIO, SEED), "F2-23: seeded scenario starts (a drag held into it)")
+	sim.set_paused(true)
+	var scene: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+	t.add_child(scene)
+	for i in 5:
+		await t.get_tree().process_frame
+	sim.set_paused(true)
+	var env: Node = scene.get_node("FjordEnvironment")
+	var cam: FjordCamera = env.get_node("FjordCamera")
+	var director: FirstSightDirector = (env.get_node("FarmFacilityVisualManager") as FarmFacilityVisualManager).first_sight
+	var bridge := t.get_node("/root/GameBridge")
+	cam.auto_orbit_enabled = false
+	(scene.get_node("UILayer/GameUI") as Control).call("show_tab", "fjord")
+	await t.get_tree().process_frame
+	t.get_viewport().gui_release_focus()
+	var contracted: Dictionary = bridge.QaContractOffshore("off_1", "of1")
+	var off_id := str(contracted.get("unit_id", ""))
+	bridge.QaStageConstruction(off_id, "commissioning", 0.9)
+	sim.state_updated.emit()
+	for i in 3:
+		await t.get_tree().process_frame
+	var centre := t.get_viewport().get_visible_rect().size * 0.5
+	# The player holds the right button over the world (orbiting) ...
+	await _mouse_button(MOUSE_BUTTON_RIGHT, true, centre)
+	var orbiting := cam._orbiting
+	# ... the unit comes into operation and its first sight starts ...
+	bridge.QaStageConstruction(off_id, "operational", 1.0)
+	sim.state_updated.emit()
+	for i in 3:
+		await t.get_tree().process_frame
+	var played := director.playing and director.unit_id == off_id
+	# ... and lets go while it plays; then it ends.
+	await _mouse_button(MOUSE_BUTTON_RIGHT, false, centre)
+	director.skip()
+	await t.get_tree().process_frame
+	var yaw := cam._yaw_target
+	await _mouse_motion(Vector2(120.0, 0.0), centre)
+	_check(orbiting and played and cam.input_enabled and not cam._orbiting and is_equal_approx(cam._yaw_target, yaw),
+		"F2-23: a right-drag held into the first sight ends with it: a bare mouse move after it turns nothing (yaw %.3f -> %.3f)"
+		% [yaw, cam._yaw_target])
+	MotionPrefs.force(null)
+	FirstSightDirector.force_auto_play(null)
+	scene.queue_free()
+	await t.get_tree().process_frame
+
+
+func _mouse_button(button: MouseButton, pressed: bool, pos: Vector2) -> void:
+	var ev := InputEventMouseButton.new()
+	ev.button_index = button
+	ev.pressed = pressed
+	ev.position = pos
+	ev.global_position = pos
+	ev.button_mask = MOUSE_BUTTON_MASK_RIGHT if pressed else 0
+	Input.parse_input_event(ev)
+	await t.get_tree().process_frame
+	await t.get_tree().process_frame
+
+
+func _mouse_motion(relative: Vector2, pos: Vector2) -> void:
+	var ev := InputEventMouseMotion.new()
+	ev.relative = relative
+	ev.position = pos
+	ev.global_position = pos
+	ev.button_mask = 0
+	Input.parse_input_event(ev)
+	await t.get_tree().process_frame
 	await t.get_tree().process_frame
 
 

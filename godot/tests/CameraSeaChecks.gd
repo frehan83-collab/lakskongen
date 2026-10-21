@@ -284,6 +284,21 @@ func _spectrum(director: EnvironmentDirector, manager: FarmFacilityVisualManager
 	_check(outside.is_empty() and absf(swell - TARGET_SWELL_HS * TARGET_SWELL_HS / 8.0) <= 0.01 * want,
 		"F2-21: the swell's energy (%.3f m²) sits at 150-300 m (%s)" % [swell, ", ".join(outside) if not outside.is_empty() else "all in band"])
 	_check(swell_sheltered == 0.0, "F2-21: the sheltered fjord gets none of the swell")
+	# What the water and the units really get (wave4b int review: the sums
+	# above read the director's own list, so wave rows built from the wind
+	# model's coast, or a sea height that is not the target's, passed them).
+	var mat := director.water_material()
+	var rows: PackedVector4Array = mat.get_shader_parameter("wave_amp")
+	var swell_rows: PackedVector4Array = mat.get_shader_parameter("swell_amp")
+	var uniform_sum := 0.0
+	for row: Vector4 in rows:
+		uniform_sum += row.y * row.y
+	for row: Vector4 in swell_rows:
+		uniform_sum += row.y * row.y
+	_check(absf(uniform_sum - want) <= SPECTRUM_TOLERANCE * want and director.wave_field.wave_amp == rows,
+		"F2-21: the water's own wave uniforms carry Σa² %.3f m² at Hs 4 m (Hs²/8 = %.3f) and the units' wave field the very rows" % [uniform_sum, want])
+	var height: Vector2 = mat.get_shader_parameter("sea_height")
+	_check(absf(height.y - TARGET_HS) < 0.01, "F2-21: the water's exposed sea height is the target's Hs (%.3f m for %.1f m)" % [height.y, TARGET_HS])
 	var shader_swell = director.water_material().get_shader_parameter("swell_amp")
 	_check(shader_swell is PackedVector4Array and (shader_swell as PackedVector4Array).size() == 4
 		and director.wave_field.swell_amp == director.open_sea.swell_amp(),

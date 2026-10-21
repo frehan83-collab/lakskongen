@@ -55,6 +55,7 @@ func enter(plan: Dictionary) -> void:
 		"time_paused": ts.paused if ts != null else false,
 		"sim_weather": vista.get("sim_weather_enabled") if vista != null else true,
 		"transition": ws.transition_duration if ws != null else 10.0,
+		"weather": ws.snapshot() if ws != null else {},
 		"ui_visible": ui_layer().visible if ui_layer() != null else true,
 		"toasts_visible": _toast_layer().visible if _toast_layer() != null else true,
 		"cam_process": manager.camera.is_processing() if manager.camera != null else true,
@@ -103,7 +104,13 @@ func leave() -> void:
 	if ts != null:
 		ts.set_hour(float(_saved.get("hour", 12.0)))
 		ts.paused = bool(_saved.get("time_paused", false))
+	# The weather comes back as it was at once (wave4b int review: re-syncing
+	# the sim's weather through the 10 s blend made the staged clear sky cloud
+	# over and rain again over the 10 s after every cinematic): the snapshot,
+	# blend and all, its blend's duration, then the sim's weather (the same
+	# day's, as the clock was held: the snapshot already holds it).
 	if ws != null:
+		ws.restore_snapshot(_saved.get("weather", {}))
 		ws.transition_duration = float(_saved.get("transition", 10.0))
 	if vista != null:
 		vista.set("sim_weather_enabled", bool(_saved.get("sim_weather", true)))

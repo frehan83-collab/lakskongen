@@ -36,6 +36,8 @@ const CROSSFADE_S := 2.0
 ## The mouth's sill (FJORD_RENDERER: z = -1300; the open sea lies at -Z).
 const MOUTH_Z := -1300.0
 const HAV_1 := Vector2(0.0, -5200.0)
+## The world a cinematic borrows, read the same way for both (world_state).
+const FIRST_SIGHT_CHECKS := preload("res://tests/FirstSightChecks.gd")
 
 var t: Node = null
 
@@ -112,6 +114,17 @@ func _first_season() -> void:
 	var view_before := cam.global_transform
 	var fov_before := cam.fov
 	var keys_before := cam.input_enabled
+	# What it borrows, as it stands before it (wave4b int review): the hour
+	# held still, the sim's weather settled, the mood, the sim weather on.
+	var env: Node = scene.get_node("FjordEnvironment")
+	var vista: Node = scene.get_node("FjordVistaBridge")
+	(env.get("time_system") as TimeOfDay).paused = true
+	var weather: WeatherController = env.get("weather_system")
+	var blend := weather.transition_duration
+	weather.transition_duration = 0.0
+	vista.call("_sync_environment", sim)
+	weather.transition_duration = blend
+	var world_before: Dictionary = FIRST_SIGHT_CHECKS.world_state(env, vista)
 	# No step active (the tutorial skipped): it plays at once.
 	sim.skip_tutorial()
 	var digest: String = sim.qa_state_digest()
@@ -158,6 +171,10 @@ func _first_season() -> void:
 		"F2-23 teaser: Esc skips it: the tow is gone, the clock, the UI and the camera's keys are given back")
 	_check(cam.global_transform.is_equal_approx(view_before) and is_equal_approx(cam.fov, fov_before),
 		"F2-23 teaser: the camera is back on the player's own view")
+	var world_after: Dictionary = FIRST_SIGHT_CHECKS.world_state(env, vista)
+	_check(world_after == world_before,
+		"F2-23 teaser: Esc gives the world back as it was: the hour, the sim's weather at once, the mood, the sim weather on (%s; before %s)"
+		% [str(world_after), str(world_before)])
 	_check(sim.current_day == day and sim.qa_state_digest() == digest,
 		"F2-23 teaser: the sim day and the engine state hash stand where they stood (day %d)" % sim.current_day)
 	# 2. Once.

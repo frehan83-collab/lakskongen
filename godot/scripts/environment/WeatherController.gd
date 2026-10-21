@@ -93,6 +93,27 @@ func set_weather(state: WeatherState) -> void:
 	_set_state(state)
 
 
+## The weather as it stands now, blend and all (F2-23: a cinematic stages
+## its own sky and gives this one back with restore_snapshot).
+func snapshot() -> Dictionary:
+	return {"state": current_weather, "current": _current.duplicate(), "target": _target.duplicate(),
+		"start": _start.duplicate(), "progress": _transition_progress}
+
+
+## Stand the weather exactly as `snap` had it (no blend from the weather in
+## between): its values, the blend it was in, its named state and particles.
+func restore_snapshot(snap: Dictionary) -> void:
+	if snap.is_empty():
+		return
+	_current = (snap["current"] as Dictionary).duplicate()
+	_target = (snap["target"] as Dictionary).duplicate()
+	_start = (snap["start"] as Dictionary).duplicate()
+	_transition_progress = float(snap["progress"])
+	_apply_particles()
+	fog_visibility_changed.emit(get_visibility())
+	_set_state(int(snap["state"]) as WeatherState)
+
+
 ## Weather from the sim (GameBridge.GetSkyContext): the regime picks the
 ## named state for particles and gameplay signals; the numbers drive the look.
 func apply_sky_context(ctx: Dictionary) -> void:

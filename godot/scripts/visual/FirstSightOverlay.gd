@@ -40,6 +40,9 @@ var title: Label = null
 var subtitle: Label = null
 var save_button: Button = null
 var continue_button: Button = null
+## The line under the buttons that confirms "Lagre bilde" (the game's toasts
+## are hidden while a sequence plays).
+var saved_line: Label = null
 var _root: Control = null
 
 
@@ -134,6 +137,8 @@ func _build_card() -> void:
 	continue_button.text = "FIRST_SIGHT_CONTINUE"
 	continue_button.pressed.connect(func() -> void: continue_requested.emit())
 	row.add_child(continue_button)
+	saved_line = _label("SavedLine", &"SmallMuted")
+	saved_line.visible = false
 
 
 func _label(node_name: String, variation: StringName) -> Label:
@@ -155,6 +160,14 @@ func set_card(kicker_text: String, title_text: String, subtitle_text: String) ->
 	kicker.text = kicker_text
 	title.text = title_text
 	subtitle.text = subtitle_text
+
+
+## Confirm a saved picture on the card itself, under its buttons (wave4b int
+## review: the confirmation went to the toasts, which are hidden while a
+## sequence plays, so the player never saw it).
+func show_saved(text: String) -> void:
+	saved_line.text = text
+	saved_line.visible = true
 
 
 ## Whether the card offers "Lagre bilde" (the first sight's photo-mode

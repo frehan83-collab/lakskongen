@@ -605,9 +605,15 @@ func save_picture() -> void:
 		img.save_png(ProjectSettings.globalize_path(path))
 	if overlay != null:
 		overlay.visible = not _stepped_aside
-	var toast := get_node_or_null("/root/ToastNotification")
-	if toast != null and path != "":
-		toast.call("show_toast", tr("FIRST_SIGHT_PICTURE_SAVED") % path.get_file(), "SUCCESS", 3.0)
+	if path != "":
+		confirm_picture(path)
+
+
+## The saved picture confirmed on the card, where the player is looking (the
+## toasts are hidden while the sequence plays).
+func confirm_picture(path: String) -> void:
+	if overlay != null:
+		overlay.show_saved(tr("FIRST_SIGHT_PICTURE_SAVED") % path.get_file())
 
 
 ## A repeat completion of a variant: a short toast that flies the camera there.

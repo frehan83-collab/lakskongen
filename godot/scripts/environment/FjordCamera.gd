@@ -103,8 +103,16 @@ const UNDERWATER_SEABED_CLEARANCE := 4.0
 @export var terrain: FjordTerrain
 
 ## Camera input acts only while this is true (the presenter clears it while
-## an opaque panel covers the world).
-var input_enabled: bool = true
+## an opaque panel covers the world). Turning it off ends a drag under way:
+## the button's release goes to whatever takes the input then (wave4b int
+## review: a right-drag held into a first sight kept orbiting on every bare
+## mouse move after it).
+var input_enabled: bool = true:
+	set(value):
+		input_enabled = value
+		if not value:
+			_orbiting = false
+			_panning = false
 ## Where Home recentres (the presenter sets it to the first pen).
 var home_focus: Vector3 = Vector3.ZERO
 
