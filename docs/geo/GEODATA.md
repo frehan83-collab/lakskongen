@@ -501,6 +501,30 @@ GIS package).
   why, depth) from the CPU grid. Until A and B merge, their reads go through
   the marked stub adapter `GeoRegionBridge.gd`. Checked by
   `godot/tests/GeoRegionChecks.gd` and `tests/test_geo_map_contract.py`.
+  Merged into geo/int (geo int D, 2026-10-21), on A's and B's real reads,
+  with the review's fixes:
+  - The stub adapter is gone: the region and site levels read through the
+    map's one adapter, `GeoBridgeAdapter.gd` (Track C's).
+  - National clicks: a click selects the area and names the feature it hit
+    in the detail column, with a button to its card; a double-click on a
+    feature opens its card; a double-click elsewhere on an area, on its
+    plate, Enter on a plate or 'Utforsk området' drill into the area.
+  - The 160 ms crossfade gives each node its own tween, so no level is left
+    see-through.
+  - A feature's buffer or radius counts towards its extent in the lon/lat
+    prefilter (PO10's river mouths off the map edge); all 13 areas' layer
+    counts are pinned.
+  - Holes stay open: a salmon fjord's islands and a protected area's
+    enclaves are cut out of the fill (Track C's `cut_holes`).
+  - The company's sites and hav_1's plot are rows in the detail column (the
+    keyboard's way to their cards), Esc puts the focus back where the card
+    came from, and sites on one spot are spread apart.
+  - The site card's crop draws its heat with the region's shader, in one
+    rect.
+  - A rival's card names the locality by its number, never the registry's
+    name (D17).
+  Pinned by `godot/tests/GeoRegionReviewChecks.gd`. Judged frames are in
+  `docs/run/evidence/geo_int_d/`.
 - **Local site view**: the existing 3D fjord scene; the candidate or site
   position, depth and `ocean` values seed it.
   Status (geo D, 2026-10-20): the site level is a 2D card
