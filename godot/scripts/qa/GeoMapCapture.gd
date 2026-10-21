@@ -6,8 +6,11 @@ extends Node
 ## Run (windowed): tools/capture_screenshots.sh --scene res://qa/scenes/GeoMapCapture.tscn
 ##   -- [--out=<absolute dir>] [--scenario=po3_red_sone] [--seed=7]
 ## Frames: map_1920x1080_100, map_1280x720_100, map_1280x720_150 (the UI at
-## 150 %, a 1280x720 layout), map_1920x1080_po4 (PO4 picked) and
-## map_1920x1080_facts (the detail column at PO3's facts).
+## 150 %, a 1280x720 layout), map_1920x1080_po4 (PO4 picked),
+## map_1920x1080_facts (the detail column at PO3's facts) and, at 1920x1080,
+## the hover ring and tooltip over the ringed hav_1 hexagon, PO3's star, the
+## largest cluster and the company's first farm (map_1920x1080_hover_*: a
+## synthetic pointer event, the OS cursor is never moved).
 ## Headless it only lays the map out and prints the layout (no images).
 
 const SIZES: Array = [[Vector2i(1920, 1080), 1.0], [Vector2i(1280, 720), 1.0], [Vector2i(1280, 720), 1.5]]
@@ -65,8 +68,45 @@ func _run() -> void:
 		scroll.ensure_control_visible(facts)
 	await _wait(0.5)
 	await _capture(out_dir, "map_1920x1080_facts")
+	await _hover_frames(out_dir, map)
 	print("[GeoMapCapture] done, %d failure(s)" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
+
+
+## The hover ring and the tooltip over four features, from a pointer event
+## pushed into the viewport (the tooltip shows after its delay).
+func _hover_frames(out_dir: String, map: Control) -> void:
+	var chart: GeoMapView = map.chart()
+	var targets := {}
+	var hexes := chart.candidate_layer().hexagons()
+	if not hexes.is_empty():
+		targets["hexagon"] = hexes.back()["pos"]
+	for s: Dictionary in chart.candidate_layer().star_groups():
+		if int(s["po"]) == 3:
+			targets["star"] = s["pos"]
+	# The largest cluster whose centre the pointer reaches (no star, hexagon
+	# or farm over it).
+	var biggest: Dictionary = {}
+	for c: Dictionary in chart.site_layer().clusters():
+		if str(chart.feature_at(c["pos"]).get("kind", "")) == "cluster" \
+				and (biggest.is_empty() or int(c["count"]) > int(biggest["count"])):
+			biggest = c
+	if not biggest.is_empty():
+		targets["cluster"] = biggest["pos"]
+	if not chart.player_marks().points().is_empty():
+		targets["farm"] = chart.player_marks().points()[0]
+	for tag: String in targets:
+		var at: Vector2 = chart.get_global_rect().position + (targets[tag] as Vector2)
+		for step in 2:
+			var ev := InputEventMouseMotion.new()
+			ev.position = at + Vector2(0.0, 1.0 - float(step))
+			ev.global_position = ev.position
+			get_viewport().push_input(ev, true)
+			await get_tree().process_frame
+		await _wait(1.3)
+		print("[GeoMapCapture] hover %s at %s: '%s'" % [tag, str(targets[tag]),
+			chart._get_tooltip(targets[tag]).replace("\n", " / ")])
+		await _capture(out_dir, "map_1920x1080_hover_" + tag)
 
 
 func _report(tag: String, map: Control) -> void:

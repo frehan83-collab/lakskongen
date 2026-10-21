@@ -12,6 +12,8 @@ extends RefCounted
 ##    company's; where it farms all twelve there is no star.
 ## 3. The five salmon fjords with a hole: the hatch covers the fjord less its
 ##    hole, and a point in the hole is not the fjord.
+## 4. Cluster numerals keep 11 screen pixels on a 1280x720 window with the
+##    UI at 100 % (they drew at about 7): the badges and their grid grow.
 
 var t: Node = null
 
@@ -22,6 +24,7 @@ func run(runner: Node, map: Control, chart: GeoMapView) -> void:
 	_stars_read_the_bridge(chart)
 	await _stars_follow_the_companys_places(chart)
 	_fjord_holes(chart)
+	await _badge_numerals(chart)
 
 
 func _check(ok: bool, label: String) -> void:
@@ -174,3 +177,53 @@ func _fjord_holes(chart: GeoMapView) -> void:
 static func _inside(poly: PackedVector2Array) -> Vector2:
 	var tri := Geometry2D.triangulate_polygon(poly)
 	return (poly[tri[0]] + poly[tri[1]] + poly[tri[2]]) / 3.0 if tri.size() >= 3 else poly[0]
+
+
+func _frames(n: int) -> void:
+	for i in n:
+		await t.get_tree().process_frame
+
+
+## The cluster numerals on screen, in physical pixels: on a 1920x1080 and a
+## 1280x720 window with the UI at 100 %, and on 1920x1080 with the UI at
+## 150 %. Each case: every numeral 11 px or more, inside its badge, badges
+## no closer than the grown grid's gap; the small window re-lays the chart
+## out by itself (canvas_items stretch keeps the layout size, so only the
+## viewport's size_changed says so).
+func _badge_numerals(chart: GeoMapView) -> void:
+	var win := t.get_window()
+	var old_size := win.size
+	var old_factor := win.content_scale_factor
+	var rows := []
+	var ok := true
+	for spec: Array in [[Vector2i(1920, 1080), 1.0], [Vector2i(1280, 720), 1.0], [Vector2i(1920, 1080), 1.5]]:
+		var layouts := chart.layout_count
+		var was_symbol := chart.site_layer().symbol_scale()
+		win.size = spec[0]
+		win.content_scale_factor = spec[1]
+		await _frames(4)
+		var layer := chart.site_layer()
+		var screen := chart.screen_scale()
+		var px := float(layer.badge_font_size()) * screen
+		var font := layer.get_theme_font(&"font", &"BodySmallStrong")
+		var fits := font != null
+		var badges: Array = layer.clusters().filter(func(c: Dictionary) -> bool: return int(c["count"]) > 1)
+		for c: Dictionary in badges:
+			var n := int(c["count"])
+			var w := font.get_string_size(str(n), HORIZONTAL_ALIGNMENT_LEFT, -1, layer.badge_font_size()).x if font else INF
+			fits = fits and w <= 2.0 * (layer.badge_radius_now(n) - 1.0)
+		var gap := INF
+		for i in badges.size():
+			for j in range(i + 1, badges.size()):
+				gap = minf(gap, (badges[i]["pos"] as Vector2).distance_to(badges[j]["pos"]))
+		var relaid := layer.symbol_scale() == was_symbol or chart.layout_count > layouts
+		rows.append("%dx%d at %d %%: %.1f px, x%.2f, %d badges, fits %s, relaid %s, gap %.1f" % [spec[0].x, spec[0].y,
+			int(float(spec[1]) * 100.0), px, layer.symbol_scale(), badges.size(), str(fits), str(relaid), gap])
+		ok = ok and px >= GeoMapView.MIN_BADGE_SCREEN_PX - 0.01 and fits and not badges.is_empty() and relaid \
+			and gap >= GeoSiteLayer.MIN_GAP_PX * layer.symbol_scale() - 0.01
+	var small_grows := rows.size() == 3
+	win.size = old_size
+	win.content_scale_factor = old_factor
+	await _frames(4)
+	_check(ok and small_grows and chart.site_layer().symbol_scale() == 1.0,
+		"geo map: cluster numerals draw at 11 screen px or more, inside their badges: %s" % ", ".join(rows))

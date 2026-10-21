@@ -48,6 +48,13 @@ const LAND_CENTRE_LONLAT := Vector2(15.5, 64.0)
 const EDGE_PAD := 8.0
 ## The key starts open on a map at least this tall (1080p at 100 %).
 const LEGEND_OPEN_MIN_HEIGHT := 700.0
+## Cluster numerals never draw smaller than this on the screen (physical
+## pixels): on a small window (1280x720 with the UI at 100 %) the site
+## layer's badges, and the grid that spaces them, grow by symbol_scale().
+const MIN_BADGE_SCREEN_PX := 11.0
+## A window smaller than this is no screen to read (the headless display
+## server's is 64x64): the chart is then taken as shown 1:1.
+const MIN_SCREEN_PX := Vector2i(320, 240)
 ## The company's farms closer than this on screen are spread apart around
 ## their common place, so each keeps a disc of its own (two scenario farms
 ## anchored at one locality would otherwise draw, and answer, as one).
@@ -84,6 +91,7 @@ var _offshore_rows: Array = []
 ## Which open-pen candidates the company holds (the stars move off them).
 var _open_pens_key := ""
 var _laid_out_for := Vector2(-1.0, -1.0)
+var _laid_out_symbol := -1.0
 var _relayout_queued := false
 var _legend_auto := true
 
@@ -169,6 +177,9 @@ func setup(sim: Node) -> void:
 		_legend_auto = false
 		relayout(true))
 	resized.connect(_queue_relayout)
+	# A window resize keeps the layout size (canvas_items stretch) but
+	# changes the screen scale, and so the badges' symbol scale.
+	get_viewport().size_changed.connect(_queue_relayout)
 	_queue_relayout()
 
 
@@ -188,6 +199,23 @@ func drawn_rect() -> Rect2:
 ## Screen pixels per national-image pixel.
 func px_scale() -> float:
 	return drawn_rect().size.x / _tex_size.x
+
+
+## Physical screen pixels per layout pixel: the root window's canvas_items
+## stretch (0.67 on a 1280x720 window, 1.5 with the UI at 150 % on 1080p);
+## 1 when the window is no screen to read (smaller than MIN_SCREEN_PX).
+func screen_scale() -> float:
+	var win := get_window()
+	if win == null or win.size.x < MIN_SCREEN_PX.x or win.size.y < MIN_SCREEN_PX.y:
+		return 1.0
+	return get_viewport().get_final_transform().get_scale().x * get_global_transform_with_canvas().get_scale().x
+
+
+## How much the cluster badges and their grid grow so the numerals keep
+## MIN_BADGE_SCREEN_PX on screen: 1 at 1080p and above, 1.5 on a 1280x720
+## window with the UI at 100 %.
+func symbol_scale() -> float:
+	return maxf(1.0, MIN_BADGE_SCREEN_PX / (float(GeoSiteLayer.BADGE_FONT) * maxf(screen_scale(), 0.01)))
 
 
 ## An EPSG:25833 point in this control's coordinates.
@@ -382,13 +410,15 @@ func _queue_relayout() -> void:
 ## Lay the chart out for the current size (once per size).
 func relayout(force: bool = false) -> void:
 	_relayout_queued = false
-	if size.x < 32.0 or size.y < 32.0 or (size == _laid_out_for and not force):
+	var symbol := symbol_scale()
+	if size.x < 32.0 or size.y < 32.0 or (size == _laid_out_for and is_equal_approx(symbol, _laid_out_symbol) and not force):
 		return
 	_laid_out_for = size
+	_laid_out_symbol = symbol
 	var d := drawn_rect()
 	var s := d.size.x / _tex_size.x
 	_overlay.set_view(d.position, s, _info["bounds_25833"], _info["res_m"])
-	_sites.set_view(d.position, s, _info["bounds_25833"], _info["res_m"])
+	_sites.set_view(d.position, s, _info["bounds_25833"], _info["res_m"], symbol)
 	_candidates.set_view(d.position, s, _info["bounds_25833"], _info["res_m"])
 	_update_players(true)
 	_chips.position = Vector2(EDGE_PAD, EDGE_PAD)
@@ -411,7 +441,7 @@ func relayout(force: bool = false) -> void:
 	var badges: Array[Rect2] = []
 	for c: Dictionary in _sites.clusters():
 		if int(c["count"]) > 1:
-			var r := GeoSiteLayer.badge_radius(int(c["count"])) + 1.0
+			var r := _sites.badge_radius_now(int(c["count"])) + 1.0
 			badges.append(Rect2(c["pos"] - Vector2(r, r), Vector2(r, r) * 2.0))
 	_carto.layout_cities(_city_anchors(), Rect2(Vector2(EDGE_PAD, EDGE_PAD), size - Vector2(EDGE_PAD, EDGE_PAD) * 2.0),
 		taken, badges)
@@ -428,7 +458,7 @@ func _soft_obstacles() -> Array[Rect2]:
 	var soft: Array[Rect2] = []
 	for c: Dictionary in _sites.clusters():
 		var n: int = c["count"]
-		var r := GeoSiteLayer.badge_radius(n) + 3.0 if n > 1 else 5.0
+		var r := _sites.badge_radius_now(n) + 3.0 if n > 1 else 5.0
 		soft.append(Rect2(c["pos"] - Vector2(r, r), Vector2(r, r) * 2.0))
 	for s: Dictionary in _candidates.star_groups():
 		soft.append(Rect2(s["pos"] - Vector2(9, 9), Vector2(18, 18)))

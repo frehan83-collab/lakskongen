@@ -11,6 +11,10 @@ extends Control
 ## (resize), the sites change (a new rival layout signature) or the layer is
 ## toggled: never on a sim tick. redraw_count counts the recordings. Hover
 ## and the player's own farms are separate small canvas items (PlayerMarks).
+##
+## The cluster badges, and the screen grid that spaces them, grow by the
+## view's symbol scale (GeoMapView.symbol_scale) on a window small enough
+## that their numerals would draw under 11 screen pixels.
 
 const CELL_PX := 16.0
 const MIN_GAP_PX := 13.0
@@ -31,6 +35,7 @@ var _origin := Vector2.ZERO
 var _scale := 1.0
 var _bounds: Array = []
 var _res := 1.0
+var _symbol := 1.0
 
 
 func _ready() -> void:
@@ -53,13 +58,38 @@ func set_sites(sites: Dictionary) -> void:
 	_rebuild()
 
 
-## Map national-image pixels to this layer: local = origin + px * scale.
-func set_view(origin: Vector2, px_scale: float, bounds_25833: Array, res_m: float) -> void:
+## Map national-image pixels to this layer: local = origin + px * scale;
+## symbol_scale (>= 1) sizes the cluster badges and their grid.
+func set_view(origin: Vector2, px_scale: float, bounds_25833: Array, res_m: float, symbol_scale: float = 1.0) -> void:
 	_origin = origin
 	_scale = px_scale
 	_bounds = bounds_25833
 	_res = res_m
+	_symbol = maxf(1.0, symbol_scale)
 	_rebuild()
+
+
+## The badges' and the grid's scale (1 at 1080p and above).
+func symbol_scale() -> float:
+	return _symbol
+
+
+## A cluster badge's radius as drawn on this layer: the scaled base radius,
+## or more where its numeral needs it (a three-digit count when the clusters
+## are coarse), so the numeral always sits on the dark disc.
+func badge_radius_now(count: int) -> float:
+	var r := badge_radius(count) * _symbol
+	var font := get_theme_font(&"font", &"BodySmallStrong") if is_inside_tree() else null
+	if font != null:
+		var w := font.get_string_size(str(count), HORIZONTAL_ALIGNMENT_LEFT, -1, badge_font_size()).x
+		r = maxf(r, w * 0.5 + 2.0 * _symbol)
+	return r
+
+
+## The badges' numeral size as drawn on this layer (layout pixels), rounded
+## up so the scaled size never falls under the screen minimum.
+func badge_font_size() -> int:
+	return ceili(float(BADGE_FONT) * _symbol - 0.001)
 
 
 ## The clusters drawn (GeoClusterer's dictionaries).
@@ -101,7 +131,7 @@ func item_at(p: Vector2) -> Dictionary:
 	var best: Dictionary = {}
 	var best_d := INF
 	for c: Dictionary in _clusters:
-		var r := ICON_HIT_PX if int(c["count"]) == 1 else badge_radius(int(c["count"])) + 2.0
+		var r := ICON_HIT_PX if int(c["count"]) == 1 else badge_radius_now(int(c["count"])) + 2.0
 		var d := (c["pos"] as Vector2).distance_to(p)
 		if d <= r and d < best_d:
 			best_d = d
@@ -136,7 +166,7 @@ func _rebuild() -> void:
 	if _bounds.size() == 4:
 		for i in xs.size():
 			_local[i] = _origin + GeoProjection.to_px(float(xs[i]), float(ys[i]), _bounds, _res) * _scale
-	_clusters = GeoClusterer.cluster(_local, _classes, _owner_of, CELL_PX, MIN_GAP_PX)
+	_clusters = GeoClusterer.cluster(_local, _classes, _owner_of, CELL_PX * _symbol, MIN_GAP_PX * _symbol)
 	queue_redraw()
 
 
@@ -181,7 +211,8 @@ static func draw_site_icon(canvas: CanvasItem, p: Vector2, cls: int, band: Color
 func _draw_badge(c: Dictionary, font: Font, deep: Color) -> void:
 	var p: Vector2 = c["pos"]
 	var n: int = c["count"]
-	var r := badge_radius(n)
+	var r := badge_radius_now(n)
+	var k := _symbol
 	var cls := GeoClusterer.dominant_class(c)
 	# The majors' share: an outer arc in each major's band, sized by its sites.
 	var start := -PI * 0.5
@@ -192,16 +223,17 @@ func _draw_badge(c: Dictionary, font: Font, deep: Color) -> void:
 		if not is_major_owner(o):
 			continue
 		var sweep := TAU * float(owners[o]) / float(n)
-		draw_arc(p, r + 2.6, start, start + sweep, maxi(4, int(sweep * 8.0)), _owner_band[o], 2.6, true)
+		draw_arc(p, r + 2.6 * k, start, start + sweep, maxi(4, int(sweep * 8.0)), _owner_band[o], 2.6 * k, true)
 		start += sweep
-	draw_circle(p, r + 1.0, Color(deep, 0.55))
+	draw_circle(p, r + 1.0 * k, Color(deep, 0.55))
 	draw_circle(p, r, Color(deep, 0.92))
-	draw_arc(p, r - 1.0, 0.0, TAU, 32, class_color(cls), 2.0, true)
+	draw_arc(p, r - 1.0 * k, 0.0, TAU, 32, class_color(cls), 2.0 * k, true)
 	if font != null:
 		var text := str(n)
-		var sz := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, BADGE_FONT)
-		draw_string(font, p + Vector2(-sz.x * 0.5, font.get_ascent(BADGE_FONT) * 0.5 - 1.0), text,
-			HORIZONTAL_ALIGNMENT_LEFT, -1, BADGE_FONT, MapPalette.snow())
+		var size_px := badge_font_size()
+		var sz := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, size_px)
+		draw_string(font, p + Vector2(-sz.x * 0.5, font.get_ascent(size_px) * 0.5 - 1.0 * k), text,
+			HORIZONTAL_ALIGNMENT_LEFT, -1, size_px, MapPalette.snow())
 
 
 static func _ngon(c: Vector2, r: float, n: int) -> PackedVector2Array:
