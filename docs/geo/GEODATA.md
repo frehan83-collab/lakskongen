@@ -462,6 +462,21 @@ GIS package).
   `MiniMap.gd` and `norway_coastline.json` are deleted. Checked headless by
   `godot/tests/GeoMapNationalChecks.gd`; frames for the visual review come
   from `godot/qa/scenes/GeoMapCapture.tscn`.
+  Merged into geo/int (geo int C2, 2026-10-21), on A's and B's real reads,
+  with the review's fixes:
+  - The pointer takes the nearest feature. The ringed hav_1 hexagon is
+    drawn on top and answers for itself, for any binding.
+  - The company's farms that share a place are spread apart on screen, and
+    the hover ring sits on the mark.
+  - The stars come from track B's `get_sea_candidates`. Each star stands on
+    its area's best free place, with the cleaned name ("Selje"), and an area
+    where the company farms all twelve places has no star.
+  - The five salmon fjords with a hole keep it open.
+  - Counts of one are singular ("1 laksefisklokalitet i sjø").
+  - Cluster numerals stay at least 11 screen pixels: on a 1280x720 window
+    with the UI at 100 %, the badges and their grid grow by 1.5.
+  Pinned by `godot/tests/GeoMapHitChecks.gd` and `GeoMapReviewChecks.gd`.
+  Judged frames are in `docs/run/evidence/geo_int_c2/`.
 - **Regional (PO) view**: `basemap/poNN.jpg` with the suitability heat from
   `suitability/poNN.png` (R through a cool-to-gold ramp, hard exclusions from
   G as a muted hatch, the planning-area limit quieter still), site polygons
