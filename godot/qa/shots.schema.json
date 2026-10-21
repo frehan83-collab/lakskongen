@@ -59,6 +59,9 @@
         },
         "variant_of": {"type": "string"},
         "sun_elevation_deg": {"type": "number", "minimum": -20, "maximum": 60, "description": "F2-23: the shot's hour is the hour of its day when the sun, going down, stands at this elevation (deg)."},
+        "air_c": {"type": "number", "minimum": -40, "maximum": 40, "description": "F2-24: the air's temperature (deg C) the weather stands at (it comes from the sim only; a staged weather has its 6 deg default)."},
+        "incident": {"enum": ["Tilt", "NetTear", "MooringFailure"], "description": "F2-24: the offshore unit's open incident (the engine's OffshoreIncidentKind name); a tilt lists the unit."},
+        "settle_s": {"type": "number", "minimum": 0.1, "maximum": 30, "description": "F2-24: seconds the shot waits for its particles to fill the air (default 2)."},
         "open_sea": {
           "type": "object",
           "description": "F2-21: the open sea's target, staged as a weather is (EnvironmentDirector.set_target_sea).",
@@ -74,7 +77,7 @@
         "checks": {
           "type": "array",
           "description": "F2-21/F2-23: the content checks ShowcaseCapture runs on the shot.",
-          "items": {"enum": ["campus", "orange", "lights_ab", "sky", "of1", "storm", "chip", "landmarks", "first_sight", "teaser"]},
+          "items": {"enum": ["campus", "orange", "lights_ab", "sky", "of1", "storm", "chip", "landmarks", "first_sight", "teaser", "spray", "list", "steam"]},
           "uniqueItems": true
         },
         "pad_state": {

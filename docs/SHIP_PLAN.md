@@ -153,7 +153,8 @@ Every item names where to start. Take one item, finish it, and verify it.
 | F2-29 Havfarm-class unit (385 × 59.5 m, 6 wells) + mooring line kit (8/11 lines) | M | Spec row F2-29; `blender/build_offshore.py`, `offshore_designs.py`; `tests/test_offshore_assets.py` |
 | F2-30 Closed-pen kit (Donut 22,000 m³, Globe 3,500 m³, skirt 13 m) | M | Spec row F2-30; new `blender/build_closed_pens.py`; new tests |
 | Art notes: navy hall cladding; OF1 yellow reads mustard in low winter sun | S | `blender/lk_trim_atlas.py` swatches; render with `blender/render_*_preview.py`; compare with `docs/art/OWNER_REFERENCE_BRIEF.md` |
-| F2-22 logistics visuals, F2-24 weather drama and incident poses | M | Spec rows; `godot/scripts/visual/`; presenter only reads engine state |
+| F2-22 logistics visuals | M | Spec row; `godot/scripts/visual/`; presenter only reads engine state |
+| ~~F2-24 weather drama and incident poses~~ | S | **Done 2026-10-21** on `gfx/weather-drama`: spray at the OF1 columns above Hs 3 m, a 2.6° list while a tilt incident is open, roof-vent steam below −2 °C air, the marker colour lint; evidence `docs/run/evidence/f2_24_weather_drama.md`, RUN_LOG §7 row |
 | Split files over 800 lines: `LandCampusBuilder.gd` (964), `BuildSiteDialog.gd` (~1,100) | S | Pure refactor; the UI flow suite stays at its exact count |
 | Visual-QA baseline refresh | S | Only after the owner approves the list in RUN_LOG §9 |
 | Inbox polish: a live entry shows «siden dag N» (it shows its first day); the 30× button's first click is swallowed while the drawer is open | S | `godot/scripts/ui/NotificationCenter.gd`, HUD speed buttons; RUN_LOG §8 cycle 2 follow-up |

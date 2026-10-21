@@ -215,7 +215,7 @@ def test_the_of1_unit_reads_as_hull_yellow_where_it_stands(metrics):
 def test_the_presenter_only_reads_the_engine():
     """The presenter calls no SimBridge or GameBridge verb but its reads."""
     reads = {"get_facility_visuals", "get_land_plots", "get_offshore_plots", "get_sea_state_forecast",
-             "get_game_generation"}
+             "get_game_generation", "get_offshore_handling_state"}
     for path in PRESENTER:
         text = path.read_text()
         for verb in QA_VERBS:
@@ -235,9 +235,11 @@ SIM_SAFE_MEMBERS = {"has_method", "has_signal"}
 # F2-21 adds the sea at an offshore unit (the engine's cached forecast and
 # its split of today's sea; test_the_sea_read_is_the_engines_pure_forecast);
 # the wave4b int review the game's generation, which tells a new or loaded
-# game (test_the_game_generation_read_is_the_event_bus_counter).
+# game (test_the_game_generation_read_is_the_event_bus_counter); F2-24 the
+# unit's open incident, from its handling state (a tilt lists the unit;
+# test_the_handling_state_read_is_the_engines_pure_view).
 SIM_READS = {"get_facility_visuals", "get_land_plots", "get_offshore_plots", "get_sea_state_forecast",
-             "get_game_generation"}
+             "get_game_generation", "get_offshore_handling_state"}
 
 
 def _code_only(text: str) -> str:
@@ -402,6 +404,27 @@ def test_the_sea_read_is_the_engines_pure_forecast():
     tests = REPO / "src" / "LakskongenSim.Tests" / "Environment"
     assert "AThousandForecastPolls_MoveNoStream_AndChangeNoSave" in (tests / "OffshoreSeaWiringTests.cs").read_text()
     assert "TodaysSea_SplitsIntoWindSeaAndSwell_AsAPureRead" in (tests / "OpenSeaSwellTests.cs").read_text()
+
+
+def test_the_handling_state_read_is_the_engines_pure_view():
+    """F2-24 (RUN_LOG §7): the presenter's sixth read, get_offshore_handling_state
+    (the open incident a tilt list follows), is the bridge's
+    GetOffshoreHandlingState, which touches the engine through one pure read:
+    the unit's handling view, held pure by an xUnit test that polls it a
+    thousand times and finds no stream moved and the save unchanged."""
+    bridge = (GODOT / "scripts" / "autoload" / "GameBridge.Offshore.cs").read_text()
+    start = bridge.index("public Godot.Collections.Dictionary GetOffshoreHandlingState(")
+    depth, i = 0, bridge.index("{", start)
+    while True:
+        depth += {"{": 1, "}": -1}.get(bridge[i], 0)
+        i += 1
+        if depth == 0:
+            break
+    body = bridge[start:i]
+    members = set(re.findall(r"SimulationEngine\??\.([A-Za-z_]\w*)", body))
+    assert members == {"State", "GetOffshoreHandlingState"}, members
+    tests = REPO / "src" / "LakskongenSim.Tests" / "Farm"
+    assert "AThousandHandlingStatePolls_MoveNoStream_AndChangeNoSave" in (tests / "OffshoreHandlingViewTests.cs").read_text()
 
 
 def test_the_qa_staging_verbs_are_never_called_from_the_players_ui():
