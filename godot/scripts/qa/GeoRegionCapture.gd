@@ -22,6 +22,14 @@ const SHOTS := [
 	["geo_region_po11_1920", Vector2i(1920, 1080), 1.0, 11, "region"],
 	["geo_site_rival_1920", Vector2i(1920, 1080), 1.0, 3, "rival"],
 	["geo_national_explore_1280", Vector2i(1280, 720), 1.0, 3, "national"],
+	# The captain's D merge: a click names a national feature (the detail
+	# column's button to its card), the company's places as rows, PO10's
+	# river rings at the map's edge, the crop's shaded heat.
+	["geo_national_named_1280", Vector2i(1280, 720), 1.0, 4, "named"],
+	["geo_national_named_1920", Vector2i(1920, 1080), 1.0, 4, "named"],
+	["geo_region_po10_1920", Vector2i(1920, 1080), 1.0, 10, "region"],
+	["geo_site_rival_1280", Vector2i(1280, 720), 1.0, 3, "rival"],
+	["geo_site_candidate_po6_1920", Vector2i(1920, 1080), 1.0, 6, "candidate"],
 ]
 
 var _sim: Node = null
@@ -100,6 +108,12 @@ func _stage(area: int, what: String) -> void:
 		"national":
 			drill.go_national()
 			_map.select_area(area)
+		"named":
+			drill.go_national()
+			_map.select_area(area)
+			for s: Dictionary in (_map.chart() as GeoMapView).candidate_layer().star_groups():
+				if int(s["po"]) == area:
+					_map._on_feature_clicked("candidates", String(s["best"].get("id", "")))
 		"site":
 			var sites := view.player_sites()
 			if not sites.is_empty():
