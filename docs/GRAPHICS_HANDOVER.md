@@ -1,134 +1,215 @@
-# Graphics and Blender handover (2026-10-23)
+# Graphics and Blender handover (2026-10-23, revision 2)
 
 For the next agent, whose focus is Blender modelling and graphics. Read this first, then
-`docs/HANDOFF.md` §0-§2 and §7 for the project as a whole. Everything below was checked
-against `origin/main` `89bfc92` on 2026-10-23.
+`docs/HANDOFF.md` §0-§2 and §7 for the project as a whole. Revision 1 was written against
+`origin/main` `89bfc92`. This revision records what landed since — **F2-29 is built and
+committed on local branch `art/f2-29`** — and carries the full reconnaissance for F2-30,
+so none of it has to be re-derived.
 
 ## 0. Start here
 
 1. `git fetch --all --prune`, then `gh pr list`: other models push to this repository.
-2. Make a worktree from `origin/main` for each piece of work:
+2. **First thing: ship F2-29.** Branch `art/f2-29` (worktree `.claude/worktrees/f2-29`,
+   commit `124ff69`, tree clean) is complete and verified (§4) but has no PR yet. Push it
+   and open a PR to `main`, the way PRs #16-#19 were opened. The owner merges.
+3. Make a worktree from `origin/main` for each new piece of work:
    `git worktree add -b art/<item> .claude/worktrees/<item> origin/main`.
    **Never work in the main checkout** (`/Users/fredrik.j.hansen/lakskongen`): the owner's
    Godot editor is open on it.
-3. Load the skill `.claude/skills/ecc/blender-asset-pipeline/SKILL.md` (107 lines). It is the
-   full how-to for building, budgeting, checking and previewing a model.
-4. Art direction: `docs/art/OWNER_REFERENCE_BRIEF.md` (56 lines, the owner's references in words)
-   and `design/ART_DIRECTION.md`. Asset specs: `docs/FARM_TYPES_SPEC.md` §5 (`## 5. 3D assets`):
-   dimensions, swatches, triangle budgets, and how each asset reads at the default camera (§5.5).
-5. Wait for the owner's go before starting work. The owner merges every PR.
+4. Load the skill `.claude/skills/ecc/blender-asset-pipeline/SKILL.md`. It is the full
+   how-to for building, budgeting, checking and previewing a model.
+5. Art direction: `docs/art/OWNER_REFERENCE_BRIEF.md` and `design/ART_DIRECTION.md`.
+   Asset specs: `docs/FARM_TYPES_SPEC.md` §5. For F2-30, read §6 below **before** writing
+   any code — it is the distilled result of a full codebase read.
+6. Wait for the owner's go before starting work. The owner merges every PR.
 
 ## 1. Tools on this Mac
 
 | Tool | Where | Notes |
 |---|---|---|
 | Blender 5.2.2 LTS | `/Applications/Blender.app/Contents/MacOS/Blender` | Headless builds: `-b --factory-startup --python blender/<script> -- ...` |
-| Blender MCP | `~/blender_mcp/mcp` (`blender-mcp`, 26 tools) ↔ the add-on in the owner's Blender on `localhost:9876` | Works on the owner's open Blender: if a call says "Cannot connect to Blender at localhost:9876", ask the owner to start the add-on's server (Preferences → Add-ons → Blender MCP). **Look-dev only**: port anything worth keeping into a build script and rebuild headless. `tools/blender_mcp_call.py` calls one tool from the shell |
-| Godot MCP | `@npgamedev/godot-mcp-server` (36 tools) ↔ the toolkit plugin in the owner's Godot editor on `127.0.0.1:6550` | Scene trees, node properties, editor console, runtime screenshots. Needs `GODOT_MCP_PROJECT_PATH=<main checkout>/godot`. If calls say `AUTH_FAILED`, run `python3 tools/mcp_bridge_alias.py` (`docs/research/MCP_CAPABILITIES.md` §3). Never save scenes in the owner's editor without asking |
-| MCP config | `.mcp.json` (Claude Code), `opencode.json` (opencode), Cline: `bash tools/setup_cline_mcp.sh` | Both servers in every client. Check with `python3 tools/mcp_probe.py [--config cline]`: exit 0 = servers and live apps answer, 2 = an app is not open, 1 = config broken |
-| Godot 4.7.2 Mono | `/opt/homebrew/bin/godot-mono` | Always `env GODOT_MCP_TOKEN_PATH=$(mktemp -d)/t godot-mono --audio-driver Dummy ...`; after a new `class_name` run `--headless --path godot --import` |
-| Screenshots | `bash tools/capture_screenshots.sh` (needs a window, because headless draws nothing); `--scene res://qa/scenes/<X>.tscn` for the QA scenes; shots listed in `godot/qa/shots.json` (115) | Only when the owner allows windowed Godot. **Never** run `python -m visual_qa.capture` or `baseline_update` |
+| Blender MCP | ↔ the add-on in the owner's Blender on `localhost:9876` | **Look-dev only**: port anything worth keeping into a build script and rebuild headless. The MCP session is never the source of a committed asset. Note: Blender's bundled Python has no PIL — do image work in `python3.12` |
+| Godot MCP | ↔ the toolkit plugin in the owner's Godot editor | Scene trees, node properties, editor console, runtime screenshots. If `AUTH_FAILED`, run `python3 tools/mcp_bridge_alias.py` |
+| MCP config | `.mcp.json`, `opencode.json`, Cline: `tools/setup_cline_mcp.sh` | Check with `python3 tools/mcp_probe.py [--config cline]` |
+| Godot 4.7.2 Mono | `/opt/homebrew/bin/godot-mono` | Always silent: `env GODOT_MCP_TOKEN_PATH=$(mktemp -d)/t godot-mono --headless --audio-driver Dummy ...`; after new files run `--headless --path godot --import` (a fresh worktree's first import takes ~40 s — seed `.godot/imported/` from an old worktree first) |
+| Screenshots | `bash tools/capture_screenshots.sh` | Only when the owner allows windowed Godot. **Never** `python -m visual_qa.capture` or `baseline_update` |
 | Perf | `tools/perf_smoke.sh`, `tools/perf_report.py` | High tier budget: p95 16.7 ms on the M1 Pro |
-| No `timeout` on macOS | `perl -e 'alarm shift; exec @ARGV' 900 <cmd>`, or run in the background with a log | |
+| No `timeout` on macOS | `perl -e 'alarm shift; exec @ARGV' 900 <cmd>` | |
+| python3.12 | Homebrew python3 has no pytest | All `pytest`/PIL/JSON work uses `python3.12` |
 
 ## 2. The pipeline in one paragraph
 
-Every model in `godot/assets/models/` is generated by a deterministic Python script in `blender/`:
-`build_salmon`, `build_pen`, `build_site_kit`, `build_vessels`, `build_vegetation`,
-`build_shore_props`, `build_land_base`, `build_offshore` and `build_construction_kit`. They share
-`lk_meshkit.py` and the trim atlas `lk_trim_atlas.py`.
+Every model in `godot/assets/models/` is generated by a deterministic Python script in
+`blender/`: `build_salmon`, `build_pen`, `build_site_kit`, `build_vessels`, `build_vegetation`,
+`build_shore_props`, `build_land_base`, `build_offshore` (of1_class, havfarm_class,
+mooring_line_kit) and `build_construction_kit`. They share `lk_meshkit.py` and the trim
+atlas `lk_trim_atlas.py`. `blender/asset_manifest.json` is the source of truth: 40 assets,
+each with its type, scale, LODs, materials, `tri_budget`, `tri_max`, export path and licence.
+Each LOD exports a `.glb`, a JSON sidecar and a `.glb.import` that maps each `LK_*` material
+to a project `.tres`. The farm-type kits use one material per kit (`LK_FacilityKit`,
+`LK_OffshoreKit`); per-instance variants go through `INSTANCE_CUSTOM` in
+`facility_kit.gdshader` / `offshore_kit.gdshader`. Godot draws the kits through the
+presenters in `godot/scripts/visual/` (`FarmFacilityVisualManager`, `LandCampusBuilder`,
+`OffshoreUnitVisual`, `OffshoreUnitModel`, `ConstructionKitVisual`, `VesselModel`, ...).
+Presenters only read engine state and never change the simulation.
 
-`blender/asset_manifest.json` is the source of truth. It lists 38 assets, each with its type, scale,
-LODs, materials, `tri_budget`, `tri_max`, export path and licence. Each LOD exports three files:
-- a `.glb`;
-- a JSON sidecar (triangles, dimensions, per-part swatches);
-- a `.glb.import` that maps each `LK_*` material to a project `.tres`.
-
-The farm-type kits use one material per kit (`LK_FacilityKit`, `LK_OffshoreKit`). Per-instance
-variants go through `INSTANCE_CUSTOM` in `godot/shaders/facility_kit.gdshader` and
-`offshore_kit.gdshader`.
-
-Godot draws the kits through the presenters in `godot/scripts/visual/` (`FarmFacilityVisualManager`,
-`LandCampusBuilder`, `OffshoreUnitVisual`, `OffshoreUnitModel`, `ConstructionKitVisual`,
-`VesselModel`, ...). The world lives in `godot/scripts/environment/`; `EnvironmentDirector` is the
-only writer of the sky, fog, water and the eight moods. Presenters only read engine state and never
-change the simulation.
-
-## 3. Asset inventory (manifest, `origin/main`)
+## 3. Asset inventory (manifest + local branch `art/f2-29`)
 
 - **Sea sites:** `salmon`, `pen_cage`, `mooring_buoy`, `mooring_light`, `hose_float`.
-- **Vessels:** `workboat`, `feed_barge`, `feed_barge_large`, `wellboat`, `wellboat_large`, `rib`,
-  `offshore_service`, `crew_boat`, `rov`, `auv`. `anchor_tug` is a swatch variant of
-  `offshore_service`, with no mesh of its own.
+- **Vessels:** `workboat`, `feed_barge`, `feed_barge_large`, `wellboat`, `wellboat_large`,
+  `rib`, `offshore_service`, `crew_boat`, `rov`, `auv`; `anchor_tug` is a swatch variant.
 - **World:** `spruce`, `birch`, `naust`, `shore_quay`.
-- **Land kit (F2-25):** `tank_growout`, `tank_pregrow`, `tank_feeder`, `process_hall_bay`,
-  `harvest_hall`, `pipe_bridge_span`, `quay`, `intake_basin`, `river_intake`, `lox_tank`,
-  `genset_container`, `substation`, `feed_silo_land`, `sludge_station`.
-- **Offshore (F2-26):** `of1_class`, a 12-gon of Ø110 m. `--sides 8` builds the 8-gon comparison.
-- **Construction kit (F2-28, drawn on the campus):** `tower_crane`, `scaffold_ring`, `excavator`,
-  `blast_mats`.
-- **Specified but missing:**
-  - `havfarm_class` and `mooring_line_kit` (F2-29). The Havfarm-class unit currently **draws
-    nothing** in the game.
-  - The closed-pen kit (F2-30): `closed_donut`, `closed_globe`, `semi_closed_ring`, `pump_module`.
+- **Land kit (F2-25):** 14 assets under `land_kit/`.
+- **Offshore:** `of1_class` (F2-26), **`havfarm_class` + `mooring_line_kit` (F2-29, on
+  `art/f2-29`)**. `--sides 8` builds the OF1 8-gon evidence variant.
+- **Construction kit (F2-28):** `tower_crane`, `scaffold_ring`, `excavator`, `blast_mats`.
+- **Specified but missing: only the closed-pen kit (F2-30)** — `closed_donut`,
+  `closed_globe`, `semi_closed_ring`, `pump_module`. See §6.
 
-## 4. Work queue (graphics only, in a sensible order)
+## 4. F2-29: DONE on `art/f2-29` (record; ship it)
 
-Sources: `docs/SHIP_PLAN.md` §10 (the "Cheaper models" table), `docs/RUN_LOG.md` §8 (open
-findings) and `docs/run/evidence/wave4b_frame_review.md` (ranked frame findings).
+Commit `124ff69`, worktree `.claude/worktrees/f2-29`, tree clean, based on `origin/main`
+`89bfc92`. 44 files: two new assets, presenter wiring, manifest, +14 tests, evidence.
+
+- **`havfarm_class`** (Havfarm 1 "Jostein Albert" class): 385.0 × 59.5 m hull, moulded
+  depth 37.75 m, freeboard 11.0 m (draft 26.75), six 47.0 × 47.0 m wells with nets to
+  −56.0 m, Ø14 m bow turret at x = −166, 40 × 59.5 × 18 m aft superstructure, 8 silos
+  Ø4 × 10, two rail gantries, two cranes (18.63 m reach), yellow rails, edge nav lights.
+  18,952 / 3,692 / 1,350 tris (≤ 60 k / 12 k / 1.5 k). Scene `havfarm_class.tscn` is an
+  `OffshoreUnitModel` like `of1_class.tscn`.
+- **`mooring_line_kit`**: chain catenary + fibre segment + drag anchor, 1,100 m span,
+  fairlead −30 m, seabed −150 m; 348 / 46 tris (≤ 400 / 60). `OffshoreUnitModel.get_mooring_spread()`
+  + `set_mooring_visible()` instance it 8×/4 pairs at 1,100 m (OF1) and 11×/3 groups at
+  650 m from the bow turret (Havfarm). Moved from `pending` to `assets` in
+  `construction_phase_sets.offshore.Mooring`.
+- **Hull colour (acceptance 4, a ruling):** Nordlaks/NSK press photos sampled — topsides
+  are Nordlaks corporate green `#0D6034`/`#028759` with white lettering; rejected under D17
+  (no real company branding) and Pillar 7 (cool palette, saturation = equipment). Signed
+  off **`#34424B`** (`hull_slate`, row 15 of `offshore_atlas.png`), matching the sampled
+  structural steel `#2E2D33–#4E5454`. Evidence: `docs/run/evidence/f2_29_havfarm.md` +
+  13 frames in `f2_29/` (incl. the slate-vs-green side-by-side). Recorded in RUN_LOG §7.
+- **Atlas:** rows 15–17 appended (`hull_slate`, `chain #3A3F44`, `fibre #C8C2B0`) — OF1's
+  rows 0-14 and GLBs stay byte-identical.
+- **Presenter:** `FarmFacilityVisualManager._create_havfarm()` + `OffshoreUnitVisual._swap_to_havfarm()`
+  draw `havfarm_class` when `variant == "havfarm"`. Verified: PR #17's diff applies on
+  this tree with **zero conflicts** (`git diff origin/main...origin/gfx/weather-drama |
+  git apply --check`).
+- **Gates (raw):** asset verifier 107/0; pytest offshore+construction+presenter+shader 169
+  passed; validate_scenes 90 scenes, 0 failures; headless Godot probe prints
+  `HAVFARM_MODEL ... lines=11 r=650.0`, `OF1_MODEL ... lines=8 r=1100.0`,
+  `HAVFARM_VISUAL ok=true`. Re-verify from the worktree:
+  `python3.12 -m pytest tests/test_offshore_assets.py tests/test_construction_kit_assets.py -q`
+  (53 + 154 pass) and `bash tools/validate_scenes.sh` (0 failures).
+
+## 5. Work queue (graphics only, in a sensible order)
 
 | # | Item | Size | Start here; done when |
 |---|---|---|---|
-| 0 | **PR #17 `gfx/weather-drama`** (F2-24: spray at the OF1 columns, a tilt list, roof-vent steam) | — | Open. CI is green except the visual-QA job, which needs the self-hosted runner. Read it before touching `OffshoreUnitVisual.gd`, `LandCampusBuilder.gd` or `particles/`. The owner merges it |
-| 1 | F2-29: the Havfarm-class unit (385 × 59.5 m, 6 wells of 47 × 47 m) and `mooring_line_kit` (OF1: 8 lines at 1,100 m; Havfarm: 11 at 650 m) | M | Spec row F2-29 in FARM_TYPES_SPEC §7 and §5.2; `blender/build_offshore.py`, `offshore_designs.py`; extend `tests/test_offshore_assets.py`. The hull colour #34424B is **provisional**: the evidence doc must record the check against press photos. Then the presenter draws it (`OffshoreUnitModel`). The construction kit's `construction_phase_sets` lists `mooring_line_kit` as pending |
-| 2 | F2-30: the closed-pen kit (Donut 22,000 m³, Globe 3,500 m³, skirt 13 m) | M | Spec row F2-30 and §5.3; a new `blender/build_closed_pens.py`, a new `tests/test_closed_pen_assets.py`, the folder `godot/assets/models/closed_pen/` |
-| 3 | Art notes: the harvest hall's #3A4046 cladding reads navy under a clear sky, and the OF1 #E6BE2E reads mustard in low winter sun (mean 134,115,43) | S | RUN_LOG §8 "Finding (F2-20)"; the swatches in `blender/lk_trim_atlas.py`; `render_land_preview.py` and `render_offshore_preview.py`. A swatch change is an **art-direction call**: show the owner side-by-sides first |
-| 4 | Frame-review art findings | S-M each | See the list below the table |
-| 5 | A vessel chip's pill outlives its text in the 700-770 m fade band | S | RUN_LOG §8 "Finding (wave-4b close, A3-01)"; `world_chip.gdshader`, `VesselChip` |
-| 6 | F2-22: logistics visuals (a vessel beat of 6-15 s per sim job) | M | Spec row F2-22; `godot/scripts/visual/` |
-| 7 | Split `LandCampusBuilder.gd` (now **1,042** lines; the limit is 800) | S | A pure refactor: layout apart from the draws. The UI-flow suite keeps its exact check count |
-| 8 | The stale F2-25 dusk metric in `docs/run/evidence/f2_25_land_kit_metrics.json`: dL 30.65 recorded, 20.1 measured since the lid work-lights | S | RUN_LOG §8. Decide with the owner whether the bar is for an unlit lid, then re-record |
-| 9 | Visual-QA baselines: 18 shots are over the pHash threshold | — | **The owner only** (RUN_LOG §9). Never promote a baseline yourself |
+| 1 | **F2-30: closed-pen kit** (`closed_donut`, `closed_globe`, `semi_closed_ring`, `pump_module`) | M | **§6 below is the complete recon — read it, then build.** Spec §5.3 + §7.3 |
+| 2 | Art notes: harvest hall `#3A4046` reads navy under clear sky; OF1 `#E6BE2E` reads mustard in low winter sun | S | `lk_trim_atlas.py` swatches; render side-by-sides with `render_*_preview.py`; **owner signs off before a swatch change** |
+| 3 | Frame-review art findings (RUN_LOG §8, `wave4b_frame_review.md` 5-8): flat pads from home view; streaky snow; whitecaps in rectangles; fish shoals through sea fog (`fish_shoal.gdshader` ignores height fog); 08a land contrast 0.107 < 0.12; bloom reads emerald; no boat wakes; caustics read as moving light | S-M | `godot/shaders/`, `godot/scripts/environment/` |
+| 4 | A vessel chip's pill outlives its text in the 700-770 m fade band | S | `world_chip.gdshader`, `VesselChip` |
+| 5 | F2-22 logistics visuals (vessel beat 6-15 s per sim job) | M | Spec row F2-22; `godot/scripts/visual/` |
+| 6 | Split `LandCampusBuilder.gd` (1,042 lines; limit 800) | S | Pure refactor; UI-flow suite keeps its exact count |
+| 7 | Stale F2-25 dusk metric (`f2_25_land_kit_metrics.json`: 30.65 recorded, 20.1 measured) | S | RUN_LOG §8; owner decides the bar, then re-record |
+| 8 | Visual-QA baselines: 18 shots over pHash | — | **Owner only** (RUN_LOG §9) |
 
-Item 4, the frame-review art findings (`wave4b_frame_review.md` findings 5-8):
-- The carved pads read as flat rectangles from the home view.
-- The walls' snow runs in parallel streaks; ref 2 wants patchy snow on dark rock.
-- Storm whitecaps appear in rectangular patches.
-- Fish schools show through the sea fog, because `fish_shoal.gdshader` ignores the height fog.
-- 08a's land contrast is 0.107 against a bar of 0.12.
-- The bloom reads emerald.
-- Boats have no wakes.
-- The clean net's caustics read as moving light.
+## 6. F2-30 reconnaissance (done 2026-10-23 — build from this, don't re-read)
 
-## 5. Rules (from SHIP_PLAN §10 and HANDOFF §7)
+Spec rows (§5.3) and acceptance (§7.3 F2-30): *1. Donut volume 22,000 m³ ± 5%, Globe
+3,500 m³ ± 5%, skirt 13 m. 2. Triangle budgets met. 3. Each containment level renders
+its own asset (UI flow test on a QA site per level).*
+
+### Geometry + math (already derived)
+
+| Asset | Real class | Derived numbers | Swatches | LOD0/1/2 |
+|---|---|---|---|---|
+| `closed_donut` | Marine Donut [O:R46] | Torus **R = 17.0, r = 8.1** → V = 2π²Rr² = **22,019 m³** (0.09 % off spec); outer Ø = 2(R+r) = **50.2 m**; **freeboard 3** → tube centre z_c = 3 − 8.1 = **−5.1**, shell spans −13.2 .. +3.0 | shell `#8E979C`, walkway `#5C6369`, rails `#8A9096`, hatch `#2A3036` | 12,000 / 3,000 / 400 |
+| `closed_globe` | FishGLOBE V5 [O:R47] | Sphere **Ø18.8 (r = 9.4)** → V = 4/3πr³ = **3,479 m³** (0.6 % off); **5 m above waterline** → centre z_c = 5 − 9.4 = **−4.4**, spans −13.8 .. +5.0 | shell `#E9ECEA`, walkway `#5C6369`, rails `#8A9096` | 6,000 / 1,500 / 200 |
+| `semi_closed_ring` | Aquatraz G3 [O:R44] | Steel collar **Ø40** (R_out 20.0, R_in 18.2, z −0.8..+1.4) + **13 m skirt** to z = −13.0 (R 18.4) + lower net cone to −28 | collar `#8A9096`, skirt `#C9CCC6` | 15,000 / 4,000 / 600 |
+| `pump_module` | deep intake [O:R46, O:R47] | Skid **6 × 3 × 3** on the collar + intake hose to **z = −25** (spec band 15-40; 25 is the middle) | `#8A9096`, `#D9622B` | 1,200 / 300 (no LOD2) |
+
+### Trim atlas (facility_atlas.png)
+
+Reuse `build_land_base.STRIPS`: `#E9ECEA` is row 19 `lox`, `#8A9096` is row 6 `steel`,
+`#D9622B` is row 13 `orange`, `#5C6369` is `grating`, `#2A3036` is `tank_lid`, `#1C1E20`
+is `fender`, `#E8B92A` is `safety`, `#D5D9DB` is `hall_clad`, `#FFE7B0` is `lamp`.
+**Append exactly two rows after `crane_yellow` (row 27):** row 28 `donut_shell`
+`#8E979C` and row 29 `skirt_tarp` `#C9CCC6` — rows 0-27 keep their indices, so the land
+kit's and construction kit's committed GLBs stay byte-identical and
+`test_crane_yellow_is_appended_after_the_land_strips` still passes (it checks 26/27).
+`build_closed_pens.py --textures` then writes the same atlas bytes as the other kits.
+
+### Build script pattern
+
+Copy `blender/build_construction_kit.py` (28-229 lines) — it is the minimal template:
+`import build_land_base as land`, geometry in a new `blender/closed_pen_designs.py`
+using `land_parts.py` helpers (`Build`, `box`, `beam`, `tube`, `revolve`, `ring_deck`,
+`railing`, `grid`, `uniform`), one `LK_FacilityKit` surface per LOD joined at export,
+`land.bake_ao` / `land.white_vertex_colour` / `land.join`, TRI_LIMITS with `None` for
+missing LODs, `lods_for()` refusing `--lod` a spec has no budget for, sidecars with
+`parts`, `part_strips`, `dimensions`, `swatches`. Orientation: Blender X right, Y forward
+(glTF/Godot −Z), Z up, **origin on the waterline at the pen's axis** (these float, like
+the pen kit, not on a pad). Revolve the torus/dome about Z with `kit.surface_of_revolution`
+profiles offset to z_c; the sphere is one profile arc; the torus needs a profile of the
+tube cross-section swept around a circle of R = 17 — build it as a revolve of the tube
+profile placed at radius R (a `revolve` with centre offset does it).
+
+### Presenter wiring (acceptance 3) — the chain already exists
+
+`GetSeaSiteDetails` (`GameBridge.Farm.cs:928`) **already sends** `["containment"] =
+site.Containment.ToString()` and `["has_skirt"]`; `FishPenManager` syncs sites on
+`state_updated`; the wiring point is **`FarmSite.apply_site_kit(site)`**
+(`godot/scripts/environment/FarmSite.gd:170`) — it currently only does
+`set_lice_skirt(has_skirt)` + `set_net_fouling(...)`. `ContainmentTech.cs` levels:
+`OpenNet, Skirt, SemiClosed, ClosedFloat, Submersible, OffshoreClosed`; the player verb
+is `UpgradeContainment(siteId, levelName)` (no downgrade), `SimBridge.upgrade_containment`.
+Mapping to render: `OpenNet`/`Skirt` → the existing `PenCage` (skirt shows `LiceSkirt`);
+`SemiClosed` → `semi_closed_ring` + `pump_module`; `ClosedFloat` → `closed_donut` +
+`pump_module`; `Submersible`/`OffshoreClosed` → `closed_globe` + `pump_module`. Plan:
+add `FarmSite.set_containment(level_name)` (+ `PenCage` variants like the skirt/bird-net
+ones: hide the open-pen collar/bird-net parts, attach the closed-pen scene at the pen
+axis, keep `HealthRing` + `ClickArea` working, and propagate into the site's LOD
+MultiMeshes the way `set_lice_skirt` does — see `_apply_part_visibility()` and
+`PenCage.part_shown()`). `SiteFlowChecks._ghost_site_and_variants()` is the pattern a new
+UI-flow check per containment level should follow; the F2-30 acceptance asks for exactly
+that (QA site per level). Keep hands off `FishPenManager.gd`'s layout indexing.
+
+### Tests + evidence pattern
+
+New `tests/test_closed_pen_assets.py`: copy the structure of `test_construction_kit_assets.py`
+(`_strips()` regex parses `build_land_base.STRIPS`, `_spec_rows()` parses the §5.3 table,
+ΔE ≤ 3.0 swatch checks, `pipeline.validate_asset` verifier pass, byte-identical rebuild
+with `--textures --atlas-out`, budget-stop with `--tri-limit-scale`, `--lod LOD2` refusal
+for `pump_module`). Add the containment→asset mapping check (acceptance 3) the way
+`test_construction_kit_assets.py` cross-checks `construction_phase_sets`. Evidence doc
+`docs/run/evidence/f2_30_closed_pens.md` + frames in `f2_30/`; a new
+`blender/render_closed_pen_preview.py` (template: `render_construction_preview.py`,
+which itself leans on `render_land_preview.py`). Manifest: 4 entries `type: closed_pen`,
+`godot_material: LK_FacilityKit.tres`, `atlas: facility_atlas.png` — registered in
+`blender/asset_manifest.json` (art track owns it serially, F2-25..F2-30).
+
+## 7. Rules (from SHIP_PLAN §10 and HANDOFF §7)
 
 - Assets come from the build scripts only. The MCP session is never the source of a committed asset.
 - Builds are deterministic: the same script writes the same `.glb` byte for byte.
 - Commit the `.glb`, `.glb.import`, sidecars, textures, manifest and test together.
-- Triangles stay within `tri_max`. Change `tri_budget` only on purpose, in the same commit as the
-  geometry.
-- No real brands, logos or company names on a model (D17). Never import third-party meshes, and never
-  commit the owner's reference photos.
-- **Palette:**
-  - The environment stays cool; saturation is only for equipment and signals: buoy yellow #E8B92A,
-    workboat red #C8102E, hose white #EDEFEF, HDPE black #1C1E20, OF1 hull #E6BE2E.
-  - Markers over offshore units are never yellow: ΔE ≥ 20 from the hull (`tools/lint_markers.py` on
-    PR #17).
-- Visual claims need frames; a green headless run is not evidence. Put frames and an evidence doc in
-  `docs/run/evidence/<item>/`.
+- Triangles stay within `tri_max`. Change `tri_budget` only on purpose, in the same commit as the geometry.
+- New atlas strips are **appended** after the existing rows, never inserted (row indices are the shader's ROW_* constants and committed UVs).
+- No real brands, logos or company names on a model (D17). Never import third-party meshes, and never commit the owner's reference photos; press photos are sampled, recorded as numbers in the evidence doc, and discarded.
+- **Palette:** the environment stays cool; saturation is only for equipment and signals: buoy yellow #E8B92A, workboat red #C8102E, hose white #EDEFEF, HDPE black #1C1E20, OF1 hull #E6BE2E. Markers over offshore units are never yellow (ΔE ≥ 20 from the hull).
+- Visual claims need frames; a green headless run is not evidence. Put frames and an evidence doc in `docs/run/evidence/<item>/`.
 - Tests are add-only. Strengthen a check, never loosen one, and log any replacement in RUN_LOG §7.
-- Every Godot run is silent (`--audio-driver Dummy`). Before a capture, check `git status` for a
-  stray `godot/override.cfg`.
-- Commits use the format `run: <item> — <outcome>`, with evidence in the body and no attribution or
-  co-author lines. PRs go to `main`.
+- Every Godot run is silent (`--audio-driver Dummy`). Before a capture, check `git status` for a stray `godot/override.cfg`.
+- Commits use the format `run: <item> — <outcome>`, with evidence in the body and no attribution or co-author lines. PRs go to `main`.
 
-## 6. Verify
+## 8. Verify
 
 ```bash
 # assets (python3.12: the Homebrew python3 has no pytest; see tools/ci.sh)
 python3.12 -m pytest tests/test_salmon_asset.py tests/test_pen_asset.py tests/test_vessel_assets.py \
   tests/test_land_kit_assets.py tests/test_offshore_assets.py tests/test_construction_kit_assets.py \
-  tests/test_terrain_material.py -q
+  tests/test_closed_pen_assets.py tests/test_terrain_material.py -q
 python3 .claude/skills/ecc/blender-asset-pipeline/blender_asset_pipeline.py --verify-only
 # presenters and shaders
 python3.12 -m pytest tests/test_facility_presenter.py tests/test_construction_kit_presenter.py \
@@ -139,20 +220,29 @@ bash tools/run_ui_flow_tests.sh   # ~8 min; MIN_CHECKS must equal the exact coun
 LC_ALL=C LANG=C dotnet test LakskongenSim.sln
 ```
 
+Tip: the asset pytest files spawn headless Blender rebuilds; run them one file at a time
+if a shell wrapper caps at 30 s, and pass `--asset <id>` in rebuild tests so a suite does
+not rebuild every asset at once.
 
-## 7. Local machine state at handover (2026-10-23)
+## 9. Local machine state at handover (2026-10-23, revision 2)
 
-- **Every local branch and stash is on GitHub.** Pushed today so that nothing lives only on this
-  Mac (none of them is for merging):
-  - `review/f1024-water-chemistry`;
-  - `wip/sim-lanes-2-leftover-20261015` and `wip/ui-a-2-leftover-20261015`;
-  - `wip/stash-editor-rewrites-20261023` (stash@{0}) and `wip/stash-main-wip-20261012` (stash@{1});
-  - `wip/untracked-leftovers-20261023`, under `wip_leftovers/`: the untracked
-    `godot/scenes/NordlandFjord.tscn` from the main checkout and three scratch-probe folders.
-- **The main checkout** is on `review-remediation`, which is merged into `main`; the local branch is
-  178 commits behind `origin/review-remediation`. The owner's editor is open on it, so leave it alone.
-- **Old worktrees:** `.claude/worktrees/` holds ~90 worktrees from waves 1-4, and all their commits
-  are on GitHub. The untracked `*.jpg.import` files in a few of them are Godot import caches, not work.
-- **Not part of Lakskongen:** `code-buddy/` and `dominations/` in the main checkout are clones of
-  other GitHub projects. Both are clean and pushed to their own remotes.
-- **Open PRs:** #16 `ui/inbox-polish`, #17 `gfx/weather-drama`, #18 `sim/bloom-id-determinism`.
+- **`art/f2-29` (F2-29, complete, unPR'd):** worktree `.claude/worktrees/f2-29`, commit
+  `124ff69`, tree clean, ~30 min of work ahead of `origin/main` (its own branch — not
+  rebased onto PR #17). Push + PR it (§4). Its changes to `OffshoreUnitVisual.gd` and
+  `FarmFacilityVisualManager.gd` were deliberately placed so PR #17 (`gfx/weather-drama`)
+  applies over them with zero conflicts; re-check with `git apply --check` if #17 moves.
+- **`art/f2-30` (F2-30, recon only, no code):** worktree `.claude/worktrees/f2-30`, clean
+  at `89bfc92` (= origin/main). The reconnaissance result is §6 — build there.
+- **`docs/graphics-handover` (this file, PR #19):** worktree
+  `.claude/worktrees/graphics-handover`, this revision. Push updates to the PR branch so
+  the next agent always finds the newest handover on GitHub.
+- **The main checkout** is on `review-remediation` (merged into `main`; the owner's Godot
+  editor is open on it) — leave it alone. The main checkout's untracked `code-buddy/` and
+  `dominations/` are clones of other GitHub projects, not Lakskongen.
+- **Old worktrees:** `.claude/worktrees/` holds ~90 worktrees from waves 1-4; all their
+  commits are on GitHub. Untracked `*.jpg.import` files in a few are Godot caches.
+- **Open PRs:** #16 `ui/inbox-polish`, #17 `gfx/weather-drama`, #18 `sim/bloom-id-determinism`,
+  #19 `docs/graphics-handover`. **F2-29 needs a new PR** (§4).
+- **Scratch hygiene:** this session kept renders and press-photo samples only under
+  `/tmp` (removed after the evidence JPEGs were written) and cleaned stray diorama files
+  out of the main checkout's `blender/` early on — keep it that way.
