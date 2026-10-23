@@ -139,7 +139,7 @@ Every item names where to start. Take one item, finish it, and verify it.
 |---|---|---|
 | Ship cycles: play, judge, rank, fix | Player judgment, cross-layer fixes | §4, `tools/playtest.sh`, RUN_LOG §8 follow-ups (cycle 1) |
 | ~~Cycle 2: the guide card covers its own target; alarm fatigue in Familiegården~~ | **Done 2026-10-21** (card keeps clear of where targets arrive; inbox splits now / «Tidligere») | RUN_LOG §7 cycle 2 row |
-| Sim determinism: `BloomEvent.Id = Guid.NewGuid()` | Saves differ run to run; touches save compat and golden traces | `src/LakskongenSim/Environment/BloomEvent.cs`; `FarmTypeMoveTests` proof pattern |
+| ~~Sim determinism: `BloomEvent.Id = Guid.NewGuid()`~~ | **Done 2026-10-23** (id = start day, site, kind; legacy ids kept) | RUN_LOG §7 BloomEvent.Id row |
 | Sim week 1 runs NonCompliant (sustainability first assessed on day 7) | Changes every game's week 1: golden re-record plus a diff report | `InDayTickSystems.cs` SustainabilityTickSystem; RUN_LOG §8 (b) |
 | P0-04 High tier p95 23-25 ms at 1440p | Perf diagnosis on a shared machine | `tools/perf_smoke.sh`, PerfHarness; plugin agent `godot-performance-profiler` |
 | Economy balance with owner decisions (F2-07 acceptance 7, F2-08 acceptance 5) | Calibration with sources | `docs/BALANCE.md` §1w; HANDOFF open issues |
