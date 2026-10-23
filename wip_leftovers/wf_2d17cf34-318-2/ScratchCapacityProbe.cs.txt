@@ -1,0 +1,235 @@
+using System;
+using System.Linq;
+using LakskongenSim.Core;
+using LakskongenSim.Finance;
+using Xunit;
+using Xunit.Abstractions;
+
+namespace LakskongenSim.Tests.Integration;
+
+public class ScratchCapacityProbe
+{
+    private readonly ITestOutputHelper _out;
+    public ScratchCapacityProbe(ITestOutputHelper output) => _out = output;
+
+    private static int Fish(LakskongenSim.Farm.SeaSite site) => site.Pens.Sum(p => p.TotalCount);
+    private static double Mean(LakskongenSim.Farm.SeaSite site)
+    {
+        int f = Fish(site);
+        return f > 0 ? site.Pens.Sum(p => p.GetTotalBiomassKg()) / f : 0.0;
+    }
+
+    [Theory]
+    [InlineData(7, 1)]
+    [InlineData(13, 1)]
+    [InlineData(21, 1)]
+    [InlineData(7, 4)]
+    [InlineData(13, 4)]
+    [InlineData(21, 4)]
+    [InlineData(7, 6)]
+    [InlineData(13, 6)]
+    [InlineData(21, 6)]
+    [InlineData(7, 8)]
+    [InlineData(13, 8)]
+    [InlineData(21, 8)]
+    public void MultiSite(int seed, int licences)
+    {
+        var probe = new SimulationEngine();
+        probe.Initialize(enableEvents: false, seed: seed);
+        decimal capital = probe.Scenario.GetScenario("barekraft_mester")!.StartingCapitalNOK;
+        var engine = new SimulationEngine { FinanceManager = new FinanceManager(capital) };
+        engine.Initialize(enableEvents: true, seed: seed);
+        engine.Scenario.GetScenario("barekraft_mester")!.StartingSites[0].Licences = licences;
+        Assert.True(engine.StartScenario("barekraft_mester").Ok);
+        string zone = engine.State.SeaSites[0].ZoneId;
+        for (int i = 1; i <= 5; i++) Assert.True(engine.BuildSeaSite(zone, $"anlegg_{i}").Ok);
+        decimal minCash = decimal.MaxValue;
+        while (engine.State.Day < 3 * 365)
+        {
+            foreach (var site in engine.State.SeaSites.ToList())
+            {
+                if (Fish(site) > 0 && Mean(site) >= 4.5)
+                {
+                    var h = engine.HarvestSite(site.Id);
+                    _out.WriteLine($"d{engine.State.Day} harvest {site.Id} {h.Value / 1000:F0} t rev {h.Value2 / 1e6:F1}M cash {engine.FinanceManager.Balance / 1e6m:F1}M");
+                }
+                else if (Fish(site) == 0)
+                {
+                    int n = (int)(0.9 * site.MABTonnes * 1000.0 / 5.0);
+                    var r = engine.StockSmolts(site.Id, n);
+                    if (r.Ok) _out.WriteLine($"d{engine.State.Day} stock {site.Id} {n} cash {engine.FinanceManager.Balance / 1e6m:F1}M");
+                }
+            }
+            if (engine.FinanceManager.Balance < 5_000_000m && engine.LoanCapacityNok() - engine.TotalDebtNok >= 20_000_000m)
+            {
+                engine.TakeLoan(20_000_000, 36, 0.06);
+                _out.WriteLine($"d{engine.State.Day} loan, debt {engine.TotalDebtNok / 1e6m:F0}M");
+            }
+            engine.Advance(1);
+            if (false && engine.State.Day % 30 == 0) _out.WriteLine($"  d{engine.State.Day} cash {engine.FinanceManager.Balance/1e6m:F1}M standing {engine.State.SeaSites.Sum(s => s.CurrentBiomassTonnes):F0} t cap {engine.AreaLicenceMtbTonnes(4):F0} sites " + string.Join(" ", engine.State.SeaSites.Select(s => $"{s.CurrentBiomassTonnes:F0}")));
+            minCash = Math.Min(minCash, engine.FinanceManager.Balance);
+            if (engine.IsBankrupt) { _out.WriteLine($"BANKRUPT d{engine.State.Day} cash {engine.FinanceManager.Balance / 1e6m:F1}M floor {engine.BankruptcyFloorNok / 1e6m:F1}M"); break; }
+        }
+        foreach (var b in engine.State.CapacityBreaches)
+            _out.WriteLine($"breach {b.Id} {b.Status} days {b.DaysOver} start {b.StartDay} closed {b.ClosedDay} peak {b.PeakIllegalKg/1000:F1} t fee {b.FineNok/1e6m:F2}M conf {b.ConfiscatedNok/1e6m:F2}M forced {b.ForcedHarvestKg/1000:F1} t areaCap {b.AreaCapExceeded} sites {string.Join(",", b.SitesOverLocality)}");
+        foreach (var kv in engine.FinancialStatements.CostBreakdown.OrderByDescending(k => k.Value).Take(10))
+            _out.WriteLine($"cost {kv.Key} {kv.Value/1e6m:F1}M");
+        _out.WriteLine($"rent paid {engine.ResourceRentPaid / 1e6m:F2}M min cash {minCash / 1e6m:F1}M end {engine.FinanceManager.Balance / 1e6m:F1}M debt {engine.TotalDebtNok / 1e6m:F0}M breaches {engine.State.CapacityBreaches.Count}");
+    }
+
+    [Fact]
+    public void Strategies()
+    {
+        for (int seed = 1; seed <= 20; seed++)
+        {
+            foreach (bool reg in new[] { true, false })
+            {
+                var c = CapacityStrategyProbe.Run(seed, CapacityStrategy.Compliant, reg);
+                var o = CapacityStrategyProbe.Run(seed, CapacityStrategy.Overstock, reg);
+                var g = CapacityStrategyProbe.Run(seed, CapacityStrategy.GrowOn, reg);
+                _out.WriteLine(CapacityStrategyProbe.Format(c));
+                _out.WriteLine(CapacityStrategyProbe.Format(o));
+                _out.WriteLine(CapacityStrategyProbe.Format(g));
+            }
+        }
+    }
+
+    [Fact]
+    public void Tutorial()
+    {
+        foreach (bool reg in new[] { true, false })
+        foreach (int seed in new[] { 4, 7, 9, 21, 13, 42 })
+        {
+            var probe = new SimulationEngine(); probe.Initialize(enableEvents: false, seed: seed);
+            var def = probe.Scenario.GetScenario("forste_sesong")!;
+            var engine = new SimulationEngine { FinanceManager = new FinanceManager(def.StartingCapitalNOK) };
+            engine.Initialize(enableEvents: true, seed: seed);
+            Assert.True(engine.StartScenario("forste_sesong").Ok);
+            if (!reg) engine.State.CapacityRules = CapacityRegime.Unregulated;
+            bool harvested = false, research = false, secondSite = false; int refused = 0; string lastKey = "";
+            decimal minCash = decimal.MaxValue; int harvests = 0;
+            for (int day = 0; day < 1500 && !engine.Tutorial.IsComplete; day++)
+            {
+                engine.Advance(1);
+                minCash = Math.Min(minCash, engine.FinanceManager.Balance);
+                var site = engine.State.SeaSites[0];
+                int fish = site.Pens.Sum(p => p.TotalCount);
+                if (fish > 0)
+                {
+                    if (site.Lice.AdultFemalePerFish > 0.4) engine.DelouseSite(site.Id, "hydrolicer");
+                    if (site.Pens.Sum(p => p.GetTotalBiomassKg()) / fish >= 4.5)
+                    { var h = engine.HarvestSite(site.Id); harvested |= h.Ok; if (h.Ok) harvests++; }
+                }
+                else if (harvested)
+                {
+                    int smolts = (int)Math.Min(20_000, Math.Max(0m, engine.FinanceManager.Balance - 500_000m) / 12m);
+                    if (smolts >= 5_000) { var r = engine.StockSmolts(site.Id, smolts); if (!r.Ok) { refused++; lastKey = r.ErrorKey; } }
+                }
+                if (!research && harvested)
+                {
+                    var node = engine.Research.Nodes.Values.Where(n => engine.Research.CanResearch(n.Id)).OrderBy(n => n.CostNOK).First();
+                    if (engine.FinanceManager.Balance > node.CostNOK + 200_000m) research = engine.StartResearchProject(node.Id).Ok;
+                }
+                if (!secondSite && engine.FinanceManager.Balance > 6_500_000m)
+                    secondSite = engine.BuildSeaSite(site.ZoneId, "andre_anlegg").Ok;
+            }
+            _out.WriteLine($"{(reg ? "v1 " : "old")} seed {seed,2}: complete {engine.Tutorial.IsComplete} won {engine.Scenario.IsWon} lost {engine.Scenario.IsLost} day {engine.State.Day} step {engine.Tutorial.CurrentStepNumber} minCash {minCash/1e6m:F2}M harvests {harvests} refused {refused} '{lastKey}' breaches {engine.State.CapacityBreaches.Count} end {engine.FinanceManager.Balance/1e6m:F2}M");
+        }
+    }
+
+    [Fact]
+    public void SeedResume()
+    {
+        int bad = 0;
+        for (int seed = 1; seed <= 400; seed++)
+        {
+            var engine = new SimulationEngine();
+            engine.Initialize(enableEvents: true, seed: seed);
+            Assert.True(engine.StartScenario("po3_red_sone").Ok);
+            engine.Advance(40);
+            var resumed = SaveStateComparer.Resume(SaveStateComparer.Serialize(engine), events: true);
+            engine.Advance(40);
+            resumed.Advance(40);
+            string a = SaveStateComparer.Normalize(SaveStateComparer.Serialize(engine));
+            string b = SaveStateComparer.Normalize(SaveStateComparer.Serialize(resumed));
+            if (a != b) { bad++; _out.WriteLine($"seed {seed}: {SaveStateComparer.FirstDifference(a, b)}"); }
+        }
+        _out.WriteLine($"diverged {bad} of 400");
+    }
+
+    [Theory]
+    [InlineData(75)]
+    [InlineData(156)]
+    public void SeedResumeLockstep(int seed)
+    {
+        var engine = new SimulationEngine();
+        engine.Initialize(enableEvents: true, seed: seed);
+        Assert.True(engine.StartScenario("po3_red_sone").Ok);
+        engine.Advance(40);
+        var resumed = SaveStateComparer.Resume(SaveStateComparer.Serialize(engine), events: true);
+        _out.WriteLine($"at save: price {engine.MarketSimulation.PricePerKg} vs {resumed.MarketSimulation.PricePerKg}; ledger price {engine.Mortality.Ledger.PriceNokPerKg} vs {resumed.Mortality.Ledger.PriceNokPerKg}");
+        for (int d = 0; d < 40; d++)
+        {
+            engine.Advance(1); resumed.Advance(1);
+            var m1 = engine.MarketSimulation; var m2 = resumed.MarketSimulation;
+            var i1 = m1.Intelligence.ExportState(); var i2 = m2.Intelligence.ExportState();
+            var s1 = m1.ExportShockState(); var s2 = m2.ExportShockState();
+            var c1 = engine.SustainabilityManager.GetComponentScores(engine.State); var c2 = resumed.SustainabilityManager.GetComponentScores(resumed.State);
+            _out.WriteLine($"  d{engine.State.Day} sus {engine.SustainabilityManager.CurrentScore}/{resumed.SustainabilityManager.CurrentScore} " + string.Join(" ", c1.Keys.Select(k => $"{k}:{c1[k]}/{c2[k]}")) + $" bonus {engine.SustainabilityScoreBonus}/{resumed.SustainabilityScoreBonus}");
+            _out.WriteLine($"  d{engine.State.Day} base {m1.BasePricePerKg:F3}/{m2.BasePricePerKg:F3} sup {m1.GlobalSupplyIndex:F5}/{m2.GlobalSupplyIndex:F5} dem {m1.GlobalDemandIndex:F5}/{m2.GlobalDemandIndex:F5} shock {s1}/{s2} intelWeek {i1.Week}/{i2.Week} active {i1.Active.Count}/{i2.Active.Count} cert {m1.ExportState().CertMult}/{m2.ExportState().CertMult}");
+            var ja = System.Text.Json.Nodes.JsonNode.Parse(SaveStateComparer.Normalize(SaveStateComparer.Serialize(engine)))!.AsObject();
+            var jb = System.Text.Json.Nodes.JsonNode.Parse(SaveStateComparer.Normalize(SaveStateComparer.Serialize(resumed)))!.AsObject();
+            var ra = ja["Runtime"]!.ToJsonString(); var rb = jb["Runtime"]!.ToJsonString();
+            if (ra != rb) _out.WriteLine($"  runtime d{engine.State.Day}: {SaveStateComparer.FirstDifference(ra, rb)}");
+            ja.Remove("Runtime"); jb.Remove("Runtime");
+            string a = ja.ToJsonString(); string b = jb.ToJsonString();
+            if (a != b)
+            {
+                _out.WriteLine($"day {engine.State.Day}: {SaveStateComparer.FirstDifference(a, b)}");
+                _out.WriteLine($"  price {engine.MarketSimulation.PricePerKg} vs {resumed.MarketSimulation.PricePerKg}; ledger price {engine.Mortality.Ledger.PriceNokPerKg} vs {resumed.Mortality.Ledger.PriceNokPerKg}");
+                break;
+            }
+        }
+    }
+
+    [Fact]
+    public void Careers()
+    {
+        for (int seed = 1; seed <= 20; seed++)
+        {
+            var r = PlayerScriptProbe.RunCareer(seed, roundTripSaveLoad: false);
+            var json = System.Text.Json.Nodes.JsonNode.Parse(r.FinalStateJson)!.AsObject();
+            int breaches = json["CapacityBreaches"]!.AsArray().Count;
+            _out.WriteLine($"career seed {seed,2}: end {r.EndingBalance/1e6m:F2}M harvested {r.HarvestedKg/1000:F1} t days {r.DaysRun} breaches {breaches} licences {json["LicenceHoldings"]!.AsArray().Count}");
+        }
+    }
+
+    [Fact]
+    public void ScenarioRoom()
+    {
+        var roster = new ScenarioSystem(new GameState());
+        foreach (var sc in roster.All.Values)
+        {
+            var e = new SimulationEngine { FinanceManager = new FinanceManager(sc.StartingCapitalNOK) };
+            e.Initialize(enableEvents: false, seed: 1);
+            e.Scenario.Unlock(sc.Id);
+            Assert.True(e.StartScenario(sc.Id).Ok);
+            var o = e.GetCapacityOverview();
+            foreach (var a in o.Areas)
+                _out.WriteLine($"{sc.Id,-18} PO{a.ProductionArea,-2} licences {a.Licences} cap {a.LicenceMtbTonnes,6:F0} t standing {a.StandingTonnes,6:F1} t plan peak {a.ProjectedPeakTonnes,7:F1} t on day {a.ProjectedPeakDay}");
+            foreach (var st in o.Sites)
+                _out.WriteLine($"    site {st.SiteId,-24} locality {st.LocalityMtbTonnes,6:F0} t room {e.MaxStockableSmolts(st.SiteId),8:N0} standard smolts");
+        }
+    }
+
+    [Fact]
+    public void DegreeDays()
+    {
+        foreach (var (area, from, to) in new[] { (4, 0, 377), (4, 0, 340), (3, 0, 290), (3, 0, 323) })
+        {
+            double dd = 0; for (int d = from; d < to; d++) dd += LakskongenSim.Environment.ProductionAreas.ClimatologyC(area, d);
+            double tgc = (Math.Cbrt(4500.0) - Math.Cbrt(100.0)) / dd * 1000.0;
+            _out.WriteLine($"PO{area} days {from}-{to}: {dd:F0} degree-days, mean {dd / (to - from):F2} C, TGC to 4.5 kg {tgc:F2}");
+        }
+    }
+}
