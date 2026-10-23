@@ -1,5 +1,6 @@
 """Geometry of the offshore kit (farm-types spec §5.2): the OF1-class
-semi-submersible unit (item F2-26).
+semi-submersible unit (item F2-26), the Havfarm-class ship-shaped unit and
+the mooring-line kit (item F2-29).
 
 The owner's polygon ruling (RUN_LOG §7, roadmap §9a): a regular 12-gon of
 circumradius 55 m (Ø110, 28.5 m sides) as built [O:R6] and as photographed
@@ -1114,7 +1115,491 @@ def bulkhead(u: Unit, lod: int) -> None:
 
 
 # --------------------------------------------------------------------------
-# The asset
+# Havfarm-class ship-shaped unit and mooring-line kit (F2-29, spec §5.2)
+# --------------------------------------------------------------------------
+
+HF_LENGTH = 385.0
+HF_HALF_L = HF_LENGTH / 2.0      # 192.5 m (-192.5 bow stem .. +192.5 stern transom)
+HF_BEAM = 59.5
+HF_HALF_B = HF_BEAM / 2.0        # 29.75 m
+HF_MOULDED_DEPTH = 37.75         # [O:R23]
+HF_FREEBOARD = 11.0              # main deck z = +11.0 m (spec, artist est.)
+HF_DRAFT = HF_MOULDED_DEPTH - HF_FREEBOARD  # 26.75 m -> keel at z = -26.75 m
+HF_Z_KEEL = -HF_DRAFT            # -26.75 m
+HF_Z_PONTOON_TOP = -18.5         # top of submerged side pontoons
+HF_Z_GIRDER_BOT = -2.5           # bottom of upper side box girders (inside splash band)
+HF_DECK_Z = HF_FREEBOARD         # +11.0 m
+HF_WELLS = 6                     # six 47 x 47 m wells in a row [O:R23, O:R25]
+HF_WELL_SIZE = 47.0
+HF_WELL_HALF = HF_WELL_SIZE / 2.0  # 23.5 m (side hull girder width = 6.25 m each side)
+HF_WELL_GAP = 2.0                # transverse well-dividing box beam width
+HF_WELL_PITCH = HF_WELL_SIZE + HF_WELL_GAP  # 49.0 m centre-to-centre
+HF_WELL_X0 = -146.5              # Well 0 starts at -146.5, Well 5 ends at +145.5 (292 m span)
+HF_TURRET_X = -166.0             # bow turret centre on X axis
+HF_TURRET_D = 14.0               # spec: Bow turret Ø14 m
+HF_TURRET_R = HF_TURRET_D / 2.0
+HF_SUPER_LEN = 40.0              # spec: Aft superstructure 40 x 59.5 x 18 m
+HF_SUPER_W = 59.5
+HF_SUPER_H = 18.0
+HF_SUPER_X0 = HF_HALF_L - HF_SUPER_LEN  # +152.5 .. +192.5 m
+HF_SUPER_TOP = HF_DECK_Z + HF_SUPER_H   # +29.0 m
+HF_MAST_TOP = HF_SUPER_TOP + 5.5        # +34.5 m
+HF_SILO_X = 148.5                # row of 8 silos forward of the aft superstructure
+HF_SILO_YS = (-21.0, -15.0, -9.0, -3.0, 3.0, 9.0, 15.0, 21.0)
+HF_NET_TOP = 10.2
+HF_NET_WALL_BOT = -38.0
+HF_NET_BOTTOM = -56.0            # spec: nets to 56 m
+
+MOORING_FAIRLEAD_Z = -30.0
+MOORING_SEABED_Z = -150.0
+MOORING_REF_RADIUS = 1100.0
+MOORING_CHAIN_D = 0.24
+MOORING_FIBRE_D = 0.28
+MOORING_ANCHOR_LEN = 6.0
+
+MOORING_SPREADS = {
+    "of1_class": {
+        "lines": 8,
+        "pairs": 4,
+        "groups": [2, 2, 2, 2],
+        "fairlead_radius_m": R,
+        "fairlead_z_m": -30.0,
+        "anchor_radius_m": 1100.0,
+        "seabed_z_m": MOORING_SEABED_Z,
+        "bearings_deg": [38.0, 52.0, 128.0, 142.0, 218.0, 232.0, 308.0, 322.0],
+    },
+    "havfarm_class": {
+        "lines": 11,
+        "pairs": 0,
+        "groups": [4, 3, 4],
+        "turret_x_m": HF_TURRET_X,
+        "fairlead_radius_m": HF_TURRET_R,
+        "fairlead_z_m": HF_Z_KEEL,
+        "anchor_radius_m": 650.0,
+        "seabed_z_m": MOORING_SEABED_Z,
+        "bearings_deg": [128.0, 140.0, 152.0, 164.0, 174.0, 180.0, 186.0, 196.0, 208.0, 220.0, 232.0],
+    },
+}
+
+
+def _hf_well_bounds(w: int) -> tuple[float, float, float, float]:
+    """(x0, x1, y0, y1) of well w (0..5): each 47.0 x 47.0 m."""
+    x0 = HF_WELL_X0 + w * HF_WELL_PITCH
+    return (x0, x0 + HF_WELL_SIZE, -HF_WELL_HALF, HF_WELL_HALF)
+
+
+def _hf_box_strip(mb, x0: float, x1: float, y0: float, y1: float, z0: float, z1: float,
+                  steps_x: int = 1, skip_bottom: bool = False, skip_top: bool = False,
+                  skip_x0: bool = False, skip_x1: bool = False) -> None:
+    """Axis-aligned box segmented into `steps_x` bays along X for vertex AO."""
+    for i in range(steps_x):
+        xa = x0 + (x1 - x0) * i / steps_x
+        xb = x0 + (x1 - x0) * (i + 1) / steps_x
+        if not skip_top:
+            quad(mb, (xa, y0, z1), (xb, y0, z1), (xb, y1, z1), (xa, y1, z1))
+        if not skip_bottom:
+            quad(mb, (xa, y1, z0), (xb, y1, z0), (xb, y0, z0), (xa, y0, z0))
+        quad(mb, (xa, y0, z0), (xb, y0, z0), (xb, y0, z1), (xa, y0, z1))
+        quad(mb, (xb, y1, z0), (xa, y1, z0), (xa, y1, z1), (xb, y1, z1))
+    if not skip_x0:
+        quad(mb, (x0, y1, z0), (x0, y0, z0), (x0, y0, z1), (x0, y1, z1))
+    if not skip_x1:
+        quad(mb, (x1, y0, z0), (x1, y1, z0), (x1, y1, z1), (x1, y0, z1))
+
+
+def _hf_hull_and_wells(u: Unit, lod: int) -> None:
+    """385 x 59.5 m ship-shaped steel hull with moulded depth 37.75 m,
+    11 m freeboard, six 47 x 47 m square wells in a row, and Ø14 m bow turret."""
+    hull_mb = u.mb("Hull", "hull_slate", RINGS, "Hull")
+    well_mb = u.mb("Hull", "hull_slate", RINGS, "WellBeams")
+    pont_mb = u.mb("Hull", "hull_slate", PONTOONS, "Pontoons")
+    turret_mb = u.mb("Hull", "hull_slate", COLUMNS, "Turret")
+
+    sx = 12 if lod == 0 else (4 if lod == 1 else 1)
+    x_bay0 = HF_WELL_X0 - HF_WELL_GAP
+    x_bay1 = HF_WELL_X0 + HF_WELLS * HF_WELL_PITCH
+    for sy in (-1, 1):
+        y0, y1 = (-HF_HALF_B, -HF_WELL_HALF) if sy < 0 else (HF_WELL_HALF, HF_HALF_B)
+        _hf_box_strip(hull_mb, x_bay0, x_bay1, y0, y1, HF_Z_GIRDER_BOT, HF_DECK_Z,
+                      steps_x=sx, skip_bottom=lod == 2, skip_x0=True, skip_x1=True)
+
+    # 2. Seven transverse well walls/beams (forward wall, 5 inter-well dividers, aft wall)
+    # forming the six 47.0 x 47.0 m square well openings.
+    for k in range(HF_WELLS + 1):
+        bx1 = HF_WELL_X0 + k * HF_WELL_PITCH if k < HF_WELLS else x_bay1
+        bx0 = bx1 - HF_WELL_GAP
+        _hf_box_strip(well_mb, bx0, bx1, -HF_WELL_HALF, HF_WELL_HALF, HF_Z_GIRDER_BOT, HF_DECK_Z,
+                      steps_x=2 if lod == 0 else 1, skip_bottom=lod == 2)
+
+    # Deck plate strips on top of the port/starboard side girders and bow/stern decks (LOD0/LOD1)
+    if lod < 2:
+        deck_mb = u.mb("Hull", "deck_plate", RINGS, "HullDeck")
+        for sy in (-1, 1):
+            y0, y1 = (-HF_HALF_B + 0.35, -HF_WELL_HALF - 0.35) if sy < 0 else (HF_WELL_HALF + 0.35, HF_HALF_B - 0.35)
+            quad(deck_mb, (x_bay0, y0, HF_DECK_Z + 0.02), (x_bay1, y0, HF_DECK_Z + 0.02),
+                 (x_bay1, y1, HF_DECK_Z + 0.02), (x_bay0, y1, HF_DECK_Z + 0.02))
+        # Bow wave breakwater behind the turret on the forecastle
+        bw_mb = u.mb("Hull", "hull_yellow", RINGS, "Breakwater")
+        obox(bw_mb, (-152.5, 0.0, HF_DECK_Z + 1.1), (1, 0, 0), None, 0.45, 18.0, 1.1, skip_bottom=True)
+
+    bow_stations = [
+        (-HF_HALF_L, 0.8, 0.0, HF_DECK_Z + 2.4),
+        (-186.0, 9.5, HF_Z_GIRDER_BOT, HF_DECK_Z + 1.8),
+        (-174.0, 21.0, HF_Z_GIRDER_BOT, HF_DECK_Z + 1.0),
+        (-160.0, 27.8, HF_Z_GIRDER_BOT, HF_DECK_Z + 0.4),
+        (x_bay0, HF_HALF_B, HF_Z_GIRDER_BOT, HF_DECK_Z),
+    ]
+    if lod == 2:
+        bow_stations = [(-HF_HALF_L, 0.8, -2.5, HF_DECK_Z + 2.0), (-170.0, 23.0, -2.5, HF_DECK_Z),
+                        (x_bay0, HF_HALF_B, -2.5, HF_DECK_Z)]
+    for (xa, ya, za0, za1), (xb, yb, zb0, zb1) in zip(bow_stations[:-1], bow_stations[1:]):
+        quad(hull_mb, (xa, -ya, za0), (xb, -yb, zb0), (xb, -yb, zb1), (xa, -ya, za1))
+        quad(hull_mb, (xb, yb, zb0), (xa, ya, za0), (xa, ya, za1), (xb, yb, zb1))
+        quad(hull_mb, (xa, -ya, za1), (xb, -yb, zb1), (xb, yb, zb1), (xa, ya, za1))
+        if lod < 2:
+            quad(hull_mb, (xa, ya, za0), (xb, yb, zb0), (xb, -yb, zb0), (xa, -ya, za0))
+    xs, ys, zs0, zs1 = bow_stations[0]
+    quad(hull_mb, (xs, ys, zs0), (xs, -ys, zs0), (xs, -ys, zs1), (xs, ys, zs1))
+
+    _hf_box_strip(hull_mb, x_bay1, HF_HALF_L, -HF_HALF_B, HF_HALF_B, HF_Z_GIRDER_BOT, HF_DECK_Z,
+                  steps_x=3 if lod == 0 else 1, skip_bottom=lod == 2, skip_x0=True)
+
+    t_sides = 24 if lod == 0 else (12 if lod == 1 else 8)
+    tz_bot = HF_Z_KEEL if lod < 2 else -2.5
+    member(turret_mb, (HF_TURRET_X, 0.0, tz_bot), (HF_TURRET_X, 0.0, HF_DECK_Z + 2.2),
+           HF_TURRET_R, t_sides, seg=8.0 if lod == 0 else None, caps=True)
+    if lod < 2:
+        member(u.mb("Hull", "steel", PONTOONS, "TurretCollar"),
+               (HF_TURRET_X, 0.0, HF_Z_KEEL), (HF_TURRET_X, 0.0, HF_Z_KEEL + 2.2),
+               HF_TURRET_R, t_sides, caps=True)
+        for sy in (-1, 1):
+            y0, y1 = (-HF_HALF_B, -HF_WELL_HALF) if sy < 0 else (HF_WELL_HALF, HF_HALF_B)
+            _hf_box_strip(pont_mb, -162.0, 178.0, y0, y1, HF_Z_KEEL, HF_Z_PONTOON_TOP,
+                          steps_x=8 if lod == 0 else 2)
+        for k in range(HF_WELLS + 1):
+            bx = HF_WELL_X0 + k * HF_WELL_PITCH - 0.5 * HF_WELL_GAP
+            _hf_box_strip(pont_mb, bx - 1.4, bx + 1.4, -HF_WELL_HALF, HF_WELL_HALF,
+                          HF_Z_KEEL, HF_Z_KEEL + 5.0, steps_x=1, skip_x0=True, skip_x1=True)
+
+
+def _hf_columns_and_bracing(u: Unit, lod: int) -> None:
+    """Vertical side hull columns and underwater diagonal tubular bracing,
+    plus two rail-mounted service gantry bridges above the well deck."""
+    col_mb = u.mb("Columns", "hull_slate", COLUMNS, "Columns")
+    brace_mb = u.mb("Bracing", "hull_slate", BRACING, "Bracing")
+    gantry_mb = u.mb("Bracing", "hull_yellow", BRACING, "Gantry")
+
+    c_sides = 14 if lod == 0 else (8 if lod == 1 else 6)
+    b_sides = 10 if lod == 0 else (6 if lod == 1 else 4)
+
+    for k in range(HF_WELLS + 1):
+        cx = HF_WELL_X0 + k * HF_WELL_PITCH - 0.5 * HF_WELL_GAP
+        for sy in (-1, 1):
+            cy = sy * (HF_WELL_HALF + 3.125)
+            if lod < 2:
+                member(col_mb, (cx, cy, HF_Z_PONTOON_TOP), (cx, cy, HF_Z_GIRDER_BOT),
+                       1.8, c_sides, seg=5.0 if lod == 0 else None)
+            member(col_mb, (cx, sy * (HF_HALF_B - 0.25), -2.0), (cx, sy * (HF_HALF_B - 0.25), HF_DECK_Z - 0.2),
+                   0.55, max(4, c_sides // 2))
+        if lod < 2:
+            member(col_mb, (cx, 0.0, HF_Z_KEEL + 5.0), (cx, 0.0, HF_Z_GIRDER_BOT), 1.4, c_sides)
+
+    if lod < 2:
+        for w in range(HF_WELLS):
+            x0, x1, _y0, _y1 = _hf_well_bounds(w)
+            xm = 0.5 * (x0 + x1)
+            for sy in (-1, 1):
+                cy = sy * (HF_WELL_HALF + 3.125)
+                member(col_mb, (xm, cy, HF_Z_PONTOON_TOP), (xm, cy, HF_Z_GIRDER_BOT), 1.4, c_sides)
+                member(brace_mb, (xm, cy, HF_Z_PONTOON_TOP + 0.5), (x0, cy, HF_Z_GIRDER_BOT - 0.5), 0.75, b_sides)
+                member(brace_mb, (xm, cy, HF_Z_PONTOON_TOP + 0.5), (x1, cy, HF_Z_GIRDER_BOT - 0.5), 0.75, b_sides)
+
+    for gx in (HF_WELL_X0 + 1 * HF_WELL_PITCH - 1.0, HF_WELL_X0 + 3 * HF_WELL_PITCH - 1.0):
+        gz = HF_DECK_Z + 5.2
+        for sy in (-1, 1):
+            gy = sy * (HF_HALF_B - 2.2)
+            bar(gantry_mb, (gx - 1.2, gy, HF_DECK_Z), (gx - 0.6, gy, gz), 0.65)
+            bar(gantry_mb, (gx + 1.2, gy, HF_DECK_Z), (gx + 0.6, gy, gz), 0.65)
+        bar(gantry_mb, (gx, -HF_HALF_B + 1.8, gz), (gx, HF_HALF_B - 1.8, gz), 1.2, 1.1)
+        if lod == 0:
+            walk = u.mb("Bracing", "grating", BRACING, "GantryWalk")
+            obox(walk, (gx, 0.0, gz + 0.62), (1, 0, 0), None, 1.1, HF_HALF_B - 2.2, 0.08)
+
+
+def _hf_topsides(u: Unit, lod: int) -> None:
+    """Aft superstructure (40 x 59.5 x 18 m, #E9ECEA), row of 8 silos,
+    safety-yellow rails (#E6BE2E), walkways, winches, landings, cranes, and edge nav lights."""
+    tn = "Topsides"
+    sx_c = HF_SUPER_X0 + HF_SUPER_LEN * 0.5
+    paint = u.mb(tn, "white", TOPSIDES, "Deckhouse")
+    trim_mb = u.mb(tn, "white", TOPSIDES, "DeckhouseTrim")
+    glass_mb = u.mb(tn, "window", TOPSIDES, "DeckhouseWindows")
+    roof_mb = u.mb(tn, "roof", TOPSIDES, "DeckhouseTrim")
+
+    if lod == 2:
+        obox(paint, (sx_c, 0.0, HF_DECK_Z + HF_SUPER_H * 0.5), (1, 0, 0), None,
+             HF_SUPER_LEN * 0.5, HF_SUPER_W * 0.5, HF_SUPER_H * 0.5, skip_bottom=True)
+    else:
+        _hf_box_strip(paint, HF_SUPER_X0, HF_HALF_L, -HF_HALF_B, HF_HALF_B,
+                      HF_DECK_Z, HF_DECK_Z + 7.5, steps_x=4 if lod == 0 else 1, skip_bottom=True)
+        _hf_box_strip(paint, HF_SUPER_X0 + 2.0, HF_HALF_L - 4.0, -24.0, 24.0,
+                      HF_DECK_Z + 7.5, HF_DECK_Z + 13.0, steps_x=3 if lod == 0 else 1, skip_bottom=True)
+        _hf_box_strip(paint, HF_SUPER_X0 + 4.0, HF_SUPER_X0 + 28.0, -HF_HALF_B, HF_HALF_B,
+                      HF_DECK_Z + 13.0, HF_SUPER_TOP - 0.4, steps_x=3 if lod == 0 else 1, skip_bottom=True)
+        obox(trim_mb, (HF_SUPER_X0 + 16.0, 0.0, HF_SUPER_TOP - 0.2), (1, 0, 0), None,
+             12.0, HF_HALF_B, 0.2, skip_bottom=True)
+        obox(roof_mb, (sx_c, 0.0, HF_DECK_Z + 7.52), (1, 0, 0), None,
+             HF_SUPER_LEN * 0.5 - 0.2, HF_HALF_B - 0.2, 0.04, skip_bottom=True)
+        for wz, wh, wy in ((HF_DECK_Z + 9.2, 1.4, 22.0), (HF_DECK_Z + 11.4, 1.4, 22.0),
+                           (HF_DECK_Z + 15.8, 1.8, HF_HALF_B - 1.2)):
+            wx = (HF_SUPER_X0 + 1.96) if wz < HF_DECK_Z + 13.0 else (HF_SUPER_X0 + 3.96)
+            quad(glass_mb, (wx, wy, wz), (wx, -wy, wz), (wx, -wy, wz + wh), (wx, wy, wz + wh))
+            for sy in (-1, 1):
+                wy_s = sy * (24.04 if wz < HF_DECK_Z + 13.0 else (HF_HALF_B + 0.04))
+                if sy < 0:
+                    quad(glass_mb, (wx, wy_s, wz), (wx + 18.0, wy_s, wz), (wx + 18.0, wy_s, wz + wh), (wx, wy_s, wz + wh))
+                else:
+                    quad(glass_mb, (wx + 18.0, wy_s, wz), (wx, wy_s, wz), (wx, wy_s, wz + wh), (wx + 18.0, wy_s, wz + wh))
+
+    mast_mb = u.mb(tn, "steel", TOPSIDES, "Mast")
+    mx, my = HF_SUPER_X0 + 16.0, 0.0
+    if lod < 2:
+        member(mast_mb, (mx, my, HF_SUPER_TOP), (mx, my, HF_MAST_TOP), 0.28, 8 if lod == 0 else 4, caps=True)
+        bar(mast_mb, (mx, -3.2, HF_MAST_TOP - 1.6), (mx, 3.2, HF_MAST_TOP - 1.6), 0.14)
+    u.markers["Beacon"] = (mx, my, HF_MAST_TOP)
+
+    silo_mb = u.mb(tn, "silo", TOPSIDES, "Silos")
+    s_sides = 16 if lod == 0 else (10 if lod == 1 else 8)
+    for sy in HF_SILO_YS:
+        revolve_at(silo_mb, [
+            (0.45, HF_DECK_Z + 0.3),
+            (SILO_R, HF_DECK_Z + 2.0),
+            (SILO_R, HF_DECK_Z + 5.5),
+            (SILO_R, HF_DECK_Z + SILO_H - 1.0),
+            (0.28, HF_DECK_Z + SILO_H),
+        ], s_sides, (HF_SILO_X, sy), close_top=True, close_bottom=True)
+        if lod == 0:
+            leg_mb = u.mb(tn, "steel", TOPSIDES, "SiloFittings")
+            for a in range(4):
+                th = TAU * (a + 0.5) / 4
+                lx = HF_SILO_X + (SILO_R - 0.18) * math.cos(th)
+                ly = sy + (SILO_R - 0.18) * math.sin(th)
+                bar(leg_mb, (lx, ly, HF_DECK_Z), (lx, ly, HF_DECK_Z + 2.1), 0.14)
+    if lod == 0:
+        # Catwalk over the 8 silos, twin exhaust stacks and lifeboats on aft superstructure
+        obox(u.mb(tn, "grating", TOPSIDES, "SiloDeck"),
+             (HF_SILO_X, 0.0, HF_DECK_Z + SILO_H - 0.45), (1, 0, 0), None, 0.7, 22.5, 0.06)
+        stack_mb = u.mb(tn, "grey", TOPSIDES, "DeckhouseTrim")
+        cap_mb = u.mb(tn, "dark", TOPSIDES, "Cranes")
+        for sy in (-8.5, 8.5):
+            member(stack_mb, (HF_SUPER_X0 + 30.0, sy, HF_DECK_Z + 13.0),
+                   (HF_SUPER_X0 + 30.0, sy, HF_SUPER_TOP - 0.2), 0.85, 12, caps=True)
+            member(cap_mb, (HF_SUPER_X0 + 30.0, sy, HF_SUPER_TOP - 0.8),
+                   (HF_SUPER_X0 + 30.0, sy, HF_SUPER_TOP - 0.1), 0.90, 12, caps=True)
+            obox(u.mb(tn, "safety", TOPSIDES, "RescueBoat"),
+                 (HF_SUPER_X0 + 22.0, sy * 3.1, HF_DECK_Z + 9.2), (1, 0, 0), None, 3.8, 1.4, 0.9)
+    if lod < 2:
+        obox(u.mb(tn, "grey", TOPSIDES, "BlowerHouse"), (HF_SILO_X, -25.8, HF_DECK_Z + 1.8),
+             (1, 0, 0), None, 2.2, 2.4, 1.8, skip_bottom=True)
+        if lod == 0:
+            pipe_mb = u.mb(tn, "steel", TOPSIDES, "FeedPipes")
+            for sy in (-1, 1):
+                py = sy * (HF_WELL_HALF + 1.2)
+                kit.path_tube(pipe_mb, [(HF_SILO_X, py, HF_DECK_Z + 0.45),
+                                        (HF_WELL_X0, py, HF_DECK_Z + 0.45)], 0.16, 6, M, caps=False)
+
+
+    walk_mb = u.mb(tn, "grating", TOPSIDES, "RingWalkway")
+    if lod < 2:
+        for sy in (-1, 1):
+            wy0 = sy * (HF_WELL_HALF + 0.8)
+            wy1 = sy * (HF_WELL_HALF + 3.4)
+            ylo, yhi = (wy1, wy0) if sy < 0 else (wy0, wy1)
+            quad(walk_mb, (HF_WELL_X0, ylo, HF_DECK_Z + 0.04), (HF_SUPER_X0, ylo, HF_DECK_Z + 0.04),
+                 (HF_SUPER_X0, yhi, HF_DECK_Z + 0.04), (HF_WELL_X0, yhi, HF_DECK_Z + 0.04))
+        for k in range(1, HF_WELLS):
+            bx = HF_WELL_X0 + k * HF_WELL_PITCH - 0.5 * HF_WELL_GAP
+            quad(walk_mb, (bx - 0.8, -HF_WELL_HALF, HF_DECK_Z + 0.04), (bx + 0.8, -HF_WELL_HALF, HF_DECK_Z + 0.04),
+                 (bx + 0.8, HF_WELL_HALF, HF_DECK_Z + 0.04), (bx - 0.8, HF_WELL_HALF, HF_DECK_Z + 0.04))
+
+    rail_mb = u.mb(tn, "hull_yellow", TOPSIDES, "Rails")
+    for sy in (-1, 1):
+        ry_out = sy * (HF_HALF_B - 0.25)
+        bar(rail_mb, (HF_WELL_X0 - 2.0, ry_out, HF_DECK_Z + RAIL_H),
+            (HF_SUPER_X0, ry_out, HF_DECK_Z + RAIL_H), 0.12)
+        if lod < 2:
+            bar(rail_mb, (HF_WELL_X0 - 2.0, ry_out, HF_DECK_Z + 0.55),
+                (HF_SUPER_X0, ry_out, HF_DECK_Z + 0.55), 0.09)
+            n_posts = 40 if lod == 0 else 14
+            for i in range(n_posts + 1):
+                px = (HF_WELL_X0 - 2.0) + (HF_SUPER_X0 - (HF_WELL_X0 - 2.0)) * i / n_posts
+                bar(rail_mb, (px, ry_out, HF_DECK_Z), (px, ry_out, HF_DECK_Z + RAIL_H), 0.09)
+    for w in range(HF_WELLS):
+        wx0, wx1, wy0, wy1 = _hf_well_bounds(w)
+        corners = [(wx0, wy0, HF_DECK_Z + RAIL_H), (wx1, wy0, HF_DECK_Z + RAIL_H),
+                   (wx1, wy1, HF_DECK_Z + RAIL_H), (wx0, wy1, HF_DECK_Z + RAIL_H)]
+        for a, b in zip(corners, corners[1:] + corners[:1]):
+            bar(rail_mb, a, b, 0.10)
+            if lod == 0:
+                for s in range(1, 8):
+                    p = _lerp(a, b, s / 8)
+                    bar(rail_mb, (p[0], p[1], HF_DECK_Z), p, 0.07)
+
+    u.markers["W2WLanding"] = (0.0, -HF_HALF_B, HF_DECK_Z)
+    if lod < 2:
+        obox(u.mb(tn, "grating", TOPSIDES, "W2WLanding"), (0.0, -HF_HALF_B - 1.2, HF_DECK_Z - 0.1),
+             (1, 0, 0), None, 3.0, 1.2, 0.1)
+        if lod == 0:
+            ladder(u.mb(tn, "hull_yellow", TOPSIDES, "BoatLanding"),
+                   (-12.0, -HF_HALF_B - 0.3, -2.5), (-12.0, -HF_HALF_B - 0.3, HF_DECK_Z + 0.8), width=0.6)
+            for w in range(HF_WELLS):
+                wx0, wx1, _wy0, _wy1 = _hf_well_bounds(w)
+                wm = 0.5 * (wx0 + wx1)
+                for sy in (-1, 1):
+                    obox(u.mb(tn, "grey", TOPSIDES, "NetWinches"), (wm, sy * (HF_WELL_HALF + 2.2), HF_DECK_Z + 0.5),
+                         (1, 0, 0), None, 0.8, 0.55, 0.5, skip_bottom=True)
+
+    crane(u, "CraneA", (HF_WELL_X0 + 1 * HF_WELL_PITCH - 1.0, -HF_HALF_B + 3.2, HF_DECK_Z), -70.0, lod)
+    crane(u, "CraneB", (HF_WELL_X0 + 4 * HF_WELL_PITCH - 1.0, HF_HALF_B - 3.2, HF_DECK_Z), 110.0, lod)
+
+    if lod < 2:
+        nav = u.mb("NavLights", "nav_light", TOPSIDES, "Lanterns")
+        post = u.mb(tn, "steel", TOPSIDES, "LanternPosts")
+        edge_pts = [
+            (-HF_HALF_L + 1.2, 0.0, HF_DECK_Z + 2.4),
+            (HF_WELL_X0, -HF_HALF_B + 0.4, HF_DECK_Z),
+            (HF_WELL_X0, HF_HALF_B - 0.4, HF_DECK_Z),
+            (-50.0, -HF_HALF_B + 0.4, HF_DECK_Z),
+            (-50.0, HF_HALF_B - 0.4, HF_DECK_Z),
+            (50.0, -HF_HALF_B + 0.4, HF_DECK_Z),
+            (50.0, HF_HALF_B - 0.4, HF_DECK_Z),
+            (HF_HALF_L - 0.8, -HF_HALF_B + 0.4, HF_SUPER_TOP),
+            (HF_HALF_L - 0.8, HF_HALF_B - 0.4, HF_SUPER_TOP),
+        ]
+        for lx, ly, lz in edge_pts:
+            member(post, (lx, ly, lz), (lx, ly, lz + 1.4), 0.07, 6 if lod == 0 else 4)
+            revolve_at(nav, [(0.05, lz + 2.02), (0.2, lz + 1.95), (0.22, lz + 1.52), (0.12, lz + 1.4)],
+                       10 if lod == 0 else 6, (lx, ly), close_top=True)
+        bx, by, bz = u.markers["Beacon"]
+        revolve_at(nav, [(0.05, bz + 0.6), (0.24, bz + 0.52), (0.26, bz + 0.1), (0.14, bz)],
+                   10 if lod == 0 else 6, (bx, by), close_top=True)
+
+
+def _hf_nets_and_bulkhead(u: Unit, lod: int) -> None:
+    """Six 47 x 47 m square well nets in a row hanging to -56 m (clipped at
+    -3 m at LOD2), plus a crowding bulkhead frame and net in Well 0."""
+    mb = u.mb("Net", None, NET, "NetSides", mat=N)
+    bottom = u.mb("Net", None, NET, "NetBottom", mat=N)
+    zs = [HF_NET_TOP, 0.0, HF_NET_WALL_BOT] if lod == 1 else (
+        [HF_NET_TOP, 0.0, -12.0, -25.0, HF_NET_WALL_BOT] if lod == 0 else [HF_NET_TOP, -3.0]
+    )
+    for w in range(HF_WELLS):
+        x0, x1, y0, y1 = _hf_well_bounds(w)
+        corners = [(x0, y0), (x1, y0), (x1, y1), (x0, y1)]
+        for k in range(4):
+            a, b = corners[k], corners[(k + 1) % 4]
+            for z_hi, z_lo in zip(zs[:-1], zs[1:]):
+                _net_quad(mb, (a[0], a[1], z_hi), (b[0], b[1], z_hi),
+                          (b[0], b[1], z_lo), (a[0], a[1], z_lo),
+                          0.0, HF_WELL_SIZE, z_hi, z_lo)
+        if lod < 2:
+            cx, cy = 0.5 * (x0 + x1), 0.5 * (y0 + y1)
+            in_r = 2.0
+            inner = [(cx - in_r, cy - in_r), (cx + in_r, cy - in_r), (cx + in_r, cy + in_r), (cx - in_r, cy + in_r)]
+            for k in range(4):
+                a, b = corners[k], corners[(k + 1) % 4]
+                ia, ib = inner[k], inner[(k + 1) % 4]
+                _net_quad(bottom, (a[0], a[1], HF_NET_WALL_BOT), (b[0], b[1], HF_NET_WALL_BOT),
+                          (ib[0], ib[1], HF_NET_BOTTOM), (ia[0], ia[1], HF_NET_BOTTOM),
+                          0.0, HF_WELL_SIZE, HF_NET_WALL_BOT, HF_NET_BOTTOM)
+            _net_quad(bottom, (inner[0][0], inner[0][1], HF_NET_BOTTOM), (inner[1][0], inner[1][1], HF_NET_BOTTOM),
+                      (inner[2][0], inner[2][1], HF_NET_BOTTOM), (inner[3][0], inner[3][1], HF_NET_BOTTOM),
+                      0.0, 2 * in_r, 0.0, 2 * in_r)
+
+    node = "Bulkhead" if lod == 0 else "Hull"
+    net_node = "Bulkhead" if lod == 0 else "Net"
+    wx0, wx1, wy0, wy1 = _hf_well_bounds(0)
+    bx = 0.5 * (wx0 + wx1)
+    b_mb = u.mb(node, "hull_yellow", NET, "Bulkhead")
+    if lod < 2:
+        bar(b_mb, (bx, wy0, HF_DECK_Z), (bx, wy1, HF_DECK_Z), 0.65)
+        bar(b_mb, (bx, wy0, HF_NET_WALL_BOT), (bx, wy0, HF_DECK_Z), 0.45)
+        bar(b_mb, (bx, wy1, HF_NET_WALL_BOT), (bx, wy1, HF_DECK_Z), 0.45)
+        bar(b_mb, (bx, wy0, HF_NET_WALL_BOT), (bx, wy1, HF_NET_WALL_BOT), 0.45)
+        nb = u.mb(net_node, None, NET, "BulkheadNet", mat=N)
+        _net_quad(nb, (bx, wy0, HF_NET_TOP), (bx, wy1, HF_NET_TOP),
+                  (bx, wy1, HF_NET_WALL_BOT), (bx, wy0, HF_NET_WALL_BOT),
+                  0.0, HF_WELL_SIZE, HF_NET_TOP, HF_NET_WALL_BOT)
+    else:
+        bar(b_mb, (bx, wy0, HF_DECK_Z), (bx, wy1, HF_DECK_Z), 0.65)
+
+
+def havfarm_class(u: Unit, lod: int) -> None:
+    """Ship-shaped offshore unit (Nordlaks Havfarm 1 'Jostein Albert' class,
+    item F2-29): 385 x 59.5 m hull, moulded depth 37.75 m, freeboard 11 m,
+    six 47 x 47 m wells in a row with nets to 56 m, Ø14 m bow turret,
+    40 x 59.5 x 18 m aft superstructure, silo row, safety-yellow rails and
+    edge nav lights."""
+    _hf_hull_and_wells(u, lod)
+    _hf_columns_and_bracing(u, lod)
+    _hf_topsides(u, lod)
+    _hf_nets_and_bulkhead(u, lod)
+
+
+def _catenary_points(x0: float, z0: float, x1: float, z1: float, sag: float, steps: int) -> list[tuple[float, float, float]]:
+    pts = []
+    for i in range(steps + 1):
+        t = i / steps
+        x = x0 + (x1 - x0) * t
+        z = z0 + (z1 - z0) * t - 4.0 * sag * t * (1.0 - t)
+        pts.append((x, 0.0, z))
+    return pts
+
+
+def mooring_line_kit(u: Unit, lod: int) -> None:
+    """One offshore mooring line (spec §5.2, item F2-29): upper fairlead chain
+    catenary (#3A3F44), synthetic fibre mid-segment (#C8C2B0), lower ground
+    chain (#3A3F44) and drag-embedment anchor (#3A3F44), spanning from the
+    fairlead at (0, 0, -30 m) to the anchor at (1100 m, 0, -150 m). Instanced
+    8 times in 4 pairs at 1,100 m radius for OF1-class and 11 times at 650 m
+    radius from the bow turret for Havfarm-class (underwater and in the lens
+    only; <= 400 / 60 triangles per line)."""
+    node = "Hull"
+    chain_mb = u.mb(node, "chain", PONTOONS, "Chain")
+    fibre_mb = u.mb(node, "fibre", PONTOONS, "Fibre")
+    anchor_mb = u.mb(node, "chain", PONTOONS, "Anchor")
+
+    sides = 6 if lod == 0 else 3
+    n_upper = 5 if lod == 0 else 1
+    n_fibre = 10 if lod == 0 else 2
+    n_lower = 3 if lod == 0 else 1
+
+    upper_pts = _catenary_points(0.0, MOORING_FAIRLEAD_Z, 180.0, -84.0, 8.0, n_upper)
+    kit.path_tube(chain_mb, upper_pts, MOORING_CHAIN_D * 0.5, sides, M, closed=False, caps=True)
+
+    fibre_pts = _catenary_points(180.0, -84.0, 920.0, -146.0, 14.0, n_fibre)
+    kit.path_tube(fibre_mb, fibre_pts, MOORING_FIBRE_D * 0.5, sides, M, closed=False, caps=True)
+
+    lower_pts = _catenary_points(920.0, -146.0, MOORING_REF_RADIUS - MOORING_ANCHOR_LEN, MOORING_SEABED_Z, 1.5, n_lower)
+    kit.path_tube(chain_mb, lower_pts, MOORING_CHAIN_D * 0.5, sides, M, closed=False, caps=True)
+
+    if lod == 0:
+        for jx, jz in ((180.0, -84.0), (920.0, -146.0)):
+            obox(chain_mb, (jx, 0.0, jz), (1, 0, 0), None, 0.55, 0.28, 0.28)
+        for bx, bz in ((340.0, -108.0), (680.0, -135.0)):
+            member(fibre_mb, (bx - 0.9, 0.0, bz), (bx + 0.9, 0.0, bz), 0.42, 6, caps=True)
+
+    ax0 = MOORING_REF_RADIUS - MOORING_ANCHOR_LEN
+    obox(anchor_mb, (ax0 + 3.6, 0.0, MOORING_SEABED_Z + 0.35), (1, 0, 0), None, 2.4, 1.8, 0.35)
+    bar(anchor_mb, (ax0, 0.0, MOORING_SEABED_Z + 0.25), (ax0 + 4.4, 0.0, MOORING_SEABED_Z + 1.4), 0.35, 0.45,
+        sides=4 if lod == 0 else 2)
+    if lod == 0:
+        for sy in (-1, 1):
+            obox(anchor_mb, (ax0 + 4.8, sy * 1.4, MOORING_SEABED_Z + 0.65), (1, 0, 0), None, 1.1, 0.25, 0.45)
+
+
+# --------------------------------------------------------------------------
+# The assets
 # --------------------------------------------------------------------------
 
 def of1_class(u: Unit, lod: int) -> None:
@@ -1134,4 +1619,8 @@ def of1_class(u: Unit, lod: int) -> None:
     bulkhead(u, lod)
 
 
-DESIGNS = {"of1_class": of1_class}
+DESIGNS = {
+    "of1_class": of1_class,
+    "havfarm_class": havfarm_class,
+    "mooring_line_kit": mooring_line_kit,
+}

@@ -1,0 +1,124 @@
+{
+  "asset": "havfarm_class",
+  "atlas": "godot/assets/models/facility_kit/textures/offshore_atlas.png",
+  "bbox_size": [
+    385.0,
+    32.0,
+    88.1478
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "air_draught_m": 29.0,
+    "beam_m": 59.5,
+    "circumradius_m": 192.5,
+    "crane_reach_m": 18.473,
+    "deck_z_m": 11.0,
+    "deckhouse_m": [
+      40.0,
+      59.5,
+      18.0
+    ],
+    "draft_m": 2.5,
+    "freeboard_m": 11.0,
+    "height_m": 31.5,
+    "length_m": 385.0,
+    "mooring_anchor_radius_m": 650.0,
+    "mooring_lines": 11,
+    "moulded_depth_m": 13.5,
+    "net_bottom_m": -3.0,
+    "net_depth_m": 3.0,
+    "net_top_m": 10.2,
+    "silo_d_m": 4.0,
+    "silo_height_m": 10.0,
+    "silos": 8,
+    "superstructure_m": [
+      40.0,
+      59.5,
+      18.0
+    ],
+    "topsides_top_m": 29.0,
+    "turret_d_m": 14.0,
+    "well_length_m": 47.0,
+    "well_width_m": 47.0,
+    "wells": 6
+  },
+  "file": "havfarm_class_LOD2.glb",
+  "groups": {
+    "Bracing": 80,
+    "Columns": 140,
+    "Net": 56,
+    "Pontoons": 0,
+    "Rings": 104,
+    "Topsides": 970
+  },
+  "lod": "LOD2",
+  "markers": {
+    "Beacon": [
+      168.5,
+      34.5,
+      -0.0
+    ],
+    "W2WLanding": [
+      0.0,
+      11.0,
+      29.75
+    ]
+  },
+  "material_count": 2,
+  "materials": [
+    "LK_OffshoreKit",
+    "LK_OffshoreNet"
+  ],
+  "net_colour": "#A8ADB0",
+  "node_order": [
+    "Hull",
+    "Net"
+  ],
+  "nodes": {
+    "Hull": 1302,
+    "Net": 48
+  },
+  "parts": {
+    "Bulkhead": 8,
+    "Columns": 112,
+    "Cranes": 112,
+    "Deckhouse": 10,
+    "Gantry": 80,
+    "Hull": 34,
+    "NetSides": 48,
+    "Rails": 208,
+    "Silos": 640,
+    "Turret": 28,
+    "WellBeams": 70
+  },
+  "pivots": {},
+  "surfaces": 2,
+  "swatches": {
+    "Deckhouse": {
+      "hex": "#EAEDEB",
+      "spec": "#E9ECEA",
+      "strip": "white"
+    },
+    "Hull": {
+      "hex": "#34424B",
+      "spec": "#34424B",
+      "strip": "hull_slate"
+    },
+    "NavLights": {
+      "hex": "#FFC33A",
+      "spec": "#FFC23A",
+      "strip": "nav_light"
+    },
+    "Rails": {
+      "hex": "#E6BE2E",
+      "spec": "#E6BE2E",
+      "strip": "hull_yellow"
+    },
+    "Silos": {
+      "hex": "#777888",
+      "spec": "#777887",
+      "strip": "silo"
+    }
+  },
+  "tri_count": 1350
+}

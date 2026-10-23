@@ -28,6 +28,10 @@ extends Node3D
 ## Walkway deck height above the waterline, and the mast top.
 @export var deck_y_m: float = 15.4
 @export var air_draught_m: float = 28.8
+## Mooring spread (spec §5.2, F2-29): 8 lines at 1,100 m (OF1), 11 at 650 m (Havfarm).
+@export var mooring_lines: int = 8
+@export var mooring_anchor_radius_m: float = 1100.0
+@export var mooring_fairlead_y_m: float = -30.0
 ## Camera distance (m) where LOD0 hands over to LOD1, and LOD1 to LOD2.
 @export var lod_switch: Vector2 = Vector2(500.0, 2000.0)
 ## Past this camera distance (m) the unit is not drawn at all (0: always).
@@ -35,6 +39,12 @@ extends Node3D
 
 const LOD_NAMES := ["", "LOD1", "LOD2"]
 const LOD_HYSTERESIS := 8.0
+const MOORING_LINE_LOD0 := "res://assets/models/offshore/mooring_line_kit_LOD0.glb"
+const MOORING_LINE_LOD1 := "res://assets/models/offshore/mooring_line_kit_LOD1.glb"
+const MOORING_REF_RADIUS_M := 1100.0
+const OF1_MOORING_BEARINGS_DEG := [38.0, 52.0, 128.0, 142.0, 218.0, 232.0, 308.0, 322.0]
+const HAVFARM_MOORING_BEARINGS_DEG := [128.0, 140.0, 152.0, 164.0, 174.0, 180.0, 186.0, 196.0, 208.0, 220.0, 232.0]
+const HAVFARM_TURRET_X_M := -166.0
 ## The build part groups in yard order (offshore_kit.gdshader, UV2.x).
 const PART_GROUPS := ["Pontoons", "Columns", "Rings", "Bracing", "Topsides", "Net"]
 ## LOD0 mesh nodes (spec §5.2), and those that never cast a shadow.
@@ -75,7 +85,7 @@ func get_lod_meshes(level: int) -> Array[MeshInstance3D]:
 func _in_lod_holder(node: Node) -> bool:
 	var p := node.get_parent()
 	while p != null and p != self:
-		if String(p.name) in ["LOD1", "LOD2"]:
+		if String(p.name) in ["LOD1", "LOD2", "MooringSpread"]:
 			return true
 		p = p.get_parent()
 	return false
@@ -126,6 +136,62 @@ func get_w2w_landing() -> Vector3:
 ## Where a status chip sits above the unit, in local space.
 func get_chip_anchor() -> Vector3:
 	return Vector3(0.0, air_draught_m + 8.0, 0.0)
+
+
+## Mooring spread descriptor (spec §5.2, F2-29): 8 lines in 4 pairs at 1,100 m
+## radius for OF1-class; 11 lines at 650 m radius from the bow turret for
+## Havfarm-class.
+func get_mooring_spread() -> Array[Dictionary]:
+	var is_havfarm := asset_id == "havfarm_class" or mooring_lines == 11
+	var bearings: Array = HAVFARM_MOORING_BEARINGS_DEG if is_havfarm else OF1_MOORING_BEARINGS_DEG
+	var origin := Vector3(HAVFARM_TURRET_X_M, 0.0, 0.0) if is_havfarm else Vector3.ZERO
+	var fairlead_r := 7.0 if is_havfarm else circumradius_m
+	var out: Array[Dictionary] = []
+	for deg in bearings:
+		var rad := deg_to_rad(float(deg))
+		var dir := Vector3(cos(rad), 0.0, -sin(rad))
+		out.append({
+			"bearing_deg": float(deg),
+			"fairlead": origin + dir * fairlead_r + Vector3(0.0, mooring_fairlead_y_m, 0.0),
+			"anchor": origin + dir * mooring_anchor_radius_m + Vector3(0.0, -150.0, 0.0),
+			"radius_m": mooring_anchor_radius_m,
+		})
+	return out
+
+
+## Build or toggle the underwater mooring-line instances (mooring_line_kit).
+func set_mooring_visible(vis: bool) -> void:
+	var holder := get_node_or_null("MooringSpread") as Node3D
+	if holder == null and vis:
+		holder = _build_mooring_spread()
+	if holder != null:
+		holder.visible = vis
+
+
+func _build_mooring_spread() -> Node3D:
+	var holder := Node3D.new()
+	holder.name = "MooringSpread"
+	add_child(holder)
+	var scene0 := load(MOORING_LINE_LOD0) as PackedScene if ResourceLoader.exists(MOORING_LINE_LOD0) else null
+	if scene0 == null:
+		return holder
+	var is_havfarm := asset_id == "havfarm_class" or mooring_lines == 11
+	var origin := Vector3(HAVFARM_TURRET_X_M, 0.0, 0.0) if is_havfarm else Vector3.ZERO
+	var r_scale := mooring_anchor_radius_m / MOORING_REF_RADIUS_M
+	var spread := get_mooring_spread()
+	for i in spread.size():
+		var item: Dictionary = spread[i]
+		var line := scene0.instantiate() as Node3D
+		line.name = "MooringLine_%02d" % i
+		line.position = origin
+		line.rotation.y = deg_to_rad(float(item["bearing_deg"]))
+		line.scale = Vector3(r_scale, 1.0, 1.0)
+		for mesh in line.find_children("*", "MeshInstance3D", true, false):
+			var mi := mesh as MeshInstance3D
+			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			mi.layers = PlanarReflection.NO_MIRROR_LAYER
+		holder.add_child(line)
+	return holder
 
 
 func _configure_lods() -> void:

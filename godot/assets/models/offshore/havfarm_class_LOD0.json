@@ -1,0 +1,174 @@
+{
+  "asset": "havfarm_class",
+  "atlas": "godot/assets/models/facility_kit/textures/offshore_atlas.png",
+  "bbox_size": [
+    385.0,
+    91.1,
+    88.2261
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "air_draught_m": 35.1,
+    "beam_m": 59.5,
+    "circumradius_m": 192.5,
+    "crane_reach_m": 18.626,
+    "deck_z_m": 11.0,
+    "deckhouse_m": [
+      40.0,
+      59.5,
+      18.0
+    ],
+    "draft_m": 26.75,
+    "freeboard_m": 11.0,
+    "height_m": 55.75,
+    "length_m": 385.0,
+    "mooring_anchor_radius_m": 650.0,
+    "mooring_lines": 11,
+    "moulded_depth_m": 37.75,
+    "net_bottom_m": -56.0,
+    "net_depth_m": 56.0,
+    "net_top_m": 10.2,
+    "silo_d_m": 4.0,
+    "silo_height_m": 10.0,
+    "silos": 8,
+    "superstructure_m": [
+      40.0,
+      59.5,
+      18.0
+    ],
+    "topsides_top_m": 30.4,
+    "turret_d_m": 14.0,
+    "well_length_m": 47.0,
+    "well_width_m": 47.0,
+    "wells": 6
+  },
+  "file": "havfarm_class_LOD0.glb",
+  "groups": {
+    "Bracing": 584,
+    "Columns": 2580,
+    "Net": 286,
+    "Pontoons": 284,
+    "Rings": 406,
+    "Topsides": 5834
+  },
+  "lod": "LOD0",
+  "markers": {
+    "Beacon": [
+      168.5,
+      34.5,
+      -0.0
+    ],
+    "W2WLanding": [
+      0.0,
+      11.0,
+      29.75
+    ]
+  },
+  "material_count": 2,
+  "materials": [
+    "LK_OffshoreKit",
+    "LK_OffshoreNet"
+  ],
+  "net_colour": "#A8ADB0",
+  "node_order": [
+    "Hull",
+    "Columns",
+    "Bracing",
+    "Topsides",
+    "Net",
+    "Bulkhead",
+    "CraneA",
+    "CraneB",
+    "NavLights",
+    "Beacon",
+    "W2WLanding",
+    "Cranes"
+  ],
+  "nodes": {
+    "Bracing": 584,
+    "Bulkhead": 34,
+    "Columns": 2296,
+    "CraneA": 264,
+    "CraneB": 264,
+    "Hull": 974,
+    "NavLights": 700,
+    "Net": 252,
+    "Topsides": 13584
+  },
+  "parts": {
+    "BlowerHouse": 10,
+    "BoatLanding": 200,
+    "Bracing": 480,
+    "Breakwater": 10,
+    "Bulkhead": 32,
+    "BulkheadNet": 2,
+    "Columns": 2296,
+    "Cranes": 616,
+    "Deckhouse": 72,
+    "DeckhouseTrim": 108,
+    "DeckhouseWindows": 18,
+    "FeedPipes": 24,
+    "Gantry": 80,
+    "GantryWalk": 24,
+    "Hull": 252,
+    "HullDeck": 4,
+    "LanternPosts": 108,
+    "Lanterns": 700,
+    "Mast": 36,
+    "NetBottom": 60,
+    "NetSides": 192,
+    "NetWinches": 120,
+    "Pontoons": 192,
+    "Rails": 2224,
+    "RescueBoat": 24,
+    "RingWalkway": 14,
+    "SiloDeck": 12,
+    "SiloFittings": 256,
+    "Silos": 1280,
+    "Turret": 284,
+    "TurretCollar": 92,
+    "W2WLanding": 12,
+    "WellBeams": 140
+  },
+  "pivots": {
+    "CraneA": [
+      -98.5,
+      11.0,
+      26.55
+    ],
+    "CraneB": [
+      48.5,
+      11.0,
+      -26.55
+    ]
+  },
+  "surfaces": 10,
+  "swatches": {
+    "Deckhouse": {
+      "hex": "#EAEDEB",
+      "spec": "#E9ECEA",
+      "strip": "white"
+    },
+    "Hull": {
+      "hex": "#34424B",
+      "spec": "#34424B",
+      "strip": "hull_slate"
+    },
+    "NavLights": {
+      "hex": "#FFC33A",
+      "spec": "#FFC23A",
+      "strip": "nav_light"
+    },
+    "Rails": {
+      "hex": "#E6BE2E",
+      "spec": "#E6BE2E",
+      "strip": "hull_yellow"
+    },
+    "Silos": {
+      "hex": "#777888",
+      "spec": "#777887",
+      "strip": "silo"
+    }
+  },
+  "tri_count": 18952
+}

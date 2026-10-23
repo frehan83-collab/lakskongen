@@ -64,8 +64,8 @@ uniform float wet_bottom = -3.0;
 instance uniform float build_stage = 6.0;
 // Height band (model y) each part group rises through while it is built:
 // Pontoons, Columns, Rings, Bracing, Topsides, Net.
-const float GROUP_LO[6] = {-43.5, -43.5, -37.0, -37.0, 14.5, -35.5};
-const float GROUP_HI[6] = {-34.5, 16.0, 16.5, 16.0, 29.5, 17.0};
+const float GROUP_LO[6] = {-43.5, -43.5, -37.0, -37.0, 10.5, -56.5};
+const float GROUP_HI[6] = {-34.5, 16.0, 16.5, 17.0, 35.5, 17.0};
 
 // Strip rows (blender/build_offshore.py STRIPS order).
 const float ROW_HULL = 0.0;
@@ -75,6 +75,7 @@ const float ROW_GREY = 5.0;
 const float ROW_SILO = 6.0;
 const float ROW_CRANE = 10.0;
 const float ROW_NAV = 11.0;
+const float ROW_HULL_SLATE = 15.0;
 
 varying vec3 model_pos;
 varying vec3 model_normal;
@@ -112,7 +113,7 @@ void fragment() {
 	bool nav = row == ROW_NAV;
 	vec3 albedo = t.rgb;
 	float rough = t.a;
-	bool paint = row == ROW_HULL || row == ROW_SPLASH || row == ROW_WHITE || row == ROW_GREY
+	bool paint = row == ROW_HULL || row == ROW_SPLASH || row == ROW_HULL_SLATE || row == ROW_WHITE || row == ROW_GREY
 		|| row == ROW_SILO || row == ROW_CRANE;
 	if (paint) {
 		vec3 n = abs(model_normal);
@@ -122,7 +123,7 @@ void fragment() {
 		vec4 w2 = texture(weathering, mat2(vec2(0.8, 0.6), vec2(-0.6, 0.8)) * wuv * 0.31 + vec2(0.37, 0.11));
 		float g = mix(1.0, w.r * (0.84 + 0.32 * w2.r), grime);
 		// Rust runs down the hull steel; the houses and silos stay cool grey.
-		float hull = (row == ROW_HULL || row == ROW_SPLASH) ? 1.0 : 0.3;
+		float hull = (row == ROW_HULL || row == ROW_SPLASH || row == ROW_HULL_SLATE) ? 1.0 : 0.3;
 		float st = clamp(w.b * (0.4 + 1.2 * w2.g), 0.0, 1.0) * streaks * hull;
 		albedo = mix(albedo * g, streak_color * g, st * 0.5);
 		rough = clamp(rough + (w.g - 0.5) * 0.3 * grime + st * 0.12, 0.05, 1.0);
@@ -144,7 +145,7 @@ void fragment() {
 	} else {
 		ALBEDO = albedo;
 		ROUGHNESS = rough;
-		if ((row == ROW_HULL || row == ROW_SPLASH) && landmark_lift > 0.0) {
+		if ((row == ROW_HULL || row == ROW_SPLASH || row == ROW_HULL_SLATE) && landmark_lift > 0.0) {
 			float d = length(VERTEX);
 			float tr = exp(-fog_density * d);
 			// Through haze only: in rain, snow or a storm (tr < 0.4) the chip

@@ -998,6 +998,66 @@
         122.3546
       ]
     },
+    "havfarm_class_LOD0": {
+      "path": "godot/assets/models/offshore/havfarm_class_LOD0.glb",
+      "sha256": "7df0453d313665d0801360cbc280d38350a7acaea511bcb6190852d9dab5a6fa",
+      "size": 1071288,
+      "tri_count": 18952,
+      "material_count": 2,
+      "bbox_size": [
+        385.0,
+        91.1,
+        88.2261
+      ]
+    },
+    "havfarm_class_LOD1": {
+      "path": "godot/assets/models/offshore/havfarm_class_LOD1.glb",
+      "sha256": "3ed6d98302d572ba6b2f5fdee9600840657a1eee8acf461532fd57e64512c6a8",
+      "size": 267320,
+      "tri_count": 3692,
+      "material_count": 2,
+      "bbox_size": [
+        385.0,
+        91.1,
+        88.1478
+      ]
+    },
+    "havfarm_class_LOD2": {
+      "path": "godot/assets/models/offshore/havfarm_class_LOD2.glb",
+      "sha256": "49d6964c8a139fc36734ca76f06d9d5abbd01fe5b9e6a0c88af2a18f5990056b",
+      "size": 96256,
+      "tri_count": 1350,
+      "material_count": 2,
+      "bbox_size": [
+        385.0,
+        32.0,
+        88.1478
+      ]
+    },
+    "mooring_line_kit_LOD0": {
+      "path": "godot/assets/models/offshore/mooring_line_kit_LOD0.glb",
+      "sha256": "05096b18f12d7fb880a0bf5af48b4c96e6c04e56e9bd1f034d1f9ab578522cab",
+      "size": 20220,
+      "tri_count": 348,
+      "material_count": 1,
+      "bbox_size": [
+        1100.042,
+        120.199,
+        3.6
+      ]
+    },
+    "mooring_line_kit_LOD1": {
+      "path": "godot/assets/models/offshore/mooring_line_kit_LOD1.glb",
+      "sha256": "01e0f578658d507b7392676fd0affaa6c565cf091ace777751ecb0474fe94afa",
+      "size": 5196,
+      "tri_count": 46,
+      "material_count": 1,
+      "bbox_size": [
+        1100.0299,
+        120.2034,
+        3.6
+      ]
+    },
     "offshore_service_LOD0": {
       "path": "godot/assets/models/offshore_service/offshore_service_LOD0.glb",
       "sha256": "510a016cc1c74680465674549bf89dcba8b13735a56278cf5c2cca66931b0878",
