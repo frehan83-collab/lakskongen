@@ -306,6 +306,7 @@ The stage branches' finished heads above exist only in this checkout's local bra
 | Sim numbers and sources | BALANCE: grep the item id (sections §1a…§1u). `docs/research/FARM_TYPES_RESEARCH.md` for land and offshore sources. |
 | Why something is the way it is | RUN_LOG §7: grep the item id or keyword. §8 for open findings. |
 | Rendering, water, terrain, perf | FJORD_RENDERER: grep the system name. `docs/run/evidence/p0_04_perf.md` for the perf baseline. |
+| Blender modelling and graphics (handover) | `docs/GRAPHICS_HANDOVER.md` first: tools, pipeline, asset inventory, the graphics work queue, rules, verify. |
 | Art and the look | `docs/art/OWNER_REFERENCE_BRIEF.md` and `docs/art/WAVE1_ART_REVIEW.md` (short). |
 | What the game looks like now, shot by shot | `docs/run/evidence/wave4b_frame_review.md` (one line per shot, the ranked findings, the baselines that wait for the owner) and its contact sheets in `docs/run/evidence/wave4b_frame_review/`. To capture again: one `tools/capture_screenshots.sh --scene` run per QA scene (the teaser alone with `-- --only 34_teaser`) and the bare harness. |
 | Codebase conventions | AGENTS.md: grep the topic (e.g. "Real pens", "Driftsplan", "golden"). |
