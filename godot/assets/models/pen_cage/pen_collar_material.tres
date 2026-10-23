@@ -1,9 +1,15 @@
-[gd_resource type="ShaderMaterial" load_steps=2 format=3 uid="uid://pen_collar_mat_001"]
+[gd_resource type="ShaderMaterial" format=3 uid="uid://debm2cv8fog12"]
 
-[ext_resource type="Shader" path="res://shaders/pen_collar_shader.gdshader" id="1_shader"]
+[ext_resource type="Shader" uid="uid://cbu0po2k0u8ks" path="res://shaders/pen_collar_shader.gdshader" id="1_shader"]
 
 [resource]
+render_priority = 0
 shader = ExtResource("1_shader")
 shader_parameter/albedo_color = Color(0.109804, 0.117647, 0.12549, 1)
 shader_parameter/metallic = 0.0
 shader_parameter/roughness = 0.6
+shader_parameter/waterline_color = Color(0.075, 0.09, 0.078, 1)
+shader_parameter/waterline_height = 0.08
+shader_parameter/waterline_blend = 0.1
+shader_parameter/wet_roughness = 0.32
+shader_parameter/ao_light_affect = 0.35

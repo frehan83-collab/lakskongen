@@ -1,7 +1,7 @@
-[gd_resource type="ShaderMaterial" load_steps=3 format=3 uid="uid://pen_net_mat_001"]
+[gd_resource type="ShaderMaterial" format=3 uid="uid://buifjpxq83t8h"]
 
-[ext_resource type="Shader" path="res://shaders/pen_net_shader.gdshader" id="1_shader"]
-[ext_resource type="Texture2D" path="res://assets/models/pen_cage/textures/net_mesh.png" id="2_net"]
+[ext_resource type="Shader" uid="uid://cml80dxmnx1rb" path="res://shaders/pen_net_shader.gdshader" id="1_shader"]
+[ext_resource type="Texture2D" uid="uid://coplvjbpwy3tr" path="res://assets/models/pen_cage/textures/net_mesh.png" id="2_net"]
 
 [resource]
 render_priority = -1
@@ -9,5 +9,8 @@ shader = ExtResource("1_shader")
 shader_parameter/albedo_color = Color(0.1, 0.13, 0.15, 1)
 shader_parameter/net_texture = ExtResource("2_net")
 shader_parameter/tile_m = 0.25
-shader_parameter/thread_alpha = 1.0
-shader_parameter/far_boost = 2.8
+shader_parameter/thread_alpha = 0.9
+shader_parameter/far_boost = 1.6
+shader_parameter/fouling_color = Color(0.16, 0.2, 0.13, 1)
+shader_parameter/fouling_depth = 4.0
+shader_parameter/fouling_amount = 0.45

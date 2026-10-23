@@ -1,7 +1,6 @@
-[gd_resource type="PlaneMesh" load_steps=1 format=3 uid="uid://salmon_fin_mesh_001"]
+[gd_resource type="PlaneMesh" format=3 uid="uid://bnn46xdpy27wj"]
 
 [resource]
 size = Vector2(0.6, 0.4)
 subdivide_width = 1
 subdivide_depth = 1
-orientation = 1

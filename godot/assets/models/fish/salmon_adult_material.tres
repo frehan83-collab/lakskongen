@@ -1,10 +1,11 @@
-[gd_resource type="ShaderMaterial" load_steps=2 format=3 uid="uid://salmon_adult_mat_001"]
+[gd_resource type="ShaderMaterial" format=3 uid="uid://5swyl4rpvo0i"]
 
-[ext_resource type="Shader" path="res://shaders/fish_shader.gdshader" id="1_shader"]
+[ext_resource type="Shader" uid="uid://bbers8hs3a8jc" path="res://shaders/fish_shader.gdshader" id="1_shader"]
 
 [resource]
+render_priority = 0
 shader = ExtResource("1_shader")
-shader_parameter/albedo_color = Color(0.95, 0.55, 0.3, 1.0)
+shader_parameter/albedo_color = Color(0.95, 0.55, 0.3, 1)
 shader_parameter/metallic = 0.15
 shader_parameter/roughness = 0.45
 shader_parameter/specular_strength = 0.5
