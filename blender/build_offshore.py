@@ -84,6 +84,9 @@ STRIPS = [
     ("dark", "#1C1E20", 0.88, "flat", 0.0, 0.0),
     ("safety", "#D9622B", 0.52, "flat", 0.0, 0.0),
     ("door", "#6B7177", 0.60, "seam", 0.25, 0.08),
+    ("hull_slate", "#34424B", 0.52, "panel", 4.0, 0.035),
+    ("chain", "#3A3F44", 0.78, "seam", 0.5, 0.10),
+    ("fibre", "#C8C2B0", 0.70, "corrugated", 0.25, 0.06),
 ]
 STRIP_INDEX = {s[0]: i for i, s in enumerate(STRIPS)}
 # The net is not on the atlas: LK_OffshoreNet's base colour (spec #A8ADB0).
@@ -91,9 +94,16 @@ NET_COLOUR = "#A8ADB0"
 
 ASSETS = list(designs.DESIGNS)
 LODS = ["LOD0", "LOD1", "LOD2"]
+ASSET_LODS = {
+    "of1_class": ["LOD0", "LOD1", "LOD2"],
+    "havfarm_class": ["LOD0", "LOD1", "LOD2"],
+    "mooring_line_kit": ["LOD0", "LOD1"],
+}
 # Spec §5.2 budgets (LOD0 / LOD1 / LOD2), confirmed by the F2-18 read gate.
 TRI_LIMITS = {
     "of1_class": (60000, 12000, 1500),
+    "havfarm_class": (60000, 12000, 1500),
+    "mooring_line_kit": (400, 60, None),
 }
 # Spec §5.2 swatch per part: (strip, spec hex).
 SPEC_SWATCHES = {
@@ -104,6 +114,18 @@ SPEC_SWATCHES = {
         "PowerHouse": ("grey", "#80838D"),
         "Silos": ("silo", "#777887"),
         "NavLights": ("nav_light", "#FFC23A"),
+    },
+    "havfarm_class": {
+        "Hull": ("hull_slate", "#34424B"),
+        "Deckhouse": ("white", "#E9ECEA"),
+        "Rails": ("hull_yellow", "#E6BE2E"),
+        "Silos": ("silo", "#777887"),
+        "NavLights": ("nav_light", "#FFC23A"),
+    },
+    "mooring_line_kit": {
+        "Chain": ("chain", "#3A3F44"),
+        "Fibre": ("fibre", "#C8C2B0"),
+        "Anchor": ("chain", "#3A3F44"),
     },
 }
 # Spec §5.2 node names, LOD0.
@@ -198,7 +220,107 @@ def _tube_d(vs, axis_pts):
     return 2.0 * best
 
 
-def measure(u: designs.Unit, lod: int) -> dict:
+def _measure_havfarm(u: designs.Unit, lod: int) -> dict:
+    every = [v for b in u.builders.values() for v in b.verts]
+    no_mast = [v for key, b in u.builders.items() if key[4] not in ("Mast", "Lanterns", "Cranes")
+               for v in b.verts]
+    hull_vs = u.part_verts("Hull") + u.part_verts("Pontoons") + u.part_verts("WellBeams") + u.part_verts("Turret")
+    house = u.part_verts("Deckhouse") + u.part_verts("DeckhouseTrim")
+    turret = u.part_verts("Turret")
+    # Group transverse well-dividing beams by X coordinate (1D clusters, gap 3 m).
+    wb_vs = sorted([v for v in u.part_verts("WellBeams") if v[2] > 0.0], key=lambda p: p[0])
+    beams: list[list] = []
+    for v in wb_vs:
+        if not beams or v[0] - beams[-1][-1][0] > 3.0:
+            beams.append([v])
+        else:
+            beams[-1].append(v)
+    well_lengths = []
+    well_widths = []
+    for a, b in zip(beams[:-1], beams[1:]):
+        x0 = max(p[0] for p in a)
+        x1 = min(p[0] for p in b)
+        well_lengths.append(x1 - x0)
+        well_widths.append(max(p[1] for p in a) - min(p[1] for p in a))
+    length_m = max(v[0] for v in hull_vs) - min(v[0] for v in hull_vs)
+    beam_m = max(v[1] for v in hull_vs) - min(v[1] for v in hull_vs)
+    draft_m = -min(v[2] for v in hull_vs)
+    deck_z = designs.HF_DECK_Z
+    super_m = [
+        max(v[0] for v in house) - min(v[0] for v in house),
+        max(v[1] for v in house) - min(v[1] for v in house),
+        max(v[2] for v in house) - deck_z,
+    ]
+    dims = {
+        "length_m": length_m,
+        "beam_m": beam_m,
+        "circumradius_m": 0.5 * length_m,
+        "freeboard_m": deck_z,
+        "deck_z_m": deck_z,
+        "draft_m": draft_m,
+        "moulded_depth_m": deck_z + draft_m,
+        "height_m": max(v[2] for v in house) - min(v[2] for v in hull_vs),
+        "topsides_top_m": max(v[2] for v in no_mast),
+        "air_draught_m": max(v[2] for v in every),
+        "wells": len(well_lengths),
+        "well_length_m": sum(well_lengths) / max(len(well_lengths), 1),
+        "well_width_m": sum(well_widths) / max(len(well_widths), 1),
+        "turret_d_m": max(v[1] for v in turret) - min(v[1] for v in turret),
+        "superstructure_m": super_m,
+        "deckhouse_m": super_m,
+        "mooring_lines": designs.MOORING_SPREADS["havfarm_class"]["lines"],
+        "mooring_anchor_radius_m": designs.MOORING_SPREADS["havfarm_class"]["anchor_radius_m"],
+    }
+    silos = u.part_verts("Silos")
+    dims["silo_height_m"] = max(v[2] for v in silos) - deck_z
+    clusters = _clusters([v for v in silos if deck_z + 1.5 <= v[2] <= deck_z + 8.5], 1.75)
+    if clusters:
+        dims["silos"] = len(clusters)
+        dims["silo_d_m"] = max(2 * max(math.hypot(p[0] - cx, p[1] - cy) for p in pts) for cx, cy, pts in clusters)
+    reach = []
+    for node in ("CraneA", "CraneB"):
+        if node in u.pivots:
+            px, py, _pz = u.pivots[node]
+            vs = [v for key, b in u.builders.items() if key[0] == node for v in b.verts]
+            reach.append(max(math.hypot(v[0] - px, v[1] - py) for v in vs))
+    if reach:
+        dims["crane_reach_m"] = min(reach)
+    net = u.part_verts("NetSides") + u.part_verts("NetBottom")
+    dims["net_top_m"] = max(v[2] for v in net)
+    dims["net_bottom_m"] = min(v[2] for v in net)
+    dims["net_depth_m"] = -min(v[2] for v in net)
+    return {k: (round(v, 3) if isinstance(v, float) else ([round(x, 3) for x in v] if isinstance(v, list) else v))
+            for k, v in sorted(dims.items())}
+
+
+def _measure_mooring_line(u: designs.Unit) -> dict:
+    every = [v for b in u.builders.values() for v in b.verts]
+    chain_vs = u.part_verts("Chain")
+    anchor_vs = u.part_verts("Anchor")
+    fairlead_ring = [v[2] for v in chain_vs if abs(v[0]) < 1e-4]
+    of1_sp = designs.MOORING_SPREADS["of1_class"]
+    hf_sp = designs.MOORING_SPREADS["havfarm_class"]
+    dims = {
+        "length_m": max(v[0] for v in every) - min(v[0] for v in every),
+        "fairlead_z_m": sum(fairlead_ring) / len(fairlead_ring),
+        "seabed_z_m": min(v[2] for v in anchor_vs),
+        "anchor_length_m": max(v[0] for v in anchor_vs) - min(v[0] for v in anchor_vs),
+        "of1_lines": of1_sp["lines"],
+        "of1_pairs": of1_sp["pairs"],
+        "of1_fairlead_z_m": of1_sp["fairlead_z_m"],
+        "of1_anchor_radius_m": of1_sp["anchor_radius_m"],
+        "havfarm_lines": hf_sp["lines"],
+        "havfarm_groups": len(hf_sp["groups"]),
+        "havfarm_anchor_radius_m": hf_sp["anchor_radius_m"],
+    }
+    return {k: (round(v, 3) if isinstance(v, float) else v) for k, v in sorted(dims.items())}
+
+
+def measure(u: designs.Unit, lod: int, asset: str = "of1_class") -> dict:
+    if asset == "havfarm_class":
+        return _measure_havfarm(u, lod)
+    if asset == "mooring_line_kit":
+        return _measure_mooring_line(u)
     sides = u.sides
     every = [v for b in u.builders.values() for v in b.verts]
     # Structural height: the bottom of the feet to the top of the control
@@ -329,7 +451,7 @@ def merged_builders(u: designs.Unit, lod: int):
 def build_objects(asset: str, lod: int, mats, sides: int):
     u = designs.Unit(sides=sides)
     designs.DESIGNS[asset](u, lod)
-    dims = measure(u, lod)
+    dims = measure(u, lod, asset)
     merged, part_tris, group_tris = merged_builders(u, lod)
     objs = {}
     for name in sorted(merged, key=lambda n: (NODES_LOD0 + ["zz"]).index(n) if n in NODES_LOD0 else 99):
@@ -481,11 +603,12 @@ def add_empties(u: designs.Unit, objs, lod: int):
     out = []
     if lod != 0:
         return out
-    beacon = bpy.data.objects.new("Beacon", None)
-    beacon.location = u.markers["Beacon"]
-    beacon["lk_build"] = PREFIX
-    bpy.context.scene.collection.objects.link(beacon)
-    out.append(beacon)
+    if "Beacon" in u.markers:
+        beacon = bpy.data.objects.new("Beacon", None)
+        beacon.location = u.markers["Beacon"]
+        beacon["lk_build"] = PREFIX
+        bpy.context.scene.collection.objects.link(beacon)
+        out.append(beacon)
     if "W2WLanding" in u.markers:
         landing = bpy.data.objects.new("W2WLanding", None)
         landing.location = u.markers["W2WLanding"]
@@ -548,6 +671,8 @@ def export_lod(asset, lod_name, u, objs, empties, dims, part_tris, group_tris, o
         "file": os.path.basename(path),
         "blender_version": bpy.app.version_string,
     }
+    if asset == "mooring_line_kit":
+        data["spreads"] = designs.MOORING_SPREADS
     with open(os.path.join(out_dir, f"{stem}_{lod_name}.json"), "w") as f:
         json.dump(data, f, indent=2, sort_keys=True)
         f.write("\n")
@@ -586,12 +711,16 @@ def main():
     out_dir = args.out or OUT_DIR
     os.makedirs(out_dir, exist_ok=True)
     for asset in ([args.asset] if args.asset else ASSETS):
-        for lod_name in ([args.lod] if args.lod else LODS):
+        if args.lod and args.lod not in ASSET_LODS[asset]:
+            if args.asset:
+                raise SystemExit(f"{asset} has no {args.lod}")
+            continue
+        for lod_name in ([args.lod] if args.lod else ASSET_LODS[asset]):
             lod = LODS.index(lod_name)
             kit.clear_prefixed(PREFIX)
             u, objs, dims, part_tris, group_tris = build_objects(asset, lod, mats, args.sides)
             nets = split_nets(objs)
-            baked = lod_name != "LOD2" and not args.no_bake
+            baked = lod_name != "LOD2" and asset != "mooring_line_kit" and not args.no_bake
             if baked:
                 bake_ao(list(objs.values()))
             assemble(objs, nets, baked)

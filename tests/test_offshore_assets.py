@@ -476,7 +476,7 @@ def _build(tmp_path, *args):
 @pytest.mark.skipif(_blender() is None, reason="Blender is not installed")
 @pytest.mark.parametrize("lod", ["LOD1", "LOD2"])
 def test_build_script_reproduces_the_committed_files(tmp_path, lod):
-    out = _build(tmp_path, "--lod", lod, "--textures", "--atlas-out", str(tmp_path / "atlas.png"))
+    out = _build(tmp_path, "--asset", "of1_class", "--lod", lod, "--textures", "--atlas-out", str(tmp_path / "atlas.png"))
     assert out.returncode == 0, out.stderr[-2000:]
     assert (tmp_path / "atlas.png").read_bytes() == ATLAS.read_bytes()
     rebuilt = tmp_path / _glb(lod).name
@@ -494,3 +494,219 @@ def test_build_stops_over_its_triangle_budget(tmp_path):
     assert out.returncode != 0
     n = _sidecar("LOD2")["tri_count"]
     assert f"of1_class LOD2 has {n} triangles, over its 750 budget" in out.stdout + out.stderr
+
+
+# ── F2-29: Havfarm-class ship-shaped unit and mooring-line kit ───────────────
+
+HAVFARM = next(a for a in MANIFEST["assets"] if a["id"] == "havfarm_class")
+MOORING = next(a for a in MANIFEST["assets"] if a["id"] == "mooring_line_kit")
+EVIDENCE_F29 = REPO / "docs" / "run" / "evidence" / "f2_29_havfarm.md"
+
+
+def _asset_glb(asset, lod):
+    return REPO / asset["export_path"].format(lod=lod, variant="")
+
+
+def _asset_sidecar(asset, lod):
+    return json.loads(_asset_glb(asset, lod).with_suffix(".json").read_text())
+
+
+def _spec_row_of(asset_id: str):
+    section = SPEC[SPEC.index("### 5.2 Offshore"):SPEC.index("### 5.3")]
+    for line in section.splitlines():
+        if line.startswith(f"| `{asset_id}`"):
+            cells = [c.strip() for c in line.strip("|").split("|")]
+            budget = tuple(int(n.replace(",", "")) for n in re.findall(r"[\d,]+", cells[4].split("(")[0]))
+            return cells, budget
+    raise AssertionError(f"no {asset_id} row in §5.2")
+
+
+def test_havfarm_and_mooring_manifest_hold_their_spec_rows():
+    hf_cells, hf_budget = _spec_row_of("havfarm_class")
+    assert "Hull 385 × 59.5, moulded depth 37.75, freeboard 11" in hf_cells[1]
+    assert "Six 47 × 47 wells in a row, nets to 56. Bow turret Ø14" in hf_cells[1]
+    assert HAVFARM["tri_max"] == dict(zip(LODS, hf_budget)) == {"LOD0": 60000, "LOD1": 12000, "LOD2": 1500}
+    assert HAVFARM["materials"] == ["LK_OffshoreKit", "LK_OffshoreNet"]
+    assert HAVFARM["build_script"] == "blender/build_offshore.py" and HAVFARM["build_args"] == ["--asset", "havfarm_class"]
+    assert HAVFARM["spec_tolerance"] <= 0.05
+    for part in ("Hull", "Deckhouse", "Rails"):
+        assert HAVFARM["spec_swatches"][part] in hf_cells[3], part
+
+    ml_cells, ml_budget = _spec_row_of("mooring_line_kit")
+    assert "OF1: 8 lines in 4 pairs, fairleads −30 m, anchors at 1,100 m" in ml_cells[1]
+    assert "Havfarm: 11 lines at 650 m" in ml_cells[1]
+    assert MOORING["lod_levels"] == ["LOD0", "LOD1"]
+    assert MOORING["tri_max"] == dict(zip(["LOD0", "LOD1"], ml_budget)) == {"LOD0": 400, "LOD1": 60}
+    assert MOORING["materials"] == ["LK_OffshoreKit"]
+    assert MOORING["build_script"] == "blender/build_offshore.py" and MOORING["build_args"] == ["--asset", "mooring_line_kit"]
+    for part, hexc in MOORING["spec_swatches"].items():
+        assert hexc in ml_cells[3], (part, hexc)
+
+
+@pytest.mark.parametrize("lod", ["LOD0", "LOD1"])
+def test_havfarm_hull_385_by_59_5_with_six_47m_wells(lod):
+    # F2-29 accept 1: Hull 385 x 59.5 m ± 5%, with 6 wells of 47 x 47 m.
+    dims = _asset_sidecar(HAVFARM, lod)["dimensions"]
+    assert abs(dims["length_m"] - 385.0) <= 0.05 * 385.0, dims
+    assert abs(dims["beam_m"] - 59.5) <= 0.05 * 59.5, dims
+    assert abs(dims["moulded_depth_m"] - 37.75) <= 0.05 * 37.75, dims
+    assert abs(dims["freeboard_m"] - 11.0) <= 0.05 * 11.0, dims
+    assert dims["wells"] == 6, dims
+    assert abs(dims["well_length_m"] - 47.0) <= 0.05 * 47.0, dims
+    assert abs(dims["well_width_m"] - 47.0) <= 0.05 * 47.0, dims
+    assert abs(dims["net_depth_m"] - 56.0) <= 0.05 * 56.0 and dims["net_bottom_m"] == pytest.approx(-56.0), dims
+    assert abs(dims["turret_d_m"] - 14.0) <= 0.05 * 14.0, dims
+    for got, want in zip(dims["superstructure_m"], (40.0, 59.5, 18.0)):
+        assert abs(got - want) <= 0.05 * want, dims["superstructure_m"]
+    assert dims["silos"] == 8 and abs(dims["silo_d_m"] - 4.0) <= 0.2 and abs(dims["silo_height_m"] - 10.0) <= 0.5
+
+
+def test_havfarm_lod0_holds_every_manifest_spec_dimension_within_5_percent():
+    dims = _asset_sidecar(HAVFARM, "LOD0")["dimensions"]
+    for key, want in HAVFARM["spec"].items():
+        got = dims[key]
+        if isinstance(want, int):
+            assert got == want, (key, got, want)
+        else:
+            assert abs(got - want) <= 0.05 * abs(want) + 1e-9, (key, got, want)
+    lod2 = _asset_sidecar(HAVFARM, "LOD2")["dimensions"]
+    assert lod2["net_bottom_m"] >= -3.0 and lod2["draft_m"] < 4.0
+
+
+def test_havfarm_and_mooring_triangle_budgets_and_lods():
+    # F2-29 accept 2: triangle budgets met and stepping down across LODs.
+    hf_tris = []
+    for lod in LODS:
+        path = _asset_glb(HAVFARM, lod)
+        side = _asset_sidecar(HAVFARM, lod)
+        j, _binc = _glb_load(path)
+        real_tris = sum(j["accessors"][p["indices"]]["count"] // 3 for m in j["meshes"] for p in m["primitives"])
+        assert real_tris == side["tri_count"] <= HAVFARM["tri_max"][lod], (lod, real_tris)
+        assert abs(real_tris - HAVFARM["tri_budget"][lod]) <= max(10, 0.1 * HAVFARM["tri_budget"][lod])
+        hf_tris.append(real_tris)
+    assert hf_tris[0] > hf_tris[1] > hf_tris[2] > 0, hf_tris
+
+    ml_tris = []
+    for lod in ["LOD0", "LOD1"]:
+        path = _asset_glb(MOORING, lod)
+        side = _asset_sidecar(MOORING, lod)
+        j, _binc = _glb_load(path)
+        real_tris = sum(j["accessors"][p["indices"]]["count"] // 3 for m in j["meshes"] for p in m["primitives"])
+        assert real_tris == side["tri_count"] <= MOORING["tri_max"][lod], (lod, real_tris)
+        assert abs(real_tris - MOORING["tri_budget"][lod]) <= max(5, 0.1 * MOORING["tri_budget"][lod])
+        ml_tris.append(real_tris)
+    assert ml_tris[0] > ml_tris[1] > 0, ml_tris
+
+
+def test_mooring_line_spreads_match_spec_counts_and_radii():
+    # F2-29 accept 3: Mooring line counts are 8 (OF1, 4 pairs, fairleads -30 m,
+    # anchors at 1,100 m) and 11 (Havfarm, anchors at 650 m).
+    side = _asset_sidecar(MOORING, "LOD0")
+    dims = side["dimensions"]
+    assert abs(dims["length_m"] - 1100.0) <= 0.05 * 1100.0
+    assert dims["fairlead_z_m"] == pytest.approx(-30.0)
+    assert dims["seabed_z_m"] == pytest.approx(-150.0)
+    assert dims["of1_lines"] == 8 and dims["of1_pairs"] == 4
+    assert dims["of1_fairlead_z_m"] == pytest.approx(-30.0) and dims["of1_anchor_radius_m"] == pytest.approx(1100.0)
+    assert dims["havfarm_lines"] == 11 and dims["havfarm_groups"] == 3
+    assert dims["havfarm_anchor_radius_m"] == pytest.approx(650.0)
+
+    spreads = side["spreads"]
+    of1_sp = spreads["of1_class"]
+    hf_sp = spreads["havfarm_class"]
+    assert of1_sp["lines"] == len(of1_sp["bearings_deg"]) == 8 and of1_sp["pairs"] == 4
+    assert of1_sp["fairlead_z_m"] == -30.0 and of1_sp["anchor_radius_m"] == 1100.0
+    assert hf_sp["lines"] == len(hf_sp["bearings_deg"]) == sum(hf_sp["groups"]) == 11
+    assert hf_sp["anchor_radius_m"] == 650.0 and hf_sp["turret_x_m"] == -166.0
+
+    model = (GODOT / "scripts" / "visual" / "OffshoreUnitModel.gd").read_text()
+    assert "func get_mooring_spread() -> Array[Dictionary]:" in model
+    assert "OF1_MOORING_BEARINGS_DEG" in model and "HAVFARM_MOORING_BEARINGS_DEG" in model
+    of1_scene = (REPO / ASSET["godot_scene"]).read_text()
+    hf_scene = (REPO / HAVFARM["godot_scene"]).read_text()
+    assert 'asset_id = "havfarm_class"' in hf_scene
+    assert "mooring_lines = 11" in hf_scene and "mooring_anchor_radius_m = 650.0" in hf_scene
+    assert 'asset_id = "of1_class"' in of1_scene
+
+
+def test_havfarm_nodes_and_build_groups():
+    side0 = _asset_sidecar(HAVFARM, "LOD0")
+    assert sorted(side0["node_order"]) == sorted(NODES_LOD0 + ["W2WLanding"])
+    assert set(HAVFARM["nodes"]) == set(NODES_LOD0 + ["W2WLanding"])
+    assert "Beacon" in side0["markers"] and "W2WLanding" in side0["markers"]
+    assert set(side0["pivots"]) == {"CraneA", "CraneB"}
+    for lod in LODS:
+        j, binc = _glb_load(_asset_glb(HAVFARM, lod))
+        found = set()
+        for mesh in j["meshes"]:
+            for prim in mesh["primitives"]:
+                assert "TEXCOORD_1" in prim["attributes"], (lod, mesh["name"])
+                groups = {round(v[0], 3) for v in _accessor(j, binc, prim["attributes"]["TEXCOORD_1"])}
+                assert all(g == int(g) and 0 <= g <= 5 for g in groups)
+                found |= {int(g) for g in groups}
+        want = set(range(6)) if lod != "LOD2" else {1, 2, 3, 4, 5}
+        assert found == want, (lod, found)
+
+
+def test_havfarm_hull_colour_check_against_press_photos_is_recorded():
+    # F2-29 accept 4: the evidence doc records the hull-colour check against
+    # press photos before the swatch is final, and RUN_LOG §7 logs it.
+    section = RUN_LOG[RUN_LOG.index("## 7. Decision log"):RUN_LOG.index("## 8.")]
+    assert re.search(r"F2-29.*havfarm_class.*mooring_line_kit.*#34424B", section, re.S)
+    doc = EVIDENCE_F29.read_text()
+    for needle in ("## Acceptance 4: hull-colour check against press photos", "DJI_0456", "NSK_Jostein_Albert_2",
+                   "Drone2-01", "#0D6034", "#028759", "#34424B", "#E9ECEA", "#E6BE2E", "D17", "Pillar 7",
+                   "f2_29/havfarm_slate_vs_press_green.jpg"):
+        assert needle in doc, needle
+    images = re.findall(r"\]\((f2_29/[^)]+)\)", doc)
+    assert len(images) >= 10
+    for img in images:
+        assert (EVIDENCE_F29.parent / img).is_file(), img
+
+    strips = {name: hexc for name, hexc, _ in _strips()}
+    for asset in (HAVFARM, MOORING):
+        side = _asset_sidecar(asset, "LOD0")
+        assert set(side["swatches"]) == set(asset["spec_swatches"])
+        for part, sw in side["swatches"].items():
+            assert sw["spec"] == asset["spec_swatches"][part]
+            assert strips[sw["strip"]] == sw["spec"], (asset["id"], part, sw)
+            assert _de(sw["hex"], sw["spec"]) <= 3.0, (asset["id"], part, sw)
+
+
+def test_havfarm_and_mooring_godot_imports_and_presenter_wiring():
+    for asset in (HAVFARM, MOORING):
+        for lod in asset["lod_levels"]:
+            text = Path(str(_asset_glb(asset, lod)) + ".import").read_text()
+            assert "meshes/generate_lods=false" in text
+            for name in asset["materials"]:
+                block = re.search(r'"%s": \{(.*?)\}' % name, text, re.S)
+                assert block and '"use_external/enabled": true' in block.group(1), (asset["id"], lod, name)
+                assert f'"use_external/path": "res://assets/models/facility_kit/{name}.tres"' in block.group(1)
+    vis = (GODOT / "scripts" / "visual" / "OffshoreUnitVisual.gd").read_text()
+    mgr = (GODOT / "scripts" / "visual" / "FarmFacilityVisualManager.gd").read_text()
+    assert 'res://assets/models/offshore/havfarm_class.tscn' in vis
+    assert "_create_havfarm" in mgr
+
+
+@pytest.mark.skipif(_blender() is None, reason="Blender is not installed")
+@pytest.mark.parametrize("aid,lod", [("havfarm_class", "LOD1"), ("havfarm_class", "LOD2"),
+                                     ("mooring_line_kit", "LOD0"), ("mooring_line_kit", "LOD1")])
+def test_f29_build_reproduces_committed_files(tmp_path, aid, lod):
+    asset = HAVFARM if aid == "havfarm_class" else MOORING
+    out = _build(tmp_path, "--asset", aid, "--lod", lod)
+    assert out.returncode == 0, out.stderr[-2000:]
+    committed = _asset_glb(asset, lod)
+    rebuilt = tmp_path / committed.name
+    new_side = json.loads(rebuilt.with_suffix(".json").read_text())
+    old_side = _asset_sidecar(asset, lod)
+    assert {k: v for k, v in new_side.items() if k != "blender_version"} == \
+        {k: v for k, v in old_side.items() if k != "blender_version"}
+    if new_side["blender_version"] == old_side["blender_version"]:
+        assert hashlib.sha256(rebuilt.read_bytes()).hexdigest() == hashlib.sha256(committed.read_bytes()).hexdigest()
+
+
+@pytest.mark.skipif(_blender() is None, reason="Blender is not installed")
+def test_mooring_line_kit_refuses_lod2(tmp_path):
+    out = _build(tmp_path, "--asset", "mooring_line_kit", "--lod", "LOD2", "--no-bake")
+    assert out.returncode != 0
+    assert "mooring_line_kit has no LOD2" in out.stdout + out.stderr

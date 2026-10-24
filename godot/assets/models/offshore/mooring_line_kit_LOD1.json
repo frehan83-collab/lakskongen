@@ -1,0 +1,123 @@
+{
+  "asset": "mooring_line_kit",
+  "atlas": "godot/assets/models/facility_kit/textures/offshore_atlas.png",
+  "bbox_size": [
+    1100.0299,
+    120.2034,
+    3.6
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "anchor_length_m": 6.057,
+    "fairlead_z_m": -30.0,
+    "havfarm_anchor_radius_m": 650.0,
+    "havfarm_groups": 3,
+    "havfarm_lines": 11,
+    "length_m": 1100.03,
+    "of1_anchor_radius_m": 1100.0,
+    "of1_fairlead_z_m": -30.0,
+    "of1_lines": 8,
+    "of1_pairs": 4,
+    "seabed_z_m": -150.0
+  },
+  "file": "mooring_line_kit_LOD1.glb",
+  "groups": {
+    "Bracing": 0,
+    "Columns": 0,
+    "Net": 0,
+    "Pontoons": 46,
+    "Rings": 0,
+    "Topsides": 0
+  },
+  "lod": "LOD1",
+  "markers": {},
+  "material_count": 1,
+  "materials": [
+    "LK_OffshoreKit"
+  ],
+  "net_colour": "#A8ADB0",
+  "node_order": [
+    "Hull"
+  ],
+  "nodes": {
+    "Hull": 46
+  },
+  "parts": {
+    "Anchor": 16,
+    "Chain": 16,
+    "Fibre": 14
+  },
+  "pivots": {},
+  "spreads": {
+    "havfarm_class": {
+      "anchor_radius_m": 650.0,
+      "bearings_deg": [
+        128.0,
+        140.0,
+        152.0,
+        164.0,
+        174.0,
+        180.0,
+        186.0,
+        196.0,
+        208.0,
+        220.0,
+        232.0
+      ],
+      "fairlead_radius_m": 7.0,
+      "fairlead_z_m": -26.75,
+      "groups": [
+        4,
+        3,
+        4
+      ],
+      "lines": 11,
+      "pairs": 0,
+      "seabed_z_m": -150.0,
+      "turret_x_m": -166.0
+    },
+    "of1_class": {
+      "anchor_radius_m": 1100.0,
+      "bearings_deg": [
+        38.0,
+        52.0,
+        128.0,
+        142.0,
+        218.0,
+        232.0,
+        308.0,
+        322.0
+      ],
+      "fairlead_radius_m": 55.0,
+      "fairlead_z_m": -30.0,
+      "groups": [
+        2,
+        2,
+        2,
+        2
+      ],
+      "lines": 8,
+      "pairs": 4,
+      "seabed_z_m": -150.0
+    }
+  },
+  "surfaces": 1,
+  "swatches": {
+    "Anchor": {
+      "hex": "#3A3F44",
+      "spec": "#3A3F44",
+      "strip": "chain"
+    },
+    "Chain": {
+      "hex": "#3A3F44",
+      "spec": "#3A3F44",
+      "strip": "chain"
+    },
+    "Fibre": {
+      "hex": "#C7C1B0",
+      "spec": "#C8C2B0",
+      "strip": "fibre"
+    }
+  },
+  "tri_count": 46
+}

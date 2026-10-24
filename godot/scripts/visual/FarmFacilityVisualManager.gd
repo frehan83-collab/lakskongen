@@ -320,10 +320,7 @@ func _create(row: Dictionary) -> void:
 		_register_campus_target(id, campus, pad)
 	elif str(row.get("variant", "")) != "of1":
 		# The Havfarm-class hull is stage 3 art (F2-29): nothing to draw yet.
-		push_warning("[FarmFacilityVisualManager] no model for %s (%s) yet" % [id, row.get("variant", "")])
-		_unsupported[id] = true
-		# F2-21: the camera frames its plot all the same.
-		var at := Vector3(float(row.get("plot_x", 0.0)), OFFSHORE_FOCUS_Y, float(row.get("plot_z", 0.0)))
+		var at := _create_havfarm(id, row)
 		_register_target(id, at, HAVFARM_FRAMING, HAVFARM_DISC_M, offshore_yaw(at))
 	else:
 		var unit := OffshoreUnitVisual.new()
@@ -347,6 +344,22 @@ func _remove(id: String) -> void:
 		camera.unregister_focus_target(id)
 	if card != null and card.unit_id == id:
 		card.close()
+
+
+func _create_havfarm(id: String, row: Dictionary) -> Vector3:
+	var at := Vector3(float(row.get("plot_x", 0.0)), OFFSHORE_FOCUS_Y, float(row.get("plot_z", 0.0)))
+	if str(row.get("variant", "")) != "havfarm":
+		push_warning("[FarmFacilityVisualManager] no model for %s (%s) yet" % [id, row.get("variant", "")])
+		_unsupported[id] = true
+		return at
+	var unit := OffshoreUnitVisual.new()
+	add_child(unit)
+	unit.build(row, unit_heading(offshore_yaw(at)))
+	unit.clicked.connect(_on_unit_clicked.bind(id))
+	visuals[id] = unit
+	if seas.has(id):
+		unit.set_sea(seas[id])
+	return unit.focus_point()
 
 
 ## The terrain's pad a land unit stands on (centre, size, quay; the

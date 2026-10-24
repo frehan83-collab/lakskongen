@@ -50,6 +50,7 @@ const FLEET := {
 }
 const BUOY_MESH := "res://assets/models/site_kit/mooring_buoy_LOD0.glb"
 const BUOY_MATERIAL := preload("res://assets/models/site_kit/mooring_buoy_material.tres")
+const HAVFARM_SCENE := preload("res://assets/models/offshore/havfarm_class.tscn")
 ## The sea lane's construction phases in build order (OffshoreProfiles).
 const PHASES := ["yard_contract", "hull", "voyage", "tow", "mooring", "commissioning"]
 ## Parts that hang under the water (PenCage.NO_MIRROR_PARTS' rule).
@@ -145,6 +146,8 @@ func build(unit_view: Dictionary, unit_heading: float = 0.0) -> void:
 
 
 func _build_buoys() -> void:
+	if str(view.get("variant", "")) == "havfarm":
+		_swap_to_havfarm()
 	var scene := load(BUOY_MESH) as PackedScene
 	if scene != null:
 		var root := scene.instantiate()
@@ -163,7 +166,26 @@ func _build_buoys() -> void:
 	add_child(buoys)
 
 
-## Survey buoys (4 round the slot) or the moorings' pick-up buoys (4 pairs).
+func _swap_to_havfarm() -> void:
+	var old := unit
+	unit = HAVFARM_SCENE.instantiate() as OffshoreUnitModel
+	unit.name = "Unit"
+	for child in old.get_children():
+		if String(child.name) in ["Hull", "Columns", "Bracing", "Topsides", "Net", "Bulkhead", "Cranes",
+				"NavLights", "Beacon", "W2WLanding", "LOD1", "LOD2"]:
+			continue
+		old.remove_child(child)
+		unit.add_child(child)
+	remove_child(old)
+	old.free()
+	add_child(unit)
+	move_child(unit, 0)
+	for level in 3:
+		for mesh in unit.get_lod_meshes(level):
+			mesh.layers = layers_for(String(mesh.name))
+
+
+## Survey buoys (4 round the slot) or the moorings' pick-up buoys (8 for OF1, 11 for Havfarm).
 func _place_buoys(kind: String) -> void:
 	var xforms: Array[Transform3D] = []
 	var tints: Array = []
@@ -173,10 +195,15 @@ func _place_buoys(kind: String) -> void:
 			var a := PI * 0.25 + k * PI * 0.5
 			xforms.append(Transform3D(basis, station + Vector3(cos(a), 0.0, sin(a)) * SURVEY_RADIUS_M))
 	elif kind == "pickup":
-		for k in 4:
-			for side: float in [-1.0, 1.0]:
-				var a := PI * 0.25 + k * PI * 0.5 + deg_to_rad(PICKUP_PAIR_DEG) * side
+		if str(view.get("variant", "")) == "havfarm":
+			for item in unit.get_mooring_spread():
+				var a := deg_to_rad(float(item["bearing_deg"]))
 				xforms.append(Transform3D(basis, station + Vector3(cos(a), 0.0, sin(a)) * PICKUP_RADIUS_M))
+		else:
+			for k in 4:
+				for side: float in [-1.0, 1.0]:
+					var a := PI * 0.25 + k * PI * 0.5 + deg_to_rad(PICKUP_PAIR_DEG) * side
+					xforms.append(Transform3D(basis, station + Vector3(cos(a), 0.0, sin(a)) * PICKUP_RADIUS_M))
 	for i in xforms.size():
 		tints.append(MooringGrid.BUOY_YELLOW.srgb_to_linear())
 	MultiMeshPack.upload(buoys.multimesh, xforms, tints)

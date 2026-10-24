@@ -85,6 +85,12 @@ func run(runner: Node) -> void:
 	var digest: String = sim.qa_state_digest()
 	_framings(cam, manager, land_id, off_id, havfarm_id)
 	_fits_every_campus(manager, terrain, sim)
+	_havfarm_sea(cam, manager, director, havfarm_id, sim)
+	# Acceptance 4 reads the OF1's sea, and the open sea draws the sea of the unit
+	# nearest the camera's focus: stand the camera on the OF1 first. The framings
+	# and plot targets leave it wherever they ended (the hav_1 slot), which only
+	# made no difference while the OF1 was the one unit drawn with a sea.
+	_stand_on_unit(cam, manager, off_id)
 	_spectrum(director, manager, off_id, sim)
 	_chip(cam, manager, env, off_id, sim)
 	await _bookmarks_by_input(scene, cam, manager, land_id, off_id)
@@ -248,6 +254,32 @@ func _fits_every_campus(manager: FarmFacilityVisualManager, terrain: FjordTerrai
 				bad.append("%s %d lots (%.0f m, %.1f deg)" % [pad["id"], n, framing.x, pitch])
 			campus.free()
 	_check(checked >= 5 and bad.is_empty(), "F2-21: every grow-out campus the pads allow (%d) fits its land framing, the rig at -35 to -45 deg (%s)" % [checked, ", ".join(bad)])
+
+
+## Stand the camera on a unit's focus target and let the presenter hand the
+## director that unit's sea (the presenter's own nearest-unit rule, spec §4
+## "Wave driver"). False when the unit is no focus target.
+func _stand_on_unit(cam: FjordCamera, manager: FarmFacilityVisualManager, unit_id: String) -> bool:
+	if unit_id == "" or not cam.focus_target(unit_id, 0.0):
+		return false
+	settle(cam)
+	manager._update_sea_target()
+	return true
+
+
+## Acceptance 4 with two drawn units: the camera on the Havfarm-class unit, the
+## open sea draws its plot's sea (not the OF1's, which the same rule gives the
+## camera on the OF1).
+func _havfarm_sea(cam: FjordCamera, manager: FarmFacilityVisualManager, director: EnvironmentDirector, havfarm_id: String, sim: Node) -> void:
+	var stood := _stand_on_unit(cam, manager, havfarm_id)
+	var forecast: Dictionary = {}
+	if stood:
+		forecast = sim.get_sea_state_forecast(havfarm_id)
+	var today: Dictionary = forecast.get("today", {})
+	var target: Dictionary = director.open_sea.target
+	_check(stood and str(target.get("plot_id", "")) == str(forecast.get("plot_id", "-")) and is_equal_approx(float(target.get("hs", -1.0)), float(today.get("hs", -2.0))),
+		"F2-21: with the camera on the Havfarm-class unit the open sea draws its plot's sea (%s, Hs %.2f m = the engine's %.2f m)"
+		% [target.get("plot_id", ""), float(target.get("hs", -1.0)), float(today.get("hs", -2.0))])
 
 
 ## Acceptance 4: the spectrum the director draws for a target Hs of 4 m, and
