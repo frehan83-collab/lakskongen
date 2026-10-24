@@ -122,6 +122,17 @@ const float CREST_WEIGHT = 2.0;
 const float BREAKER_SPREAD = 2.0;
 // Wave groups and gusts: a slow field that gathers the caps into patches.
 const float GROUP_SPREAD = 2.5;
+// The group field is two layers of the smooth noise at incommensurate tiles
+// (m), the second turned GROUP_TURN_DEG (cos, sin below): one 260 m layer
+// repeated every 260 m and printed a lattice of rectangular patches across
+// every storm (wave4b frame review, finding_whitecap_patches.jpg); the pair
+// repeats only kilometres out. Their sum is mapped back to a uniform 0-1
+// (uniform_of_pair), so the director's threshold calibration holds.
+const float GROUP_TILE_A_M = 233.0;
+const float GROUP_TILE_B_M = 377.0;
+// GROUP_TURN_DEG = 53.
+const float GROUP_TURN_COS = 0.601815;
+const float GROUP_TURN_SIN = 0.798636;
 // The foam lace frays a cap's edge (a ragged patch, not a smooth oval).
 const float LACE_RAGGED = 0.9;
 // Width (m) of the shore's foam fringe in a calm (G2-03: foam wherever the
@@ -186,6 +197,12 @@ float component_amplitude(vec4 wa, float exposure, float depth) {
 		a *= d / (d + 0.08 * wa.w + 0.5);
 	}
 	return a;
+}
+
+// The sum of two independent uniform 0-1 values (a triangle on 0-2) back to
+// a uniform 0-1: its own distribution function.
+float uniform_of_pair(float s) {
+	return s < 1.0 ? 0.5 * s * s : 1.0 - 0.5 * (2.0 - s) * (2.0 - s);
 }
 
 // Phase in [0, 2 pi): the wavevector times a position kilometres out is
@@ -393,8 +410,11 @@ void fragment() {
 			// Waves break in groups and under gusts: a slow, round field a
 			// few hundred metres across gathers the caps into patches instead
 			// of one on every crest (a crest-stretched one lines them up in
-			// bands).
-			float group = texture(foam_texture, bq / 260.0 + 0.21).a;
+			// bands). Two layers, so it never tiles into a lattice.
+			float group_a = texture(foam_texture, bq / GROUP_TILE_A_M + 0.21).a;
+			vec2 bq_turned = mat2(vec2(GROUP_TURN_COS, GROUP_TURN_SIN), vec2(-GROUP_TURN_SIN, GROUP_TURN_COS)) * bq;
+			float group_b = texture(foam_texture, bq_turned / GROUP_TILE_B_M + vec2(0.63, 0.37)).a;
+			float group = uniform_of_pair(group_a + group_b);
 			float sigma_k = sqrt(max(height_var, 1e-10));
 			float crest_gate = smoothstep(0.0, 1.5, height / sigma_k);
 			float crest_z = CREST_WEIGHT * crest_gate + BREAKER_SPREAD * (breaker - 0.5) + GROUP_SPREAD * (group - 0.5) + (lace - 0.5) * LACE_RAGGED;
