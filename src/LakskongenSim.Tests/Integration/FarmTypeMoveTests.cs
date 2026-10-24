@@ -210,6 +210,29 @@ public class FarmTypeMoveTests
     }
 
     /// <summary>
+    /// The (GUID-normalized) save as an engine with <c>BloomEvent.Id =
+    /// Guid.NewGuid()</c> wrote it: every active bloom's id back to the
+    /// normalizer's placeholder. Each id must be the composed one (start day,
+    /// site, kind: the facilities save holds no scenario or QA bloom), and
+    /// nothing else may differ: the rewrite of a save with no bloom is the save
+    /// itself, byte for byte (SHIP_PLAN §10, RUN_LOG §7).
+    /// </summary>
+    internal static string AsBeforeBloomIdWrote(string normalizedJson)
+    {
+        var root = JsonNode.Parse(normalizedJson)!.AsObject();
+        Assert.Equal(normalizedJson, root.ToJsonString(SaveJson.Options));
+        foreach (var node in Assert.IsType<JsonArray>(root["ActiveBlooms"]))
+        {
+            var bloom = node!.AsObject();
+            Assert.Equal(LakskongenSim.Environment.BloomEvent.ComposeId(
+                bloom["StartDay"]!.GetValue<int>(), bloom["SiteId"]!.GetValue<string>(), bloom["Kind"]!.GetValue<string>()),
+                bloom["Id"]!.GetValue<string>());
+            bloom["Id"] = "GUID";
+        }
+        return root.ToJsonString(SaveJson.Options);
+    }
+
+    /// <summary>
     /// A save as an engine without U2-02 wrote it (U2-03's on wave4/ui-core-1,
     /// the merge of the wave-4 lanes before U2-02 on wave4/int): without
     /// U2-02's TutorialSkipped (it must be there and false) and with the old
@@ -259,9 +282,24 @@ public class FarmTypeMoveTests
     }
 
     /// <summary>
+    /// The continuations once <c>BloomEvent.Id</c> became start day, site and
+    /// kind instead of a Guid (SHIP_PLAN §10). With the ids written back as
+    /// the normalizer's placeholder (<see cref="AsBeforeBloomIdWrote"/>) each
+    /// is <see cref="ShipC1Recording"/> exactly: only the saved ids move
+    /// (RUN_LOG §7).
+    /// </summary>
+    private static readonly IReadOnlyDictionary<string, string> BloomIdRecording = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["as-saved/events"] = "755800a61872f47b",
+        ["as-saved/no-events"] = "2bcb499b6fc114c9",
+        ["contained/events"] = "92afc3af9bef201e",
+    };
+
+    /// <summary>
     /// The continuations once SHIP_PLAN cycle 1 put the analytics' mortality on
     /// the ledger's deaths. With <see cref="AsBeforeShipC1Wrote"/> each is
-    /// <see cref="U2_02F2_15F2_08Recording"/> exactly (RUN_LOG §7).
+    /// <see cref="U2_02F2_15F2_08Recording"/> exactly (RUN_LOG §7). The bloom
+    /// ids moved the whole save since: <see cref="BloomIdRecording"/>.
     /// </summary>
     private static readonly IReadOnlyDictionary<string, string> ShipC1Recording = new Dictionary<string, string>(StringComparer.Ordinal)
     {
@@ -598,13 +636,14 @@ public class FarmTypeMoveTests
     /// <see cref="UnmovedByF2_08DayText"/>; <c>UnitDraws</c> counts the offshore
     /// unit's own day-stream draws over the run.
     /// </summary>
-    private static (string Hash, string BeforeU2_02Hash, string F2_12Hash, string SeaLaneHash, string UnmovedHash, ulong UnitDraws, SimulationEngine Engine, int RedCreditDays, string UnmovedBy08Hash, string BeforeShipC1Hash) RecordContinuation(string variant)
+    private static (string Hash, string BeforeU2_02Hash, string F2_12Hash, string SeaLaneHash, string UnmovedHash, ulong UnitDraws, SimulationEngine Engine, int RedCreditDays, string UnmovedBy08Hash, string BeforeShipC1Hash, string BeforeBloomIdHash) RecordContinuation(string variant)
     {
         var engine = Resume(variant);
         string unitId = engine.OffshoreUnits.Single().Id;
         string unitStream = SimRngStreams.OffshoreFarm + "/" + unitId;
         ulong unitStreamAtLoad = engine.Rng.CaptureStates()[SimRngStreams.OffshoreFarm + "\u0001" + unitId];
         var sb = new StringBuilder();
+        var sbBeforeBloomId = new StringBuilder();
         var sbBeforeC1 = new StringBuilder();
         var sbBeforeU2_02 = new StringBuilder();
         var sbF2_12 = new StringBuilder();
@@ -619,6 +658,7 @@ public class FarmTypeMoveTests
             state = GoldenTraceState.Capture(engine);
             string dayHash = state.DayHash();
             sb.Append(dayHash).Append('\n');
+            sbBeforeBloomId.Append(dayHash).Append('\n');
             sbBeforeC1.Append(dayHash).Append('\n');
             sbBeforeU2_02.Append(dayHash).Append('\n');
             sbF2_12.Append(dayHash).Append('\n');
@@ -628,11 +668,13 @@ public class FarmTypeMoveTests
             if (engine.State.SeaSites.Any(s => s.RedZoneCreditApplied)) redCreditDays++;
             if (day % SnapshotEveryDays == 0 || day == ContinuationDays)
             {
-                string save = SaveStateComparer.Normalize(SaveStateComparer.Serialize(engine));
+                string current = SaveStateComparer.Normalize(SaveStateComparer.Serialize(engine));
+                string save = AsBeforeBloomIdWrote(current);
                 string beforeC1 = AsBeforeShipC1Wrote(save);
                 string beforeU2_02 = AsBeforeU2_02Wrote(beforeC1, variant, day);
                 string asF2_12 = AsF2_12Wrote(beforeU2_02);
-                sb.Append(GoldenTraceState.Hex(save, 8)).Append('\n');
+                sb.Append(GoldenTraceState.Hex(current, 8)).Append('\n');
+                sbBeforeBloomId.Append(GoldenTraceState.Hex(save, 8)).Append('\n');
                 sbBeforeC1.Append(GoldenTraceState.Hex(beforeC1, 8)).Append('\n');
                 sbBeforeU2_02.Append(GoldenTraceState.Hex(beforeU2_02, 8)).Append('\n');
                 sbF2_12.Append(GoldenTraceState.Hex(asF2_12, 8)).Append('\n');
@@ -642,7 +684,7 @@ public class FarmTypeMoveTests
         static string Hash(StringBuilder text) =>
             Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text.ToString())), 0, 8).ToLowerInvariant();
         ulong unitDraws = GoldenTraceState.DrawsBetween(unitStreamAtLoad, state!.Streams[unitStream]);
-        return (Hash(sb), Hash(sbBeforeU2_02), Hash(sbF2_12), Hash(sbF2_07), Hash(sbUnmoved), unitDraws, engine, redCreditDays, Hash(sbUnmoved08), Hash(sbBeforeC1));
+        return (Hash(sb), Hash(sbBeforeU2_02), Hash(sbF2_12), Hash(sbF2_07), Hash(sbUnmoved), unitDraws, engine, redCreditDays, Hash(sbUnmoved08), Hash(sbBeforeC1), Hash(sbBeforeBloomId));
     }
 
     /// <summary>
@@ -671,7 +713,7 @@ public class FarmTypeMoveTests
     [MemberData(nameof(Variants))]
     public void PreF2FacilitiesSave_Runs365Days_ExactlyAsBeforeTheMove(string variant)
     {
-        var (hash, beforeU2_02Hash, f2_12Hash, seaLaneHash, unmovedHash, unitDraws, engine, redCreditDays, unmoved08, beforeC1Hash) = RecordContinuation(variant);
+        var (hash, beforeU2_02Hash, f2_12Hash, seaLaneHash, unmovedHash, unitDraws, engine, redCreditDays, unmoved08, beforeC1Hash, beforeBloomIdHash) = RecordContinuation(variant);
         var ras = engine.RASFacilities.Single(f => f.Kind == LandSiteKind.GrowOut);
         var postSmolt = engine.RASFacilities.Single(f => f.Kind == LandSiteKind.PostSmolt);
         var unit = engine.OffshoreUnits.Single();
@@ -741,7 +783,12 @@ public class FarmTypeMoveTests
         // SHIP_PLAN cycle 1 (RUN_LOG §7): the continuation with the analytics'
         // mortality on the ledger's deaths; with it written back on the old
         // definition the save is the wave-4 recording exactly.
-        Assert.Equal(ShipC1Recording[variant], hash);
+        // SHIP_PLAN §10 (RUN_LOG §7): the bloom ids are start day, site and
+        // kind now, not a Guid; with them written back as the normalizer's
+        // placeholder the continuation is cycle 1's exactly, so no day moved.
+        Assert.Equal(BloomIdRecording[variant], hash);
+        Assert.Equal(ShipC1Recording[variant], beforeBloomIdHash);
+        Assert.NotEqual(ShipC1Recording[variant], hash); // the saves do hold blooms, so the ids are seen
         Assert.Equal(U2_02F2_15F2_08Recording[variant], beforeC1Hash);
         Assert.Equal(F2_15F2_08Recording[variant], beforeU2_02Hash); // U2-02 changes no facility day: only the save's tutorial fields (D19)
         Assert.NotEqual(F2_15F2_08Recording[variant], hash);       // ... which the whole save does carry
