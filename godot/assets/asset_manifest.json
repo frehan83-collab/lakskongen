@@ -1225,6 +1225,186 @@
         0.24,
         8.0
       ]
+    },
+    "slaughter_hall_s_LOD0": {
+      "path": "godot/assets/models/slaughterhouse_kit/slaughter_hall_s_LOD0.glb",
+      "sha256": "a4fa2895cb4c5ba93299711a6dd48cd4b4cf1e12a42257068d5006b3cf52e465",
+      "size": 67540,
+      "tri_count": 768,
+      "material_count": 1,
+      "bbox_size": [
+        40.6,
+        10.02,
+        24.96
+      ]
+    },
+    "slaughter_hall_s_LOD1": {
+      "path": "godot/assets/models/slaughterhouse_kit/slaughter_hall_s_LOD1.glb",
+      "sha256": "3c4cb97884728be02fb1690e48abc07646930ae2132aae8d5f046dcd65b62e02",
+      "size": 12140,
+      "tri_count": 124,
+      "material_count": 1,
+      "bbox_size": [
+        40.6,
+        9.9,
+        24.6
+      ]
+    },
+    "slaughter_hall_s_LOD2": {
+      "path": "godot/assets/models/slaughterhouse_kit/slaughter_hall_s_LOD2.glb",
+      "sha256": "00c95d3a8be14b9d3c03ed2c1d7c682aafb2849001671e65d60415bd1d1c4ec3",
+      "size": 2348,
+      "tri_count": 12,
+      "material_count": 1,
+      "bbox_size": [
+        40.0,
+        8.98,
+        24.0
+      ]
+    },
+    "slaughter_hall_m_LOD0": {
+      "path": "godot/assets/models/slaughterhouse_kit/slaughter_hall_m_LOD0.glb",
+      "sha256": "71ea485a032ae8edf7f84e2250a5e802e9de1799f62749adff75054c56b5000d",
+      "size": 141704,
+      "tri_count": 1632,
+      "material_count": 1,
+      "bbox_size": [
+        85.05,
+        14.0,
+        40.25
+      ]
+    },
+    "slaughter_hall_m_LOD1": {
+      "path": "godot/assets/models/slaughterhouse_kit/slaughter_hall_m_LOD1.glb",
+      "sha256": "28ea9070ca209df48c6b7930d7edccc18898c0c3c02ba03b41c1cc372d675aa4",
+      "size": 22324,
+      "tri_count": 244,
+      "material_count": 1,
+      "bbox_size": [
+        80.0,
+        12.6,
+        40.25
+      ]
+    },
+    "slaughter_hall_m_LOD2": {
+      "path": "godot/assets/models/slaughterhouse_kit/slaughter_hall_m_LOD2.glb",
+      "sha256": "0342eef723f0a90ac2bce2c10a6a3cbd5d3d04c337383fef713456b7fe927f7f",
+      "size": 2160,
+      "tri_count": 10,
+      "material_count": 1,
+      "bbox_size": [
+        80.0,
+        12.0,
+        40.0
+      ]
+    },
+    "reception_house_LOD0": {
+      "path": "godot/assets/models/slaughterhouse_kit/reception_house_LOD0.glb",
+      "sha256": "0d5f388dff08ec9281156236fa0f78fade7bece98c29cd85253ff57b00a313a9",
+      "size": 32248,
+      "tri_count": 400,
+      "material_count": 1,
+      "bbox_size": [
+        18.0,
+        11.8715,
+        20.1029
+      ]
+    },
+    "reception_house_LOD1": {
+      "path": "godot/assets/models/slaughterhouse_kit/reception_house_LOD1.glb",
+      "sha256": "cbe36d7b4e206f7e299fa316280fdca5d4eb535cdb9848fefe4c97216029ef4f",
+      "size": 11132,
+      "tri_count": 114,
+      "material_count": 1,
+      "bbox_size": [
+        18.0,
+        10.2,
+        20.0
+      ]
+    },
+    "reception_house_LOD2": {
+      "path": "godot/assets/models/slaughterhouse_kit/reception_house_LOD2.glb",
+      "sha256": "a56f7da72e6fcaa61a4195f59da2996e3ee4e18e112357e383313d77bd8b375a",
+      "size": 2152,
+      "tri_count": 10,
+      "material_count": 1,
+      "bbox_size": [
+        18.0,
+        8.0,
+        12.0
+      ]
+    },
+    "chilled_loading_bay_LOD0": {
+      "path": "godot/assets/models/slaughterhouse_kit/chilled_loading_bay_LOD0.glb",
+      "sha256": "74a86282340fea8edaa87fb93ce3ed7d224f34fa1a6ea1f6b154ca83b2698565",
+      "size": 35912,
+      "tri_count": 402,
+      "material_count": 1,
+      "bbox_size": [
+        14.0,
+        8.42,
+        15.0
+      ]
+    },
+    "chilled_loading_bay_LOD1": {
+      "path": "godot/assets/models/slaughterhouse_kit/chilled_loading_bay_LOD1.glb",
+      "sha256": "6ae9cf8034a5c3b98738384d267c6a8d49c0b4fc982728fbaa48e6a2d4cfccb2",
+      "size": 12516,
+      "tri_count": 130,
+      "material_count": 1,
+      "bbox_size": [
+        14.0,
+        8.3,
+        15.0
+      ]
+    },
+    "chilled_loading_bay_LOD2": {
+      "path": "godot/assets/models/slaughterhouse_kit/chilled_loading_bay_LOD2.glb",
+      "sha256": "10738c87e4a4f8f0ed100dd242f33946c9cc6fae8239fa871a55922e91f39bf9",
+      "size": 2164,
+      "tri_count": 10,
+      "material_count": 1,
+      "bbox_size": [
+        14.0,
+        7.5,
+        12.0
+      ]
+    },
+    "wellboat_intake_LOD0": {
+      "path": "godot/assets/models/slaughterhouse_kit/wellboat_intake_LOD0.glb",
+      "sha256": "3c5f3bdff940ebab142167abea4c8b6421e4a08309d489cc5a42eaae8a6134e0",
+      "size": 19512,
+      "tri_count": 246,
+      "material_count": 1,
+      "bbox_size": [
+        7.26,
+        11.7072,
+        32.8496
+      ]
+    },
+    "wellboat_intake_LOD1": {
+      "path": "godot/assets/models/slaughterhouse_kit/wellboat_intake_LOD1.glb",
+      "sha256": "73908c075946d5d0deaeebbcf902af30fdae162defafebc608451484b019a51a",
+      "size": 9092,
+      "tri_count": 110,
+      "material_count": 1,
+      "bbox_size": [
+        7.2,
+        11.7072,
+        32.8496
+      ]
+    },
+    "wellboat_intake_LOD2": {
+      "path": "godot/assets/models/slaughterhouse_kit/wellboat_intake_LOD2.glb",
+      "sha256": "18b103ace6be5a5a2f7706ffb4f7932c4d5a054ddb833ba35f7542fd7d0f95ad",
+      "size": 3444,
+      "tri_count": 24,
+      "material_count": 1,
+      "bbox_size": [
+        7.2,
+        9.2447,
+        14.651
+      ]
     }
   }
 }

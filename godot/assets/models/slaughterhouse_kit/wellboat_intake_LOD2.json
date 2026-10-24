@@ -1,0 +1,47 @@
+{
+  "asset": "wellboat_intake",
+  "atlas": "godot/assets/models/facility_kit/textures/facility_atlas.png",
+  "bbox_size": [
+    7.2,
+    9.2447,
+    14.651
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "height_m": 9.245,
+    "hose_reach_m": 12.051,
+    "platform_height_m": 6.25,
+    "platform_length_m": 7.2,
+    "platform_width_m": 5.2
+  },
+  "file": "wellboat_intake_LOD2.glb",
+  "lod": "LOD2",
+  "material_count": 1,
+  "materials": [
+    "LK_FacilityKit"
+  ],
+  "part_strips": {
+    "Crane": "orange",
+    "Dewater": "steel",
+    "Platform": "grating"
+  },
+  "parts": {
+    "Crane": 4,
+    "Dewater": 10,
+    "Platform": 10
+  },
+  "surfaces": 1,
+  "swatches": {
+    "Crane": {
+      "hex": "#DA622B",
+      "spec": "#D9622B",
+      "strip": "orange"
+    },
+    "Platform": {
+      "hex": "#5C6369",
+      "spec": "#5C6369",
+      "strip": "grating"
+    }
+  },
+  "tri_count": 24
+}

@@ -1,0 +1,38 @@
+{
+  "asset": "slaughter_hall_s",
+  "atlas": "godot/assets/models/facility_kit/textures/facility_atlas.png",
+  "bbox_size": [
+    40.0,
+    8.98,
+    24.0
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "height_m": 8.98,
+    "length_m": 40.0,
+    "width_m": 24.0
+  },
+  "file": "slaughter_hall_s_LOD2.glb",
+  "lod": "LOD2",
+  "material_count": 1,
+  "materials": [
+    "LK_FacilityKit"
+  ],
+  "part_strips": {
+    "Roof": "hall_roof",
+    "Walls": "harvest_clad"
+  },
+  "parts": {
+    "Roof": 4,
+    "Walls": 8
+  },
+  "surfaces": 1,
+  "swatches": {
+    "Walls": {
+      "hex": "#3A4046",
+      "spec": "#3A4046",
+      "strip": "harvest_clad"
+    }
+  },
+  "tri_count": 12
+}

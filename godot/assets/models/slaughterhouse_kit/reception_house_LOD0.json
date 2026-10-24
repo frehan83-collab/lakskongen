@@ -1,0 +1,55 @@
+{
+  "asset": "reception_house",
+  "atlas": "godot/assets/models/facility_kit/textures/facility_atlas.png",
+  "bbox_size": [
+    18.0,
+    11.8715,
+    20.1029
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "height_m": 8.08,
+    "length_m": 18.0,
+    "width_m": 12.0
+  },
+  "file": "reception_house_LOD0.glb",
+  "lod": "LOD0",
+  "material_count": 1,
+  "materials": [
+    "LK_FacilityKit"
+  ],
+  "part_strips": {
+    "Doors": "door",
+    "Fascia": "hall_clad",
+    "Pipes": "pipe",
+    "Plinth": "concrete",
+    "Roof": "hall_roof",
+    "Roofgear": "steel",
+    "Trim": "steel",
+    "Walls": "harvest_clad"
+  },
+  "parts": {
+    "Doors": 4,
+    "Fascia": 44,
+    "Pipes": 64,
+    "Plinth": 42,
+    "Roof": 12,
+    "Roofgear": 56,
+    "Trim": 40,
+    "Walls": 138
+  },
+  "surfaces": 1,
+  "swatches": {
+    "Pipes": {
+      "hex": "#9BA1A7",
+      "spec": "#9AA0A6",
+      "strip": "pipe"
+    },
+    "Walls": {
+      "hex": "#3A4046",
+      "spec": "#3A4046",
+      "strip": "harvest_clad"
+    }
+  },
+  "tri_count": 400
+}
