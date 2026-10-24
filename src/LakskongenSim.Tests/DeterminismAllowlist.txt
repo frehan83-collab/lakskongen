@@ -43,7 +43,6 @@ src/LakskongenSim/Data/RealData/Loaders/EmodnetDataLoader.cs :: DateTime.UtcNow 
 src/LakskongenSim/Data/RealData/Loaders/EmodnetDataLoader.cs :: DateTime.UtcNow :: EmodnetDataLoader.GetAvailabilityAsync :: 1
 src/LakskongenSim/Data/RealData/Loaders/EmodnetDataLoader.cs :: DateTime.UtcNow :: EmodnetDataLoader.HealthCheckAsync :: 1
 src/LakskongenSim/Data/RealData/Models/GeoCoordinate.cs :: HashCode.Combine() :: GeoCoordinate.GetHashCode :: 1
-src/LakskongenSim/Environment/BloomEvent.cs :: Guid.NewGuid() :: BloomEvent.Id :: 1
 src/LakskongenSim/Environment/MareanoEnvironmentalDataProvider.cs :: DateTime.UtcNow :: MareanoEnvironmentalDataProvider..ctor :: 1
 src/LakskongenSim/Environment/VectorMath.cs :: HashCode.Combine() :: Vector2.GetHashCode :: 1
 src/LakskongenSim/Environment/VectorMath.cs :: HashCode.Combine() :: Vector3.GetHashCode :: 1
