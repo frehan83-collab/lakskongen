@@ -238,14 +238,42 @@ func _today() -> int:
 
 ## Whether `entry` still needs the player: info is the log (never "now");
 ## a warning or critical is live while its key was reported within LIVE_DAYS
-## (its own day when the bus has forgotten the key, or for hand-made entries).
+## (its own day when the bus has forgotten the key, or for hand-made entries),
+## and only its newest entry: an older one of the same key is a run of that
+## condition that ended before the bus reported it afresh.
 func _is_live(entry: Dictionary, seen: Dictionary) -> bool:
 	var sev := str(entry.get("severity", "info"))
 	if sev != "warning" and sev != "critical":
 		return false
 	var key := str(entry.get("key", ""))
+	if key != "" and not _is_newest_of_key(entry):
+		return false
 	var last := int(seen.get(key, entry.get("day", 0))) if key != "" else int(entry.get("day", 0))
 	return _today() - last <= LIVE_DAYS
+
+
+## No newer entry stands for the same key (the list is newest first; an entry
+## without a key is its own).
+func _is_newest_of_key(entry: Dictionary) -> bool:
+	var key := str(entry.get("key", ""))
+	if key == "":
+		return true
+	for e in _entries:
+		if str(e.get("key", "")) == key:
+			return str(e.get("id", "")) == str(entry.get("id", ""))
+	return true
+
+
+## The day label of an entry: the day it was first reported, and «siden dag N»
+## for a live one whose condition went on after that day (the bus keeps one
+## entry for a condition reported at most DedupeWindowDays apart, so N is
+## where its current run began; a one-off shows its day).
+func _day_text(entry: Dictionary, seen: Dictionary) -> String:
+	var first := int(entry.get("day", 0))
+	var key := str(entry.get("key", ""))
+	if key != "" and _is_live(entry, seen) and int(seen.get(key, first)) > first:
+		return tr("UI_EVENT_SINCE_DAY") % first
+	return tr("UI_EVENT_DAY") % first
 
 
 ## The group an entry is listed under: its severity's while live, history after.
@@ -473,7 +501,7 @@ func _rebuild_now() -> void:
 		if rank != last_rank:
 			entry_list.add_child(_build_group_header(rank, int(counts.get(rank, 0))))
 			last_rank = rank
-		var node := _build_entry_node(entry, int(ordered[i]["index"]))
+		var node := _build_entry_node(entry, int(ordered[i]["index"]), seen)
 		if rank == HISTORY_RANK:
 			node.modulate.a = 0.62   # over: still readable, no longer a call to act
 		entry_list.add_child(node)
@@ -482,7 +510,7 @@ func _rebuild_now() -> void:
 		scroll_container.scroll_vertical = 0
 	UIPolish.link_vertical_focus(entry_list)
 
-func _build_entry_node(entry: Dictionary, index: int) -> Control:
+func _build_entry_node(entry: Dictionary, index: int, seen: Dictionary = {}) -> Control:
 	var sev: String = str(entry.get("severity", "info"))
 	var tone: StringName = GameEventText.TONES.get(sev, &"Info")
 	var expanded := str(entry.get("id", "")) != "" and _expanded_id == str(entry.get("id", ""))
@@ -511,7 +539,7 @@ func _build_entry_node(entry: Dictionary, index: int) -> Control:
 	body.add_theme_constant_override("separation", 3)
 	card.add_child(body)
 
-	# Header: [glyph] title · unread dot · day
+	# Header: [glyph] title · unread dot; under it: subject · day
 	var header := HBoxContainer.new()
 	header.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	header.add_theme_constant_override("separation", 8)
@@ -553,18 +581,31 @@ func _build_entry_node(entry: Dictionary, index: int) -> Control:
 
 	var day_lbl := Label.new()
 	day_lbl.name = "Day"
-	day_lbl.text = tr("UI_EVENT_DAY") % int(entry.get("day", 0))
+	day_lbl.text = _day_text(entry, seen)
 	day_lbl.theme_type_variation = &"CaptionMuted"
 	day_lbl.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	header.add_child(day_lbl)
 
+	# The day sits beside who the entry is about, not beside the title: «siden
+	# dag 126» in the header left «Vaksinasjonsvinduet er åpent» too little room
+	# for its longest word (it broke after "Vaksinasjonsvindue"). An entry with
+	# no subject (a hand-made one) keeps its short «Dag N» in the header.
 	var subject := str(entry.get("subject", ""))
-	if subject != "":
+	if subject == "":
+		header.add_child(day_lbl)
+	else:
+		var meta := HBoxContainer.new()
+		meta.name = "Meta"
+		meta.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		meta.add_theme_constant_override("separation", 8)
+		body.add_child(meta)
 		var subject_lbl := Label.new()
 		subject_lbl.name = "Subject"
 		subject_lbl.text = subject
+		subject_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		subject_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		subject_lbl.theme_type_variation = &"CaptionMuted"
-		body.add_child(subject_lbl)
+		meta.add_child(subject_lbl)
+		meta.add_child(day_lbl)
 
 	var description := str(entry.get("description", ""))
 	if description != "":

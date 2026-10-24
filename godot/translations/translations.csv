@@ -1937,6 +1937,7 @@ UI_EVENT_CARD_OVERLINE,Critical event,Kritisk hendelse
 UI_EVENT_CARD_QUEUE,%d of %d,%d av %d
 UI_EVENT_CARD_SHOW_SITE,Show the site,Vis lokaliteten
 UI_EVENT_DAY,Day %d,Dag %d
+UI_EVENT_SINCE_DAY,since day %d,siden dag %d
 UI_EVENT_DEADLINE,Deadline: %s (in %d days),Frist: %s (om %d dager)
 UI_EVENT_DEADLINE_TODAY,Deadline: %s (today),Frist: %s (i dag)
 UI_EVENT_SUBJECT_COMPANY,The whole company,Hele selskapet
