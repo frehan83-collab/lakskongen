@@ -1,0 +1,64 @@
+{
+  "asset": "slaughter_hall_s",
+  "atlas": "godot/assets/models/facility_kit/textures/facility_atlas.png",
+  "bbox_size": [
+    40.6,
+    10.02,
+    24.96
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "height_m": 9.0,
+    "length_m": 40.0,
+    "width_m": 24.0
+  },
+  "file": "slaughter_hall_s_LOD0.glb",
+  "lod": "LOD0",
+  "material_count": 1,
+  "materials": [
+    "LK_FacilityKit"
+  ],
+  "part_strips": {
+    "Doors": "door",
+    "Fascia": "hall_clad",
+    "Logo": "panel_blank",
+    "Plinth": "concrete",
+    "Roof": "hall_roof",
+    "Roofgear": "steel",
+    "Skylights": "skylight",
+    "Trim": "steel",
+    "Walls": "harvest_clad",
+    "Windows": "window"
+  },
+  "parts": {
+    "Doors": 72,
+    "Fascia": 10,
+    "Logo": 12,
+    "Plinth": 96,
+    "Roof": 88,
+    "Roofgear": 40,
+    "Skylights": 4,
+    "Trim": 20,
+    "Walls": 366,
+    "Windows": 60
+  },
+  "surfaces": 1,
+  "swatches": {
+    "Fascia": {
+      "hex": "#D6DADC",
+      "spec": "#D5D9DB",
+      "strip": "hall_clad"
+    },
+    "Logo": {
+      "hex": "#D6DADC",
+      "spec": "#D5D9DB",
+      "strip": "panel_blank"
+    },
+    "Walls": {
+      "hex": "#3A4046",
+      "spec": "#3A4046",
+      "strip": "harvest_clad"
+    }
+  },
+  "tri_count": 768
+}

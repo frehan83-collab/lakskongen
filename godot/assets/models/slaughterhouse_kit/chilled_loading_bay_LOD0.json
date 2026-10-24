@@ -1,0 +1,61 @@
+{
+  "asset": "chilled_loading_bay",
+  "atlas": "godot/assets/models/facility_kit/textures/facility_atlas.png",
+  "bbox_size": [
+    14.0,
+    8.42,
+    15.0
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "height_m": 7.58,
+    "length_m": 14.0,
+    "width_m": 12.0
+  },
+  "file": "chilled_loading_bay_LOD0.glb",
+  "lod": "LOD0",
+  "material_count": 1,
+  "materials": [
+    "LK_FacilityKit"
+  ],
+  "part_strips": {
+    "Bumpers": "fender",
+    "Canopy": "hall_roof",
+    "Condensers": "steel",
+    "Doors": "door",
+    "Kerb": "safety",
+    "Lamps": "lamp",
+    "Plinth": "concrete",
+    "Roof": "hall_roof",
+    "Shelters": "fender",
+    "Trim": "steel",
+    "Walls": "hall_clad"
+  },
+  "parts": {
+    "Bumpers": 40,
+    "Canopy": 12,
+    "Condensers": 40,
+    "Doors": 24,
+    "Kerb": 10,
+    "Lamps": 24,
+    "Plinth": 32,
+    "Roof": 8,
+    "Shelters": 60,
+    "Trim": 40,
+    "Walls": 112
+  },
+  "surfaces": 1,
+  "swatches": {
+    "Shelters": {
+      "hex": "#1C1E20",
+      "spec": "#1C1E20",
+      "strip": "fender"
+    },
+    "Walls": {
+      "hex": "#D6DADC",
+      "spec": "#D5D9DB",
+      "strip": "hall_clad"
+    }
+  },
+  "tri_count": 402
+}
