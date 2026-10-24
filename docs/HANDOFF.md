@@ -1,105 +1,60 @@
-# Lakskongen handover — 2026-10-24
+# Lakskongen handover — 2026-10-24 (rev 4)
 
-This is the short project entry point. Read only the task-specific document it
-names next. **Graphics/Blender work continues in `docs/GRAPHICS_HANDOVER.md`
-§1; do not repeat its reconnaissance.** Detailed architecture and subsystem
-rules live in `AGENTS.md`; historical decisions are in `docs/RUN_LOG.md`.
+Read only this file first, then open **only** the task-specific file in §4.
+**Graphics/Blender work starts at `docs/GRAPHICS_HANDOVER.md` §1.**
 
-## 1. Project and current state
+## 1. Project & workspace state (read before running anything)
 
-Lakskongen is a Norwegian salmon-farming management sim: deterministic C#
-.NET 10 simulation (`src/LakskongenSim`) and Godot 4.7.2 Mono frontend
-(`godot/`). Build branches from `origin/main`, never from the stale main
-checkout. At this handoff `origin/main` is `466120c`; PRs #16, #17 and #20 are
-open and owned by another worker.
-
-The main checkout `/Users/fredrik.j.hansen/lakskongen` has the owner's Godot
-editor open and contains unrelated changes. Do not edit it. Use:
-
-```bash
-git fetch --all --prune && gh pr list
-git worktree add -b <track>/<item> .claude/worktrees/<item> origin/main
-```
-
-Merge `origin/main` again before the first commit. PRs target `main`; the owner
-merges them. Do not push to another worker's branch.
+- **Stack:** deterministic C# .NET 10 simulation (`src/LakskongenSim`) + Godot 4.7.2 Mono frontend (`godot/`).
+- **Main checkout warning:** `/Users/fredrik.j.hansen/lakskongen` is on a stale branch (`review-remediation`) with the owner's Godot editor open. **Never edit it or read its stale docs.**
+- **Always start from `origin/main` in a dedicated worktree:**
+  ```bash
+  git fetch --all --prune && gh pr list
+  git worktree add -b <track>/<item> .claude/worktrees/<item> origin/main
+  ```
+- Merge `origin/main` again before committing. The owner merges PRs.
+- **Open PRs (do not push to other workers' branches):**
+  - **PR #22 (`art/f2-30`):** F2-30 closed-pen kit & fjord containment presenter — **DONE, all gates green** (`UI_FLOW_RESULT checks=2340 failures=0`).
+  - **PR #21 (`docs/graphics-handover-2026-10-24`):** this handover update.
+  - **PR #20 (`art/f2-29`):** F2-29 Havfarm-class & mooring kit — done, owned by another worker.
+  - **PR #17 (`gfx/weather-drama`):** F2-24 weather drama — owned by another worker.
+  - **PR #16 (`ui/inbox-polish`):** live inbox age label — owned by another worker.
 
 ## 2. Non-negotiable rules
 
-- Determinism: seeded `SimRng` streams only; no wall clock, unseeded random,
-  GUID IDs, network I/O or process-random hashing in the sim.
-- Calibration SSOT: numeric constants belong in `CalibrationRegistry` /
-  `BalancingConfig`; do not clamp a model to force a realism band.
-- Tests are add-only. Keep both sides of appended manifest/RUN_LOG rows on
-  merges; `MIN_CHECKS` must equal the exact observed UI check count, never a
-  lower chosen value.
-- A feature needs a player-path outcome test. Presenters read engine state and
-  never write it. Save/RNG changes require exact round-trip and twin-run gates.
-- Visual claims require committed frames; headless success alone is not visual
-  evidence. Never run `python -m visual_qa.capture` or `baseline_update`.
-- No real brands/company names on models. Append atlas rows, never insert.
-- Commit format: `run: <item> - <outcome>`, evidence in the body, no
-  attribution/co-author lines. Add the appropriate RUN_LOG §7 row.
-- Ask before windowed Godot (`game_start`, `tools/capture_screenshots.sh`,
-  `tools/perf_smoke.sh`) and before work explicitly marked owner-gated.
+- **Determinism:** seeded `SimRng` streams only; no wall clock, `Random`, `Guid.NewGuid()`, network I/O or process-random hashing in `src/LakskongenSim`.
+- **Calibration SSOT:** numeric constants in `CalibrationRegistry` / `BalancingConfig`; never clamp to hit realism bands.
+- **Tests are add-only:** never weaken checks or lower `MIN_CHECKS` (currently `2340` on `art/f2-30`, `2334` on `origin/main` before PR #22 merges). Keep both sides of manifest / `RUN_LOG.md` rows on merges.
+- **Visual & art rules:** no real company/brand names on models (D17); append trim-atlas rows only (rows 0–27 on `origin/main`, 28–29 appended in PR #22); never run `python -m visual_qa.capture` or `baseline_update`; ask before any windowed Godot run (`game_start`, `capture_screenshots.sh`, `perf_smoke.sh`).
+- **Commits:** `run: <item> - <outcome>`, evidence in body, no attribution/co-author lines, plus one `docs/RUN_LOG.md` §7 row.
 
-## 3. Current graphics assignment and owner scope
+## 3. Current graphics scope (owner direction 2026-10-24)
 
-Owner direction, 2026-10-24: buildings, slaughterhouses, land-based farms and
-pens should be player-placed. Focus on ocean, fjords, offshore units, the
-land-farm kit and land slaughterhouses. Do not spend effort on trees, shore
-props, terrain textures, snow, 08a land contrast or species models.
+Buildings, slaughterhouses, land-based farms and pens are to be player-placed.
+Focus on **ocean, fjords, offshore units, the land-farm kit and land slaughterhouses**.
+Spend zero tokens/effort on trees, shore props (`naust`, `shore_quay`), terrain textures, snow, `08a` land contrast or species models.
+Do not edit `src/` for graphics tasks; player placement of pens/slaughterhouses is a Tier-1 sim feature (proposal first).
 
-F2-30 is **unfinished, uncommitted WIP** in
-`/Users/fredrik.j.hansen/lakskongen/.claude/worktrees/f2-30` on `art/f2-30`.
-Its assets/static checks pass, but its targeted UI probe fails and the full UI
-suite has not run. The next graphics model must resume that exact worktree,
-not restart or create a competing branch. All file lists, measurements,
-commands, the invalid 12M-NOK test path and remaining tasks are in
-`docs/GRAPHICS_HANDOVER.md` §1–§3.
+## 4. Token-economical reading map (open ONLY what your task needs)
 
-Pens and slaughterhouses are not player-placed by the sim today. Making that
-real is a Tier-1 sim feature (save version, goldens, determinism, calibration,
-bridge contract), not a presenter task. The current assignment permits models,
-presenters and a placement proposal only; do not edit `src/` or start actual
-placement without the owner's later approval.
-
-## 4. Architecture reading map
-
-Read only the rows needed by the task:
-
-| Need | Source |
+| Task | Read (do not read whole large files; grep headings) |
 |---|---|
-| Current graphics resume, tools, verification | `docs/GRAPHICS_HANDOVER.md` |
-| Farm-type item | `docs/FARM_TYPES_SPEC.md`: its §7 row, then only cited sections |
-| Sim systems and naming conventions | `AGENTS.md`: grep the subsystem heading |
-| Why a decision exists | `docs/RUN_LOG.md` §7; open findings in §8 |
-| Roadmap status/acceptance | `docs/NEXT_LEVEL_PLAN.md`, `docs/SHIP_PLAN.md` |
-| Art direction | `docs/art/OWNER_REFERENCE_BRIEF.md`, `design/ART_DIRECTION.md` |
-| Renderer/water detail | `docs/FJORD_RENDERER.md`: grep the system |
-| Asset build process | `.claude/skills/ecc/blender-asset-pipeline/SKILL.md` |
+| Graphics / Blender queue & tool safety | `docs/GRAPHICS_HANDOVER.md` (120 lines, self-contained) |
+| Farm-type item `F2-xx` | `docs/FARM_TYPES_SPEC.md`: grep `\| F2-xx \|` in §7, then only the section it cites |
+| Art palette & references | `docs/art/OWNER_REFERENCE_BRIEF.md` (~55 lines) |
+| Blender build & verify pipeline | `.claude/skills/ecc/blender-asset-pipeline/SKILL.md` |
+| Renderer / water / shaders | `docs/FJORD_RENDERER.md` (grep the subsystem name) |
+| Sim architecture & bridge | `AGENTS.md` (grep the subsystem heading) |
+| Historical rulings | `docs/RUN_LOG.md` §7 (grep item ID); open findings in §8 |
 
-Core seams: `SimulationEngine` partials and tick phases; `GameState` plus
-`SaveJson`; `SimRng`/`SimRngStreams`; `GameBridge.*.cs` → `SimProxies.gd` →
-`SimBridge.gd`; Godot presenters under `godot/scripts/visual/` and
-`godot/scripts/environment/`. Do not infer engine behaviour from UI text.
+## 5. Standard verification commands (run inside your worktree)
 
-## 5. Common verification
-
-Use a separate worktree. Run Godot silently and give each headless process its
-own token path. In a fresh worktree run `--import` once, alone; never overlap
-another headless import. Commands longer than 30 s should be backgrounded and
-polled; macOS has no `timeout` (use `perl -e 'alarm shift; exec @ARGV' N cmd`).
+Single commands time out at 30 s in some agent runners: background long commands (`pytest`, `run_ui_flow_tests.sh`) to `/tmp/<name>.log` and poll. Run `--import` once alone in a fresh worktree; never overlap two headless imports.
 
 ```bash
-dotnet build LakskongenSim.sln
-dotnet build godot/LakskongenGame.csproj
+dotnet build LakskongenSim.sln && dotnet build godot/LakskongenGame.csproj
 python3.12 -m pytest tests/ -q
 bash tools/validate_scenes.sh
-bash tools/run_ui_flow_tests.sh       # 5–8 min; exact MIN_CHECKS required
-CI_REQUIRE_ALL=1 ./tools/ci.sh        # integration/full gate, roughly 25–30 min
+bash tools/run_ui_flow_tests.sh   # 5–7 min; exact MIN_CHECKS required
 ```
 
-For C# save pins use `LC_ALL=C LANG=C dotnet test LakskongenSim.sln`. Graphics
-work normally runs only its asset/presenter tests plus scenes/UI flow; see the
-graphics handover for the exact current subset and already-observed results.
