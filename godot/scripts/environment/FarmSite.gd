@@ -73,6 +73,7 @@ var _band := Color(0, 0, 0, 0)
 var _net_opacity := 1.0
 var _net_fouling := 0.0
 var _skirt := false
+var _containment := "OpenNet"
 var _bird_net: int = PenCage.BirdNet.TENT
 var _health_rings := true
 static var _ghost_mat: StandardMaterial3D = null
@@ -95,6 +96,7 @@ func build(id: String, count: int, options: Dictionary = {}) -> void:
 	barge_side = float(options.get("barge_side", 1.0))
 	_band = options.get("band_color", Color(0, 0, 0, 0))
 	_net_opacity = float(options.get("net_opacity", 1.0))
+	_containment = "OpenNet"
 	_health_rings = bool(options.get("health_rings", true))
 	_bird_net = int(options.get("bird_net", PenCage.BirdNet.TENT))
 	for child in get_children():
@@ -176,10 +178,12 @@ func half_extent() -> Vector2:
 
 # === Variants (per site: every pen of a site is the same kit) ===
 
-## The site's kit as the sim reports it (GetSeaSiteDetails): the lice skirt
-## (has_skirt) and the nets' fouling (G3-04, net_fouling_for).
+## The site's kit as the sim reports it (GetSeaSiteDetails): containment,
+## the lice skirt (has_skirt) and the nets' fouling (G3-04, net_fouling_for).
 func apply_site_kit(site: Dictionary) -> void:
 	set_lice_skirt(bool(site.get("has_skirt", false)))
+	if site.has("containment"):
+		set_containment(str(site.get("containment", "OpenNet")))
 	set_net_fouling(net_fouling_for(site))
 
 
@@ -224,6 +228,25 @@ func set_lice_skirt(on: bool) -> void:
 func has_lice_skirt() -> bool:
 	return _skirt
 
+
+func get_containment() -> String:
+	return _containment
+
+
+## F2-30: the sim's site-wide containment selects each existing pen's model.
+## The pen positions, mooring frame, click areas and health rings do not move.
+func set_containment(level_name: String) -> void:
+	var level := PenCage.normalize_containment(level_name)
+	if level == _containment:
+		return
+	_containment = level
+	for cage in cages:
+		cage.set_containment(level)
+	_rebuild_lod_multimeshes()
+	if _ghost:
+		set_ghost(true)
+
+
 func set_bird_net(style: int) -> void:
 	_bird_net = style
 	for cage in cages:
@@ -261,7 +284,7 @@ func set_ghost(on: bool) -> void:
 			else:
 				mesh.cast_shadow = PenCage.shadow_for(String(mesh.name), 0)
 		for net in cage.get_net_nodes():
-			net.visible = not on
+			net.visible = (not on) and cage.part_shown(String(net.name))
 		cage.show_health_ring(_health_rings and not on)
 		if not on:
 			cage.set_bird_net(_bird_net)
@@ -401,6 +424,21 @@ func get_lod_multimeshes(level: int) -> Dictionary:
 	return _lod_parts.get(level, {})
 
 
+## Replace only the site's pen MultiMeshes after a containment model swap.
+## The next LOD update uploads fresh transforms; cages and all other site
+## nodes keep their identities.
+func _rebuild_lod_multimeshes() -> void:
+	for level in _lod_parts:
+		for part in _lod_parts[level]:
+			var mmi := _lod_parts[level][part] as MultiMeshInstance3D
+			remove_child(mmi)
+			mmi.queue_free()
+	_lod_parts.clear()
+	_lod_buffers.clear()
+	_rides_uploaded = -1
+	_build_lod_multimeshes()
+
+
 ## One MultiMesh per pen part for LOD1 and LOD2, from the pen scene's own
 ## LOD meshes (and so their materials); per-site state as instance uniforms.
 func _build_lod_multimeshes() -> void:
@@ -412,15 +450,22 @@ func _build_lod_multimeshes() -> void:
 			2.0 * (half.y + CLICK_MARGIN_M + 30.0)))
 	for level in [Lod.MID, Lod.FAR]:
 		var parts := {}
+		var active := pens_in_lod(level) > 0
+		var base_buf := _lod_buffer(level) if active else PackedFloat32Array()
+		if active:
+			_lod_buffers[level] = base_buf
 		for mesh in cages[0].get_lod_meshes(level):
 			var mm := MultiMesh.new()
 			mm.transform_format = MultiMesh.TRANSFORM_3D
 			mm.mesh = mesh.mesh
 			mm.instance_count = cages.size()
-			# Every instance starts collapsed (no pen in this LOD yet).
-			var zero := PackedFloat32Array()
-			zero.resize(cages.size() * 12)
-			mm.buffer = zero
+			if active:
+				mm.buffer = base_buf
+			else:
+				# Every instance starts collapsed (no pen in this LOD yet).
+				var zero := PackedFloat32Array()
+				zero.resize(cages.size() * 12)
+				mm.buffer = zero
 			mm.custom_aabb = box
 			var mmi := MultiMeshInstance3D.new()
 			mmi.name = "PenLOD%d_%s" % [level, mesh.name]

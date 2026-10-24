@@ -1,0 +1,41 @@
+{
+  "asset": "closed_donut",
+  "atlas": "godot/assets/models/facility_kit/textures/facility_atlas.png",
+  "bbox_size": [
+    49.3833,
+    16.806,
+    48.6331
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "freeboard_m": 3.0,
+    "major_radius_m": 16.757,
+    "mesh_volume_m3": 21103.459,
+    "outer_diameter_m": 49.383,
+    "tube_radius_m": 7.935,
+    "volume_m3": 20824.911
+  },
+  "file": "closed_donut_LOD2.glb",
+  "lod": "LOD2",
+  "material_count": 1,
+  "materials": [
+    "LK_FacilityKit"
+  ],
+  "part_strips": {
+    "Shell": "donut_shell",
+    "Walkway": "grating"
+  },
+  "parts": {
+    "Shell": 360,
+    "Walkway": 36
+  },
+  "surfaces": 1,
+  "swatches": {
+    "Shell": {
+      "hex": "#8F989D",
+      "spec": "#8E979C",
+      "strip": "donut_shell"
+    }
+  },
+  "tri_count": 396
+}

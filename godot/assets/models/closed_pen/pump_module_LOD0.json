@@ -1,0 +1,65 @@
+{
+  "asset": "pump_module",
+  "atlas": "godot/assets/models/facility_kit/textures/facility_atlas.png",
+  "bbox_size": [
+    7.8,
+    30.7,
+    3.05
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "base_z_m": 1.4,
+    "height_m": 3.0,
+    "intake_depth_m": 25.0,
+    "length_m": 6.0,
+    "width_m": 3.0
+  },
+  "file": "pump_module_LOD0.glb",
+  "lod": "LOD0",
+  "material_count": 1,
+  "materials": [
+    "LK_FacilityKit"
+  ],
+  "part_strips": {
+    "Brackets": "steel",
+    "Clamps": "steel",
+    "Door": "tank_lid",
+    "Eyes": "orange",
+    "Hose": "fender",
+    "Housing": "steel",
+    "Louvres": "steel",
+    "Manifold": "pipe",
+    "Mount": "steel",
+    "Pumps": "orange",
+    "Rail": "steel",
+    "Strainer": "orange"
+  },
+  "parts": {
+    "Brackets": 20,
+    "Clamps": 168,
+    "Door": 10,
+    "Eyes": 40,
+    "Hose": 192,
+    "Housing": 10,
+    "Louvres": 80,
+    "Manifold": 164,
+    "Mount": 12,
+    "Pumps": 224,
+    "Rail": 80,
+    "Strainer": 80
+  },
+  "surfaces": 1,
+  "swatches": {
+    "Housing": {
+      "hex": "#8B9197",
+      "spec": "#8A9096",
+      "strip": "steel"
+    },
+    "Pumps": {
+      "hex": "#DA622B",
+      "spec": "#D9622B",
+      "strip": "orange"
+    }
+  },
+  "tri_count": 1080
+}

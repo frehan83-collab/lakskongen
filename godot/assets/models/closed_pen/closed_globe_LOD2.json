@@ -1,0 +1,39 @@
+{
+  "asset": "closed_globe",
+  "atlas": "godot/assets/models/facility_kit/textures/facility_atlas.png",
+  "bbox_size": [
+    22.0,
+    19.176,
+    22.0
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "diameter_m": 19.176,
+    "freeboard_m": 5.188,
+    "mesh_volume_m3": 3391.501,
+    "volume_m3": 3692.093
+  },
+  "file": "closed_globe_LOD2.glb",
+  "lod": "LOD2",
+  "material_count": 1,
+  "materials": [
+    "LK_FacilityKit"
+  ],
+  "part_strips": {
+    "Shell": "lox",
+    "Walkway": "grating"
+  },
+  "parts": {
+    "Shell": 168,
+    "Walkway": 24
+  },
+  "surfaces": 1,
+  "swatches": {
+    "Shell": {
+      "hex": "#EAEDEB",
+      "spec": "#E9ECEA",
+      "strip": "lox"
+    }
+  },
+  "tri_count": 192
+}
