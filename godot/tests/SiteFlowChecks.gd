@@ -33,6 +33,7 @@ func run(runner: Node) -> void:
 	await _floating_gear_rides_the_water()
 	_pen_payload_drives_each_ring()
 	await _ghost_site_and_variants()
+	await _closed_containment_levels()
 
 
 func _check(ok: bool, label: String) -> void:
@@ -542,3 +543,89 @@ func _ghost_site_and_variants() -> void:
 	_check(variants, "sites: the bird-net style, skirt and band reach every pen and the site's LOD MultiMeshes")
 	holder.queue_free()
 	await _frames(1)
+
+
+## F2-30 acceptance 3: each containment level renders its own asset on a QA
+## site across the near/mid/far LOD chain, and the affordable player upgrade
+## verb drives the presenter end to end through the bridge.
+func _closed_containment_levels() -> void:
+	var scene: Node = await _open_scene("po3_red_sone")
+	var pens: FishPenManager = scene.get_node("FjordEnvironment/FishPenManager")
+	var farm_sor := pens.get_site("po3_sor")
+	var farm_nord := pens.get_site("po3_nord")
+	farm_sor.set_process(false)  # the probe positions, not the camera, drive LODs
+	farm_nord.set_process(false)
+	_check(_payload("po3_sor").get("containment") == "OpenNet" and _containment_view_ok(farm_sor, "OpenNet"),
+		"closed pens: OpenNet keeps the open cage at every LOD")
+	var upgraded: bool = t._sim.upgrade_containment("po3_sor", "Skirt")
+	t._sim.state_updated.emit()
+	await _frames(2)
+	var skirt_payload := _payload("po3_sor")
+	_check(upgraded and skirt_payload.get("containment") == "Skirt" and bool(skirt_payload.get("has_skirt", false)) and _containment_view_ok(farm_sor, "Skirt"),
+		"closed pens: the player upgrade renders Skirt and keeps pen interaction")
+	_check(_payload("po3_nord").get("containment") == "SemiClosed" and _containment_view_ok(farm_nord, "SemiClosed"),
+		"closed pens: SemiClosed renders semi_closed_ring + pump_module at every LOD")
+	for level in ["ClosedFloat", "Submersible", "OffshoreClosed"]:
+		farm_nord.apply_site_kit({"containment": level, "has_skirt": true})
+		var ok := _containment_view_ok(farm_nord, level)
+		if level == "OffshoreClosed":
+			farm_nord.apply_site_kit({"containment": "OpenNet", "has_skirt": false})
+			ok = ok and _containment_view_ok(farm_nord, "OpenNet")
+		_check(ok, "closed pens: QA site renders %s across near/mid/far LODs and keeps pen interaction" % level)
+	scene.queue_free()
+	await _frames(2)
+
+
+func _containment_view_ok(farm: FarmSite, level: String) -> bool:
+	var expected: Array = []
+	match level:
+		"OpenNet": expected = ["Collar", "Net"]
+		"Skirt": expected = ["Collar", "Net", "LiceSkirt"]
+		"SemiClosed": expected = ["SemiClosedRing", "PumpModule"]
+		"ClosedFloat": expected = ["ClosedDonut", "PumpModule"]
+		"Submersible", "OffshoreClosed": expected = ["ClosedGlobe", "PumpModule"]
+	farm.update_lods(farm.global_position)
+	var ok := farm.get_containment() == level
+	for cage in farm.cages:
+		ok = ok and cage.get_containment() == level and cage.is_lod0_visible()
+		ok = ok and cage.get_click_area() != null and cage.get_health_ring() != null
+		for part in expected:
+			var meshes := cage.get_parts(part)
+			ok = ok and not meshes.is_empty() and meshes.all(func(m: MeshInstance3D) -> bool: return m.visible)
+		if level in PenCage.CONTAINMENT_MODELS:
+			for mesh in cage.get_lod_meshes(0):
+				ok = ok and mesh.visible == (String(mesh.name) in expected)
+				if String(mesh.name) == "PumpModule":
+					ok = ok and mesh.position.distance_to(cage._pump_offset()) < 1e-4
+		else:
+			for part in PenCage.CLOSED_ASSETS:
+				ok = ok and cage.get_parts(part).is_empty()
+	# 500 m puts the whole QA grid in LOD1; 2,000 m puts it in LOD2.
+	farm.update_lods(farm.global_position + Vector3(0.0, 0.0, 500.0))
+	ok = _containment_lod_ok(farm, FarmSite.Lod.MID, expected) and ok
+	farm.update_lods(farm.global_position + Vector3(0.0, 0.0, 2000.0))
+	ok = _containment_lod_ok(farm, FarmSite.Lod.FAR, expected) and ok
+	farm.update_lods(farm.global_position)
+	return ok
+
+
+func _containment_lod_ok(farm: FarmSite, band: int, expected: Array) -> bool:
+	var ok := true
+	var parts := farm.get_lod_multimeshes(band)
+	for k in farm.cages.size():
+		ok = ok and farm.lod_state[k] == band and not farm.cages[k].is_lod0_visible()
+	for part in expected:
+		if band == FarmSite.Lod.FAR and part == "PumpModule":
+			ok = ok and not parts.has("PumpModule")
+			continue  # the spec gives the pump no LOD2
+		var mmi := parts.get(part) as MultiMeshInstance3D
+		ok = ok and mmi != null and mmi.visible and farm._part_shown(part)
+		if mmi != null:
+			for k in farm.pen_count:
+				var xf := MultiMeshPack.transform_of(mmi.multimesh, k)
+				ok = ok and xf.is_equal_approx(farm.cages[k].transform) and xf.basis.get_scale().length() > 1e-4
+	for part in PenCage.CLOSED_ASSETS:
+		if parts.has(part):
+			var wanted: bool = part in expected and not (band == FarmSite.Lod.FAR and part == "PumpModule")
+			ok = ok and (parts[part] as MultiMeshInstance3D).visible == wanted
+	return ok

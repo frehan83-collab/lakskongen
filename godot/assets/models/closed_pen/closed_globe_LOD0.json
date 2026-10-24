@@ -1,0 +1,49 @@
+{
+  "asset": "closed_globe",
+  "atlas": "godot/assets/models/facility_kit/textures/facility_atlas.png",
+  "bbox_size": [
+    22.0,
+    21.5,
+    22.0
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "diameter_m": 18.8,
+    "freeboard_m": 5.0,
+    "mesh_volume_m3": 3465.193,
+    "volume_m3": 3479.142
+  },
+  "file": "closed_globe_LOD0.glb",
+  "lod": "LOD0",
+  "material_count": 1,
+  "materials": [
+    "LK_FacilityKit"
+  ],
+  "part_strips": {
+    "Brackets": "steel",
+    "Hatches": "tank_lid",
+    "LampPosts": "steel",
+    "Lamps": "lamp",
+    "Rail": "steel",
+    "Shell": "lox",
+    "Walkway": "grating"
+  },
+  "parts": {
+    "Brackets": 96,
+    "Hatches": 20,
+    "LampPosts": 10,
+    "Lamps": 12,
+    "Rail": 512,
+    "Shell": 3968,
+    "Walkway": 256
+  },
+  "surfaces": 1,
+  "swatches": {
+    "Shell": {
+      "hex": "#EAEDEB",
+      "spec": "#E9ECEA",
+      "strip": "lox"
+    }
+  },
+  "tri_count": 4874
+}

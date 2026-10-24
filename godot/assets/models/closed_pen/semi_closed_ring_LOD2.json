@@ -1,0 +1,44 @@
+{
+  "asset": "semi_closed_ring",
+  "atlas": "godot/assets/models/facility_kit/textures/facility_atlas.png",
+  "bbox_size": [
+    40.0,
+    14.4,
+    40.0
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "collar_outer_diameter_m": 40.0,
+    "collar_top_m": 1.4,
+    "net_depth_m": 13.0,
+    "skirt_depth_m": 13.0
+  },
+  "file": "semi_closed_ring_LOD2.glb",
+  "lod": "LOD2",
+  "material_count": 1,
+  "materials": [
+    "LK_FacilityKit"
+  ],
+  "part_strips": {
+    "Collar": "steel",
+    "Skirt": "skirt_tarp"
+  },
+  "parts": {
+    "Collar": 128,
+    "Skirt": 64
+  },
+  "surfaces": 1,
+  "swatches": {
+    "Collar": {
+      "hex": "#8B9197",
+      "spec": "#8A9096",
+      "strip": "steel"
+    },
+    "Skirt": {
+      "hex": "#CACDC7",
+      "spec": "#C9CCC6",
+      "strip": "skirt_tarp"
+    }
+  },
+  "tri_count": 192
+}

@@ -89,6 +89,23 @@ const LABEL_HEIGHT := 11.0
 const LOD_SWITCH := [260.0, 850.0]
 const LOD_HYSTERESIS := 8.0
 const LOD_NAMES := ["", "LOD1", "LOD2"]
+## F2-30: site containment swaps the pen's visual, not its placement. These
+## are the six sim levels and the handover's asset mapping. Levels 4 and 5
+## deliberately use the specified globe; no unapproved model is invented.
+const CONTAINMENT_LEVELS := ["OpenNet", "Skirt", "SemiClosed", "ClosedFloat", "Submersible", "OffshoreClosed"]
+const CLOSED_DIR := "res://assets/models/closed_pen/"
+const CLOSED_ASSETS := {
+	"SemiClosedRing": "semi_closed_ring",
+	"ClosedDonut": "closed_donut",
+	"ClosedGlobe": "closed_globe",
+	"PumpModule": "pump_module",
+}
+const CONTAINMENT_MODELS := {
+	"SemiClosed": ["SemiClosedRing", "PumpModule"],
+	"ClosedFloat": ["ClosedDonut", "PumpModule"],
+	"Submersible": ["ClosedGlobe", "PumpModule"],
+	"OffshoreClosed": ["ClosedGlobe", "PumpModule"],
+}
 ## Parts drawn with the net shader (translucent, no shadows).
 const NET_PARTS := ["Net", "BirdNet", "BirdNetRim"]
 ## Parts that cast no shadow: the see-through nets and what hangs under the
@@ -139,6 +156,9 @@ var _net_fouling: float = 0.0
 var _net_nodes: Array[MeshInstance3D] = []
 var _lice_skirt: bool = false
 var _bird_net: int = BirdNet.TENT
+var _containment := "OpenNet"
+var _closed_nodes: Array[MeshInstance3D] = []
+static var _closed_mesh_cache := {}
 ## True once a FarmSite draws this pen's LOD1 and LOD2 (set_site_drawn).
 var _site_drawn := false
 var _lod0_shown := true
@@ -214,6 +234,99 @@ func get_lod_meshes(level: int) -> Array[MeshInstance3D]:
 		if child is MeshInstance3D and child != _health_ring and child.name != "HealthRing":
 			meshes.append(child as MeshInstance3D)
 	return meshes
+
+const CLOSED_SCENES := {
+	"semi_closed_ring_LOD0": preload("res://assets/models/closed_pen/semi_closed_ring_LOD0.glb"),
+	"semi_closed_ring_LOD1": preload("res://assets/models/closed_pen/semi_closed_ring_LOD1.glb"),
+	"semi_closed_ring_LOD2": preload("res://assets/models/closed_pen/semi_closed_ring_LOD2.glb"),
+	"closed_donut_LOD0": preload("res://assets/models/closed_pen/closed_donut_LOD0.glb"),
+	"closed_donut_LOD1": preload("res://assets/models/closed_pen/closed_donut_LOD1.glb"),
+	"closed_donut_LOD2": preload("res://assets/models/closed_pen/closed_donut_LOD2.glb"),
+	"closed_globe_LOD0": preload("res://assets/models/closed_pen/closed_globe_LOD0.glb"),
+	"closed_globe_LOD1": preload("res://assets/models/closed_pen/closed_globe_LOD1.glb"),
+	"closed_globe_LOD2": preload("res://assets/models/closed_pen/closed_globe_LOD2.glb"),
+	"pump_module_LOD0": preload("res://assets/models/closed_pen/pump_module_LOD0.glb"),
+	"pump_module_LOD1": preload("res://assets/models/closed_pen/pump_module_LOD1.glb"),
+}
+
+## The one mesh of a closed-kit GLB, extracted once per asset and LOD.
+static func _closed_mesh(asset: String, level: int) -> Mesh:
+	var key := "%s_LOD%d" % [asset, level]
+	if _closed_mesh_cache.has(key):
+		return _closed_mesh_cache[key] as Mesh
+	var scene := CLOSED_SCENES.get(key) as PackedScene
+	if scene == null:
+		scene = load(CLOSED_DIR + key + ".glb") as PackedScene
+	if scene == null:
+		push_error("[PenCage] missing closed-pen asset " + key)
+		return null
+	var root := scene.instantiate()
+	var found := root.find_children("*", "MeshInstance3D", true, false)
+	var mesh: Mesh = (found[0] as MeshInstance3D).mesh if not found.is_empty() else null
+	root.free()
+	if mesh == null:
+		push_error("[PenCage] closed-pen asset has no mesh " + key)
+		return null
+	_closed_mesh_cache[key] = mesh
+	return mesh
+
+
+static func normalize_containment(level_name: String) -> String:
+	return level_name if level_name in CONTAINMENT_LEVELS else "OpenNet"
+
+
+func get_containment() -> String:
+	return _containment
+
+
+func _pump_offset() -> Vector3:
+	# The pump's mounting plate underside is local y=1.28. Put that plane on
+	# the semi-closed collar (1.40), donut deck (3.12) or globe deck (1.20).
+	match _containment:
+		"SemiClosed": return Vector3(0.0, 0.12, 19.1)
+		"ClosedFloat": return Vector3(0.0, 1.84, 17.0)
+		_: return Vector3(0.0, -0.08, 9.25)
+
+
+## Swap only geometry. HealthRing, ClickArea, wave motion and the site's own
+## layout stay in place. A site rebuilds its MultiMeshes after changing all
+## of its cages, so this runs only on a real containment transition.
+func set_containment(level_name: String) -> void:
+	var level := normalize_containment(level_name)
+	if level == _containment:
+		return
+	_containment = level
+	for node in _closed_nodes:
+		if is_instance_valid(node):
+			node.get_parent().remove_child(node)
+			node.queue_free()
+	_closed_nodes.clear()
+	for part in CONTAINMENT_MODELS.get(_containment, []):
+		var part_name := String(part)
+		var bands := 2 if part_name == "PumpModule" else 3
+		for level_index in bands:
+			var mesh := _closed_mesh(CLOSED_ASSETS[part_name], level_index)
+			var holder := self if level_index == 0 else get_node_or_null(LOD_NAMES[level_index]) as Node3D
+			if mesh == null or holder == null:
+				continue
+			var mi := MeshInstance3D.new()
+			mi.name = part_name
+			mi.mesh = mesh
+			if part_name == "PumpModule":
+				mi.position = _pump_offset()
+			holder.add_child(mi)
+			_closed_nodes.append(mi)
+	_configure_lods()
+	set_site_drawn(_site_drawn)
+	set_lod0_visible(_lod0_shown)
+	_apply_model_visibility()
+
+
+func _apply_model_visibility() -> void:
+	for level in LOD_NAMES.size():
+		for mesh in get_lod_meshes(level):
+			mesh.visible = part_shown(String(mesh.name))
+
 
 ## Every mesh part of one name across the LODs (e.g. "Net", "Band").
 func get_parts(part: String) -> Array[MeshInstance3D]:
@@ -299,7 +412,7 @@ func get_band_nodes() -> Array[MeshInstance3D]:
 
 func _apply_band() -> void:
 	for band in get_band_nodes():
-		band.visible = _band_color.a > 0.0
+		band.visible = part_shown("Band")
 		band.set_instance_shader_parameter("band_color", _band_color)
 
 ## Net visibility, 0..1 (rival pens are drawn quieter than the player's).
@@ -369,7 +482,7 @@ func has_lice_skirt() -> bool:
 
 func _apply_lice_skirt() -> void:
 	for skirt in get_parts("LiceSkirt"):
-		skirt.visible = _lice_skirt
+		skirt.visible = part_shown("LiceSkirt")
 
 ## Which bird net the pen carries (BirdNet.TENT, RIM or NONE).
 func set_bird_net(style: int) -> void:
@@ -383,13 +496,18 @@ func _apply_bird_net() -> void:
 	for style in BIRD_NET_PARTS:
 		for part in BIRD_NET_PARTS[style]:
 			for mesh in get_parts(part):
-				mesh.visible = style == _bird_net
+				mesh.visible = part_shown(part)
 
-## Whether a part shows under the pen's current variants (skirt, bird net,
-## owner band): what a FarmSite's MultiMesh of that part shows.
+## Whether a part shows under the pen's current containment and variants.
+## Closed levels replace every open-pen part; their active kit parts are the
+## only ones shown. The same predicate drives the site's LOD MultiMeshes.
 func part_shown(part: String) -> bool:
+	if part in CLOSED_ASSETS:
+		return part in CONTAINMENT_MODELS.get(_containment, [])
+	if _containment in CONTAINMENT_MODELS:
+		return false
 	if part == "LiceSkirt":
-		return _lice_skirt
+		return _lice_skirt or _containment == "Skirt"
 	if part == "Band":
 		return _band_color.a > 0.0
 	for style in BIRD_NET_PARTS:

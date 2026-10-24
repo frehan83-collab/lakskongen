@@ -1225,6 +1225,138 @@
         0.24,
         8.0
       ]
+    },
+    "closed_donut_LOD0": {
+      "path": "godot/assets/models/closed_pen/closed_donut_LOD0.glb",
+      "sha256": "09270bc62fe5ca7201a7fcaa7e3f95bffe331c632072deb0b796ac69e698b5f7",
+      "size": 381888,
+      "tri_count": 8784,
+      "material_count": 1,
+      "bbox_size": [
+        50.2,
+        19.16,
+        50.2
+      ]
+    },
+    "closed_donut_LOD1": {
+      "path": "godot/assets/models/closed_pen/closed_donut_LOD1.glb",
+      "sha256": "b0377347b38bb1a96c4b500238759de09c8321b0a7bc11c8a4b051b28a3d5639",
+      "size": 68164,
+      "tri_count": 1884,
+      "material_count": 1,
+      "bbox_size": [
+        50.2,
+        17.42,
+        50.2
+      ]
+    },
+    "closed_donut_LOD2": {
+      "path": "godot/assets/models/closed_pen/closed_donut_LOD2.glb",
+      "sha256": "b9d5cc25e78dad36a5bfd597ecdb051832c328a9ca4708dc03c899a95757170c",
+      "size": 12900,
+      "tri_count": 396,
+      "material_count": 1,
+      "bbox_size": [
+        49.3833,
+        16.806,
+        48.6331
+      ]
+    },
+    "closed_globe_LOD0": {
+      "path": "godot/assets/models/closed_pen/closed_globe_LOD0.glb",
+      "sha256": "1e8bf122a96b1b5a942c16a0a671be41085526b71a131881a982fb89f6287792",
+      "size": 181404,
+      "tri_count": 4874,
+      "material_count": 1,
+      "bbox_size": [
+        22.0,
+        21.5,
+        22.0
+      ]
+    },
+    "closed_globe_LOD1": {
+      "path": "godot/assets/models/closed_pen/closed_globe_LOD1.glb",
+      "sha256": "b43c015da6f7551d6a7455a51836f4f8b55530d1b6fe9861a93345e25829eeab",
+      "size": 39824,
+      "tri_count": 1122,
+      "material_count": 1,
+      "bbox_size": [
+        22.0,
+        19.05,
+        22.0
+      ]
+    },
+    "closed_globe_LOD2": {
+      "path": "godot/assets/models/closed_pen/closed_globe_LOD2.glb",
+      "sha256": "d1e9f13f9af388b25cbc91226104f3c9aed04298c65fb4015a6220b6943022ec",
+      "size": 8172,
+      "tri_count": 192,
+      "material_count": 1,
+      "bbox_size": [
+        22.0,
+        19.176,
+        22.0
+      ]
+    },
+    "semi_closed_ring_LOD0": {
+      "path": "godot/assets/models/closed_pen/semi_closed_ring_LOD0.glb",
+      "sha256": "ce235249fd7ffd761e47315e5cdd7e0621aa2521e75fd1d860b174fa6f4b9495",
+      "size": 434588,
+      "tri_count": 6312,
+      "material_count": 1,
+      "bbox_size": [
+        41.4,
+        30.6238,
+        41.4
+      ]
+    },
+    "semi_closed_ring_LOD1": {
+      "path": "godot/assets/models/closed_pen/semi_closed_ring_LOD1.glb",
+      "sha256": "2c04d490ee0fd51f03c928995e5917691b0c3f0709d244024501871d75626b13",
+      "size": 93236,
+      "tri_count": 1288,
+      "material_count": 1,
+      "bbox_size": [
+        41.4,
+        30.5938,
+        41.4
+      ]
+    },
+    "semi_closed_ring_LOD2": {
+      "path": "godot/assets/models/closed_pen/semi_closed_ring_LOD2.glb",
+      "sha256": "7a9c94b258a18313c6e18aae9c5b5edba7f45607abad2226001f80ed32b523f9",
+      "size": 15368,
+      "tri_count": 192,
+      "material_count": 1,
+      "bbox_size": [
+        40.0,
+        14.4,
+        40.0
+      ]
+    },
+    "pump_module_LOD0": {
+      "path": "godot/assets/models/closed_pen/pump_module_LOD0.glb",
+      "sha256": "954bbbb42c1893cc4bc8d334c2f6fb90923a13796f8ea6ce1a06fb63127d75df",
+      "size": 57128,
+      "tri_count": 1080,
+      "material_count": 1,
+      "bbox_size": [
+        7.8,
+        30.7,
+        3.05
+      ]
+    },
+    "pump_module_LOD1": {
+      "path": "godot/assets/models/closed_pen/pump_module_LOD1.glb",
+      "sha256": "15fde7655ff9ef706b23412d28f1b581404f1d04d65a446b4257bbc4ceb0bce6",
+      "size": 15896,
+      "tri_count": 232,
+      "material_count": 1,
+      "bbox_size": [
+        7.8,
+        30.7,
+        3.0
+      ]
     }
   }
 }

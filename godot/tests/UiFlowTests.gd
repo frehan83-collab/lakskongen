@@ -2659,11 +2659,17 @@ func _test_hero_pen_and_site_kit() -> void:
 	_sim.set_paused(true)
 	var env: Node = scene.get_node("FjordEnvironment")
 	var pens: FishPenManager = env.get_node("FishPenManager")
-	var site_id := str(_sim.get_all_pens()[0].get("id", "")) if not _sim.get_all_pens().is_empty() else ""
+	var all_sites: Array = _sim.get_all_pens()
+	var site_row: Dictionary = all_sites[0] if not all_sites.is_empty() else {}
+	for s in all_sites:
+		if str(s.get("containment", "OpenNet")) == "OpenNet":
+			site_row = s
+			break
+	var site_id := str(site_row.get("id", ""))
 	# G2-04: a site is a grid of pens (it was one PenCage named after it).
 	var cages := pens.get_site_cages(site_id)
 	var cage: PenCage = cages[0] if not cages.is_empty() else null
-	_check(cage != null and cages.size() == int(_sim.get_all_pens()[0].get("pen_count", -1)),
+	_check(cage != null and cages.size() == int(site_row.get("pen_count", -1)),
 		"hero pen: site %s has its %d pens" % [site_id, cages.size()])
 	if cage == null:
 		scene.queue_free()

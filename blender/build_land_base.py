@@ -97,6 +97,11 @@ STRIPS = [
     # F2-28 construction kit (blender/build_construction_kit.py shares this
     # atlas): the temporary saturation of a building site, spec section 5.3.
     ("crane_yellow", "#E6BE2E", 0.50, "flat", 0.0, 0.0),
+    # F2-30 closed-pen kit (blender/build_closed_pens.py shares this atlas):
+    # the HDPE shell of the Donut and the skirt tarpaulin, spec section 5.3.
+    # Appended after crane_yellow: rows 0-27 keep their indices.
+    ("donut_shell", "#8E979C", 0.55, "seam", 2.0, 0.05),
+    ("skirt_tarp", "#C9CCC6", 0.70, "seam", 1.0, 0.04),
 ]
 STRIP_INDEX = {s[0]: i for i, s in enumerate(STRIPS)}
 
