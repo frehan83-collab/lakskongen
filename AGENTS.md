@@ -472,6 +472,7 @@ func my_bridge_method(arg: String) -> Dictionary: return _proxies.my_bridge_meth
 - **RNG divergence**: Check `SimRng.ImportStates` only imports keys already in `_streams` — streams MUST be created eagerly in `Initialize`
 - **Bridge contract test fails**: `tests/test_bridge_contract.py` parses all `GameBridge*.cs` — new methods must be in partials
 - **Save hash changes**: Any new serializable field in `GameState` changes hash — update golden files or accept comparative test
+- **MCP servers (Godot + Blender)**: configured in `.mcp.json` (Claude Code), `opencode.json` (opencode) and, for Cline, by `bash tools/setup_cline_mcp.sh` (writes `~/.cline/data/settings/cline_mcp_settings.json`). Check any client's config with `python3 tools/mcp_probe.py [--config cline]`: exit 0 = servers up and the live apps answer; 2 = servers fine but Godot/Blender not open (Blender: start the MCP add-on's server, port 9876); 1 = config/install problem
 - **godot MCP broken (esp. after CI)**: run `python3 tools/mcp_bridge_alias.py` — expect `OK: alias written …` + `OK: auth probe authed` (exit 0). Exit 2 = on-disk token ≠ editor memory → restart the Godot editor, then re-run. Root cause + full procedure: `docs/research/MCP_CAPABILITIES.md` §3
 
 ## Performance Targets

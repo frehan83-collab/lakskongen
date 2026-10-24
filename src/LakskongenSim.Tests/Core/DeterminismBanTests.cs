@@ -92,7 +92,7 @@ public class DeterminismBanTests
         }
         var allowed = ReadAllowlist(File.ReadAllLines(AllowlistPath(root)));
         Assert.DoesNotContain(allowed.Keys, k => k.StartsWith("godot/", StringComparison.Ordinal));
-        Assert.Equal(73, allowed.Count); // the allowlist's size before F2-04
+        Assert.Equal(72, allowed.Count); // 73 before F2-04; BloomEvent.Id's Guid left it (SHIP_PLAN §10)
         // A wall clock planted in a lane's partial would be found and keyed by it.
         string planted = File.ReadAllText(Path.Combine(root, DeterminismScanner.BridgeScope[1]))
             .Replace("public partial class GameBridge : Node\n{", "public partial class GameBridge : Node\n{\n    private static long Stamp() => System.DateTime.Now.Ticks;");
