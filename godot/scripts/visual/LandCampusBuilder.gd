@@ -134,6 +134,8 @@ const WALLS_TOP_PROGRESS := 0.96
 var view: Dictionary = {}
 ## F2-23: the yard's lamps and pools of light after dark (CampusLights).
 var lights: CampusLights = null
+## F2-24: the roof vents' steam in frost (RoofSteam).
+var steam: RoofSteam = null
 ## The pad (FjordTerrain.land_pad_slots row: centre, size, quay).
 var pad: Dictionary = {}
 
@@ -226,6 +228,9 @@ func build(unit_view: Dictionary, pad_slot: Dictionary) -> void:
 	lights = CampusLights.new()
 	add_child(lights)
 	lights.build(self)
+	steam = RoofSteam.new()
+	add_child(steam)
+	steam.build(self)
 	construction = ConstructionKitVisual.new()
 	add_child(construction)
 	construction.build(self)
@@ -806,6 +811,8 @@ func apply_state(unit_view: Dictionary) -> void:
 		_set_group("lot%d" % k, phase_share((lots[k] as Dictionary).get("build", site_build), "treatment_hall"))
 	if lights != null:
 		lights.set_built(built_groups(), tanks, _progress)
+	if steam != null:
+		steam.set_built(built_groups())
 	# A day that changes no tank uploads nothing (most days of a running site).
 	if tanks_changed or _uploaded_once == false:
 		_uploaded_once = true

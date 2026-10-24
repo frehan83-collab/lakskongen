@@ -98,6 +98,9 @@ const MOUTH_Z := -1300.0
 ## and the open sea's target re-chosen.
 const SEA_REFRESH_S := 0.5
 const TARGET_REFRESH_S := 0.25
+## F2-24: how often (s) the presentation weather's air and wind reach the
+## campuses' steam and the units' spray.
+const WEATHER_REFRESH_S := 0.5
 ## Sun elevations (deg) over which the kits' lights come on at dusk.
 const LIGHTS_ON_DEG := Vector2(6.0, -2.0)
 const FACILITY_KIT := preload("res://assets/models/facility_kit/LK_FacilityKit.tres")
@@ -166,6 +169,10 @@ var _seas_dirty := true
 var _target_names: Dictionary = {}
 var _sea_timer := 0.0
 var _target_timer := 0.0
+## F2-24: the weather the steam and the spray last had (a unit built later starts with it).
+var _weather_timer := 0.0
+var _air_c := 6.0
+var _wind := Vector2.ZERO
 ## F2-23: the game the views belong to (SimBridge.get_game_generation, which
 ## every new and loaded game changes; -1 before the first sync).
 var _generation := -1
@@ -317,6 +324,7 @@ func _create(row: Dictionary) -> void:
 		visuals[id] = campus
 		if campus.lights != null:
 			campus.lights.set_level(maxf(_light_level, 0.0))
+		campus.steam.set_weather(_air_c, _wind)
 		_register_campus_target(id, campus, pad)
 	elif str(row.get("variant", "")) != "of1":
 		# The Havfarm-class hull is stage 3 art (F2-29): nothing to draw yet.
@@ -334,6 +342,7 @@ func _create(row: Dictionary) -> void:
 		visuals[id] = unit
 		_register_target(id, unit.focus_point(), OF1_FRAMING, unit.unit.circumradius_m * OFFSHORE_DISC,
 			offshore_yaw(unit.focus_point()))
+		unit.set_wind(_wind)
 		if seas.has(id):
 			unit.set_sea(seas[id])
 
@@ -625,6 +634,10 @@ func _process(delta: float) -> void:
 	if _target_timer <= 0.0:
 		_target_timer = TARGET_REFRESH_S
 		_update_sea_target()
+	_weather_timer -= delta
+	if _weather_timer <= 0.0:
+		_weather_timer = WEATHER_REFRESH_S
+		update_weather_drama()
 
 
 ## F2-21: each offshore unit's sea today and its forecast (the engine's
@@ -646,7 +659,27 @@ func _refresh_seas() -> void:
 			continue
 		fresh[id] = forecast
 		unit.set_sea(forecast)
+		# F2-24: an open tilt incident lists the unit until it is resolved.
+		if sim.has_method("get_offshore_handling_state"):
+			unit.set_incident(str(sim.get_offshore_handling_state(id).get("active_incident_kind", "")))
 	seas = fresh
+
+
+## F2-24: the presentation weather's air and wind reach every campus's roof
+## steam (it steams below -2 degC) and every unit's spray (it flies downwind).
+func update_weather_drama() -> void:
+	var weather: Node = _director.get("weather_system") if _director != null else null
+	if weather == null or not weather.has_method("get_air_temperature_c"):
+		return
+	_air_c = float(weather.call("get_air_temperature_c"))
+	_wind = weather.call("get_wind")
+	for id: String in visuals:
+		var campus := visuals[id] as LandCampusBuilder
+		if campus != null and campus.steam != null:
+			campus.steam.set_weather(_air_c, _wind)
+		var unit := visuals[id] as OffshoreUnitVisual
+		if unit != null:
+			unit.set_wind(_wind)
 
 
 ## F2-21 (spec §4 "Wave driver"): the open sea draws the sea of the offshore

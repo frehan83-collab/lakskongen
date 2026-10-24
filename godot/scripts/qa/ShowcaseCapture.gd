@@ -14,7 +14,13 @@ extends "res://scripts/qa/FacilityPresenterCapture.gd"
 ##     framing of a unit or a plot, as G or a click takes the player there;
 ##   camera "first_sight": {"target": "unit:<key>", "t": s, "reduced": b}
 ##     the unit's first-sight sequence stood at s seconds;
-##   camera "teaser": {"t": s, "reduced": b} the teaser stood at s seconds.
+##   camera "teaser": {"t": s, "reduced": b} the teaser stood at s seconds;
+##   "air_c": n               F2-24: the air the weather stands at (deg C; it
+##     comes from the sim only, so a staged weather has its 6 deg default);
+##   "incident": "Tilt"       F2-24: the offshore unit's open incident (the
+##     engine's name), and the unit stands at its list;
+##   "settle_s": s            F2-24: seconds the shot waits for its particles to
+##     fill the air (default 2; the steam lives 5.5 s).
 ## Content checks ("checks"): "campus" (every corner of the campus in the
 ## frame; its screen box's pHash), "orange" (the pipe bridge's orange in the
 ## campus's box), "lights_ab" (the frame with the lights held off and on: lit
@@ -24,7 +30,12 @@ extends "res://scripts/qa/FacilityPresenterCapture.gd"
 ## "landmarks" (at the home view: OF1 hull pixels and the campus
 ## silhouette's lightness against the strandflat), "first_sight" (the
 ## sequence's state), "teaser" (the rival's hull on screen: its box and
-## hull-yellow pixels; the teaser's state).
+## hull-yellow pixels; the teaser's state), and for F2-24 "spray" (the unit's
+## spray state, and the pixels of its box that change with the spray held
+## off), "list" (the unit's roll, and where its mast top and the deck at both
+## ends of its beam stand on screen, upright and listed) and "steam" (the roof
+## vents steaming, and the pixels of the campus's box that change with the
+## steam held off).
 ##
 ## Output: res://screenshots/game/<id>.png and f2_23_showcase_metrics.json
 ## (merged over runs). Run: tools/capture_screenshots.sh --scene
@@ -41,6 +52,13 @@ const LIT_MIN_SV := Vector2(0.2, 0.72)
 const SKY_BAND := 0.1
 ## A whitecap is water this light (CIE L*).
 const FOAM_L := 62.0
+## F2-24: a pixel the spray or the steam changed differs by this much CIE L*;
+## the share of its height the steam's box reaches up for the plumes over the roofs.
+const DRAMA_DIFF_L := 6.0
+## The air over a column the spray is looked for in: this far (m) round it and up.
+const SPRAY_ZONE_M := 6.0
+const SPRAY_ZONE_UP_M := 14.0
+const STEAM_BOX_RISE := 0.3
 ## Margin (share) round a unit's box kept out of the open-water reads.
 const BOX_MARGIN := 0.12
 ## The hull's hue as it reads far off (spec F2-23 accept 5's hull-hue
@@ -78,9 +96,10 @@ func run_shots(shots: Array) -> void:
 		if not sequence:
 			_stage_sun(shot)
 			_stage_open_sea(shot)
+			_stage_drama(shot)
 			hide_overlays()
 		await _stage_showcase_camera(cam_spec)
-		await wait(2.0 if not sequence else 0.6)
+		await wait(float(shot.get("settle_s", 2.0 if not sequence else 0.6)))
 		_director.stage_cloud_drift(Vector2.ZERO)
 		var beauty := await grab()
 		var rec := {"camera": {"spec": cam_spec, "position": [_cam.global_position.x, _cam.global_position.y, _cam.global_position.z],
@@ -115,6 +134,12 @@ func run_shots(shots: Array) -> void:
 					rec["first_sight"] = _measure_sequence(beauty)
 				"teaser":
 					rec["teaser"] = _measure_teaser(beauty)
+				"spray":
+					rec["spray"] = await _spray_ab(beauty)
+				"list":
+					rec["list"] = _list_ab()
+				"steam":
+					rec["steam"] = await _steam_ab(str(cam_spec.get("target", "unit:land")), beauty)
 		save(beauty, sid + ".png")
 		_showcase[sid] = rec
 	_end_sequence()
@@ -123,7 +148,7 @@ func run_shots(shots: Array) -> void:
 	var merged := _previous_showcase()
 	merged.merge(_showcase, true)
 	var path := write_json(SHOWCASE_METRICS, {
-		"items": ["F2-21", "F2-23"], "generated_by": "res://scripts/qa/ShowcaseCapture.gd",
+		"items": ["F2-21", "F2-23", "F2-24"], "generated_by": "res://scripts/qa/ShowcaseCapture.gd",
 		"resolution": [int(size.x), int(size.y)], "shots": merged,
 	})
 	print("[Showcase] metrics: %s" % path)
@@ -232,6 +257,22 @@ func _end_sequence() -> void:
 		td._finish(true)
 		MotionPrefs.force(null)
 		hide_overlays()
+
+
+## F2-24: the air the weather stands at and the offshore unit's open incident.
+## The presenter takes the weather at once (it does every half second).
+func _stage_drama(shot: Dictionary) -> void:
+	var weather := _env.get("weather_system") as WeatherController
+	if shot.has("air_c") and weather != null:
+		for key: String in ["_current", "_target", "_start"]:
+			var blend: Variant = weather.get(key)
+			if blend is Dictionary:
+				(blend as Dictionary)["air_c"] = float(shot["air_c"])
+	_manager.call("update_weather_drama")
+	var unit := _manager.call("visual_of", str(_units.get("offshore", ""))) as OffshoreUnitVisual
+	if unit != null:
+		unit.set_incident(str(shot.get("incident", "")))
+		unit.list_deg = FacilityDrama.list_target_deg(unit.incident_kind)
 
 
 # ── Measurements ─────────────────────────────────────────────────────────────
@@ -452,6 +493,132 @@ func _measure_storm(img: Image) -> Dictionary:
 		"swell_hs_m": snappedf(float(composed.get("swell_hs", 0.0)), 0.01),
 		"open_sea_plot": str(composed.get("open_sea_plot", "")),
 		"foam_share": water["foam_share"], "wind_ms": snappedf(float((_env.get("weather_system") as WeatherController).get_wind_speed_ms()), 0.1)}
+
+
+## The particles in the air gone at once and none new (a restart clears them and
+## starts the emitter, which is then held off): the frame a few draws later
+## differs from the shot's by the drops and the puffs, the sea having moved only a little.
+func _clear_particles(emitter: GPUParticles3D) -> void:
+	emitter.restart()
+	emitter.emitting = false
+
+
+## Pixels of `box` whose CIE L* differs by DRAMA_DIFF_L or more between two frames.
+func _changed_pixels(a: Image, b: Image, box: Rect2i) -> int:
+	var da := a.get_data()
+	var db := b.get_data()
+	var w := a.get_width()
+	var n := 0
+	for y in range(box.position.y, box.end.y):
+		for x in range(box.position.x, box.end.x):
+			var o := (y * w + x) * 4
+			if absf(lab(da, o).x - lab(db, o).x) >= DRAMA_DIFF_L:
+				n += 1
+	return n
+
+
+## The screen rect of the air over one column of the unit: the volume its spray
+## fills (SPRAY_ZONE_M round the column, from the water up to SPRAY_ZONE_UP_M).
+func _column_zone(model: Node3D, column: Vector3, img: Image) -> Rect2i:
+	var lo := Vector2(INF, INF)
+	var hi := Vector2(-INF, -INF)
+	for dx: float in [-SPRAY_ZONE_M, SPRAY_ZONE_M]:
+		for dz: float in [-SPRAY_ZONE_M, SPRAY_ZONE_M]:
+			for y: float in [0.0, SPRAY_ZONE_UP_M]:
+				var p := model.to_global(Vector3(column.x + dx, y, column.z + dz))
+				if _cam.is_position_behind(p):
+					continue
+				var s := _cam.unproject_position(p)
+				lo = Vector2(minf(lo.x, s.x), minf(lo.y, s.y))
+				hi = Vector2(maxf(hi.x, s.x), maxf(hi.y, s.y))
+	if not lo.is_finite():
+		return Rect2i()
+	var x0 := clampi(int(lo.x), 0, img.get_width() - 1)
+	var y0 := clampi(int(lo.y), 0, img.get_height() - 1)
+	return Rect2i(x0, y0, maxi(0, clampi(int(hi.x), 0, img.get_width()) - x0), maxi(0, clampi(int(hi.y), 0, img.get_height()) - y0))
+
+
+## F2-24 spray: the unit's spray state, then the frame with it held off (its
+## drops gone) against the shot's own: the pixels of the air over the twelve
+## columns that changed (the sea and the rain round them move on their own, so
+## the unit's whole box would read them as spray).
+func _spray_ab(beauty: Image) -> Dictionary:
+	var unit := _manager.call("visual_of", str(_units.get("offshore", ""))) as OffshoreUnitVisual
+	if unit == null or unit.spray == null:
+		return {}
+	var spray := unit.spray
+	var today: Dictionary = unit.sea.get("today", {})
+	var out := {"hs_m": snappedf(float(today.get("hs", 0.0)), 0.01), "level": snappedf(spray.level, 0.001),
+		"emitting": spray.emitter.emitting, "amount_ratio": snappedf(spray.emitter.amount_ratio, 0.001),
+		"points": (spray.emitter.process_material as ParticleProcessMaterial).emission_point_count}
+	var was := spray.emitter.emitting
+	_clear_particles(spray.emitter)
+	var off := await grab()
+	spray.emitter.emitting = was
+	var zone_pixels := 0
+	var changed := 0
+	for column in FacilityDrama.column_points(unit.unit.circumradius_m):
+		var zone := _column_zone(unit.unit, column, beauty)
+		zone_pixels += zone.get_area()
+		changed += _changed_pixels(beauty, off, zone)
+	out["zone_pixels"] = zone_pixels
+	out["changed_pixels"] = changed
+	return out
+
+
+## F2-24 list: the unit upright, then at the list its open incident asks for
+## (both read in the same frame, so the wave under it is the same): the roll
+## and the screen places of its mast top and of the deck at both ends of its
+## beam.
+func _list_ab() -> Dictionary:
+	var unit := _manager.call("visual_of", str(_units.get("offshore", ""))) as OffshoreUnitVisual
+	if unit == null:
+		return {}
+	var target := FacilityDrama.list_target_deg(unit.incident_kind)
+	var model := unit.unit
+	var out := {"incident": unit.incident_kind, "target_deg": target}
+	unit.set_process(false)
+	for mode: String in ["upright", "listed"]:
+		unit.list_deg = 0.0 if mode == "upright" else target
+		unit._process(0.0)
+		var left := _cam.unproject_position(model.to_global(Vector3(-model.circumradius_m, model.deck_y_m, 0.0)))
+		var right := _cam.unproject_position(model.to_global(Vector3(model.circumradius_m, model.deck_y_m, 0.0)))
+		var mast := _cam.unproject_position(model.to_global(model.get_beacon_position()))
+		out[mode] = {"roll_deg": snappedf(rad_to_deg(model.rotation.z), 0.01), "mast": [roundi(mast.x), roundi(mast.y)],
+			"deck_left": [roundi(left.x), roundi(left.y)], "deck_right": [roundi(right.x), roundi(right.y)],
+			"deck_slope_px": roundi(right.y - left.y)}
+	unit.list_deg = target
+	unit.set_process(true)
+	unit._process(0.0)
+	var a: Array = (out["upright"] as Dictionary)["mast"]
+	var b: Array = (out["listed"] as Dictionary)["mast"]
+	out["mast_shift_px"] = snappedf(Vector2(float(a[0]), float(a[1])).distance_to(Vector2(float(b[0]), float(b[1]))), 0.1)
+	return out
+
+
+## F2-24 steam: the campus's vents (those that steam, and the air), then the
+## frame with the steam held off (its puffs gone) against the shot's own: the
+## pixels of the campus's box that changed.
+func _steam_ab(target: String, beauty: Image) -> Dictionary:
+	var campus := _campus(target)
+	if campus == null or campus.steam == null:
+		return {}
+	var steam := campus.steam
+	var weather := _env.get("weather_system") as WeatherController
+	var out := {"air_c": snappedf(weather.get_air_temperature_c(), 0.1), "level": snappedf(steam.level, 0.001),
+		"vents": steam.sources.size(), "steaming_vents": steam.steaming_vents(), "particles": steam.emitter.amount,
+		"emitting": steam.emitter.emitting, "amount_ratio": snappedf(steam.emitter.amount_ratio, 0.001)}
+	var was := steam.emitter.emitting
+	_clear_particles(steam.emitter)
+	var off := await grab()
+	steam.emitter.emitting = was
+	# The box reaches up for the plumes above the roofs (30% of its height more).
+	var box := _campus_roi_of(campus, beauty)
+	var rise := int(float(box.size.y) * STEAM_BOX_RISE)
+	box = Rect2i(box.position.x, maxi(0, box.position.y - rise), box.size.x, box.size.y + mini(rise, box.position.y))
+	out["box_pixels"] = box.get_area()
+	out["changed_pixels"] = _changed_pixels(beauty, off, box)
+	return out
 
 
 func _measure_chip() -> Dictionary:

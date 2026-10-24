@@ -2,7 +2,8 @@
   "generated_by": "res://scripts/qa/ShowcaseCapture.gd",
   "items": [
     "F2-21",
-    "F2-23"
+    "F2-23",
+    "F2-24"
   ],
   "resolution": [
     1920,
@@ -2573,6 +2574,957 @@
           "status": "building",
           "variant": "hfs",
           "whole_tanks": 0
+        }
+      }
+    },
+    "47_campus_frost_dusk": {
+      "camera": {
+        "fov_deg": 47.15,
+        "position": [
+          -73.9212341308594,
+          58.8857765197754,
+          -1706.76245117188
+        ],
+        "spec": {
+          "distance_m": 380.0,
+          "focus_y": 6.0,
+          "mode": "focus",
+          "pitch_deg": -8.0,
+          "target": "unit:land",
+          "yaw_deg": 78.0
+        }
+      },
+      "campus": {
+        "corners": 8,
+        "corners_in_frame": 4,
+        "distance_m": 380.3,
+        "phash_roi": "8cb9aeb49476ca9a",
+        "pitch_deg": -8.0,
+        "roi": [
+          0,
+          428,
+          1920,
+          1080
+        ]
+      },
+      "environment": {
+        "light_level": 1.0,
+        "mood": "blaatime",
+        "sun_elevation_deg": -3.5,
+        "weather": "clear"
+      },
+      "phash": "8ca1c0792abf9f8e",
+      "steam": {
+        "air_c": -9.0,
+        "amount_ratio": 0.737,
+        "box_pixels": 1626240,
+        "changed_pixels": 55754,
+        "emitting": true,
+        "level": 0.737,
+        "particles": 848,
+        "steaming_vents": 53,
+        "vents": 53
+      },
+      "units": {
+        "offshore_1": {
+          "buoys": 0,
+          "drawn_phase": "operational",
+          "engine_tanks": 0,
+          "fleet": [
+            "offshore_service"
+          ],
+          "hull_yellow": {
+            "box": [],
+            "share": 0.0
+          },
+          "operational": true,
+          "phase_count": 6,
+          "phase_index": 6,
+          "phase_key": "operational",
+          "phase_progress": 1.0,
+          "plot_id": "off_1",
+          "shadow_rule_ok": true,
+          "status": "complete",
+          "unit_visible": true,
+          "variant": "of1"
+        },
+        "postsmolt_1": {
+          "blast_state": 1.0,
+          "drawn_tanks": 4,
+          "engine_ready_tanks": 4,
+          "engine_tanks": 4,
+          "layout_clashes": [],
+          "lod0_triangles": 10842,
+          "lots": 2,
+          "operational": true,
+          "phase_count": 5,
+          "phase_index": 5,
+          "phase_key": "operational",
+          "phase_progress": 1.0,
+          "plot_id": "pad_delta",
+          "shadow_rule_ok": true,
+          "status": "none",
+          "variant": "post_smolt",
+          "whole_tanks": 4
+        },
+        "ras_1": {
+          "blast_state": 1.0,
+          "drawn_tanks": 56,
+          "engine_ready_tanks": 56,
+          "engine_tanks": 56,
+          "layout_clashes": [],
+          "lod0_triangles": 155714,
+          "lots": 4,
+          "operational": true,
+          "phase_count": 6,
+          "phase_index": 6,
+          "phase_key": "operational",
+          "phase_progress": 1.0,
+          "plot_id": "pad_a",
+          "shadow_rule_ok": true,
+          "status": "none",
+          "variant": "hfs",
+          "whole_tanks": 56
+        }
+      }
+    },
+    "47_campus_frost_steam": {
+      "camera": {
+        "fov_deg": 46.88,
+        "position": [
+          -61.0924682617188,
+          165.334762573242,
+          -1704.03564453125
+        ],
+        "spec": {
+          "distance_m": 420.0,
+          "focus_y": 8.0,
+          "mode": "focus",
+          "pitch_deg": -22.0,
+          "target": "unit:land",
+          "yaw_deg": 78.0
+        }
+      },
+      "campus": {
+        "corners": 8,
+        "corners_in_frame": 4,
+        "distance_m": 421.7,
+        "phash_roi": "f08f2ff8803f82d3",
+        "pitch_deg": -22.0,
+        "roi": [
+          31,
+          299,
+          1920,
+          1080
+        ]
+      },
+      "environment": {
+        "light_level": 0.0,
+        "mood": "frostroyk",
+        "sun_elevation_deg": 10.91,
+        "weather": "clear"
+      },
+      "phash": "c08f8cf08fe8b17e",
+      "phash_distance_vs_47_campus_mild_no_steam": 6,
+      "phash_roi_distance_vs_47_campus_mild_no_steam": 4,
+      "steam": {
+        "air_c": -9.0,
+        "amount_ratio": 0.737,
+        "box_pixels": 1917335,
+        "changed_pixels": 37021,
+        "emitting": true,
+        "level": 0.737,
+        "particles": 848,
+        "steaming_vents": 53,
+        "vents": 53
+      },
+      "units": {
+        "offshore_1": {
+          "buoys": 0,
+          "drawn_phase": "operational",
+          "engine_tanks": 0,
+          "fleet": [
+            "offshore_service"
+          ],
+          "hull_yellow": {
+            "box": [],
+            "share": 0.0
+          },
+          "operational": true,
+          "phase_count": 6,
+          "phase_index": 6,
+          "phase_key": "operational",
+          "phase_progress": 1.0,
+          "plot_id": "off_1",
+          "shadow_rule_ok": true,
+          "status": "complete",
+          "unit_visible": true,
+          "variant": "of1"
+        },
+        "postsmolt_1": {
+          "blast_state": 1.0,
+          "drawn_tanks": 4,
+          "engine_ready_tanks": 4,
+          "engine_tanks": 4,
+          "layout_clashes": [],
+          "lod0_triangles": 10842,
+          "lots": 2,
+          "operational": true,
+          "phase_count": 5,
+          "phase_index": 5,
+          "phase_key": "operational",
+          "phase_progress": 1.0,
+          "plot_id": "pad_delta",
+          "shadow_rule_ok": true,
+          "status": "none",
+          "variant": "post_smolt",
+          "whole_tanks": 4
+        },
+        "ras_1": {
+          "blast_state": 1.0,
+          "drawn_tanks": 56,
+          "engine_ready_tanks": 56,
+          "engine_tanks": 56,
+          "layout_clashes": [],
+          "lod0_triangles": 155714,
+          "lots": 4,
+          "operational": true,
+          "phase_count": 6,
+          "phase_index": 6,
+          "phase_key": "operational",
+          "phase_progress": 1.0,
+          "plot_id": "pad_a",
+          "shadow_rule_ok": true,
+          "status": "none",
+          "variant": "hfs",
+          "whole_tanks": 56
+        }
+      }
+    },
+    "47_campus_mild_no_steam": {
+      "camera": {
+        "fov_deg": 46.88,
+        "position": [
+          -61.0924682617188,
+          165.334762573242,
+          -1704.03564453125
+        ],
+        "spec": {
+          "distance_m": 420.0,
+          "focus_y": 8.0,
+          "mode": "focus",
+          "pitch_deg": -22.0,
+          "target": "unit:land",
+          "yaw_deg": 78.0
+        }
+      },
+      "campus": {
+        "corners": 8,
+        "corners_in_frame": 4,
+        "distance_m": 421.7,
+        "phash_roi": "e09f2ff8803f80f3",
+        "pitch_deg": -22.0,
+        "roi": [
+          31,
+          299,
+          1920,
+          1080
+        ]
+      },
+      "environment": {
+        "light_level": 0.0,
+        "mood": "frostroyk",
+        "sun_elevation_deg": 10.91,
+        "weather": "clear"
+      },
+      "phash": "c58f80d08fe8f17e",
+      "steam": {
+        "air_c": 4.0,
+        "amount_ratio": 0.05,
+        "box_pixels": 1917335,
+        "changed_pixels": 3583,
+        "emitting": false,
+        "level": 0.0,
+        "particles": 848,
+        "steaming_vents": 0,
+        "vents": 53
+      },
+      "units": {
+        "offshore_1": {
+          "buoys": 0,
+          "drawn_phase": "operational",
+          "engine_tanks": 0,
+          "fleet": [
+            "offshore_service"
+          ],
+          "hull_yellow": {
+            "box": [],
+            "share": 0.0
+          },
+          "operational": true,
+          "phase_count": 6,
+          "phase_index": 6,
+          "phase_key": "operational",
+          "phase_progress": 1.0,
+          "plot_id": "off_1",
+          "shadow_rule_ok": true,
+          "status": "complete",
+          "unit_visible": true,
+          "variant": "of1"
+        },
+        "postsmolt_1": {
+          "blast_state": 1.0,
+          "drawn_tanks": 4,
+          "engine_ready_tanks": 4,
+          "engine_tanks": 4,
+          "layout_clashes": [],
+          "lod0_triangles": 10842,
+          "lots": 2,
+          "operational": true,
+          "phase_count": 5,
+          "phase_index": 5,
+          "phase_key": "operational",
+          "phase_progress": 1.0,
+          "plot_id": "pad_delta",
+          "shadow_rule_ok": true,
+          "status": "none",
+          "variant": "post_smolt",
+          "whole_tanks": 4
+        },
+        "ras_1": {
+          "blast_state": 1.0,
+          "drawn_tanks": 56,
+          "engine_ready_tanks": 56,
+          "engine_tanks": 56,
+          "layout_clashes": [],
+          "lod0_triangles": 155714,
+          "lots": 4,
+          "operational": true,
+          "phase_count": 6,
+          "phase_index": 6,
+          "phase_key": "operational",
+          "phase_progress": 1.0,
+          "plot_id": "pad_a",
+          "shadow_rule_ok": true,
+          "status": "none",
+          "variant": "hfs",
+          "whole_tanks": 56
+        }
+      }
+    },
+    "47_of1_calm_no_spray": {
+      "camera": {
+        "fov_deg": 48.71,
+        "position": [
+          -513.562805175781,
+          67.9837341308594,
+          -2949.34375
+        ],
+        "spec": {
+          "mode": "target",
+          "target": "unit:offshore"
+        }
+      },
+      "chip": {
+        "distance_m": 220.0,
+        "on_screen": true,
+        "screen": [
+          960.0,
+          340.0
+        ],
+        "shape": 0.0,
+        "text": "Hs 2,4 m · Tp 11 s · i morgen 2,0 m · behandlingsvindu om 1 d",
+        "transmittance": 0.9579,
+        "visible": true
+      },
+      "environment": {
+        "light_level": 0.0,
+        "mood": "graavaer",
+        "sun_elevation_deg": 52.61,
+        "weather": "overcast"
+      },
+      "phash": "fada1b199ce6b288",
+      "spray": {
+        "amount_ratio": 0.05,
+        "changed_pixels": 3522.0,
+        "emitting": false,
+        "hs_m": 2.4,
+        "level": 0.0,
+        "points": 12.0,
+        "zone_pixels": 100730.0
+      },
+      "units": {
+        "offshore_1": {
+          "buoys": 0.0,
+          "drawn_phase": "operational",
+          "engine_tanks": 0.0,
+          "fleet": [
+            "offshore_service"
+          ],
+          "hull_yellow": {
+            "box": [
+              643.0,
+              339.0,
+              1280.0,
+              660.0
+            ],
+            "mean_rgb": [
+              168.0,
+              147.0,
+              72.0
+            ],
+            "share": 0.1272
+          },
+          "operational": true,
+          "phase_count": 6.0,
+          "phase_index": 6.0,
+          "phase_key": "operational",
+          "phase_progress": 1.0,
+          "plot_id": "off_1",
+          "shadow_rule_ok": true,
+          "status": "complete",
+          "unit_visible": true,
+          "variant": "of1"
+        },
+        "postsmolt_1": {
+          "blast_state": 1.0,
+          "drawn_tanks": 4.0,
+          "engine_ready_tanks": 4.0,
+          "engine_tanks": 4.0,
+          "layout_clashes": [],
+          "lod0_triangles": 10842.0,
+          "lots": 2.0,
+          "operational": true,
+          "phase_count": 5.0,
+          "phase_index": 5.0,
+          "phase_key": "operational",
+          "phase_progress": 1.0,
+          "plot_id": "pad_delta",
+          "shadow_rule_ok": true,
+          "status": "none",
+          "variant": "post_smolt",
+          "whole_tanks": 4.0
+        },
+        "ras_1": {
+          "blast_state": 1.0,
+          "drawn_tanks": 56.0,
+          "engine_ready_tanks": 56.0,
+          "engine_tanks": 56.0,
+          "layout_clashes": [],
+          "lod0_triangles": 155714.0,
+          "lots": 4.0,
+          "operational": true,
+          "phase_count": 6.0,
+          "phase_index": 6.0,
+          "phase_key": "operational",
+          "phase_progress": 1.0,
+          "plot_id": "pad_a",
+          "shadow_rule_ok": true,
+          "status": "none",
+          "variant": "hfs",
+          "whole_tanks": 56.0
+        }
+      }
+    },
+    "47_of1_gale_full_spray": {
+      "camera": {
+        "fov_deg": 48.71,
+        "position": [
+          -513.562805175781,
+          67.9837341308594,
+          -2949.34375
+        ],
+        "spec": {
+          "mode": "target",
+          "target": "unit:offshore"
+        }
+      },
+      "environment": {
+        "light_level": 0.0,
+        "mood": "storm",
+        "sun_elevation_deg": 13.15,
+        "weather": "storm"
+      },
+      "phash": "cedb30dace713498",
+      "phash_distance_vs_47_of1_storm_spray": 16.0,
+      "spray": {
+        "amount_ratio": 0.591,
+        "changed_pixels": 28344.0,
+        "emitting": true,
+        "hs_m": 6.8,
+        "level": 1.0,
+        "points": 12.0,
+        "zone_pixels": 99998.0
+      },
+      "storm": {
+        "exposed_hs_m": 6.77,
+        "foam_share": 0.0,
+        "open_sea_plot": "off_1",
+        "swell_hs_m": 3.8,
+        "wind_ms": 16.0
+      },
+      "units": {
+        "offshore_1": {
+          "buoys": 0.0,
+          "drawn_phase": "operational",
+          "engine_tanks": 0.0,
+          "fleet": [
+            "offshore_service"
+          ],
+          "hull_yellow": {
+            "box": [
+              644.0,
+              339.0,
+              1280.0,
+              661.0
+            ],
+            "mean_rgb": [
+              136.0,
+              116.0,
+              53.0
+            ],
+            "share": 0.1001
+          },
+          "operational": true,
+          "phase_count": 6.0,
+          "phase_index": 6.0,
+          "phase_key": "operational",
+          "phase_progress": 1.0,
+          "plot_id": "off_1",
+          "shadow_rule_ok": true,
+          "status": "complete",
+          "unit_visible": true,
+          "variant": "of1"
+        },
+        "postsmolt_1": {
+          "blast_state": 1.0,
+          "drawn_tanks": 4.0,
+          "engine_ready_tanks": 4.0,
+          "engine_tanks": 4.0,
+          "layout_clashes": [],
+          "lod0_triangles": 10842.0,
+          "lots": 2.0,
+          "operational": true,
+          "phase_count": 5.0,
+          "phase_index": 5.0,
+          "phase_key": "operational",
+          "phase_progress": 1.0,
+          "plot_id": "pad_delta",
+          "shadow_rule_ok": true,
+          "status": "none",
+          "variant": "post_smolt",
+          "whole_tanks": 4.0
+        },
+        "ras_1": {
+          "blast_state": 1.0,
+          "drawn_tanks": 56.0,
+          "engine_ready_tanks": 56.0,
+          "engine_tanks": 56.0,
+          "layout_clashes": [],
+          "lod0_triangles": 155714.0,
+          "lots": 4.0,
+          "operational": true,
+          "phase_count": 6.0,
+          "phase_index": 6.0,
+          "phase_key": "operational",
+          "phase_progress": 1.0,
+          "plot_id": "pad_a",
+          "shadow_rule_ok": true,
+          "status": "none",
+          "variant": "hfs",
+          "whole_tanks": 56.0
+        }
+      }
+    },
+    "47_of1_storm_spray": {
+      "camera": {
+        "fov_deg": 48.71,
+        "position": [
+          -513.562805175781,
+          67.9837341308594,
+          -2949.34375
+        ],
+        "spec": {
+          "mode": "target",
+          "target": "unit:offshore"
+        }
+      },
+      "chip": {
+        "distance_m": 220.0,
+        "on_screen": true,
+        "screen": [
+          960.0,
+          340.0
+        ],
+        "shape": 2.0,
+        "text": "Hs 4,8 m · Tp 12 s · i morgen 4,1 m · behandlingsvindu om 1 d",
+        "transmittance": 0.7339,
+        "visible": true
+      },
+      "environment": {
+        "light_level": 0.0,
+        "mood": "storm",
+        "sun_elevation_deg": 13.15,
+        "weather": "storm"
+      },
+      "phash": "9cda339cda6235d8",
+      "phash_distance_vs_47_of1_calm_no_spray": 20.0,
+      "spray": {
+        "amount_ratio": 0.695,
+        "changed_pixels": 25640.0,
+        "emitting": true,
+        "hs_m": 4.8,
+        "level": 0.701,
+        "points": 12.0,
+        "zone_pixels": 101213.0
+      },
+      "storm": {
+        "exposed_hs_m": 4.8,
+        "foam_share": 0.0,
+        "open_sea_plot": "off_1",
+        "swell_hs_m": 2.81,
+        "wind_ms": 16.0
+      },
+      "units": {
+        "offshore_1": {
+          "buoys": 0.0,
+          "drawn_phase": "operational",
+          "engine_tanks": 0.0,
+          "fleet": [
+            "offshore_service"
+          ],
+          "hull_yellow": {
+            "box": [
+              643.0,
+              339.0,
+              1280.0,
+              660.0
+            ],
+            "mean_rgb": [
+              135.0,
+              115.0,
+              52.0
+            ],
+            "share": 0.1004
+          },
+          "operational": true,
+          "phase_count": 6.0,
+          "phase_index": 6.0,
+          "phase_key": "operational",
+          "phase_progress": 1.0,
+          "plot_id": "off_1",
+          "shadow_rule_ok": true,
+          "status": "complete",
+          "unit_visible": true,
+          "variant": "of1"
+        },
+        "postsmolt_1": {
+          "blast_state": 1.0,
+          "drawn_tanks": 4.0,
+          "engine_ready_tanks": 4.0,
+          "engine_tanks": 4.0,
+          "layout_clashes": [],
+          "lod0_triangles": 10842.0,
+          "lots": 2.0,
+          "operational": true,
+          "phase_count": 5.0,
+          "phase_index": 5.0,
+          "phase_key": "operational",
+          "phase_progress": 1.0,
+          "plot_id": "pad_delta",
+          "shadow_rule_ok": true,
+          "status": "none",
+          "variant": "post_smolt",
+          "whole_tanks": 4.0
+        },
+        "ras_1": {
+          "blast_state": 1.0,
+          "drawn_tanks": 56.0,
+          "engine_ready_tanks": 56.0,
+          "engine_tanks": 56.0,
+          "layout_clashes": [],
+          "lod0_triangles": 155714.0,
+          "lots": 4.0,
+          "operational": true,
+          "phase_count": 6.0,
+          "phase_index": 6.0,
+          "phase_key": "operational",
+          "phase_progress": 1.0,
+          "plot_id": "pad_a",
+          "shadow_rule_ok": true,
+          "status": "none",
+          "variant": "hfs",
+          "whole_tanks": 56.0
+        }
+      }
+    },
+    "47_of1_tilt_list": {
+      "camera": {
+        "fov_deg": 48.71,
+        "position": [
+          -513.562805175781,
+          67.9837341308594,
+          -2949.34375
+        ],
+        "spec": {
+          "mode": "target",
+          "target": "unit:offshore"
+        }
+      },
+      "environment": {
+        "light_level": 0.0,
+        "mood": "graavaer",
+        "sun_elevation_deg": 52.61,
+        "weather": "overcast"
+      },
+      "list": {
+        "incident": "Tilt",
+        "listed": {
+          "deck_left": [
+            646.0,
+            481.0
+          ],
+          "deck_right": [
+            1253.0,
+            438.0
+          ],
+          "deck_slope_px": -43.0,
+          "mast": [
+            954.0,
+            390.0
+          ],
+          "roll_deg": 2.61
+        },
+        "mast_shift_px": 7.0,
+        "target_deg": 2.6,
+        "upright": {
+          "deck_left": [
+            649.0,
+            467.0
+          ],
+          "deck_right": [
+            1256.0,
+            451.0
+          ],
+          "deck_slope_px": -16.0,
+          "mast": [
+            961.0,
+            390.0
+          ],
+          "roll_deg": 0.01
+        }
+      },
+      "phash": "fada1b1858e6b2cc",
+      "phash_distance_vs_47_of1_upright_calm": 4.0,
+      "spray": {
+        "amount_ratio": 0.05,
+        "changed_pixels": 3115.0,
+        "emitting": false,
+        "hs_m": 1.6,
+        "level": 0.0,
+        "points": 12.0,
+        "zone_pixels": 104561.0
+      },
+      "units": {
+        "offshore_1": {
+          "buoys": 0.0,
+          "drawn_phase": "operational",
+          "engine_tanks": 0.0,
+          "fleet": [
+            "offshore_service"
+          ],
+          "hull_yellow": {
+            "box": [
+              643.0,
+              339.0,
+              1280.0,
+              660.0
+            ],
+            "mean_rgb": [
+              168.0,
+              147.0,
+              72.0
+            ],
+            "share": 0.1267
+          },
+          "operational": true,
+          "phase_count": 6.0,
+          "phase_index": 6.0,
+          "phase_key": "operational",
+          "phase_progress": 1.0,
+          "plot_id": "off_1",
+          "shadow_rule_ok": true,
+          "status": "complete",
+          "unit_visible": true,
+          "variant": "of1"
+        },
+        "postsmolt_1": {
+          "blast_state": 1.0,
+          "drawn_tanks": 4.0,
+          "engine_ready_tanks": 4.0,
+          "engine_tanks": 4.0,
+          "layout_clashes": [],
+          "lod0_triangles": 10842.0,
+          "lots": 2.0,
+          "operational": true,
+          "phase_count": 5.0,
+          "phase_index": 5.0,
+          "phase_key": "operational",
+          "phase_progress": 1.0,
+          "plot_id": "pad_delta",
+          "shadow_rule_ok": true,
+          "status": "none",
+          "variant": "post_smolt",
+          "whole_tanks": 4.0
+        },
+        "ras_1": {
+          "blast_state": 1.0,
+          "drawn_tanks": 56.0,
+          "engine_ready_tanks": 56.0,
+          "engine_tanks": 56.0,
+          "layout_clashes": [],
+          "lod0_triangles": 155714.0,
+          "lots": 4.0,
+          "operational": true,
+          "phase_count": 6.0,
+          "phase_index": 6.0,
+          "phase_key": "operational",
+          "phase_progress": 1.0,
+          "plot_id": "pad_a",
+          "shadow_rule_ok": true,
+          "status": "none",
+          "variant": "hfs",
+          "whole_tanks": 56.0
+        }
+      }
+    },
+    "47_of1_upright_calm": {
+      "camera": {
+        "fov_deg": 48.71,
+        "position": [
+          -513.562805175781,
+          67.9837341308594,
+          -2949.34375
+        ],
+        "spec": {
+          "mode": "target",
+          "target": "unit:offshore"
+        }
+      },
+      "environment": {
+        "light_level": 0.0,
+        "mood": "graavaer",
+        "sun_elevation_deg": 52.61,
+        "weather": "overcast"
+      },
+      "list": {
+        "incident": "",
+        "listed": {
+          "deck_left": [
+            649.0,
+            467.0
+          ],
+          "deck_right": [
+            1256.0,
+            451.0
+          ],
+          "deck_slope_px": -15.0,
+          "mast": [
+            961.0,
+            390.0
+          ],
+          "roll_deg": -0.01
+        },
+        "mast_shift_px": 0.0,
+        "target_deg": 0.0,
+        "upright": {
+          "deck_left": [
+            649.0,
+            467.0
+          ],
+          "deck_right": [
+            1256.0,
+            451.0
+          ],
+          "deck_slope_px": -15.0,
+          "mast": [
+            961.0,
+            390.0
+          ],
+          "roll_deg": -0.01
+        }
+      },
+      "phash": "fada1b181cf6b2c8",
+      "units": {
+        "offshore_1": {
+          "buoys": 0.0,
+          "drawn_phase": "operational",
+          "engine_tanks": 0.0,
+          "fleet": [
+            "offshore_service"
+          ],
+          "hull_yellow": {
+            "box": [
+              643.0,
+              339.0,
+              1280.0,
+              660.0
+            ],
+            "mean_rgb": [
+              168.0,
+              148.0,
+              72.0
+            ],
+            "share": 0.1264
+          },
+          "operational": true,
+          "phase_count": 6.0,
+          "phase_index": 6.0,
+          "phase_key": "operational",
+          "phase_progress": 1.0,
+          "plot_id": "off_1",
+          "shadow_rule_ok": true,
+          "status": "complete",
+          "unit_visible": true,
+          "variant": "of1"
+        },
+        "postsmolt_1": {
+          "blast_state": 1.0,
+          "drawn_tanks": 4.0,
+          "engine_ready_tanks": 4.0,
+          "engine_tanks": 4.0,
+          "layout_clashes": [],
+          "lod0_triangles": 10842.0,
+          "lots": 2.0,
+          "operational": true,
+          "phase_count": 5.0,
+          "phase_index": 5.0,
+          "phase_key": "operational",
+          "phase_progress": 1.0,
+          "plot_id": "pad_delta",
+          "shadow_rule_ok": true,
+          "status": "none",
+          "variant": "post_smolt",
+          "whole_tanks": 4.0
+        },
+        "ras_1": {
+          "blast_state": 1.0,
+          "drawn_tanks": 56.0,
+          "engine_ready_tanks": 56.0,
+          "engine_tanks": 56.0,
+          "layout_clashes": [],
+          "lod0_triangles": 155714.0,
+          "lots": 4.0,
+          "operational": true,
+          "phase_count": 6.0,
+          "phase_index": 6.0,
+          "phase_key": "operational",
+          "phase_progress": 1.0,
+          "plot_id": "pad_a",
+          "shadow_rule_ok": true,
+          "status": "none",
+          "variant": "hfs",
+          "whole_tanks": 56.0
         }
       }
     }

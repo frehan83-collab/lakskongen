@@ -39,6 +39,12 @@ extends Node3D
 ## visibility (rule 2, F2-18). Far off it shortens to the Hs. Its colours
 ## never come near the hull's safety yellow (rule 6: STATUS_COLORS, delta E
 ## >= 20 against HULL_YELLOW, tests/test_camera_bookmarks.py).
+##
+## Weather drama and incident poses (F2-24, spec §4, §5.4; the rules are
+## FacilityDrama's): the unit's columns throw spray above Hs 3 m (UnitSpray,
+## fed the engine's sea in set_sea), and while the engine has a tilt incident
+## open at the unit (set_incident) it stands at a list of at most 3 degrees,
+## eased in and out, until the incident is resolved.
 
 signal clicked(at: Vector3)
 
@@ -113,6 +119,12 @@ var _chip_key := ""
 var _director: Node = null
 ## F2-23: a cinematic over the unit holds its chip back.
 var chip_suppressed := false
+## F2-24: spray at the columns in a heavy sea (a child of the unit's model).
+var spray: UnitSpray = null
+## F2-24: the engine's open incident at the unit ("" none, "Tilt", ...) and the
+## list (deg) the unit stands at now.
+var incident_kind := ""
+var list_deg := 0.0
 
 
 ## The render layers an offshore part is drawn on: what hangs under the
@@ -129,6 +141,9 @@ func build(unit_view: Dictionary, unit_heading: float = 0.0) -> void:
 	unit = UNIT_SCENE.instantiate() as OffshoreUnitModel
 	unit.name = "Unit"
 	add_child(unit)
+	spray = UnitSpray.new()
+	unit.add_child(spray)
+	spray.build(FacilityDrama.column_points(unit.circumradius_m))
 	for level in 3:
 		for mesh in unit.get_lod_meshes(level):
 			mesh.layers = layers_for(String(mesh.name))
@@ -339,7 +354,19 @@ func focus_point() -> Vector3:
 ## F2-21: the engine's sea at the unit (SimBridge.get_sea_state_forecast).
 func set_sea(forecast: Dictionary) -> void:
 	sea = forecast
+	spray.set_hs(float((forecast.get("today", {}) as Dictionary).get("hs", 0.0)) if bool(forecast.get("ok", false)) else 0.0)
 	_refresh_chip(_camera_distance())
+
+
+## F2-24: the engine's open incident at the unit (SimBridge.get_offshore_handling_state:
+## "active_incident_kind"); a tilt lists the unit until it is resolved.
+func set_incident(kind: String) -> void:
+	incident_kind = kind
+
+
+## F2-24: the presentation weather's wind (m/s, x/z) carries the spray downwind.
+func set_wind(wind: Vector2) -> void:
+	spray.set_wind(wind)
 
 
 ## The chip's status: 0 a standard vessel can work today, 1 only a DP
@@ -420,10 +447,15 @@ func _camera_distance() -> float:
 	return cam.global_position.distance_to(global_transform * station) if cam != null else INF
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	_refresh_chip(_camera_distance())
+	list_deg = move_toward(list_deg, FacilityDrama.list_target_deg(incident_kind), FacilityDrama.LIST_RATE_DEG_S * delta)
+	if unit == null or not unit.visible:
+		return
+	var list_rad := deg_to_rad(list_deg)
 	var field := WaveField.active
-	if field == null or unit == null or not unit.visible:
+	if field == null:
+		unit.rotation = Vector3(0.0, heading, list_rad)
 		return
 	var rest := Vector3(unit.position.x, 0.0, unit.position.z)
 	var r := unit.circumradius_m
@@ -432,4 +464,4 @@ func _process(_delta: float) -> void:
 	var across := Vector2(cos(heading), -sin(heading))
 	var plane := field.hull(rest.x, rest.z, along, across, r, r)
 	unit.position.y = plane.x * HEAVE_GAIN
-	unit.rotation = Vector3(-atan(plane.y) * TILT_GAIN, heading, atan(plane.z) * TILT_GAIN)
+	unit.rotation = Vector3(-atan(plane.y) * TILT_GAIN, heading, atan(plane.z) * TILT_GAIN + list_rad)
