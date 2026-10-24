@@ -8,6 +8,16 @@
 				"run",
 				"blender-mcp"
 			]
+		},
+		"godot": {
+			"command": "npx",
+			"args": [
+				"-y",
+				"@npgamedev/godot-mcp-server"
+			],
+			"env": {
+				"GODOT_MCP_PROJECT_PATH": "${HOME}/lakskongen/godot"
+			}
 		}
 	}
 }
